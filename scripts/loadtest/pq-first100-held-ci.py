@@ -13,6 +13,7 @@ import sys
 import urllib.request
 
 PROFILE = 'first100-held-public-owner'
+BUSINESS_PROFILE = 'first100-held-public-owner-business'
 REF = 'refs/heads/codex/ynx-pq-current75-baseline-20261101'
 WORKFLOW = '.github/workflows/pq-normal-process.yml'
 REPOSITORY = 'JiahaoAlbus/YNX-Chain'
@@ -57,7 +58,7 @@ def load_inputs(source, tools):
     return driver, intake
 
 
-def options(source, execute):
+def options(source, execute, *, ready_only=True):
     return argparse.Namespace(
         source=str(source), commit=SOURCE, mode='online', rate=100, seconds=5,
         tail_seconds=30, accounts=500, per_account=1, proof_timeout=30,
@@ -65,13 +66,14 @@ def options(source, execute):
         initialize_before_load=True, initialization_only=False, staged_publication=True,
         startup_timings=True, wire_observation=True, commit_observation=True,
         network_accounting=True, owned_storage_accounting=True, header_hop_capture=False,
-        prior_result=None, prior_result_sha256=None, held_ready_only=True, execute=execute)
+        prior_result=None, prior_result_sha256=None, held_ready_only=ready_only, execute=execute)
 
 
-def plan():
+def plan(*, ready_only=True):
     value = dict(profile=PROFILE, ref=REF, workflow=WORKFLOW, source=SOURCE, sourceTree=SOURCE_TREE,
                  tools=TOOLS, toolsTree=TOOLS_TREE, toolsRun=TOOLS_RUN, toolsJobName=TOOLS_JOB_NAME, go=GO,
-                 supplier=SUPPLIER, supplierTree=SUPPLIER_TREE, options=vars(options('source', False)),
+                 supplier=SUPPLIER, supplierTree=SUPPLIER_TREE,
+                 options=vars(options('source', False, ready_only=ready_only)),
                  nodeCount=4, pressureLevel=1)
     pin = hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
     return dict(configuration=value, configurationSHA256=pin, runtimePlanSHA256=None)
@@ -129,7 +131,12 @@ def tools_ci(token):
     return dict(run=TOOLS_RUN, job=jobs[0]['id'], source=TOOLS, requiredSteps=list(required), conclusion='success')
 
 
-def execute():
+def ready_only_for(profile):
+    require(profile in (PROFILE, BUSINESS_PROFILE), 'explicit held dispatch profile required')
+    return profile == PROFILE
+
+
+def execute(ready_only):
     host(os.environ, sys.platform)
     workspace = Path(os.environ['GITHUB_WORKSPACE']).resolve(strict=True)
     parent = Path(os.environ['RUNNER_TEMP']).resolve(strict=True)
@@ -160,35 +167,45 @@ def execute():
         window.storage_roots = intake.nonoverlapping_roots(window.storage_roots)
         calls.append(window)
         driver.lab.write_new(work / 'public/FIRST100-HELD-CI.json',
-                             dict(plan(), controllerCommit=os.environ['GITHUB_SHA'], toolsCI=ci))
+                             dict(plan(ready_only=ready_only), controllerCommit=os.environ['GITHUB_SHA'], toolsCI=ci))
         return window
 
     driver.lab.Window = counted_window
     try:
-        result = driver.run(options(source, True))
+        result = driver.run(options(source, True, ready_only=ready_only))
     finally:
         driver.lab.Window = original
     require(len(calls) == 1, 'exactly one original held first100 Window required')
     require(result.get('firstCause') is None and result.get('cleanupComplete') is True
             and result.get('normalNodeCleanExit', {}).get('allEightExitZero') is True
-            and result.get('heldReadyOnlyComplete') is True and result.get('loadExecuted') is False
-            and 'loadResult' not in result and result.get('peakRSSBytes', 1 << 63) <= 4 << 30
-            and result.get('preparationOnlyDemandAccounting', {}).get('notReleased') == 500
+            and result.get('peakRSSBytes', 1 << 63) <= 4 << 30
             and result.get('normalFinalizeObservation', {}).get('fourComplete') is True,
-            'held readiness incomplete; retain the original first cause and full demand')
+            'held window incomplete; retain the original first cause and full demand')
+    if ready_only:
+        require(result.get('heldReadyOnlyComplete') is True and result.get('loadExecuted') is False
+                and 'loadResult' not in result
+                and result.get('preparationOnlyDemandAccounting', {}).get('notReleased') == 500,
+                'held readiness zero-release boundary differs')
+    else:
+        load = result.get('loadResult', {})
+        require(result.get('loadExecuted') is True and load.get('configuredDemand') == 500
+                and load.get('requestedOfferedTPS') == 100 and len(load.get('rows', [])) == 500,
+                'original 500-row business load receipt required')
 
 
 def main():
     parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument('--execute', action='store_true')
-    if parser.parse_args().execute:
+    args = parser.parse_args()
+    if args.execute:
         def interrupted(signum, frame):
             raise RuntimeError(f'held first100 interrupted by signal {signum}')
         signal.signal(signal.SIGINT, interrupted)
         signal.signal(signal.SIGTERM, interrupted)
-        execute()
-    else:
-        print(json.dumps(plan(), sort_keys=True))
+        execute(ready_only_for(os.environ.get('YNX_HELD_DISPATCH_PROFILE')))
+        return
+    profile = os.environ.get('YNX_HELD_DISPATCH_PROFILE', PROFILE)
+    print(json.dumps(plan(ready_only=ready_only_for(profile)), sort_keys=True))
 
 
 if __name__ == '__main__':

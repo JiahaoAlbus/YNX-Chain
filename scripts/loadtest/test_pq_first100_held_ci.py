@@ -15,11 +15,13 @@ spec.loader.exec_module(entry)
 class HeldControllerTests(unittest.TestCase):
     def test_workflow_uses_only_original_dispatch_and_fixed_inputs(self):
         raw = (HERE.parents[1] / entry.WORKFLOW).read_text()
-        self.assertIn(entry.PROFILE + ']', raw.split('jobs:', 1)[0])
+        self.assertIn(entry.PROFILE + ', ' + entry.BUSINESS_PROFILE + ']', raw.split('jobs:', 1)[0])
         self.assertIn("inputs.load_profile != '" + entry.PROFILE + "'", raw.split('    name: Normal original', 1)[0])
         job = raw.split('  ' + entry.PROFILE + ':\n', 1)[1]
         for text in ("github.event_name == 'workflow_dispatch'", 'github.run_attempt == 1',
-                     "inputs.load_profile == '" + entry.PROFILE + "'", "inputs.signing_mode == 'online'",
+                     "inputs.load_profile == '" + entry.PROFILE + "'",
+                     "inputs.load_profile == '" + entry.BUSINESS_PROFILE + "'", "inputs.signing_mode == 'online'",
+                     'YNX_HELD_DISPATCH_PROFILE: ${{ inputs.load_profile }}',
                      "github.ref == '" + entry.REF + "'", 'needs: first100-held-controller-controls',
                      entry.SOURCE, entry.TOOLS, entry.SUPPLIER, entry.GO[2:], '--execute'):
             self.assertIn(text, job)
@@ -40,11 +42,23 @@ class HeldControllerTests(unittest.TestCase):
         self.assertEqual(plan['configurationSHA256'], hashlib.sha256(
             json.dumps(fixed, sort_keys=True, separators=(',', ':')).encode()).hexdigest())
 
+    def test_business_dispatch_has_its_own_pin_and_preserves_preparation(self):
+        baseline = entry.plan()
+        candidate = entry.plan(ready_only=entry.ready_only_for(entry.BUSINESS_PROFILE))
+        self.assertNotEqual(candidate['configurationSHA256'], baseline['configurationSHA256'])
+        self.assertFalse(candidate['configuration']['options']['held_ready_only'])
+        candidate['configuration']['options']['held_ready_only'] = True
+        self.assertEqual(candidate['configuration'], baseline['configuration'])
+        for profile in (None, '', 'functional'):
+            with self.subTest(profile=profile), self.assertRaises(RuntimeError):
+                entry.ready_only_for(profile)
+
     @unittest.skipUnless(os.environ.get('YNX_HELD_CONTROLLER_INPUT_ROOT'), 'fixed checkouts required')
     def test_actual_source_and_tools_import_across_checkouts(self):
         root = Path(os.environ['YNX_HELD_CONTROLLER_INPUT_ROOT']).resolve(strict=True)
         driver, intake = entry.load_inputs(root / 'source', root / 'tools')
         self.assertEqual(driver.validate_options(entry.options(root / 'source', False)), 500)
+        self.assertEqual(driver.validate_options(entry.options(root / 'source', False, ready_only=False)), 500)
         self.assertEqual(intake.nonoverlapping_roots([root, root / 'source', root / 'tools']), [root])
 
     def test_host_rejects_reruns_and_different_routes(self):
