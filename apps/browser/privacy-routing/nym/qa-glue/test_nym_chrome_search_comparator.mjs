@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { createServer as httpServer } from 'node:http';
-import { mkdtemp } from 'node:fs/promises';
+import { lstat, mkdtemp, realpath } from 'node:fs/promises';
 import { createServer as tcpServer, connect } from 'node:net';
-import { join } from 'node:path';
+import { isAbsolute, join } from 'node:path';
 import test from 'node:test';
 import { publicHost, makeRelay, runBrowserComparator } from './nym_chrome_search_comparator.mjs';
 
@@ -77,7 +77,10 @@ async function searchFixture(t, { path, slowGreeting = false }) {
   t.after(() => { for (const client of sockets) client.destroy(); socks.close(); });
 
   const root = process.env.NYM_CHROME_TEST_ROOT;
-  assert.ok(root?.startsWith('/Volumes/'), 'private external fixture root required');
+  assert.ok(root && isAbsolute(root), 'absolute private fixture root required');
+  const info = await lstat(root);
+  assert.ok(info.isDirectory() && info.uid === process.getuid() && (info.mode & 0o077) === 0, 'owner-only fixture root required');
+  assert.equal(await realpath(root), root, 'fixture root must be canonical');
   const profile = await mkdtemp(join(root, 'chrome-fixture-'));
   const result = await runBrowserComparator({ profile, url: `http://${fixtureHost}${path}`,
     upstream: socks.address().port, absoluteMs: Date.now()+23_000, fixture: true, fixtureOrganicHost: organicHost });
