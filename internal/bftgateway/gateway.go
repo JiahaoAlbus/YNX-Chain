@@ -479,7 +479,16 @@ func (c *client) getBounded(ctx context.Context, path string, query url.Values, 
 	if err != nil {
 		return err
 	}
-	resp, err := c.httpClient.Do(req)
+	httpClient := c.httpClient
+	if path == "/broadcast_tx_commit" {
+		// This legacy Comet GET performs a write. Like postBroadcast, keep the
+		// configured authority and never redirect/replay the signed request.
+		// Copy the client so ordinary read behavior remains unchanged.
+		writeClient := *httpClient
+		writeClient.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+		httpClient = &writeClient
+	}
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return err
 	}
