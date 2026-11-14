@@ -652,10 +652,16 @@ class NormalBackend:
         # authenticate exact H/H+1 and the original sender must confirm it.
         until=time.monotonic_ns()+int(self.c.proof_timeout*1e9)
         required=height+1
+        nodes=self.c.plan["nodes"]
+        observed={}
         while time.monotonic_ns()<until and not stop.is_set():
             try:
-                observed=[]
-                for node in self.c.plan["nodes"]:
+                for node in nodes:
+                    if stop.is_set() or time.monotonic_ns()>=until:
+                        break
+                    index=node["index"]
+                    if index in observed:
+                        continue
                     status=self.observed_rpc(node,"status")
                     lab.require(status["node_info"]["network"]==self.c.plan["chainId"],"normal successor chain identity differs")
                     engine=int(status["sync_info"]["latest_block_height"])
@@ -665,17 +671,22 @@ class NormalBackend:
                     application=int(info["last_block_height"])
                     if application<required:
                         break
-                    observed.append(dict(node=node["index"],engineHeight=engine,applicationHeight=application))
+                    # This operation needs one observation of H+1 per original
+                    # node. The proof callee still authenticates its own source.
+                    observed[index]=dict(node=index,engineHeight=engine,applicationHeight=application)
                 at=time.monotonic_ns()
-                if (len(observed)==4 and {o["node"] for o in observed}==set(range(4))
-                        and not stop.is_set() and at<until):
-                    lab.write_new(case/"successor-availability.json",dict(transactionHeight=height,minimumSuccessorHeight=required,observations=observed,observedMonotonicNs=at,qualifiedFinal=False))
-                    return
+                if len(nodes)==4 and observed.keys()==set(range(4)) and not stop.is_set() and at<until:
+                    break
             except (OSError,ValueError,KeyError):pass
             except RuntimeError as error:
                 if "chain identity differs" in str(error):raise
             stop.wait(.02)
-        raise RuntimeError("original H+1 not observed before bounded cutoff; preserve submitted original UNKNOWN, no proof publication or replay")
+        else:
+            raise RuntimeError("original H+1 not observed before bounded cutoff; preserve submitted original UNKNOWN, no proof publication or replay")
+        lab.write_new(case/"successor-availability.json",dict(transactionHeight=height,minimumSuccessorHeight=required,
+                      observations=[observed[node["index"]] for node in nodes],observedMonotonicNs=at,qualifiedFinal=False))
+        lab.require(not stop.is_set() and time.monotonic_ns()<until,
+                    "original H+1 evidence persisted after bounded cutoff; no proof publication or replay")
     def live_materials_command(self, lane, operation, prefix, sequence, stop, *, path=None, tx=None):
         lab.require(not stop.is_set(), "original live proof canceled before command")
         if "session" in lane:

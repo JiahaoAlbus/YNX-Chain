@@ -242,12 +242,14 @@ class NormalCallgraphControls(unittest.TestCase):
                 self.assertEqual([call.args[0] for call in read.call_args_list],paths+paths)
 
     def test_all_four_original_engine_and_app_successors_required_before_publication(self):
-        b=object.__new__(driver.NormalBackend);b.rpc_measurements=driver.rpc_measurements.RPCMeasurements();rounds=[]
+        b=object.__new__(driver.NormalBackend);b.rpc_measurements=driver.rpc_measurements.RPCMeasurements();rounds=[];last_app=[]
         def rpc(address,method):
             if address=='rpc0' and method=='status':rounds.append(1)
             iteration=len(rounds)
             height=10 if iteration==1 else 11
-            if address=='rpc3' and method=='abci_info' and iteration==2:height=10
+            if address=='rpc3' and method=='abci_info':
+                last_app.append(1)
+                if len(last_app)==1:height=10
             if method=='status':return {'node_info':{'network':'original-chain'},'sync_info':{'latest_block_height':str(height)}}
             return {'response':{'last_block_height':str(height)}}
         b.c=SimpleNamespace(proof_timeout=2,plan={'chainId':'original-chain','nodes':[{'index':i,'rpcAddress':'rpc'+str(i)} for i in range(4)]})
@@ -255,11 +257,13 @@ class NormalCallgraphControls(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             path=Path(temp);b.wait_successor(10,path,threading.Event())
             result=json.loads((path/'successor-availability.json').read_text())
-            self.assertEqual(len(rounds),3);self.assertFalse(result['qualifiedFinal'])
+            self.assertEqual(len(rounds),2);self.assertFalse(result['qualifiedFinal'])
             self.assertEqual(result['minimumSuccessorHeight'],11);self.assertEqual(len(result['observations']),4)
             timing=b.rpc_measurements.report()
             self.assertEqual(len(timing['groups']),8)
-            self.assertEqual(sum(g['attempted'] for g in timing['groups']),17)
+            self.assertEqual(sum(g['attempted'] for g in timing['groups']),11)
+            self.assertEqual(next(g['attempted'] for g in timing['groups']
+                                  if g['node']==3 and g['method']=='abci_info'),2)
             self.assertTrue(all(g['returned']==g['attempted'] and g['inFlight']==0 for g in timing['groups']))
             self.assertFalse(timing['independentFinality'])
     def test_cancelled_or_foreign_chain_readiness_cannot_publish_or_claim_finality(self):
