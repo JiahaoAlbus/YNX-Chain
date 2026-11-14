@@ -539,6 +539,28 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-shop-kvm.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+      - name: Prepare candidate verification script
+        run: |
+          cat > "$RUNNER_TEMP/shop-device-verify.sh" <<'SH'
+          set -euo pipefail
+          apk="$RUNNER_TEMP/shop-android/outputs/apk/debug/app-debug.apk"
+          test -f "$apk"
+          test "$(sha256sum "$apk" | cut -d' ' -f1)" = 318137706973fa9b888ebc75a853f9eb08ab4e9f188c41a460e3b387432cab9e
+          shasum -a 256 "$apk" | tee "$RUNNER_TEMP/shop-device-apk.sha256"
+          adb install "$apk"
+          path="$(adb shell pm path com.ynxweb4.shop.debug | tr -d '\r' | sed -n 's/^package://p')"
+          test "$(adb exec-out cat "$path" | sha256sum | cut -d' ' -f1)" = "$(sha256sum "$apk" | cut -d' ' -f1)"
+          for attempt in 1 2; do
+            adb shell am force-stop com.ynxweb4.shop.debug
+            adb shell am start -W -n com.ynxweb4.shop.debug/com.ynxweb4.shop.MainActivity | tee "$RUNNER_TEMP/shop-device-launch-$attempt.log"
+            grep -q 'Status: ok' "$RUNNER_TEMP/shop-device-launch-$attempt.log"
+            sleep 3
+            adb exec-out uiautomator dump /dev/tty > "$RUNNER_TEMP/shop-device-catalog-$attempt.xml"
+            grep -q 'Search products and categories' "$RUNNER_TEMP/shop-device-catalog-$attempt.xml"
+          done
+          adb logcat -d -b crash > "$RUNNER_TEMP/shop-device-crash.log"
+          test ! -s "$RUNNER_TEMP/shop-device-crash.log"
+          SH
       - name: Install exact candidate and inspect the original entry
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -546,25 +568,7 @@ jobs:
           arch: x86_64
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
-          script: |
-            set -euo pipefail
-            apk="$RUNNER_TEMP/shop-android/outputs/apk/debug/app-debug.apk"
-            test -f "$apk"
-            test "$(sha256sum "$apk" | cut -d' ' -f1)" = 318137706973fa9b888ebc75a853f9eb08ab4e9f188c41a460e3b387432cab9e
-            shasum -a 256 "$apk" | tee "$RUNNER_TEMP/shop-device-apk.sha256"
-            adb install "$apk"
-            path="$(adb shell pm path com.ynxweb4.shop.debug | tr -d '\r' | sed -n 's/^package://p')"
-            test "$(adb exec-out cat "$path" | sha256sum | cut -d' ' -f1)" = "$(sha256sum "$apk" | cut -d' ' -f1)"
-            for attempt in 1 2; do
-              adb shell am force-stop com.ynxweb4.shop.debug
-              adb shell am start -W -n com.ynxweb4.shop.debug/com.ynxweb4.shop.MainActivity | tee "$RUNNER_TEMP/shop-device-launch-$attempt.log"
-              grep -q 'Status: ok' "$RUNNER_TEMP/shop-device-launch-$attempt.log"
-              sleep 3
-              adb exec-out uiautomator dump /dev/tty > "$RUNNER_TEMP/shop-device-catalog-$attempt.xml"
-              grep -q 'Search products and categories' "$RUNNER_TEMP/shop-device-catalog-$attempt.xml"
-            done
-            adb logcat -d -b crash > "$RUNNER_TEMP/shop-device-crash.log"
-            test ! -s "$RUNNER_TEMP/shop-device-crash.log"
+          script: bash "$RUNNER_TEMP/shop-device-verify.sh"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
