@@ -1,3 +1,5 @@
+import {describeWalletTransactionPolicyRefusal,projectWalletPolicyFailure} from '../src/original-policy-supplier/transaction-diagnostic.mjs';
+import {POLICY_FAILURE_KEYS,POLICY_FAILURE_COPY} from '../src/wallet-locale-transfer-errors.mjs';
 import {nativeAmountDraftIssue} from '../src/native-amount-draft-ui.mjs';
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';
 import {WALLET_COPY,WALLET_LOCALES,initWalletLocale} from '../src/wallet-locale.mjs';
@@ -11,7 +13,7 @@ test('all twelve normal catalogs register all known balance refusals',()=>{for(c
 test('only original local PQ policy preparation refusal receives localized display',async()=>{
  const main=fs.readFileSync(new URL('../src/main.mjs',import.meta.url),'utf8');
  const start=main.indexOf('async function safeIPC('),end=main.indexOf('function safeErrorClass(',start);
- const safeIPC=vm.runInNewContext(`(()=>{${main.slice(start,end)};return safeIPC;})()`);
+ const safeIPC=vm.runInNewContext(`(()=>{${main.slice(start,end)};return safeIPC;})()`,{projectWalletPolicyFailure});
  const code='AUTH_WALLET_TRANSACTION_POLICY_NOT_SUPPLIED';
  const refusal=Object.assign(new Error(code),{code});
  Object.defineProperty(refusal,'policySourceObservation',{value:Object.freeze({code:'AUTH_POLICY_TLS_PIN'})});
@@ -126,4 +128,15 @@ test('actual preparation chain retains lifecycle locked-before and blur-after gu
  await lifecycle.unlock();const pending=route(null,{});await enteredPromise;
  lifecycle.setFocused(false);release();const cancelled=await pending;
  assert.equal(invoked,1);assert.equal(cancelled.error.code,'WALLET_OPERATION_CANCELLED');assert.equal(cancelled.error.displayOrigin,undefined);assert.equal(lifecycle.status().locked,true);
+});
+
+test('original local diagnostic projects only verified bounded facts, never forged codes or timeout guesses',async()=>{
+ const main=fs.readFileSync(new URL('../src/main.mjs',import.meta.url),'utf8'),start=main.indexOf('async function safeIPC('),end=main.indexOf('function safeErrorClass(',start);
+ const safeIPC=vm.runInNewContext(`(()=>{${main.slice(start,end)};return safeIPC;})()`,{projectWalletPolicyFailure});
+ const code='AUTH_WALLET_TRANSACTION_POLICY_NOT_SUPPLIED';
+ const run=async observation=>{const failure=Object.assign(new Error(code),{code});Object.defineProperty(failure,'policySourceObservation',{value:observation});return (await safeIPC(async()=>{throw failure},{localPQPolicyPreparation:true})).error;};
+ const observation=(code,read)=>describeWalletTransactionPolicyRefusal(Object.assign(new Error(code),{code,...(read?{operatorReadObservation:read}:{})}));
+ const read=(route,status)=>({kind:'YNX_OPERATOR_READ_REFUSAL/v1',method:'GET',routeKind:route,reason:'http-status',httpStatus:status,contentType:'application/json',noStore:true});
+ const cases=[[observation('AUTH_POLICY_SOURCE_NOT_SUPPLIED'),'SOURCE_NOT_SUPPLIED',0],[observation('AUTH_POLICY_TLS_PIN'),'TLS_IDENTITY_FAILED',3],[observation('ECONNREFUSED'),'CONNECTION_FAILED',2],[observation('UNKNOWN',read('account-authorization',405)),'AUTHORIZATION_HTTP_405',1],[observation('AUTH_POLICY_QUERY_TIMEOUT'),null,null],[observation('UNKNOWN',read('status',405)),null,null],[{code:'AUTH_POLICY_TLS_PIN'},null,null],[{operatorReadObservation:read('account-authorization',405)},null,null]];
+ const ui=mounted();for(const [diagnostic,expected,index] of cases){const error=await run(diagnostic);assert.equal(error.policyFailure,expected);assert.equal(renderTransferPreparationError(ui.node,error),true);for(const language of WALLET_LOCALES){ui.locale.select(language);assert.equal(ui.node.textContent,index===null?POLICY_UNAVAILABLE_COPY[language]:POLICY_FAILURE_COPY[language][POLICY_FAILURE_KEYS[index]]);}assert(!JSON.stringify(error).includes('account-authorization'));}
 });

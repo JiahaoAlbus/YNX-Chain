@@ -1,6 +1,7 @@
 import {types} from 'node:util';
 // Diagnostics only. This function cannot create/brand/recheck a policy, choose
 // a provider, inspect raw account/authorization data or suppress any error.
+const observations=new WeakSet();
 const known=new Set([
  'AUTH_POLICY_TLS_PIN','AUTH_POLICY_OPERATOR_VERSION_OR_HEALTH_CHANGED','AUTH_POLICY_SOURCE_NETWORK',
  'AUTH_POLICY_SOURCE_NOT_SUPPLIED','AUTH_POLICY_QUERY_TIMEOUT','AUTH_POLICY_QUERY_SIZE','AUTH_POLICY_QUERY_UTF8','AUTH_POLICY_QUERY_JSON',
@@ -28,5 +29,16 @@ export function describeWalletTransactionPolicyRefusal(failure){
   const next=own(current,'cause');if(next===undefined)break;current=next;
  }
  const stage=read?.routeKind??(code==='AUTH_POLICY_TLS_PIN'?'tls':code==='AUTH_POLICY_OPERATOR_VERSION_OR_HEALTH_CHANGED'?'operator-health':code==='UNKNOWN'?'unknown':'source-or-policy');
- return Object.freeze({version:'AUTH_WALLET_TRANSACTION_POLICY_REFUSAL/v1',failurePresent:true,originalFailureKind:failure===null?'null':typeof failure,originalNumericZero:typeof failure==='number'&&failure===0,code,stage,operatorReadObservation:read,policyAvailable:false});
+ const value=Object.freeze({version:'AUTH_WALLET_TRANSACTION_POLICY_REFUSAL/v1',failurePresent:true,originalFailureKind:failure===null?'null':typeof failure,originalNumericZero:typeof failure==='number'&&failure===0,code,stage,operatorReadObservation:read,policyAvailable:false});observations.add(value);return value;
+}
+
+// Only locally produced, in-process diagnostics may be reduced to UI facts.
+export function projectWalletPolicyFailure(observation){
+ if(!observations.has(observation))return null;
+ const read=observation.operatorReadObservation;
+ if(read?.routeKind==='account-authorization'&&read.reason==='http-status'&&read.httpStatus===405)return 'AUTHORIZATION_HTTP_405';
+ if(observation.code==='AUTH_POLICY_SOURCE_NOT_SUPPLIED')return 'SOURCE_NOT_SUPPLIED';
+ if(['AUTH_POLICY_TLS_PIN','CERT_HAS_EXPIRED','UNABLE_TO_VERIFY_LEAF_SIGNATURE'].includes(observation.code))return 'TLS_IDENTITY_FAILED';
+ if(['ECONNRESET','ECONNREFUSED','ENOTFOUND'].includes(observation.code))return 'CONNECTION_FAILED';
+ return null;
 }

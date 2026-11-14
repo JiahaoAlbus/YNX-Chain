@@ -1,3 +1,4 @@
+import {projectWalletPolicyFailure} from './original-policy-supplier/transaction-diagnostic.mjs';
 import {createMainStandalonePayNavigationSteps} from './main-standalone-pay-navigation.mjs';
 import {recordWalletTransactionPolicyFailure} from './transaction-policy-failure-record.mjs';
 import {createWalletCleanupDiagnostics} from './wallet-cleanup-diagnostics.mjs';
@@ -1484,7 +1485,7 @@ async function safeIPC(action, displayOptions) {
       ...(typeof storageStage === "string" && /^[a-z][a-z0-9-]{0,39}$/.test(storageStage) ? { storageStage } : {}),
       ...(error?.data?.outcomeUnknown ? { outcomeUnknown: true, transactionHash: error.data.transactionHash ?? null } : {}),
       ...(localRefusal ? { displayOrigin: "LOCAL_TRANSFER_PREPARATION" } : {}),
-      ...(localPolicyRefusal ? { displayOrigin: "LOCAL_PQ_POLICY_PREPARATION" } : {})
+      ...(localPolicyRefusal ? { displayOrigin: "LOCAL_PQ_POLICY_PREPARATION", policyFailure: projectWalletPolicyFailure(error.policySourceObservation) } : {})
     } };
   }
 }
