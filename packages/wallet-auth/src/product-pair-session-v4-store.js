@@ -1,4 +1,5 @@
 import{createOriginalTaskGrantLedger}from'./original-task-grant-ledger.js';
+import {canonicalJSON} from './canonical.js';
 // Private issuer storage. Persistence is NOT Source/account authority.
 import {DatabaseSync} from 'node:sqlite';
 import {decodePendingPairOriginalQueryDATA,projectPendingPairOriginalQueryDATA} from './product-pair-pending-original-query-data.mjs';
@@ -13,7 +14,7 @@ const instant=v=>{if(!Number.isSafeInteger(v)||v<0)fail('PAIR_V4_TIME');return v
 const raw=v=>{if(typeof v!=='string'||!v.length||Buffer.byteLength(v)>393216)fail('PAIR_V4_ORIGINAL');JSON.parse(v);return v;};
 const same=(a,b)=>a.dev===b.dev&&a.ino===b.ino&&a.uid===b.uid&&a.gid===b.gid;
 const tickets=new WeakMap();
-function openStore({path,namespace},originalProtectedClock){
+function openStore({path,namespace,enableCandidateManagementBindings=false},originalProtectedClock){
  id(namespace);if(typeof path!=='string'||resolve(path)!==path)fail('PAIR_V4_PATH');
  const parent=dirname(path),ps=lstatSync(parent),uid=process.getuid();
  if(!ps.isDirectory()||ps.isSymbolicLink()||ps.uid!==uid||(ps.mode&511)!==448||realpathSync(parent)!==parent)fail('PAIR_V4_PARENT');
@@ -24,7 +25,7 @@ function openStore({path,namespace},originalProtectedClock){
  const original=fstatSync(fd);if(!original.isFile()||original.uid!==uid||original.nlink!==1||(original.mode&511)!==384){closeSync(fd);fail('PAIR_V4_FILE');}
  let db,closed=false,unknown=false,closeError;
  const identity=()=>{if(closed)fail('PAIR_V4_CLOSED');const p=lstatSync(parent),s=lstatSync(path);if(!same(p,ps)||!p.isDirectory()||realpathSync(parent)!==parent||(p.mode&511)!==448||!same(s,original)||!s.isFile()||s.nlink!==1||(s.mode&511)!==384)fail('PAIR_V4_FILE_CHANGED');};
- try{identity();db=new DatabaseSync(path);if(!created&&db.prepare('PRAGMA user_version').get().user_version!==4)fail('PAIR_V4_SCHEMA');db.exec('PRAGMA foreign_keys=ON; PRAGMA busy_timeout=3000; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;');db.exec(readFileSync(new URL('./product-pair-session-v4-schema.sql',import.meta.url),'utf8'));db.prepare('INSERT OR IGNORE INTO issuer_v4_meta VALUES(?,4,0)').run(namespace);identity();}
+ try{identity();db=new DatabaseSync(path);if(!created&&db.prepare('PRAGMA user_version').get().user_version!==4)fail('PAIR_V4_SCHEMA');db.exec('PRAGMA foreign_keys=ON; PRAGMA busy_timeout=3000; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;');db.exec(readFileSync(new URL('./product-pair-session-v4-schema.sql',import.meta.url),'utf8'));if(enableCandidateManagementBindings){if(created)db.exec("CREATE TABLE candidate_management_bindings(namespace TEXT NOT NULL,operation_id TEXT NOT NULL,actor_digest TEXT NOT NULL,session_binding TEXT NOT NULL,replay_key TEXT NOT NULL,proof_digest TEXT NOT NULL,expires_ms INTEGER NOT NULL,PRIMARY KEY(namespace,operation_id),FOREIGN KEY(namespace,operation_id) REFERENCES issuer_v4_operations(namespace,operation_id)) STRICT");else if(!db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='candidate_management_bindings'").get())fail('PAIR_V4_CANDIDATE_SCHEMA_NOT_SUPPLIED');}db.prepare('INSERT OR IGNORE INTO issuer_v4_meta VALUES(?,4,0)').run(namespace);identity();}
  catch(e){db?.close();closeSync(fd);throw e;}
  const run=(sql,...a)=>db.prepare(sql).run(...a),get=(sql,...a)=>db.prepare(sql).get(...a);
  const transaction=(at,fn,checkAtCommit)=>{
@@ -58,6 +59,50 @@ function openStore({path,namespace},originalProtectedClock){
   readPair({actor,registrationId,at}){return transaction(at,()=>Object.freeze({...readPair(hex(actor),registrationId,at)}));},
   readSession({actor,sessionBinding,at}){return transaction(at,()=>{const s=get('SELECT * FROM issuer_v4_sessions WHERE namespace=? AND session_binding=?',namespace,hex(sessionBinding));if(!s||s.actor_digest!==hex(actor)||s.status!=='ACTIVE'||s.expires_ms<=at)fail('PAIR_V4_SESSION_INACTIVE');readPair(actor,s.registration_id,at);return Object.freeze({...s});});},
   consumeHTTPNonce({actor,sessionBinding,replayKey,expiresMs,at}){hex(actor);hex(sessionBinding);hex(replayKey);instant(expiresMs);return transaction(at,()=>{const s=get("SELECT * FROM issuer_v4_sessions WHERE namespace=? AND session_binding=? AND status='ACTIVE'",namespace,sessionBinding);if(!s||s.actor_digest!==actor||s.expires_ms<=at||expiresMs<=at||expiresMs>s.expires_ms)fail('PAIR_V4_SESSION_INACTIVE');readPair(actor,s.registration_id,at);run('INSERT INTO issuer_v4_http_nonces VALUES(?,?,?,?,?)',namespace,replayKey,actor,sessionBinding,expiresMs);});},
+  // Private persistence primitive only. The caller MUST have independently
+  // verified the original holder, proof, current Source and original request.
+  // It is deliberately not wired to an HTTP route or exposed as authority.
+  commitManagementOriginal({actor,operation,kind,input,sessionBinding,replayKey,proofDigest,expiresMs,at}){
+   if(!originalProtectedClock)fail('PAIR_V4_ORIGINAL_PROTECTED_CLOCK_REQUIRED');
+   if(!enableCandidateManagementBindings)fail('PAIR_V4_CANDIDATE_SCHEMA_NOT_SUPPLIED');
+   hex(actor);hex(operation);hex(sessionBinding);hex(replayKey);hex(proofDigest);instant(expiresMs);raw(input);
+   if(kind!=='REVOKE'&&kind!=='CANCEL')fail('PAIR_V4_KIND');
+   const body=JSON.parse(input);if(!body||Array.isArray(body)||canonicalJSON(body)!==input||body.operationId!==operation||typeof body.registrationOriginal!=='string'||typeof body.account!=='string')fail('PAIR_V4_MANAGEMENT_BINDING');
+   if(kind==='REVOKE'&&body.sessionBinding!==null&&body.sessionBinding!==sessionBinding)fail('PAIR_V4_MANAGEMENT_BINDING');
+   if(kind==='CANCEL')id(body.challengeId);
+   let deadline=expiresMs;
+   transaction(at,lockedAt=>{const now=lockedAt??at;
+    // Recovery is a separate read-only original-record operation; never replay.
+    if(lookup(actor,operation))fail('PAIR_V4_MANAGEMENT_RECOVER_ONLY');
+    const s=get('SELECT * FROM issuer_v4_sessions WHERE namespace=? AND session_binding=?',namespace,sessionBinding);
+    if(!s||s.actor_digest!==actor||s.status!=='ACTIVE'||s.expires_ms<=now||expiresMs<=now||expiresMs>s.expires_ms)fail('PAIR_V4_SESSION_INACTIVE');
+    const p=readPair(actor,s.registration_id,now),session=JSON.parse(raw(s.original));
+    if(p.original!==body.registrationOriginal||p.registration_digest!==pairV4Digest(body.registrationOriginal)||session.account!==body.account||session.sessionBinding!==sessionBinding)fail('PAIR_V4_MANAGEMENT_BINDING');
+    deadline=Math.min(deadline,s.expires_ms,p.expires_ms);
+    run("INSERT INTO issuer_v4_operations VALUES(?,?,?,?,?,?,'ENTERED',NULL,?,NULL)",namespace,operation,actor,kind,pairV4Digest(input),input,now);
+    run('INSERT INTO candidate_management_bindings VALUES(?,?,?,?,?,?,?)',namespace,operation,actor,sessionBinding,replayKey,proofDigest,expiresMs);
+   },after=>{if(after>=deadline)fail('PAIR_V4_POST_EXPIRED');});
+   return transaction(at,lockedAt=>{const now=lockedAt??at;
+    const op=lookup(actor,operation),binding=get('SELECT * FROM candidate_management_bindings WHERE namespace=? AND operation_id=?',namespace,operation);
+    if(!op||op.phase!=='ENTERED'||op.kind!==kind||op.input_original!==input||op.input_sha256!==pairV4Digest(input)||!binding||binding.actor_digest!==actor||binding.session_binding!==sessionBinding||binding.replay_key!==replayKey||binding.proof_digest!==proofDigest||binding.expires_ms!==expiresMs)fail('PAIR_V4_MANAGEMENT_BINDING');
+    const s=get('SELECT * FROM issuer_v4_sessions WHERE namespace=? AND session_binding=?',namespace,sessionBinding);
+    if(!s||s.actor_digest!==actor||s.status!=='ACTIVE'||s.expires_ms<=now||expiresMs<=now||expiresMs>s.expires_ms)fail('PAIR_V4_SESSION_INACTIVE');
+    const p=readPair(actor,s.registration_id,now),session=JSON.parse(raw(s.original));
+    if(p.original!==body.registrationOriginal||p.registration_digest!==pairV4Digest(body.registrationOriginal)||session.account!==body.account||session.sessionBinding!==sessionBinding)fail('PAIR_V4_MANAGEMENT_BINDING');
+    deadline=Math.min(expiresMs,s.expires_ms,p.expires_ms);
+    let result;
+    if(kind==='REVOKE')result=canonicalJSON({registrationId:p.registration_id,sessionBinding:body.sessionBinding,revoked:true});
+    else{const c=get('SELECT * FROM issuer_v4_challenges WHERE namespace=? AND challenge_id=?',namespace,body.challengeId);if(!c||c.actor_digest!==actor||c.registration_id!==p.registration_id)fail('PAIR_V4_ACTOR_MISMATCH');result=canonicalJSON({challengeId:body.challengeId,cancelled:true});}
+    run('INSERT INTO issuer_v4_http_nonces VALUES(?,?,?,?,?)',namespace,replayKey,actor,sessionBinding,expiresMs);
+    if(kind==='REVOKE'){
+     if(body.sessionBinding===null){run("UPDATE issuer_v4_pairs SET status='REVOKED' WHERE namespace=? AND registration_id=?",namespace,p.registration_id);run("UPDATE issuer_v4_sessions SET status='REVOKED' WHERE namespace=? AND registration_id=?",namespace,p.registration_id);run("UPDATE issuer_v4_challenges SET status='CANCELLED' WHERE namespace=? AND registration_id=? AND status='ISSUED'",namespace,p.registration_id);}
+     else if(run("UPDATE issuer_v4_sessions SET status='REVOKED' WHERE namespace=? AND session_binding=? AND status='ACTIVE'",namespace,sessionBinding).changes!==1)fail('PAIR_V4_SESSION_CAS');
+    }else{run("UPDATE issuer_v4_challenges SET status='CANCELLED' WHERE namespace=? AND challenge_id=? AND status='ISSUED'",namespace,body.challengeId);run("UPDATE issuer_v4_sessions SET status='REVOKED' WHERE namespace=? AND challenge_id=?",namespace,body.challengeId);}
+    if(run("UPDATE issuer_v4_operations SET phase='COMMITTED',result_original=?,terminal_ms=? WHERE namespace=? AND operation_id=? AND phase='ENTERED'",result,now,namespace,operation).changes!==1)fail('PAIR_V4_OPERATION_CAS');
+    run('INSERT INTO issuer_v4_audit(namespace,operation_id,actor_digest,kind,result_sha256,at_ms) VALUES(?,?,?,?,?,?)',namespace,operation,actor,kind,pairV4Digest(result),now);
+    return result;
+   },after=>{if(after>=deadline)fail('PAIR_V4_POST_EXPIRED');});
+  },
   readPendingPairOriginalQueryDATA({queryOriginal,originalPairPost,actor}){
    identity();hex(actor);const q=decodePendingPairOriginalQueryDATA(queryOriginal);let reader;
    try{reader=new DatabaseSync(path,{readOnly:true});
@@ -70,6 +115,10 @@ function openStore({path,namespace},originalProtectedClock){
     const result=projectPendingPairOriginalQueryDATA(queryOriginal,originalPairPost,actor,row??null);identity();return result;
    }finally{reader?.close();}
   },
+  // DATA only: an absent row is UNKNOWN, never authorization to repeat the
+  // original operation. A separate original holder must preserve that fence
+  // across process restart; this read cannot create one retroactively.
+  recoverManagementOriginal({actor,operation,kind,input,sessionBinding,replayKey,proofDigest,expiresMs}){identity();if(!enableCandidateManagementBindings)fail('PAIR_V4_CANDIDATE_SCHEMA_NOT_SUPPLIED');hex(actor);hex(operation);hex(sessionBinding);hex(replayKey);hex(proofDigest);instant(expiresMs);raw(input);if(kind!=='REVOKE'&&kind!=='CANCEL')fail('PAIR_V4_KIND');let reader;try{reader=new DatabaseSync(path,{readOnly:true});const row=reader.prepare('SELECT * FROM issuer_v4_operations WHERE namespace=? AND operation_id=?').get(namespace,operation);identity();if(!row)return Object.freeze({phase:'UNKNOWN',original:null,storedBindingMatched:false});if(row.actor_digest!==actor)fail('PAIR_V4_ACTOR_MISMATCH');const b=reader.prepare('SELECT * FROM candidate_management_bindings WHERE namespace=? AND operation_id=?').get(namespace,operation),body=JSON.parse(input);if(row.kind!==kind||row.input_original!==input||row.input_sha256!==pairV4Digest(input)||body.operationId!==operation||!b||b.actor_digest!==actor||b.session_binding!==sessionBinding||b.replay_key!==replayKey||b.proof_digest!==proofDigest||b.expires_ms!==expiresMs)fail('PAIR_V4_IDEMPOTENCY_MISMATCH');if(row.phase!=='COMMITTED')return Object.freeze({phase:'UNKNOWN',original:null,storedBindingMatched:true});const audit=reader.prepare('SELECT actor_digest,kind,result_sha256 FROM issuer_v4_audit WHERE namespace=? AND operation_id=?').all(namespace,operation);if(audit.length!==1||audit[0].actor_digest!==actor||audit[0].kind!==kind||typeof row.result_original!=='string'||audit[0].result_sha256!==pairV4Digest(row.result_original))fail('PAIR_V4_MANAGEMENT_RECOVERY_AUDIT');identity();return Object.freeze({phase:'COMMITTED',original:row.result_original,storedBindingMatched:true});}finally{reader?.close();}},
   recover({actor,operation}){identity();hex(actor);hex(operation);let reader;try{reader=new DatabaseSync(path,{readOnly:true});const row=reader.prepare('SELECT * FROM issuer_v4_operations WHERE namespace=? AND operation_id=?').get(namespace,operation);identity();if(row&&row.actor_digest!==actor)fail('PAIR_V4_ACTOR_MISMATCH');return row?Object.freeze({phase:row.phase==='ENTERED'?'UNKNOWN':row.phase,input:row.input_original,original:row.result_original??null}):null;}finally{reader?.close();}},
   close(){if(closeError)throw closeError;if(!closed){closed=true;try{db.close();}catch(e){closeError=e;throw e;}try{closeSync(fd);}catch(e){closeError=e;throw e;}}}
  });return api;
