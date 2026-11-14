@@ -19,7 +19,7 @@ export function mountCctpUI({root,api,locale='en'}){
   const isFinalized=value=>{
     const target=value?.destination,receipt=target?.receipt,mint=value?.operations?.find(op=>op.step==='mint'&&op.state!=='cancelled');
     const hash=v=>typeof v==='string'&&/^0x[0-9a-f]{64}$/.test(v),height=v=>typeof v==='string'&&/^(0|[1-9][0-9]{0,77})$/.test(v);
-    return value?.state==='completed'&&target?.state==='finalized'&&receipt?.status===1&&receipt.confirmationScope==='rpc-finalized-block'&&
+    return value?.state==='completed'&&mint?.state==='included'&&target?.state==='finalized'&&receipt?.status===1&&receipt.confirmationScope==='rpc-finalized-block'&&
       hash(receipt.hash)&&receipt.hash===mint?.hash&&hash(receipt.blockHash)&&hash(receipt.finalizedBlockHash)&&height(receipt.blockNumber)&&height(receipt.finalizedBlockNumber)&&BigInt(receipt.finalizedBlockNumber)>=BigInt(receipt.blockNumber)&&Boolean(value.proof);
   };
   const observationText = locale.startsWith('zh') ? {
@@ -54,8 +54,8 @@ export function mountCctpUI({root,api,locale='en'}){
     }
   };
   const retainPending = value => {
-    if (['completed', 'failed', 'cancelled'].includes(value.state)) return;
     const operation = value.operations?.findLast(op => op.state !== 'cancelled');
+    if (['failed', 'cancelled'].includes(value.state) || value.state === 'completed' && operation?.step !== 'mint') return;
     if (!operation || !['dispatching', 'unknown', 'submitted'].includes(operation.state)) return;
     const network = operationNetwork(value, operation.step);
     const account = value.binding?.account;

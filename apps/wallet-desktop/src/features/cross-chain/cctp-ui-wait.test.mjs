@@ -419,6 +419,26 @@ test('independent original observations survive account switches and resolve one
   } finally { h.ui.dispose(); }
 });
 
+test('original observation opening retains a legacy completed mint whose journal is still unknown', async () => {
+  const h = fixture();
+  try {
+    const legacy = persistedOriginal(observedOriginal(h, 'local-cancelled-before-broadcast'));
+    legacy.state = 'completed';
+    legacy.operations[0].step = 'mint';
+    legacy.binding.destinationNetwork = clone(OBSERVATION_NETWORK);
+    h.result.history = [legacy];
+    await h.ui.open();
+    assertFenced(h.root);
+    assert.ok(hasButton(h.root, 'Check original transfer'));
+    assert.ok(!h.root.textContent.includes('Destination mint finalized and receipt verified.'));
+    h.result.check = legacy;
+    await h.click('Check original transfer');
+    assertFenced(h.root);
+    assert.deepEqual(h.calls.filter(call => call.method === 'check').map(call => call.input), [ID]);
+    assert.deepEqual(writeCalls(h), []);
+  } finally { h.ui.dispose(); }
+});
+
 test('original observation on opening Cross restores UNKNOWN before allowing a quote, even after closing the dialog', async () => {
   const h = fixture();
   try {

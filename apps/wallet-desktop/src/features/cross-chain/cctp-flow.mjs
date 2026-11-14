@@ -10,7 +10,7 @@ const hash=v=>typeof v==='string'&&/^0x[0-9a-f]{64}$/.test(v);
 const clone=v=>structuredClone(v);
 const states=new Set(['ready','approval-pending','burn-ready','burn-pending','attestation-pending','mint-ready','mint-pending','completed','failed','cancelled']);
 const terminal=new Set(['completed','failed','cancelled']);
-const unresolved=r=>!terminal.has(r.state)||r.state==='failed'&&r.operations.some(o=>o.step==='burn'&&o.state==='included');
+const unresolved=r=>!terminal.has(r.state)||r.state==='failed'&&r.operations.some(o=>o.step==='burn'&&o.state==='included')||r.state==='completed'&&r.operations.some(o=>o.step==='mint'&&o.state!=='cancelled'&&o.state!=='included');
 const steps=['approve','burn','mint'];
 const activeOperations=r=>r.operations.filter(op=>op.state!=='cancelled');
 const activeStep=(r,step)=>activeOperations(r).find(op=>op.step===step);
@@ -254,7 +254,7 @@ export class CctpFlow {
     }
     if(r.state==='mint-pending'){
       const mint=activeStep(r,'mint');
-      if(mint.hash){const destination=await this.reader.destination({...r.binding,...r.proof,transactionHash:mint.hash});await this.#live(current);r=await this.#save(r,v=>{v.destination=clone(destination);if(destination.state==='finalized')v.state='completed';else if(destination.state==='reverted')v.state='failed'})}
+      if(mint.hash){const destination=await this.reader.destination({...r.binding,...r.proof,transactionHash:mint.hash});await this.#live(current);r=await this.#save(r,v=>{v.destination=clone(destination);if(destination.state==='finalized'&&mint.state==='included')v.state='completed';else if(destination.state==='reverted'&&mint.state==='reverted')v.state='failed'})}
     }
     await this.#live(current);this.#uncertain.delete(id);return r;
   })}
