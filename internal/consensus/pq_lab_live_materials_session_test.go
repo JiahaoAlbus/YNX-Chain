@@ -109,23 +109,25 @@ func TestPQLabLiveSessionOriginalProofAndHeldScope(t *testing.T) {
 		if e != nil || !reflect.DeepEqual(plain, result) {
 			t.Fatal("original one-shot result bytes changed", e)
 		}
-		proof, e := os.ReadFile(result.Proof.Path)
-		if e != nil {
-			t.Fatal(e)
-		}
-		changed := bytes.Clone(proof)
-		changed[0] ^= 1
-		if e = os.WriteFile(result.Proof.Path, changed, 0600); e != nil {
-			t.Fatal(e)
-		}
-		if _, e = session.Read(context.Background(), request.Sequence, all); e == nil {
-			t.Fatal("held anchor bypassed changed per-request proof")
-		}
-		if e = os.WriteFile(result.Proof.Path, proof, 0600); e != nil {
-			t.Fatal(e)
-		}
-		if _, e = session.Read(context.Background(), request.Sequence, all); e != nil {
-			t.Fatal("original proof bytes cannot be reread", e)
+		for _, original := range []PQLabWorkloadFile{result.Materials, result.Proof, result.Checkpoint} {
+			raw, e := os.ReadFile(original.Path)
+			if e != nil {
+				t.Fatal(e)
+			}
+			changed := bytes.Clone(raw)
+			changed[0] ^= 1
+			if e = os.WriteFile(original.Path, changed, 0600); e != nil {
+				t.Fatal(e)
+			}
+			if _, e = session.Read(context.Background(), request.Sequence, all); e == nil {
+				t.Fatalf("held anchor bypassed changed original %s", filepath.Base(original.Path))
+			}
+			if e = os.WriteFile(original.Path, raw, 0600); e != nil {
+				t.Fatal(e)
+			}
+			if _, e = session.Read(context.Background(), request.Sequence, all); e != nil {
+				t.Fatalf("restored original %s cannot be reread: %v", filepath.Base(original.Path), e)
+			}
 		}
 	}
 	if stages := all.Snapshot().Stages; stages["lab.bootstrapFullValidation"].Calls != 0 || stages["live.anchorFullValidation"].Calls != 0 {
