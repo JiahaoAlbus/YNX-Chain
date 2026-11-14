@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -14,6 +15,29 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 )
+
+// Retain exactly the single original operation and compare its bytes around
+// independent lease reacquisition. This is test-only, never recovery/retry.
+func poisonOriginalSnapshot(t *testing.T, ownerDirectory string) map[string][32]byte {
+	t.Helper()
+	entries, err := os.ReadDir(ownerDirectory)
+	if err != nil || len(entries) != 1 || entries[0].Name() != strings.Repeat("b", 64) {
+		t.Fatal("missing or replaced original operation", err)
+	}
+	dir := filepath.Join(ownerDirectory, entries[0].Name())
+	if _, err = os.Lstat(filepath.Join(dir, "CONFIRMED.json")); !os.IsNotExist(err) {
+		t.Fatal("unexpected fabricated confirmation", err)
+	}
+	result := map[string][32]byte{}
+	for _, name := range []string{"request.json", "INTENT.json", "transaction.wire", "transaction.abci", "RESULT.json"} {
+		raw, e := os.ReadFile(filepath.Join(dir, name))
+		if e != nil || len(raw) == 0 {
+			t.Fatal("original operation component missing", name, e)
+		}
+		result[name] = sha256.Sum256(raw)
+	}
+	return result
+}
 
 // Test-only process helper; it uses the actual production CLI entrypoint,
 // signal handling and original sender session, not a simulated Go responder.
@@ -67,6 +91,8 @@ func TestPQLabExperimentalPythonPoisonRetiresActualGoSession(t *testing.T) {
 	if err = json.Unmarshal(output, &report); err != nil || !report.OriginalReady || !report.OriginalOwnerPrepared || !report.OriginalLostReply || !report.OriginalProcessReaped || !report.GracefulEOF || report.LateReplyRead || report.Replayed || report.PhysicalWipeProven || report.ReturnCode != 0 {
 		t.Fatal("original retirement observation differs", err, string(output))
 	}
+	ownerDir := filepath.Join(created.Plan.RootDir, "workload", "sender-public", "0000")
+	original := poisonOriginalSnapshot(t, ownerDir)
 	// The exact previous process is gone; acquire only the original owner's lease
 	// to prove it released custody. This opens no operation and sends no command.
 	credential, err := os.ReadFile(filepath.Join(created.Plan.RootDir, "workload", "private-senders", "recovery.raw"))
@@ -87,12 +113,10 @@ func TestPQLabExperimentalPythonPoisonRetiresActualGoSession(t *testing.T) {
 	if err = owner.Close(); err != nil {
 		t.Fatal(err)
 	}
-	entries, err := os.ReadDir(filepath.Join(created.Plan.RootDir, "workload", "sender-public", "0000"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(entries) > 1 || (len(entries) == 1 && entries[0].Name() != strings.Repeat("b", 64)) {
-		t.Fatal("replacement operation appeared")
+	for name, hash := range poisonOriginalSnapshot(t, ownerDir) {
+		if original[name] != hash {
+			t.Fatal("original operation changed during lease readback", name)
+		}
 	}
 	t.Log("original Go sender EOF cleanup released its owner lease; physical memory wipe is not attested")
 }

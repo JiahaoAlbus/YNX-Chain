@@ -5,8 +5,8 @@ package consensus
 import (
 	"bufio"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -16,6 +16,29 @@ import (
 	"testing"
 	"time"
 )
+
+// Retain exactly the single original operation and compare its bytes around
+// independent lease reacquisition. This is test-only, never recovery/retry.
+func poisonOriginalSnapshot(t *testing.T, ownerDirectory string) map[string][32]byte {
+	t.Helper()
+	entries, err := os.ReadDir(ownerDirectory)
+	if err != nil || len(entries) != 1 || entries[0].Name() != strings.Repeat("b", 64) {
+		t.Fatal("missing or replaced original operation", err)
+	}
+	dir := filepath.Join(ownerDirectory, entries[0].Name())
+	if _, err = os.Lstat(filepath.Join(dir, "CONFIRMED.json")); !os.IsNotExist(err) {
+		t.Fatal("unexpected fabricated confirmation", err)
+	}
+	result := map[string][32]byte{}
+	for _, name := range []string{"request.json", "INTENT.json", "transaction.wire", "transaction.abci", "RESULT.json"} {
+		raw, e := os.ReadFile(filepath.Join(dir, name))
+		if e != nil || len(raw) == 0 {
+			t.Fatal("original operation component missing", name, e)
+		}
+		result[name] = sha256.Sum256(raw)
+	}
+	return result
+}
 
 // Test-only JSONL wrapper uses the actual session, owner key import, sign,
 // lease and Close APIs. It is not the production CLI framing implementation.
@@ -148,6 +171,8 @@ func TestPQLabExperimentalPythonPoisonWipesActualSessionCache(t *testing.T) {
 			t.Fatal("test-only normal Close did not clear exact key slice", k)
 		}
 	}
+	ownerDir := filepath.Join(plan.RootDir, "workload", "sender-public", "0000")
+	original := poisonOriginalSnapshot(t, ownerDir)
 	// Reopen only the original owner lease; no resend or fabricated confirmation.
 	sender, err := OpenPQLabSender(filepath.Join(plan.RootDir, "workload"), opts.WorkloadSHA256, 0, credential)
 	if err != nil {
@@ -156,12 +181,10 @@ func TestPQLabExperimentalPythonPoisonWipesActualSessionCache(t *testing.T) {
 	if err = sender.Close(); err != nil {
 		t.Fatal(err)
 	}
-	entries, err := os.ReadDir(filepath.Join(plan.RootDir, "workload", "sender-public", "0000"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(entries) > 1 || len(entries) == 1 && entries[0].Name() != strings.Repeat("b", 64) {
-		t.Fatal("unexpected operation replacement", fmt.Sprint(entries))
+	for name, hash := range poisonOriginalSnapshot(t, ownerDir) {
+		if original[name] != hash {
+			t.Fatal("original operation changed during lease readback", name)
+		}
 	}
 	t.Log("actual synthetic Go session Close cleared retained key slice and released owner lease; cipher/runtime copies are not attested")
 }
