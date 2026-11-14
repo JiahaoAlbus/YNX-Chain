@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/commerce"
 )
@@ -39,5 +40,34 @@ func TestShopTaskOrderStartupWithoutPublisherDoesNotAdmitPublicRoute(t *testing.
 		if reply.Code != 503 || !strings.Contains(reply.Body.String(), "SHOP_TASK_ORDER_READ_NOT_ADMITTED") {
 			t.Fatalf("ordinary route did not deny: %d %s", reply.Code, reply.Body.String())
 		}
+	}
+}
+
+type uncertainTaskOrderListener struct {
+	net.Listener
+	calls int
+	cause error
+}
+
+func (l *uncertainTaskOrderListener) Close() error {
+	l.calls++
+	return l.cause
+}
+
+func TestShopTaskOrderStartupRetainsUncertainOriginalListener(t *testing.T) {
+	original := &uncertainTaskOrderListener{cause: errors.New("original close outcome unknown")}
+	runtime := &shopTaskOrderRuntime{listener: original}
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+	for range 2 {
+		if err := runtime.close(ctx); !errors.Is(err, original.cause) {
+			t.Fatalf("lost original close cause: %v", err)
+		}
+	}
+	if runtime.closed || runtime.listener != original || original.calls != 1 {
+		t.Fatal("uncertain close released or retried the original listener")
+	}
+	if err := runtime.serve(); !errors.Is(err, net.ErrClosed) {
+		t.Fatal("partial with cleanup debt could serve", err)
 	}
 }
