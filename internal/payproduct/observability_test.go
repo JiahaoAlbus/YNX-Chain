@@ -234,3 +234,26 @@ func TestObservedHandlerRecoversPanicWithoutExposingPanicValue(t *testing.T) {
 		t.Fatalf("panic value leaked: logs=%s body=%s", logs.String(), recorder.Body.String())
 	}
 }
+
+func TestLivenessDoesNotClaimNativePaySourceReadiness(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		server *Server
+		status string
+	}{
+		{"closed", NewClosedProductionServerWithLogger(nil, buildinfo.Info{}, nil), "UNAVAILABLE"},
+		{"not-probed", NewServerWithLogger(nil, buildinfo.Info{}, nil), "UNKNOWN"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			tc.server.Handler().ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/health", nil))
+			var body map[string]any
+			if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+				t.Fatal(err)
+			}
+			if w.Code != http.StatusOK || body["status"] != "live" || body["nativePaySourceStatus"] != tc.status {
+				t.Fatalf("liveness misstates Source: status=%d body=%v", w.Code, body)
+			}
+		})
+	}
+}

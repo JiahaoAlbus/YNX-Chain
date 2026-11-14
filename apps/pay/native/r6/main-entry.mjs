@@ -153,7 +153,9 @@ export function createNativePayMainEntry({getMain,getContext}){
   },
   status(){let reason=source?null:'NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE';
    if(source)try{context()();if(source.current()!==undefined)fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');}catch(error){reason=nativePayFailureCode(error,'NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');}
-   return {client:'YNX Pay',normalMainEntry:true,sourceSupplied:!!source,available:reason===null,reason,approvalInOriginalMain:true,paymentAuthorized:false};},
+   // current() only fences the original local loan. It does not probe the
+   // Pay service, commission a Source, or prove a merchant can transact.
+   return {client:'YNX Pay',normalMainEntry:true,sourceSupplied:!!source,available:reason===null,availabilityScope:'LOCAL_SOURCE_ONLY',serviceReadiness:'UNKNOWN',reason,approvalInOriginalMain:true,paymentAuthorized:false};},
   cancel,
   assertSafeToClose(){if(active)fail('NATIVE_PAY_MAIN_OPERATION_PENDING');pending.assertSafeToClose();},
   // Main-only completion notification; never install as an IPC action. Main

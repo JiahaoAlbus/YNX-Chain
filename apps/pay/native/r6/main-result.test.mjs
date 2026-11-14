@@ -58,3 +58,17 @@ test('invalid or no-Source requests expose no composed capability or approval ac
  for(const raw of [{action:'approve'},{action:'invoice',merchant,invoiceId:'invoice-original'}]){const r=await entry.invokeResult(raw);assert.equal(r.ok,false);assert.equal(r.reference,null);assert.equal(r.paymentAuthorized,false);assert.equal(r.canRetry,false);}
  assert.equal(entry.status().available,false);
 });
+
+test('status reports local Source connectivity without claiming Pay service or payment readiness',()=>{
+ const entry=boot({});
+ const status=entry.status();
+ assert.equal(status.available,true);
+ assert.equal(status.availabilityScope,'LOCAL_SOURCE_ONLY');
+ assert.equal(status.serviceReadiness,'UNKNOWN');
+ assert.equal(status.paymentAuthorized,false);
+ const unavailable=createNativePayMainEntry({getMain:()=>null,getContext:()=>({account:merchant,revision:1,focused:true})});
+ const missing=unavailable.status();
+ assert.equal(missing.available,false);
+ assert.equal(missing.reason,'NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');
+ assert.equal(missing.serviceReadiness,'UNKNOWN');
+});

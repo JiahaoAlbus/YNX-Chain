@@ -78,12 +78,19 @@ enum PayBridge {
             if let bytes = text.data(using: .utf8), let value = try? JSONSerialization.jsonObject(with: bytes) as? [String: Any] {
                 if action == "status" {
                     sourceReady = value["available"] as? Bool == true
-                    status = sourceReady ? "Original Wallet / Source connected" : "Original Wallet / Source unavailable"
+                    status = sourceReady
+                        ? "Wallet Source connected. Pay service availability has not been verified."
+                        : "Original Wallet / Source unavailable"
                 }
-                if let raw = value["code"] as? String {
-                    status = raw == "NATIVE_PAY_NORMAL_MAIN_SOURCE_NOT_SUPPLIED"
-                        ? "Pay connection unavailable. Open YNX Wallet and use Pay there."
-                        : raw
+                if let raw = (value["code"] as? String) ?? (value["reason"] as? String) {
+                    switch raw {
+                    case "NATIVE_PAY_NORMAL_MAIN_SOURCE_NOT_SUPPLIED", "NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE":
+                        status = "Pay connection unavailable. Open YNX Wallet and use Pay there."
+                    case "NATIVE_PAY_AUTHORITY_UNAVAILABLE", "PAY_ORIGINAL_BUSINESS_SOURCE_COMMISSIONING_NOT_SUPPLIED":
+                        status = "Pay service authorization is unavailable. Check the original order again when it is restored."
+                    default:
+                        status = raw
+                    }
                 }
             }
             busy = false

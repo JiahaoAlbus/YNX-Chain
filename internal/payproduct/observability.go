@@ -63,7 +63,7 @@ func (s *Server) ObservedHandler() http.Handler {
 		if r.Method == http.MethodGet {
 			switch r.URL.Path {
 			case "/health", "/health/live":
-				state.health(s.service, w)
+				state.health(s, w)
 				return
 			case "/health/ready", "/ready":
 				if s.privateUnavailable {
@@ -559,19 +559,26 @@ func optionalDependency(name string, configured bool) DependencyReadiness {
 	return DependencyReadiness{Name: name, Required: false, Configured: configured, Ready: false, Status: status}
 }
 
-func (state *observabilityState) health(service *Service, w http.ResponseWriter) {
+func (state *observabilityState) health(server *Server, w http.ResponseWriter) {
+	// Liveness and the parent service's health never prove that Auth Source,
+	// merchant current state or a transaction approval are available.
+	sourceStatus := "UNKNOWN"
+	if server.privateUnavailable {
+		sourceStatus = "UNAVAILABLE"
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"ok":                   true,
-		"status":               "live",
-		"service":              "ynx-pay-product",
-		"network":              ChainID,
-		"evmChainId":           EVMChainID,
-		"asset":                NativeAsset,
-		"feeYnxt":              NativeFeeYNXT,
-		"crossChainSettlement": "unavailable",
-		"paidEvidence":         "authoritative-central-pay-api",
-		"uptimeSeconds":        int64(time.Since(state.startedAt).Seconds()),
-		"build":                state.build,
+		"ok":                    true,
+		"status":                "live",
+		"nativePaySourceStatus": sourceStatus,
+		"service":               "ynx-pay-product",
+		"network":               ChainID,
+		"evmChainId":            EVMChainID,
+		"asset":                 NativeAsset,
+		"feeYnxt":               NativeFeeYNXT,
+		"crossChainSettlement":  "unavailable",
+		"paidEvidence":          "authoritative-central-pay-api",
+		"uptimeSeconds":         int64(time.Since(state.startedAt).Seconds()),
+		"build":                 state.build,
 	})
 }
 
