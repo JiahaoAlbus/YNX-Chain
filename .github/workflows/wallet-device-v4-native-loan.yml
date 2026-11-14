@@ -1,0 +1,25 @@
+name: Wallet device V4 native loan custody
+on:
+  pull_request:
+    paths:
+      - 'packages/wallet-auth/native/device_v4_source_borrow_methods.inc.mm'
+      - 'packages/wallet-auth/native/DeviceV4SourceDarwin.mm'
+      - 'packages/wallet-auth/native/original-auth-identity-source-authority.mm'
+      - 'packages/wallet-auth/test/device-v4-source-loan-consumer-macos.mjs'
+      - '.github/workflows/wallet-device-v4-native-loan.yml'
+  push:
+    branches: ['codex/device-v4-native-loan-reserve-20261114']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  same-token-darwin-consumer:
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify real Backend with injected Source failures and actual Source TU
+        run: node packages/wallet-auth/test/device-v4-source-loan-consumer-macos.mjs
