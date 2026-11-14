@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -19,6 +20,46 @@ import (
 	"github.com/cometbft/cometbft/node"
 	sm "github.com/cometbft/cometbft/state"
 )
+
+// These public labels describe a refused control step, never a successful
+// request decode, checkpoint capture, transaction or source authorization.
+const (
+	PQLabLivePreOutputFailureVersion      = "YNX-PQ-LAB-LIVE-MATERIALS-PRE-OUTPUT-FAILURE/v1"
+	PQLabLiveFailureRequestStat           = "request-stat"
+	PQLabLiveFailureCurrentSource         = "current-source"
+	PQLabLiveFailureRequestRead           = "request-read"
+	PQLabLiveFailureRequestDecode         = "request-decode"
+	PQLabLiveFailureRequestSequence       = "request-sequence"
+	PQLabLiveFailureTransactionReplay     = "transaction-replay"
+	PQLabLiveFailureRequestCancelled      = "request-cancelled"
+	PQLabLiveFailureTransactionValidation = "transaction-validation"
+	PQLabLiveFailureOutputCancelled       = "output-cancelled"
+	PQLabLiveFailureOutputCreate          = "output-create"
+)
+
+// Sequence is the owning control's EXPECTED slot, not a claim about a parsed
+// request/header. In particular, failed reads cannot supply transaction fields.
+type PQLabLiveMaterialsPreOutputFailure struct {
+	Version          string `json:"version"`
+	PolicySHA256     string `json:"policySHA256"`
+	Sequence         uint32 `json:"sequence"`
+	Phase            string `json:"phase"`
+	Outcome          string `json:"outcome"`
+	FirstCauseSHA256 string `json:"firstCauseSHA256"`
+}
+
+func (c *PQLabLiveMaterialsControl) failBeforeOutput(sequence uint32, phase string, cause error) error {
+	// Do not create an operation directory or an intent/result for an operation
+	// that never reached that boundary. Keep the original failure first even if
+	// observation itself fails. The exclusive writer preserves every prior or
+	// partial marker; neither error permits replay or retirement reversal.
+	failure := PQLabLiveMaterialsPreOutputFailure{PQLabLivePreOutputFailureVersion, c.in.pin, sequence, phase, "unknown", pqLabSHA([]byte(cause.Error()))}
+	if err := proofHostLivePrivateDirectory(c.in.directory); err != nil {
+		return errors.Join(cause, err)
+	}
+	path := filepath.Join(c.in.directory, fmt.Sprintf("failure-%06d.json", sequence))
+	return errors.Join(cause, pqLabWriteJSON(path, failure))
+}
 
 // A bounded serial reader on the ORIGINAL Node lifetime. It never opens live
 // databases, signs, calls RPC, changes App state, or retries an attempted
@@ -188,40 +229,40 @@ func (c *PQLabLiveMaterialsControl) step(parent context.Context) (present bool, 
 	if _, e := os.Lstat(path); os.IsNotExist(e) {
 		return false, nil
 	} else if e != nil {
-		return true, e
+		return true, c.failBeforeOutput(sequence, PQLabLiveFailureRequestStat, e)
 	}
 	if err = c.current(parent); err != nil {
-		return true, err
+		return true, c.failBeforeOutput(sequence, PQLabLiveFailureCurrentSource, err)
 	}
 	r, err := readProofHostOriginal(path, "", 16<<10)
 	if err != nil {
-		return true, err
+		return true, c.failBeforeOutput(sequence, PQLabLiveFailureRequestRead, err)
 	}
 	defer func() { err = errors.Join(err, r.unchanged(), r.file.Close()) }()
 	var request PQLabLiveMaterialsRequest
 	if err = pqLabDecode(r.raw, &request); err != nil {
-		return true, err
+		return true, c.failBeforeOutput(sequence, PQLabLiveFailureRequestDecode, err)
 	}
 	if request.Sequence != sequence {
-		return true, errors.New("live request sequence differs from original operation slot")
+		return true, c.failBeforeOutput(sequence, PQLabLiveFailureRequestSequence, errors.New("live request sequence differs from original operation slot"))
 	}
 	if c.seen[request.TransactionSHA256] {
-		return true, errors.New("original transaction already consumed by this live session")
+		return true, c.failBeforeOutput(sequence, PQLabLiveFailureTransactionReplay, errors.New("original transaction already consumed by this live session"))
 	}
 	if err = parent.Err(); err != nil {
-		return true, err
+		return true, c.failBeforeOutput(sequence, PQLabLiveFailureRequestCancelled, err)
 	}
 	tx, kind, wire, err := c.in.transaction(request)
 	if err != nil {
-		return true, err
+		return true, c.failBeforeOutput(sequence, PQLabLiveFailureTransactionValidation, err)
 	}
 	defer func() { err = errors.Join(err, tx.unchanged(), tx.file.Close()) }()
 	if err = parent.Err(); err != nil {
-		return true, err
+		return true, c.failBeforeOutput(sequence, PQLabLiveFailureOutputCancelled, err)
 	}
 	output := pqLabLiveOutputPath(c.in.directory, sequence)
 	if err = pqLabNetworkFreshDirectory(output); err != nil {
-		return true, err
+		return true, c.failBeforeOutput(sequence, PQLabLiveFailureOutputCreate, err)
 	}
 	c.seen[request.TransactionSHA256] = true
 	defer func() {
