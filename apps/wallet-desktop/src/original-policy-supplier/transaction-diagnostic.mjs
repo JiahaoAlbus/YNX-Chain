@@ -37,7 +37,6 @@ export function projectWalletPolicyFailure(observation){
  if(!observations.has(observation))return null;
  const read=observation.operatorReadObservation;
  if(read?.routeKind==='account-authorization'&&read.reason==='http-status'&&read.httpStatus===405)return 'AUTHORIZATION_HTTP_405';
- if(observation.code==='AUTH_POLICY_SOURCE_NOT_SUPPLIED')return 'SOURCE_NOT_SUPPLIED';
  if(['AUTH_POLICY_TLS_PIN','CERT_HAS_EXPIRED','UNABLE_TO_VERIFY_LEAF_SIGNATURE'].includes(observation.code))return 'TLS_IDENTITY_FAILED';
  if(['ECONNRESET','ECONNREFUSED','ENOTFOUND'].includes(observation.code))return 'CONNECTION_FAILED';
  return null;
