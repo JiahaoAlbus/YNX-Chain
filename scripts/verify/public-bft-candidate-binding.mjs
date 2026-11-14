@@ -351,8 +351,10 @@ function retainedBlockObservation(b, root) {
   const evm = hashOriginalFile(path.join(root, "retained-evm-block.json"), 64 << 20, true, true);
   const block = JSON.parse(native.raw), response = JSON.parse(evm.raw), result = response?.result;
   const height = b.finalSnapshotHeight, blockHash = b.finalSnapshotBlockHash.replace(/^0x/, "").toLowerCase();
+  // ABCI serves the validator-bound migration package. The independently
+  // verified native snapshot has its own hash before binding those keys.
   const matchesAnchor = value => value?.version === "ynx-migration-history-v1" && value.source === "source_import" &&
-    value.sourceAnchor === b.finalSnapshotStateHash && value.originalGenesisHash === b.originalGenesisHash &&
+    value.sourceAnchor === b.packageMigrationStateHash && value.originalGenesisHash === b.originalGenesisHash &&
     value.migrationBlockHash === blockHash && value.nativeChainId === "6423" && value.migrationHeight === String(height);
   if (!hash(blockHash) || !matchesAnchor(block) || block.independentFinality !== false || block.height !== height ||
       block.hash !== blockHash || !hash(block.parentHash) || response?.jsonrpc !== "2.0" || response.id !== 2 ||

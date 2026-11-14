@@ -85,7 +85,7 @@ function fixture(name) {
   const plan = {version:'YNX-PRODUCTION-OPERATOR/v1',chainId:'ynx_6423-1',stateLayout:'atomic-json',consensusGenesisSHA256:'a'.repeat(64),originalGenesisHash:'b'.repeat(64),migrationStateHash:'c'.repeat(64),pqSchedule:null,runtimePlan:null,roles:roles.map(role=>({role,home:`/original/${role}/home`,abciState:`/original/${role}/app/state.json`,legacyKeyPath:`/original/${role}/pv.json`,legacyStatePath:`/original/${role}/hrs.json`,nodeKeyPath:`/original/${role}/node.json`}))};
   write(planPath,plan); write(validator,{version:1,validators:roles.map(role=>({role}))});
   const planPin = digest(fs.readFileSync(planPath));
-  const snapshot = {height:41,lastBlockHash:'b'.repeat(64),stateHash:'c'.repeat(64),accounts:[{address:'0x'+'1'.repeat(40),balance:100,nonce:0}]};
+  const snapshot = {height:41,lastBlockHash:'b'.repeat(64),stateHash:'6'.repeat(64),accounts:[{address:'0x'+'1'.repeat(40),balance:100,nonce:0}]};
   write(path.join(transaction,'final-snapshot/migration.json'),snapshot);
   const snapshotPins={snapshotSourceSha256:'9'.repeat(64),exporterManifestSha256:'d'.repeat(64)};
   write(path.join(transaction,'final-snapshot/remote-evidence.json'),{transactionId:path.basename(transaction),commit,authoritativeRelease:`ynx-chain-${commit}`,bftRelease:release,...snapshot,sha256:digest(fs.readFileSync(path.join(transaction,'final-snapshot/migration.json'))),pauseVerified:true,mutationFreezeVerified:true,validated:true,sourceUnchanged:true,exporterCommit:fullCommit,...snapshotPins,recordedAt});
@@ -581,7 +581,8 @@ try {
   const publicArgs=[bindingCLI,'--public-readback',binding,proofDir];
   node(publicArgs,1); // The replacement-chain first block alone proves no original history read.
   const retainedBlock={height:41,hash:'b'.repeat(64),parentHash:'1'.repeat(64),transactions:[{hash:'8'.repeat(64),blockNumber:41,blockHash:'b'.repeat(64)},{hash:'0x'+'9'.repeat(64),blockNumber:41,blockHash:'b'.repeat(64)}]};
-  const retainedAnchor={version:'ynx-migration-history-v1',source:'source_import',sourceAnchor:b.finalSnapshotStateHash,originalGenesisHash:b.originalGenesisHash,migrationBlockHash:retainedBlock.hash,nativeChainId:'6423',migrationHeight:'41'};
+  assert.notEqual(b.finalSnapshotStateHash,b.packageMigrationStateHash);
+  const retainedAnchor={version:'ynx-migration-history-v1',source:'source_import',sourceAnchor:b.packageMigrationStateHash,originalGenesisHash:b.originalGenesisHash,migrationBlockHash:retainedBlock.hash,nativeChainId:'6423',migrationHeight:'41'};
   const retainedNative={...retainedBlock,...retainedAnchor,independentFinality:false};
   const retainedEVM={jsonrpc:'2.0',id:2,result:{number:'0x29',hash:'0x'+retainedBlock.hash,ynxEncoding:'native-source-block',independentFinality:false,transactions:['0x'+'8'.repeat(64),'0x'+'9'.repeat(64)],ynxSourceHistory:retainedAnchor,ynxSourceBlock:retainedBlock}};
   write(path.join(proofDir,'retained-native-block.json'),retainedNative);
@@ -591,10 +592,11 @@ try {
   assert.equal(publicSource.retainedNativeBlockSHA256,digest(fs.readFileSync(path.join(proofDir,'retained-native-block.json'))));
   assert.equal(publicSource.retainedEVMBlockSHA256,digest(fs.readFileSync(path.join(proofDir,'retained-evm-block.json'))));
   for(const [name,changed] of [
-    ['retained-native-block.json',{...retainedNative,sourceAnchor:'f'.repeat(64)}],
+    ['retained-native-block.json',{...retainedNative,sourceAnchor:b.finalSnapshotStateHash}],
     ['retained-native-block.json',{...retainedNative,originalGenesisHash:'f'.repeat(64)}],
     ['retained-native-block.json',{...retainedNative,transactions:retainedBlock.transactions.toReversed()}],
     ['retained-evm-block.json',{...retainedEVM,result:{...retainedEVM.result,ynxSourceBlock:{...retainedBlock,parentHash:'2'.repeat(64)}}}],
+    ['retained-evm-block.json',{...retainedEVM,result:{...retainedEVM.result,ynxSourceHistory:{...retainedAnchor,sourceAnchor:b.finalSnapshotStateHash}}}],
     ['retained-evm-block.json',{...retainedEVM,result:{...retainedEVM.result,transactions:retainedEVM.result.transactions.toReversed()}}],
     ['retained-evm-block.json',{...retainedEVM,error:{code:-32603}}],
     ['retained-evm-block.json',{...retainedEVM,result:null}],
