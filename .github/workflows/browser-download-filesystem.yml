@@ -1,0 +1,29 @@
+name: Browser download filesystem
+
+on:
+  push:
+    paths:
+      - 'apps/browser/native/Sources/YNXBrowserCore/DownloadPersistence.swift'
+      - 'apps/browser/native/Sources/YNXBrowserCore/BrowserDownloadDecision.swift'
+      - 'apps/browser/native/Sources/YNXBrowserNative/BrowserDownloadActivity.swift'
+      - 'apps/browser/native/Tests/BrowserDownloadActivityTests/**'
+      - '.github/workflows/browser-download-filesystem.yml'
+  pull_request:
+    paths:
+      - 'apps/browser/native/Sources/YNXBrowserCore/DownloadPersistence.swift'
+      - 'apps/browser/native/Sources/YNXBrowserCore/BrowserDownloadDecision.swift'
+      - 'apps/browser/native/Sources/YNXBrowserNative/BrowserDownloadActivity.swift'
+      - 'apps/browser/native/Tests/BrowserDownloadActivityTests/**'
+      - '.github/workflows/browser-download-filesystem.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  file-commit:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify ordinary download file commit
+        run: /usr/bin/python3 apps/browser/native/Tests/BrowserDownloadActivityTests/test-file-commit.py --output "$RUNNER_TEMP/ynx-download-filesystem"
