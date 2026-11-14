@@ -99,7 +99,7 @@
     "internal/securelink/local_caller_exchange_peer_linux.go": "ad1cd11f7cce82de0e949714a927399c2843da61348791280d852e0207ced7e8",
     "internal/securelink/local_caller_exchange_peer_test.go": "4b85a54d7771be1822b48dd519d9c694bf2532929789dfa428806f4add78ca08",
     "internal/securelink/local_caller_exchange_test.go": "4c9661fe6644d5606fb6140aa35edcbf72d79b16f5d1121e9fe41a2649606830",
-    "internal/securelink/local_caller_exchange_unix.go": "82c8e05699695bd2aa53af66066b0640885930a39e15be22c87e38600e2b46f9",
+    "internal/securelink/local_caller_exchange_unix.go": "688a9398c3f6389eb37e720b406aeddf03e24aba1b62d899ae85e616b1eefd88",
     "internal/securelink/local_caller_exchange_unsupported.go": "21526d0474cb647ee0b54051c526d18da8bd20c74921dd48cc995b31cc2d92ce",
     "internal/securelink/local_caller_product_session_proof.go": "f02b55ebf3b3067e69aa1db3052ae8aaf2fc389ee439a161a96c795445239635",
     "internal/securelink/local_caller_product_session_proof_test.go": "2e602a1b5a6b8d05e48895d4651fa38a141cd162afd8fa181fe298a23cbeca4a",
@@ -156,7 +156,7 @@
     "internal/commerce/third_party/productreadsource/owned_fixture_test.go": "ee0b76b1c8cd8e5f494a07121deadc31f77995727ae5adc4ff68d08da969e82f",
     "internal/securelink/local_caller_product_session_proof_v4.go": "1e5c647ab6ae871d813dde79180df90f2f76dfbe960e05191a3fa834e0fc434c",
     "internal/securelink/local_caller_product_session_proof_v4_test.go": "a4be70b292fb7d940dd9aa18602a18995190027bd8272cf777af8447ae3f4719",
-    "internal/securelink/local_caller_product_session_proof_v4_unix_test.go": "ead8aa8752abac4be8b8ad3185b77a5e56e3ef14871f79470d1822d5d67391cd",
+    "internal/securelink/local_caller_product_session_proof_v4_unix_test.go": "260022ff5618ef13e32967e4ee10129099530451e311673b0344302af36f8451",
     "internal/securelink/original_server_tls_public_fixture.go": "2cd843ea941515eedeacdcd4d6532705e60c788683ea501087ce3a806da3772d",
     "internal/securelink/original_server_tls_public_fixture_test.go": "d94886b5db5c721c92b407d3bf16789a7a118f8540767affade79801bd642a9e",
     "internal/commerce/third_party/productreadsource/shop_v4_publication_test.go": "15c761b1504294f9a994477780fc618d6116e7b6cbf12d379424d838f4a33e9a",
@@ -180,6 +180,10 @@
     "componentReadback": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/shared/LINK/local-caller-proof-v4-next/source-ci-793-r1/COMPONENT-READBACK.json",
     "sha256": "fb40f3c4ef6ecf18713a477ed20578a3ae5144814129cdbeefa32717d27c92c3",
     "run": 42456926898
+  },
+  "LINKShopV4FirstWrite": {
+    "head": "84e4a6bc3f73158cd29323c93d80876ea8006012",
+    "scope": "Original LINK private first-write Current and Unix regression. Native adapter owns the original proof borrow through physical exchange close."
   },
   "AuthShopV4LifecycleR6": {
     "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-v4-server-successor/lifecycle-r6-IS86un/HANDOFF.json",

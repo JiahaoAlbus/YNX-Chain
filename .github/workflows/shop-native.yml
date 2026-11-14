@@ -317,7 +317,7 @@ jobs:
           python3 - "$RUNNER_TEMP/shop-link-v4-intake.log" <<'PY'
           import pathlib, re, sys
           log = pathlib.Path(sys.argv[1]).read_text()
-          required = ["CarrierBounds", "RawHeaderReader", "ServerProfile", "OwnedWire", "Preflight", "IncomingRejection", "RequestSnapshot", "RawHeaderBudget", "PartialResponse"]
+          required = ["CarrierBounds", "RawHeaderReader", "ServerProfile", "OwnedWire", "OwnedPrewriteCurrent", "Preflight", "IncomingRejection", "RequestSnapshot", "RawHeaderBudget", "PartialResponse"]
           for suffix in required:
               name = "TestOriginalLocalCallerShopProofV4" + suffix
               if len(re.findall(r"^--- PASS: " + name + r" ", log, re.M)) != 1:

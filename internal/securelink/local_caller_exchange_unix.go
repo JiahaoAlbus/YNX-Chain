@@ -96,7 +96,21 @@ func (c *LocalCallerClient) CallOriginalShopGETV4Owned(ctx context.Context, path
 	return c.callOriginalOwned(ctx, http.MethodGet, path, "", nil, expected, nil, &proof)
 }
 
-func (c *LocalCallerClient) callOriginalOwned(ctx context.Context, method, path, contentType string, body []byte, expected LocalCallerExpectedProcess, proof *ProductSessionProofV2DATA, proofV4 *ProductSessionProofV4DATA) (exchange *OriginalLocalCallerExchange, out LocalCallerResponse, err error) {
+// The private native adapter must hold its exact V4 proof borrow while it
+// checks Current here and until the returned exchange has physically closed.
+// Current must be bounded, worker-safe, and perform no I/O or actor/N-API work.
+func (c *LocalCallerClient) callOriginalShopGETV4Fenced(ctx context.Context, path string, proof ProductSessionProofV4DATA, expected LocalCallerExpectedProcess, current func(context.Context) error) (*OriginalLocalCallerExchange, LocalCallerResponse, error) {
+	if current == nil {
+		return nil, LocalCallerResponse{}, ErrDenied
+	}
+	return c.callOriginalOwnedWithFence(ctx, http.MethodGet, path, "", nil, expected, nil, &proof, current)
+}
+
+func (c *LocalCallerClient) callOriginalOwned(ctx context.Context, method, path, contentType string, body []byte, expected LocalCallerExpectedProcess, proof *ProductSessionProofV2DATA, proofV4 *ProductSessionProofV4DATA) (*OriginalLocalCallerExchange, LocalCallerResponse, error) {
+	return c.callOriginalOwnedWithFence(ctx, method, path, contentType, body, expected, proof, proofV4, nil)
+}
+
+func (c *LocalCallerClient) callOriginalOwnedWithFence(ctx context.Context, method, path, contentType string, body []byte, expected LocalCallerExpectedProcess, proof *ProductSessionProofV2DATA, proofV4 *ProductSessionProofV4DATA, beforeWrite func(context.Context) error) (exchange *OriginalLocalCallerExchange, out LocalCallerResponse, err error) {
 	s := &originalLocalCallerExchangeState{ownerPID: os.Getpid(), client: c, changed: make(chan struct{}), active: 1, socketFD: -1}
 	exchange = &OriginalLocalCallerExchange{state: s}
 	originalLocalCallerExchangeCustody.Lock()
@@ -128,7 +142,7 @@ func (c *LocalCallerClient) callOriginalOwned(ctx context.Context, method, path,
 	if full {
 		return exchange, out, ErrBounds
 	}
-	if c == nil || ctx == nil || strings.ContainsAny(contentType, "\r\n\x00") {
+	if c == nil || ctx == nil || strings.ContainsAny(contentType, "\r\n\x00") || (beforeWrite != nil && proofV4 == nil) {
 		return exchange, out, ErrDenied
 	}
 	var proofValue string
@@ -260,7 +274,22 @@ func (c *LocalCallerClient) callOriginalOwned(ctx context.Context, method, path,
 	if e = s.ctx.Err(); e != nil {
 		return exchange, out, e
 	}
+	if beforeWrite != nil {
+		if e = beforeWrite(s.ctx); e != nil {
+			return exchange, out, e
+		}
+	}
 	s.mu.Lock()
+	if beforeWrite != nil {
+		if e = s.ctx.Err(); e != nil {
+			s.mu.Unlock()
+			return exchange, out, e
+		}
+		if s.retired || s.closing || s.closed {
+			s.mu.Unlock()
+			return exchange, out, ErrDenied
+		}
+	}
 	s.dispatched = true
 	s.mu.Unlock()
 	if requestWire != nil {
