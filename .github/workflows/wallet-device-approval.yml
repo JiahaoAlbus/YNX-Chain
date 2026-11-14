@@ -1,0 +1,37 @@
+name: Wallet Android device approval controls
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - apps/wallet/modules/ynx-pq-custody/android/src/main/cpp/DeviceApprovalDecisionBridge.hpp
+      - apps/wallet/modules/ynx-pq-custody/test/device-approval-decision-bridge.PUBLIC.cpp
+      - apps/wallet/modules/ynx-pq-custody/test/run-device-approval-decision-controls.mjs
+      - .github/workflows/wallet-device-approval.yml
+  push:
+    branches:
+      - codex/wallet-android-device-approval-integration-20261113
+    paths:
+      - apps/wallet/modules/ynx-pq-custody/android/src/main/cpp/DeviceApprovalDecisionBridge.hpp
+      - apps/wallet/modules/ynx-pq-custody/test/device-approval-decision-bridge.PUBLIC.cpp
+      - apps/wallet/modules/ynx-pq-custody/test/run-device-approval-decision-controls.mjs
+      - .github/workflows/wallet-device-approval.yml
+
+permissions:
+  contents: read
+
+jobs:
+  public-jni-decision-controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22.18.0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Run public JNI decision controls with sanitizers
+        run: node apps/wallet/modules/ynx-pq-custody/test/run-device-approval-decision-controls.mjs
