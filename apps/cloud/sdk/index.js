@@ -39,7 +39,7 @@ function deploymentAwait(signal, start) {
   if (!signal) return Promise.resolve().then(start);
   return new Promise((resolve, reject) => {
     const cleanup = () => signal.removeEventListener("abort", abort);
-    const abort = () => { cleanup(); reject(signal.reason ?? new DOMException("Aborted", "AbortError")); };
+    const abort = () => { cleanup(); reject(signal.reason); };
     const settle = callback => value => { cleanup(); callback(value); };
     signal.addEventListener("abort", abort, { once: true });
     if (signal.aborted) { abort(); return; }
@@ -475,7 +475,7 @@ export class YNXCloudClient {
     if (originalHeaders.has("Content-Type") || originalHeaders.has("Idempotency-Key")) throw new TypeError("deployment content type and original request ID cannot be overridden");
     originalHeaders.set("Idempotency-Key", id);
     const payload = await deploymentPayload(manifest, artifact, approval);
-    if (signal?.aborted) throw signal.reason ?? new DOMException("Aborted", "AbortError");
+    if (signal?.aborted) throw signal.reason;
     // Recheck after async hashing: concurrent callers cannot submit this ID twice.
     if (this.deploymentRequests.has(id)) throw new YNXCloudDeploymentUnknownError(id);
     this.deploymentRequests.add(id);
@@ -525,7 +525,7 @@ export class YNXCloudClient {
     const target = new URL(url);
     if (target.username || target.password || target.hash) throw new TypeError("deployment endpoint must not contain credentials or a fragment");
     const original = await deploymentAwait(signal, () => this.getDeploymentRequestHeaders(Object.freeze({ method, path:target.pathname+target.search, url, operationRequestId })));
-    if (signal?.aborted) throw signal.reason ?? new DOMException("Aborted", "AbortError");
+    if (signal?.aborted) throw signal.reason;
     if (!original) throw new YNXCloudError("Original IDE deployment authentication headers are unavailable");
     const result = new Headers(extra);
     new Headers(original).forEach((value, name) => result.set(name, value));
