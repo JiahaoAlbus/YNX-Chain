@@ -365,3 +365,56 @@ test('original observation cold recovery survives account switching until its or
     assert.deepEqual(writeCalls(h), [], 'Account changes and original-result queries never trigger writes');
   } finally { h.ui.dispose(); }
 });
+
+test('independent original observations survive account switches and resolve one operation at a time', async () => {
+  const h = fixture();
+  try {
+    const first = observedOriginal(h, 'cancelled');
+    const second = observedOriginal(h, 'local-cancelled-before-broadcast');
+    second.id = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    second.binding.account = `0x${'33'.repeat(20)}`;
+    second.operations[0].id = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+    Object.assign(second.originalObservation, {
+      intentId: second.id, operationId: second.operations[0].id, account: second.binding.account,
+    });
+    const restore = async (pending, other) => {
+      h.result.history = [persistedOriginal(pending), other];
+      await h.click('Restore transfer history');
+      await h.select('burn-pending');
+    };
+    const included = pending => {
+      const result = persistedOriginal(pending);
+      result.state = 'attestation-pending';
+      result.operations[0].state = 'included';
+      result.operations[0].hash ??= `0x${'34'.repeat(32)}`;
+      return result;
+    };
+    const readyFirst = unrelatedRecord(h, 'ready');
+    const readySecond = unrelatedRecord(h, 'ready');
+    readyFirst.binding.account = first.binding.account;
+    readySecond.binding.account = second.binding.account;
+
+    await restore(first, readyFirst);
+    h.result.check = first; await h.click('Check original transfer');
+    h.ui.invalidate();
+    await restore(second, readySecond);
+    h.result.check = second; await h.click('Check original transfer');
+    h.ui.invalidate();
+    await restore(first, readyFirst);
+    h.result.check = included(first); await h.click('Check original transfer');
+    await h.select('ready');
+    assertFenced(h.root);
+    assert.ok(!h.root.textContent.includes(HASH), 'The other account hash stays hidden while its recovery is pending');
+
+    h.ui.invalidate();
+    await restore(second, readySecond);
+    h.result.check = persistedOriginal(second); await h.click('Check original transfer');
+    await h.select('ready'); assertFenced(h.root);
+    await h.select('burn-pending');
+    h.result.check = included(second); await h.click('Check original transfer');
+    await h.select('ready');
+    assert.ok(hasButton(h.root, 'Review next transaction'));
+    assert.deepEqual(h.calls.filter(call => call.method === 'check').map(call => call.input), [first.id, second.id, first.id, second.id, second.id]);
+    assert.deepEqual(writeCalls(h), []);
+  } finally { h.ui.dispose(); }
+});
