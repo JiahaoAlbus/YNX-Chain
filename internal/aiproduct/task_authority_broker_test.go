@@ -541,6 +541,39 @@ func TestP08AuthorityBrokerRejectsMismatchedHistoryBeforeBindingOperation(t *tes
 	}
 }
 
+func TestP08ShopHistoryHTTPReportsUnavailableWithoutChangingOriginal(t *testing.T) {
+	f, a, c := newP08BrokerFixture(t, true)
+	f.approve(t)
+	good := p08BrokerResult(t, f)
+	c.result = originalclient.TaskAuthorityResult{State: "UNKNOWN", OriginalOperation: good.OriginalOperation}
+	c.effectErr = errors.New("PUBLIC acknowledgement lost")
+	const ref = "PUBLIC-original-proof-ref"
+	if _, err := f.server.dispatchApprovedStep(context.Background(), f.session, f.task.ID, f.step.ID, ref); !errors.Is(err, c.effectErr) {
+		t.Fatalf("lost acknowledgement: %v", err)
+	}
+	p08BrokerRestart(t, f)
+	before, err := os.ReadFile(f.store.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.queryErr = errors.New("PUBLIC history authority offline")
+	r := httptest.NewRequest(http.MethodPost, "/api/tasks/"+f.task.ID+"/tool-steps/"+f.step.ID+"/reconcile",
+		strings.NewReader(`{"authorizationRef":"PUBLIC-original-proof-ref"}`))
+	r.SetPathValue("id", f.task.ID)
+	r.SetPathValue("stepId", f.step.ID)
+	w := httptest.NewRecorder()
+	f.server.handleTaskToolReconcile(w, r, f.session)
+	after, err := os.ReadFile(f.store.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if w.Code != http.StatusServiceUnavailable || !bytes.Equal(before, after) || a.queryCalls != 0 ||
+		len(c.queries) != 0 || len(c.news) != 1 || f.providerRequests.Load() != 0 {
+		t.Fatalf("history refusal status=%d, original changed=%t, NEW=%d QUERY=%d", w.Code,
+			!bytes.Equal(before, after), len(c.news), len(c.queries))
+	}
+}
+
 func TestP08AuthorityBrokerQueryFailureRetainsOriginalFacts(t *testing.T) {
 	f, a, c := newP08BrokerFixture(t, true)
 	f.approve(t)

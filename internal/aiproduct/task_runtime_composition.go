@@ -346,7 +346,7 @@ func (e *originalRuntimeToolEffects) reconcileTaskTool(ctx context.Context, call
 	// result is read by the existing reconciliation route; an unresolved slot
 	// stays unresolved. Never re-execute the read under a replacement Grant.
 	if err := e.runtime.queryCurrent(ctx); err != nil {
-		return taskReadReceipt{}, err
+		return taskReadReceipt{}, errors.Join(errTaskEffectSourceUnavailable, err)
 	}
 	if e.runtime.broker != nil {
 		return e.runtime.broker.reconcile(ctx, e, call, ref)
