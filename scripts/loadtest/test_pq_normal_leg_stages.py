@@ -227,6 +227,55 @@ class BusinessStageCostControls(unittest.TestCase):
         self.assertEqual(self.read(leg, files, binding)['nodes']['0']['businessStageCosts']['records'][0]['commit']['persistence']['stagesNs']['json_encode'], 20)
 
 
+class FeeHistoryStageControls(unittest.TestCase):
+    """Only scalar metadata controls; no fee algorithm or chain execution."""
+
+    def costs(self, child=3, count=7):
+        sample = success()
+        if child is None:
+            sample['childrenNs'].pop('seal.fee_materialize')
+        else:
+            sample['childrenNs']['seal.fee_materialize'] = child
+        sample['counts'] = {} if count is None else {'seal.fee_materialize': count}
+        return m.business_stage_costs(dict(samples=[dict(height=19, appHash='a'*64, persistence={})]),
+                                      dict(samples=[sample], dropped=0), [19, 20])['feeHistoryMaterialization']
+
+    def test_fee_history_inventory_is_paired_with_same_height_span_only(self):
+        value = self.costs()
+        self.assertEqual(value['records'], [dict(height=19, elapsedNs=3, materializedEventCount=7),
+                                            dict(height=20, elapsedNs=None, materializedEventCount=None)])
+        self.assertEqual(value['pairedObservationCount'], 1)
+        self.assertEqual(value['timing']['denominator'], 2)
+        self.assertEqual(value['eventCounts'], dict(denominator=2, observed=1, missing=1, minEvents=7, maxEvents=7))
+        self.assertIsNone(value['copyOnlyElapsedNs'])
+        self.assertIsNone(value['allocationOnlyElapsedNs'])
+        self.assertIsNone(value['instrumentationOverheadNs'])
+        self.assertFalse(value['overheadSubtracted'] or value['perEventCostInferred'])
+
+    def test_missing_count_and_missing_span_are_independently_unknown(self):
+        for child, count, timing_observed, count_observed in [(3, None, 1, 0), (None, 7, 0, 1), (None, None, 0, 0)]:
+            with self.subTest(child=child, count=count):
+                value = self.costs(child, count)
+                self.assertEqual(value['timing']['observed'], timing_observed)
+                self.assertEqual(value['eventCounts']['observed'], count_observed)
+                self.assertEqual(value['pairedObservationCount'], 0)
+                self.assertEqual(value['records'][0]['elapsedNs'], child)
+                self.assertEqual(value['records'][0]['materializedEventCount'], count)
+
+    def test_zero_events_and_zero_observed_span_are_preserved_as_original_values(self):
+        value = self.costs(child=0, count=0)
+        self.assertEqual(value['pairedObservationCount'], 1)
+        self.assertEqual(value['timing']['minNs'], 0)
+        self.assertEqual(value['eventCounts']['minEvents'], 0)
+        self.assertFalse(value['perEventCostInferred'])
+
+    def test_consumed_fee_inventory_must_obey_original_uint64_type(self):
+        for count in (-1, True, 1.0, '7', 1 << 64):
+            with self.subTest(count=count):
+                with self.assertRaisesRegex(RuntimeError, 'fee materialization count'):
+                    self.costs(count=count)
+
+
 class NormalLegStageControls(unittest.TestCase):
     def read(self, leg, files, binding):
         return m.read(leg['receipt'], lambda name, limit: files[name], binding)
