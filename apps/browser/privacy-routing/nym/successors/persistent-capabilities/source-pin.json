@@ -1,0 +1,41 @@
+{
+  "schema": "P05_NYM_PERSISTENT_CAPABILITY_OVERLAY_V1",
+  "purpose": "QA-only SDK-default capability DATA; no claim service live or runtime topology membership",
+  "sourceBefore": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P05/privacy-routing/nym-persistent-capabilities-20261108/qa_directory.before.rs",
+    "SHA256": "5ca086b3a427414781e3d8efe119266dbcc970967e89fd8ca0d29872dd7292bf"
+  },
+  "sourceAfter": {
+    "path": "/REDACTED_USER/Desktop/YNX Final Worktrees/52-browser-p0/apps/browser/privacy-routing/nym/successors/persistent-capabilities/overlay/clients/socks5/src/commands/qa_directory.rs",
+    "SHA256": "b991a97e7635815efd5f0c95604e7848e78925d2566fcf23cdaea7ab010743f4"
+  },
+  "patch": {
+    "path": "/REDACTED_USER/Desktop/YNX Final Worktrees/52-browser-p0/apps/browser/privacy-routing/nym/successors/persistent-capabilities/persistent-capabilities.patch",
+    "SHA256": "a27b4ab2eb47a444e183c9df5fc2879b51f9771f9e2ef8350206b9f32aec82d0"
+  },
+  "frame": {
+    "prefix": "YNX_NYM_QA_CAPABILITY_CANDIDATES_V2 ",
+    "schema": "YNX_NYM_QA_CAPABILITY_CANDIDATES_V2",
+    "closedKeys": [
+      "schema",
+      "runID",
+      "payloadSHA256",
+      "entryNodeIDs",
+      "exitNodeIDs"
+    ],
+    "maxFrameBytes": 262144,
+    "sumPoolSizeMax": 20000,
+    "allowPoolIntersection": true,
+    "typedBeforeEmission": "official DTO + whole identity/IP join + exact optional TLS + official Recipient parse + uses_exit_policy + same host gateway",
+    "notCredential": true
+  },
+  "officialDefaults": "nym_client_core::config::Topology::default ingress/egress ignore=true, read only; actual profile flag absence verified; no extended topology change",
+  "newDecoder": {
+    "path": "/REDACTED_USER/Desktop/YNX Final Worktrees/52-browser-p0/apps/browser/privacy-routing/nym/qa-glue/qa_capability_directory_capture.py",
+    "SHA256": "9ba062808f0d45a3c9da3573035a071850959d2e2e997dfbb7fb8fcbeea48e0e"
+  },
+  "scope": "Consumer must independently have exact previously initialized pair, original registration readback, metadata/flock, same owned child run/exe/source/plan/expiry and no init. Any changed explicit profile ignore flags require re-review; this frame is not a permit. Runtime331 still checks actual topology both gateways.",
+  "oldV1And099": "UNCHANGED",
+  "runtime331": "UNCHANGED",
+  "status": "SOURCE_IMPLEMENTED_TYPED_FIXTURE_AND_QA_FULLBINARY_NOT_YET_EXECUTED"
+}

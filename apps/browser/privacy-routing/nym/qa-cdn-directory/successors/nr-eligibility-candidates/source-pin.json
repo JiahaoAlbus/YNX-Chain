@@ -1,0 +1,43 @@
+{
+  "schema": "YNX_NYM_QA_CDN_TYPED_CANDIDATE_DATA_SOURCE_V1",
+  "UTC": "2026-11-08T01:43:15.581251+00:00",
+  "baseNREligibilitySourcePinSHA256": "50a1ae0e1373d3d7b7703e091b1624c507dd9cdc2fd64e0edab716e9864f312e",
+  "file": {
+    "path": "clients/socks5/src/commands/qa_directory.rs",
+    "beforeSHA256": "fed9f037a2435fd532ea8c1df0cd61228d2394244ae71b1706d5dcc6d8939b23",
+    "afterSHA256": "0745dad9f88aa2e467deb2a19d0d9239a786193bdf9cf60c30a712cf644ee679"
+  },
+  "candidatePatchSHA256": "7b7fa8286cee9f39ba87ecce4822fe11509318599b86124b3c151f9ba3570204",
+  "validatedRegionSHA256": "6c3985af5248a0f06a494cda1d3ae2dc41f6164126d92a5ae0d1f537e2ea4ccd",
+  "validatedRegionByteIdenticalToActual14": true,
+  "actual14Receipt": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P05/privacy-routing/nym-qa-cdn-nr-eligibility-20261108/fixture/attempt-20261108T012835Z-d9fe8c/receipt.json",
+    "SHA256": "c11ddca91794a88ec8f3c77bfe2444587ff9ad29dafaab1a6490392d8b5506e3"
+  },
+  "frame": {
+    "prefix": "YNX_NYM_QA_DIRECTORY_CANDIDATES_V1 ",
+    "keys": [
+      "schema",
+      "runID",
+      "payloadSHA256",
+      "entryNodeIDs",
+      "exitNodeIDs"
+    ],
+    "payloadHash": "exactstdoutJSON bytes excluding exactlyone appendedLF",
+    "maximumFrameBytes": 262144,
+    "maximumTotalIDs": 20000,
+    "stdoutEnvelopeUnchanged": true,
+    "networkLeaseAndAfterFlushChecks": "sameimmutableabsolute120; afterstdout/stderrflush require_live; no clockrenewal",
+    "authority": "None. LocalQA DATA codec only, notready/Root/NE/current/release."
+  },
+  "consumer": {
+    "path": "/REDACTED_USER/Desktop/YNX Final Worktrees/52-browser-p0/apps/browser/privacy-routing/nym/qa-glue/qa_directory_capture.py",
+    "SHA256": "57e5a9e0542654b81faf20fa32f94840ff81186ac28e1b847c86bcd18a8659fc",
+    "newPureDataTests": 7,
+    "testPath": "/REDACTED_USER/Desktop/YNX Final Worktrees/52-browser-p0/apps/browser/privacy-routing/nym/qa-glue/test_qa_directory_capture.py",
+    "testSHA256": "8be871364123cc27409ca631f763d79567381d76316faa1c0459d24e42e254a1",
+    "actualPopenFactory": "PendingQAadapter; tests do not fake realchild authority."
+  },
+  "CContractSHA256": "fb2f477e52802ed41743908ced38268d818fdeb5a9e0781342e1dbfa616ba0f6",
+  "fullBinary": "NOT_YET_BUILT"
+}
