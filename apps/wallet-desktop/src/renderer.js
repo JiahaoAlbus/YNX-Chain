@@ -1,3 +1,4 @@
+import {nativeAmountDraftIssue} from './native-amount-draft-ui.mjs';
 import {createDesktopAgentDelegationsRenderer} from './desktop-agent-delegations-renderer.mjs';
 import {createDesktopPQTransferSummary} from './desktop-pq-transfer-summary.mjs';
 import {mountNativePayProductUI} from './native-pay-product-ui.mjs';
@@ -179,12 +180,12 @@ const invoiceUI=createInvoiceReferenceUI({
   applyReference:id=>{document.querySelector("#invoice-reference").value=id;document.querySelector("#invoice-reference").focus()},
   render:({busy,result,error,notice})=>{
     document.querySelector("#check-invoice").disabled=busy;
-    document.querySelector("#invoice-status").textContent=notice??(busy?"Checking the invoice reference…":error??(result?"Service response received. This is not a trusted signed invoice or payment receipt.":""));
+    copyUI(document.querySelector("#invoice-status"),notice??(busy?"Checking the invoice reference…":error??(result?"Service response received. This is not a trusted signed invoice or payment receipt.":"")));
     const facts=document.querySelector("#invoice-facts");facts.replaceChildren();
     if(!result)return;
     const invoice=result.invoice;
     for(const [label,value] of [["Invoice",invoice.id],["Selected account",nativeAccountLabel(result.account)],["Reported merchant",invoice.merchant],["Reported recipient",invoice.payoutAddress],["Reported amount",`${invoice.amount} YNXT`],["Expires",invoice.dueAt],["Service status",invoice.status],["Source",result.source]]){
-      const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=label;dd.textContent=value;facts.append(dt,dd);
+      const dt=document.createElement("dt"),dd=document.createElement("dd");copyUI(dt,label);dd.dir="ltr";dd.textContent=value;facts.append(dt,dd);
     }
   },
 });
@@ -1042,27 +1043,38 @@ document.querySelector("#refresh-pending-transactions").addEventListener("click"
 });
 function clearAssetBalance() {
   ++balanceRevision;
+  lastBalanceCheckedAt = null;
   document.querySelector("#balance-value").textContent = "—";
   document.querySelector("#asset-balance").textContent = "—";
   document.querySelector("#balance-status").textContent = "";
 }
+let balanceFlight = null, balanceRefreshQueued = false, lastBalanceCheckedAt = null;
 async function refreshAssets() {
-  clearAssetBalance();
+  if (balanceFlight) { balanceRefreshQueued = true; return balanceFlight; }
   const revision = balanceRevision, account = activeAccount;
   if (!account) return;
   const current = () => revision === balanceRevision && account === activeAccount;
-  copyUI(document.querySelector("#balance-status"),"Checking YNX Testnet…");
-  try {
+  if (!lastBalanceCheckedAt) copyUI(document.querySelector("#balance-status"),"Checking YNX Testnet…");
+  balanceFlight = (async () => { try {
     const result = await window.ynxWallet.balance();
     if (!current()) return;
-    if (!result.ok) { document.querySelector("#balance-status").textContent = errorText(result); return; }
+    if (!result.ok) throw new Error("Balance unavailable");
     const value=result.value;
     if(value?.account!==account||typeof value.formatted!=="string"||value.formatted.length>80||!/^(?:0|[1-9][0-9]*)(?:\.[0-9]{1,18})?$/.test(value.formatted)||typeof value.transferEnabled!=="boolean"||typeof value.checkedAt!=="string"||!Number.isFinite(Date.parse(value.checkedAt))||![new Date(value.checkedAt).toISOString(),new Date(value.checkedAt).toISOString().replace(/\.000Z$/,"Z")].includes(value.checkedAt))throw new Error("Invalid balance projection");
     document.querySelector("#balance-value").textContent = value.formatted;
     document.querySelector("#asset-balance").textContent = `${value.formatted} YNXT`;
+    lastBalanceCheckedAt = value.checkedAt;
     copyUI(document.querySelector("#balance-status"),value.transferEnabled===false?"Legacy whole-YNXT balance verified. Ethereum transfers are not enabled on this network.":"YNX Testnet · Updated {time}",{time:new Date(value.checkedAt).toLocaleTimeString()});
-  } catch { if (current()) copyUI(document.querySelector("#balance-status"),"Balance unavailable. Try refreshing."); }
+  } catch { if (current()) {
+    if (lastBalanceCheckedAt) copyUI(document.querySelector("#balance-status"),"Update pending · Last updated {time}",{time:new Date(lastBalanceCheckedAt).toLocaleTimeString()});
+    else copyUI(document.querySelector("#balance-status"),"Balance unavailable. Try refreshing.");
+  }} finally {
+    balanceFlight = null;
+    if (balanceRefreshQueued) { balanceRefreshQueued = false; void refreshAssets(); }
+  }})();
+  return balanceFlight;
 }
+setInterval(() => { if (!balanceFlight && activeAccount) void refreshAssets(); }, 3000);
 document.querySelector("#refresh-balance").addEventListener("click", refreshAssets);
 document.querySelector("#copy-receiving-link").addEventListener("click",()=>void receiveShareUI.copyLink());
 document.querySelector("#copy-address").addEventListener("click",()=>void receiveShareUI.copyAddress());
@@ -1145,6 +1157,8 @@ document.querySelector("#transfer-form").addEventListener("submit", async event 
   button.disabled = true; transferReview = null; document.querySelector("#transfer-review").hidden = true;
   copyUI(output,"Checking recipient, balance and network fee…");
   try {
+    const amountIssue=nativeAmountDraftIssue(amount,document.documentElement?.lang?.startsWith('zh'));
+    if(amountIssue){if(current())output.textContent=amountIssue;return;}
     let recipient = to;
     if (!current()) return;
     if (to.startsWith("ynx:")) {

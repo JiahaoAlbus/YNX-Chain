@@ -14,6 +14,7 @@ import {RECEIPT_COPY} from "./wallet-locale-receipts.mjs";
 import {HISTORY_COPY} from "./wallet-locale-history.mjs";
 import {TRANSACTION_NOTICE_COPY} from "./wallet-locale-transaction-notices.mjs";
 import {PAY_COPY} from "./wallet-locale-pay.mjs";
+import {INVOICE_REFERENCE_COPY} from "./wallet-locale-invoice-reference.mjs";
 import {PAY_NOTICE_COPY} from "./wallet-locale-pay-notices.mjs";
 import {PERMISSION_COPY} from "./wallet-locale-permissions.mjs";
 import {BALANCE_COPY} from "./wallet-locale-balance.mjs";
@@ -60,7 +61,7 @@ keys.push(resolverTitle);for(const locale of WALLET_LOCALES)rows[locale]+='|'+re
 export const WALLET_COPY = Object.freeze(Object.fromEntries(WALLET_LOCALES.map(locale=>{
   const values=rows[locale].split("|");
   if(values.length!==keys.length||values.some(value=>!value))throw Error(`Incomplete Wallet copy: ${locale}`);
-  return [locale,Object.freeze({...Object.fromEntries(keys.map((key,index)=>[key,values[index]])),...TRANSFER_COPY[locale],...TRANSFER_ERROR_COPY[locale],...RECIPIENT_COPY[locale],...RECOVERY_COPY[locale],...PASSWORD_COPY[locale],...ACCOUNT_LABEL_COPY[locale],...ACCOUNT_STATE_COPY[locale],...RECEIVE_COPY[locale],...BACKUP_COPY[locale],...FLOW_NOTICE_COPY[locale],...TRANSACTION_COPY[locale],...RECEIPT_COPY[locale],...HISTORY_COPY[locale],...TRANSACTION_NOTICE_COPY[locale],...PAY_COPY[locale],...PAY_NOTICE_COPY[locale],...PERMISSION_COPY[locale],...BALANCE_COPY[locale],...SESSION_COPY[locale],...CAMERA_COPY[locale],...CONTRACT_COPY[locale],...DIAGNOSTIC_COPY[locale],...MNEMONIC_COPY[locale],...MULTICHAIN_COPY[locale],...FAMILY_COPY[locale],...BUILD_INFO_COPY[locale]})];
+  return [locale,Object.freeze({...Object.fromEntries(keys.map((key,index)=>[key,values[index]])),...TRANSFER_COPY[locale],...TRANSFER_ERROR_COPY[locale],...RECIPIENT_COPY[locale],...RECOVERY_COPY[locale],...PASSWORD_COPY[locale],...ACCOUNT_LABEL_COPY[locale],...ACCOUNT_STATE_COPY[locale],...RECEIVE_COPY[locale],...BACKUP_COPY[locale],...FLOW_NOTICE_COPY[locale],...TRANSACTION_COPY[locale],...RECEIPT_COPY[locale],...HISTORY_COPY[locale],...TRANSACTION_NOTICE_COPY[locale],...PAY_COPY[locale],...INVOICE_REFERENCE_COPY[locale],...PAY_NOTICE_COPY[locale],...PERMISSION_COPY[locale],...BALANCE_COPY[locale],...SESSION_COPY[locale],...CAMERA_COPY[locale],...CONTRACT_COPY[locale],...DIAGNOSTIC_COPY[locale],...MNEMONIC_COPY[locale],...MULTICHAIN_COPY[locale],...FAMILY_COPY[locale],...BUILD_INFO_COPY[locale]})];
 })));
 export function systemWalletLocale(languages=[]) {
   for(const tag of languages){if(typeof tag!=="string")continue;const value=tag.toLowerCase();if(value.startsWith("zh"))return /(?:hant|tw|hk|mo)/.test(value)?"zh-Hant":"zh-Hans";const locale=WALLET_LOCALES.find(item=>value===item.toLowerCase()||value.startsWith(item.toLowerCase()+"-"));if(locale)return locale}
@@ -76,6 +77,12 @@ const instances=new WeakMap();
 // Explicit application-owned UI labels. Raw request/account/value containers
 // deliberately do not appear here, including auth-purpose and all review pre.
 export const WALLET_STATIC_COPY=Object.freeze({
+  "#open-invoice":"Check invoice", "#invoice-title":"Check an invoice reference", '[data-close="invoice-sheet"]':"Cancel without payment",
+  "#invoice-sheet > p:first-of-type":"An invoice reference is not payment authorization. Only the configured Pay service is queried. A pasted link never supplies an amount, a signing key or a new service origin.",
+  "#invoice-sheet details > summary":"Use an invoice QR image", 'label[for="invoice-qr"]':"Choose a Pay invoice QR image",
+  "#invoice-sheet details > p":"Decoded on this device, not uploaded. The code fills only an invoice reference. Check the service separately; scanning never signs or pays.",
+  'label[for="invoice-reference"]':"Invoice ID or existing Pay checkout link", "#check-invoice":"Check at Pay service",
+  "#invoice-sheet > p.muted":"Reported merchant, amount, recipient and paid status are only a legacy service projection. They are not a trusted signed invoice, a payment receipt or settlement proof. Payment requires the independently registered merchant policy and this account's verified Pay session. Nothing in this query signs, transfers or settles funds.",
   "#open-contracts":"Read a contract","#contract-title":"Read a contract",'[data-close="contract-sheet"]':"Close",
   'label[for="contract-mode"]':"Chain runtime",'#contract-mode option[value="bft"]':"Current BFT bounded contract runtime",'#contract-mode option[value="legacy"]':"Legacy local pure/view runtime (explicit)",
   'label[for="contract-address"]':"Contract address","#lookup-contract":"Look up contract",'label[for="contract-function"]':"Read-only function or calldata","#read-contract":"Read contract",

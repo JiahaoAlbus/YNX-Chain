@@ -1,3 +1,4 @@
+import {nativeAmountDraftIssue} from '../src/native-amount-draft-ui.mjs';
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';
 import {WALLET_COPY,WALLET_LOCALES,initWalletLocale} from '../src/wallet-locale.mjs';
 import {TRANSFER_ERROR_KEYS,TRANSFER_ERROR_COPY} from '../src/wallet-locale-transfer-errors.mjs';
@@ -13,7 +14,7 @@ test('actual normal transfer prepare handler uses owned localized error renderin
  const start=renderer.indexOf('async event => {',renderer.indexOf('document.querySelector("#transfer-form")'));
  const end=renderer.indexOf('\nasync function actOnTransfer',start);
  const expression=renderer.slice(start,end).trim().replace(/\);$/,'');
- const context={document:ui.document,keyState:{locked:false,authenticating:false,revision:1},activeAccount:'qa',paymentDraftRevision:0,transferReview:null,invalidatePaymentInput(){},beginAccountOperation(){return operation;},accountOperationCurrent:()=>true,finishAccountOperation(){},copyUI(node,key){node.textContent=key;},renderTransferPreparationError,errorText:result=>result.error.message,window:{ynxWallet:{async prepareTransfer(){prepared++;return{ok:false,error:{code:'INSUFFICIENT_FUNDS',message:TRANSFER_ERROR_KEYS[0],displayOrigin:'LOCAL_TRANSFER_PREPARATION'}};}}}};
+ const context={nativeAmountDraftIssue,document:ui.document,keyState:{locked:false,authenticating:false,revision:1},activeAccount:'qa',paymentDraftRevision:0,transferReview:null,invalidatePaymentInput(){},beginAccountOperation(){return operation;},accountOperationCurrent:()=>true,finishAccountOperation(){},copyUI(node,key){node.textContent=key;},renderTransferPreparationError,errorText:result=>result.error.message,window:{ynxWallet:{async prepareTransfer(){prepared++;return{ok:false,error:{code:'INSUFFICIENT_FUNDS',message:TRANSFER_ERROR_KEYS[0],displayOrigin:'LOCAL_TRANSFER_PREPARATION'}};}}}};
  await vm.runInNewContext(`(${expression})`,context)({preventDefault(){}});
  assert.equal(prepared,1);assert.equal(ui.node.textContent,TRANSFER_ERROR_COPY['zh-Hans'][TRANSFER_ERROR_KEYS[0]]);assert.equal(nodes.get('#transfer-review').hidden,true);
 });

@@ -1,3 +1,4 @@
+import {nativeAmountDraftIssue} from '../src/native-amount-draft-ui.mjs';
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
@@ -9,7 +10,7 @@ function harness(){
   const get=selector=>{if(!nodes.has(selector))nodes.set(selector,{value:"",textContent:"",disabled:false,hidden:false,open:false,children:[],listeners:{},addEventListener(type,fn){this.listeners[type]=fn},append(...values){this.children.push(...values)},replaceChildren(){this.children=[]},close(){this.open=false},showModal(){this.open=true},focus(){}});return nodes.get(selector)};
   const document={querySelector:selector=>selector==="dialog[open]"?[...nodes.values()].find(node=>node.open)??null:get(selector),createElement:()=>({}),querySelectorAll:()=>[]};
   get("#send-sheet").open=true;get("#transfer-to").value="ynx1-public-recipient";get("#transfer-amount").value="1";
-  const context={document,keyState:{locked:false,authenticating:false,revision:1},activeAccount:"account-a",accountViewRevision:0,accountState:{initialized:true},paymentDraftRevision:0,transferReview:null,transferInFlight:false,
+  const context={nativeAmountDraftIssue,document,keyState:{locked:false,authenticating:false,revision:1},activeAccount:"account-a",accountViewRevision:0,accountState:{initialized:true},paymentDraftRevision:0,transferReview:null,transferInFlight:false,
     window:{ynxWallet:{paymentRecipient:input=>{const pending=deferred();parses.push({...pending,input});return pending.promise},prepareTransfer:input=>{prepareInputs.push(input);const pending=deferred();preparations.push(pending);return pending.promise},transferAction:()=>{const pending=deferred();actions.push(pending);return pending.promise},lock:async()=>{context.keyState.locked=true}}},
     paymentRecipientUI:{invalidate(){}},recipientScanUI:{invalidate(){}},presentApproval(){approvalPresentations++;},renderTransferPreparationError:()=>false,errorText:result=>result.error.message,formatApprovalReview:()=>"public transaction",refreshAssets(){refreshes++},refreshTransactions(){refreshes++}};
   const start=source.indexOf('document.querySelector("#transfer-form").addEventListener'),end=source.indexOf("\nfunction setView(name)",start);
@@ -73,12 +74,12 @@ const r15Address="ynx1sj7g39cewyrc63g2clxrrkdywawkuvr9fmrvvt";
 const r15URI=`ynx:${r15Address}?chainId=ynx_6423-1&asset=YNXT`;
 const r15Parsed=()=>({ok:true,value:{ynxAccount:r15Address,chainId:"ynx_6423-1",asset:"YNXT"}});
 test("R15 PUBLIC typed receiving link passes original draft unchanged to PQ preparation without automatic action",async()=>{
-  const h=harness();h.get("#transfer-to").value=r15URI;h.get("#transfer-amount").value="1.25";
+  const h=harness();h.get("#transfer-to").value=r15URI;h.get("#transfer-amount").value="125";
   const job=h.submit();assert.equal(h.parses.length,1);assert.equal(h.parses[0].input,r15URI);assert.equal(h.preparations.length,0);
   h.parses[0].resolve(r15Parsed());await new Promise(resolve=>setImmediate(resolve));assert.equal(h.preparations.length,1);
-  assert.equal(h.prepareInputs[0].to,r15Address);assert.equal(h.prepareInputs[0].amount,"1.25");
+  assert.equal(h.prepareInputs[0].to,r15Address);assert.equal(h.prepareInputs[0].amount,"125");
   h.preparations[0].resolve(prepared());await job;assert.equal(h.get("#transfer-review").open,false);assert.equal(h.actions.length,0);assert.equal(h.approvalPresentations(),1);assert.equal(h.context.transferReview,null);
-  assert.equal(h.get("#transfer-to").value,r15URI);assert.equal(h.get("#transfer-amount").value,"1.25");
+  assert.equal(h.get("#transfer-to").value,r15URI);assert.equal(h.get("#transfer-amount").value,"125");
 });
 for(const [name,reply] of [
   ["wrong chain",{ok:true,value:{...r15Parsed().value,chainId:"other-chain"}}],
@@ -109,3 +110,5 @@ test("R15 PUBLIC ordinary address keeps its existing preparation path without re
 test('default Send refuses a legacy preparation response instead of opening classic confirmation',async()=>{
  const h=harness(),job=h.submit();h.preparations[0].resolve({ok:true,value:{id:'legacy',account:'account-a'}});await job;assert.equal(h.actions.length,0);assert.equal(h.approvalPresentations(),0);assert.equal(h.get('#transfer-review').open,false);assert.equal(h.get('#send-sheet').open,true);assert.match(h.get('#transfer-result').textContent,/PQ review unavailable/);
 });
+test('native amount draft rejects decimal/exponent/leading-zero inputs before parsing or original Main preparation',async()=>{for(const amount of ['1.2','1.25','1e3','01','0','-1','123456789012345678901']){const f=harness();f.get('#transfer-amount').value=amount;f.get('#transfer-to').value='ynx:PUBLIC';await f.get('#transfer-form').listeners.submit({preventDefault(){}});assert.equal(f.prepareInputs.length,0);assert.equal(f.parses.length,0);assert.equal(f.actions.length,0);assert.match(f.get('#transfer-result').textContent,/positive whole YNXT/);assert.equal(f.get('#transfer-amount').value,amount);}});
+test('native amount helper preserves accepted whole string precision; original SDK remains the range authority',()=>{for(const value of ['1','9007199254740993','18446744073709551615'])assert.equal(nativeAmountDraftIssue(value),null);assert.match(nativeAmountDraftIssue('0.00',true),/不会转换或舍入/);const html=readFileSync(new URL('../src/index.html',import.meta.url),'utf8');assert.match(html,/<input id="transfer-amount" inputmode="numeric" placeholder="1"/);assert(html.includes('native-amount-hint'));assert(!/<input id="transfer-amount"[^>]*0\.00/.test(html));});
