@@ -5,11 +5,22 @@ write/read pair, rather than allowing concurrent Python readers to steal an
 owner's reply. EOF/cancellation never retries a command or releases a nonce.
 """
 import json
+import importlib.util
+from pathlib import Path
+import signal
 import os
 import stat
 import subprocess
+import sys
 import threading
 import time
+
+
+def original_signal(process, signum):
+    # Never fall back to a numeric PID when the original pidfd is absent.
+    handle=vars(process).get('_ynx_original_pidfd')
+    if handle is None:raise RuntimeError('original owner identity handle unavailable')
+    handle.send(signum)
 
 
 def prepared_ready(reply, owners, require):
@@ -121,6 +132,9 @@ def session_class(Base, normal, lab):
             self.offset=0;self.partial=b'';self.ready=None
             self.lock=threading.Lock();self.poisoned=False
             lab.require(type(poison_retirement) is bool,'explicit poison retirement experiment required')
+            if poison_retirement:
+                lab.require(sys.platform=='linux' and hasattr(os,'pidfd_open') and hasattr(signal,'pidfd_send_signal'),
+                            'Linux original pidfd required before experimental process launch')
             self.poison_retirement=poison_retirement
             self.trace_lock=threading.Lock();self.traces=[];self.attempts=0
             self.launched_ns=time.monotonic_ns()
@@ -136,6 +150,11 @@ def session_class(Base, normal, lab):
                 if prepare_source:args.append('--prepare-source')
                 self.proc=ceremony.w.launch(name,normal.fd3_command(args,fd),True,
                                            pass_fds=(fd,),stdin_pipe=True,thread_safe=True)
+                if poison_retirement:
+                    self.proc._ynx_original_pidfd_required=True
+                    spec=importlib.util.spec_from_file_location('original_owner_pidfd',Path(__file__).with_name('pq-experimental-owner-pidfd.py'))
+                    identity=importlib.util.module_from_spec(spec);spec.loader.exec_module(identity)
+                    self.proc._ynx_original_pidfd=identity.OriginalOwnerPidfd(self.proc)
             finally:
                 os.close(fd)
             self.path=ceremony.w.work/'public'/(name+'.log')
@@ -172,7 +191,8 @@ def session_class(Base, normal, lab):
             out=dict(pid=getattr(p,'pid',None),stdinCut=False,stdinCloseErrorType=None,
                      eofExitObserved=False,terminateRequested=False,killRequested=False,
                      returnCode=None,cleanupErrorType=None,cleanupErrorTypes=[],lateRepliesRead=False,
-                     wipeProven=False,originalOperationReplayed=False)
+                     leaderIdentityOnly=True,descendantTreeCleanupProven=False,
+                     descendantCleanupOwner='original-Window',wipeProven=False,originalOperationReplayed=False)
             def failed(error):
                 name=type(error).__name__
                 if out['cleanupErrorType'] is None:out['cleanupErrorType']=name
@@ -202,7 +222,7 @@ def session_class(Base, normal, lab):
                     except BaseException as error:failed(error)
                 if alive() is True:
                     out['terminateRequested']=True
-                    try:p.terminate()
+                    try:original_signal(p,signal.SIGTERM)
                     except BaseException as error:failed(error)
                     if alive() is True:
                         try:p.wait(timeout=1)
@@ -210,7 +230,7 @@ def session_class(Base, normal, lab):
                         except BaseException as error:failed(error)
                 if alive() is True:
                     out['killRequested']=True
-                    try:p.kill()
+                    try:original_signal(p,signal.SIGKILL)
                     except BaseException as error:failed(error)
                     if alive() is True:
                         try:p.wait(timeout=1)
@@ -228,7 +248,8 @@ def session_class(Base, normal, lab):
                 try:self.poison_retirement_report=self.retire_poisoned_original()
                 except BaseException as cleanup_error:
                     self.poison_retirement_report=dict(cleanupErrorType=type(cleanup_error).__name__,
-                        returnCode=None,wipeProven=False,lateRepliesRead=False,originalOperationReplayed=False)
+                        returnCode=None,leaderIdentityOnly=True,descendantTreeCleanupProven=False,
+                        descendantCleanupOwner='original-Window',wipeProven=False,lateRepliesRead=False,originalOperationReplayed=False)
             return dict(self.poison_retirement_report)
 
         def exchange(self, command, path, stop, prepare_command=None, prepare_owner_path=None, on_owner_prepare=None):
@@ -317,6 +338,19 @@ def session_class(Base, normal, lab):
                 trace['returnedMonotonicNs']=time.monotonic_ns()
                 with self.trace_lock:
                     if len(self.traces)<2048:self.traces.append(trace)
+
+        def retire_identity_after_window(self):
+            # The original Window must have stopped/reaped the child first.
+            # Do not close a handle while a worker may still use it.
+            if not self.lock.acquire(blocking=False):return dict(status='WORKER_STILL_OWNS_STREAM',closed=False)
+            try:
+                handle=vars(self.proc).get('_ynx_original_pidfd')
+                if handle is None:return dict(status='ORIGINAL_IDENTITY_MISSING',closed=False)
+                if self.proc.poll() is None:return dict(status='ORIGINAL_PROCESS_NOT_REAPED',closed=False)
+                try:handle.close()
+                except BaseException as error:return dict(status='IDENTITY_CLOSE_FAILED',closed=False,errorType=type(error).__name__)
+                return dict(status='ORIGINAL_IDENTITY_CLOSED_AFTER_REAP',closed=True)
+            finally:self.lock.release()
 
         def transport_report(self):
             with self.trace_lock:

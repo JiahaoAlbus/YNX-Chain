@@ -1035,7 +1035,7 @@ class NormalBackend:
         with self.w.lock:children=list(self.w.children)
         for child in children:
             if child["name"].startswith("load-") and child["process"].poll() is None:
-                try:os.killpg(child["process"].pid,signal.SIGTERM)
+                try:lab.signal_original_child(child["process"],signal.SIGTERM)
                 except ProcessLookupError:pass
         # Terminate before closing buffered stdin so a stalled child cannot
         # hold a writer/close lock past the bounded cleanup boundary.
@@ -1460,6 +1460,17 @@ def run(args):
             journal.close();result["journalSegments"]=[dict(path=str(p.relative_to(work/"public")),bytes=p.stat().st_size,sha256=lab.guard.digest(p)) for p in journal.paths]
         try:result["cleanupComplete"]=w.stop()
         except BaseException as error:result["cleanupComplete"]=False;result["cleanupError"]=str(error);result["directOwnedCleanupAfterFailure"]=getattr(w,"direct_cleanup_after_failure",[])
+        if backend is not None:
+            identities=[]
+            for session in backend.sessions.values():
+                if getattr(session,'poison_retirement',False):
+                    identities.append(session.retire_identity_after_window())
+            if identities:
+                result['experimentalOwnerPidfdCleanup']=identities
+                if any(not item['closed'] for item in identities):
+                    result['cleanupComplete']=False
+                    result['firstCause']=result['firstCause'] or 'original experimental owner identity cleanup incomplete'
+                if hasattr(backend,'public_owner_report'):result['normalPublicOwnerTransport']=backend.public_owner_report()
         if backend is not None and result["cleanupComplete"] and "loadResult" in result:
             result["stoppedLiveProofFailures"]=backend.retain_stopped_live_proof_failures(result["loadResult"])
         if ceremony is not None and ceremony.commit_observation_enabled:

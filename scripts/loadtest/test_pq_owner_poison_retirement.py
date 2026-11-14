@@ -53,7 +53,8 @@ class PoisonControls(unittest.TestCase):
                 if child.poll() is None:child.kill();child.wait()
 
     def test_cleanup_failure_does_not_replace_first_cause(self):
-        child=SimpleNamespace(pid=10,stdin=None,poll=lambda:None,terminate=lambda:(_ for _ in ()).throw(OSError('no kill')))
+        child=SimpleNamespace(pid=10,stdin=None,poll=lambda:None)
+        child._ynx_original_pidfd=SimpleNamespace(send=lambda signum:(_ for _ in ()).throw(OSError('no signal')))
         def lost(*args):raise TimeoutError('original reply lost')
         s=session(child,lost)
         class Sink:
@@ -98,7 +99,9 @@ class PoisonControls(unittest.TestCase):
                 return self.code
             def terminate(self):pass
             def kill(self):self.code=-9
-        s=session(Child(),lambda *a:None)
+        child=Child()
+        child._ynx_original_pidfd=SimpleNamespace(send=lambda signum:child.kill() if signum==driver.signal.SIGKILL else child.terminate())
+        s=session(child,lambda *a:None)
         report=s.retire_poisoned_original()
         self.assertTrue(report['terminateRequested']);self.assertTrue(report['killRequested'])
         self.assertEqual(report['returnCode'],-9);self.assertFalse(report['wipeProven'])
@@ -132,5 +135,59 @@ class PoisonControls(unittest.TestCase):
         with mock.patch.object(driver.os,'killpg'),mock.patch.object(s,'retire_poisoned_original',side_effect=AssertionError('must not retry cleanup')):
             backend.stop()
         self.assertIsNone(s.poison_retirement_report['returnCode'])
+
+    def test_reaped_pid_reuse_never_receives_a_numeric_signal(self):
+        proc=SimpleNamespace(pid=12345)
+        calls=[]
+        proc._ynx_original_pidfd=SimpleNamespace(send=lambda signum:calls.append(signum))
+        with mock.patch.object(driver.os,'killpg',side_effect=AssertionError('numeric PID signal refused')):
+            driver.lab.signal_original_child(proc,driver.signal.SIGTERM)
+        self.assertEqual(calls,[driver.signal.SIGTERM])
+
+    @unittest.skipUnless(sys.platform=='linux','original pidfd requires Linux')
+    def test_real_original_pidfd_signals_exact_child(self):
+        self.assertTrue(hasattr(os,'pidfd_open') and hasattr(driver.signal,'pidfd_send_signal'),'Linux original pidfd APIs required')
+        child=subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)'],stdin=subprocess.DEVNULL)
+        identity=module('pq-experimental-owner-pidfd').OriginalOwnerPidfd(child)
+        try:
+            identity.send(driver.signal.SIGTERM)
+            child.wait(timeout=3)
+            self.assertEqual(child.returncode,-driver.signal.SIGTERM)
+        finally:
+            identity.close()
+            if child.poll() is None:child.kill();child.wait()
+
+    def test_missing_identity_never_falls_back_to_numeric_signal(self):
+        proc=SimpleNamespace(pid=12345,stdin=None,poll=lambda:None)
+        s=session(proc,lambda *a:None)
+        with mock.patch.object(driver.os,'killpg',side_effect=AssertionError('numeric signal forbidden')):
+            report=s.retire_poisoned_original()
+        self.assertEqual(report['cleanupErrorType'],'RuntimeError')
+        self.assertIsNone(report['returnCode']);self.assertFalse(report['wipeProven'])
+
+    def test_identity_closes_only_after_reap_and_stream_unlock(self):
+        closed=[]
+        proc=SimpleNamespace(pid=12345,stdin=None,poll=lambda:0)
+        proc._ynx_original_pidfd=SimpleNamespace(close=lambda:closed.append(True))
+        s=session(proc,lambda *a:None);s.lock.acquire()
+        try:
+            self.assertEqual(s.retire_identity_after_window()['status'],'WORKER_STILL_OWNS_STREAM')
+            self.assertEqual(closed,[])
+        finally:s.lock.release()
+        self.assertEqual(s.retire_identity_after_window()['status'],'ORIGINAL_IDENTITY_CLOSED_AFTER_REAP')
+        self.assertEqual(closed,[True])
+
+    def test_required_identity_missing_never_downgrades_to_pid(self):
+        proc=SimpleNamespace(pid=12345,_ynx_original_pidfd_required=True)
+        with mock.patch.object(driver.os,'killpg',side_effect=AssertionError('numeric PID fallback forbidden')):
+            with self.assertRaisesRegex(RuntimeError,'pidfd missing'):
+                driver.lab.signal_original_child(proc,driver.signal.SIGTERM)
+
+    def test_non_linux_refused_before_child_launch(self):
+        ceremony=SimpleNamespace(w=SimpleNamespace(launch=mock.Mock()))
+        with mock.patch.object(transport.sys,'platform','darwin'):
+            with self.assertRaisesRegex(RuntimeError,'pidfd required'):
+                Session(ceremony,(0,),poison_retirement=True)
+        ceremony.w.launch.assert_not_called()
 
 if __name__=='__main__':unittest.main()

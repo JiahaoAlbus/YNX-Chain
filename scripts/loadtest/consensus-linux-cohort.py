@@ -342,6 +342,19 @@ class ProcessEvidence:
         self.index[key]=len(self.records);self.records.append(row)
 
 
+
+def signal_original_child(process, signum, *, group=True):
+    """Use an attached original pidfd when supplied; never downgrade it."""
+    identity=vars(process).get('_ynx_original_pidfd')
+    if identity is not None:
+        identity.send(signum)
+    elif vars(process).get('_ynx_original_pidfd_required',False):
+        raise RuntimeError('original owner pidfd missing; no numeric signal fallback')
+    elif group:
+        os.killpg(process.pid,signum)
+    else:
+        process.send_signal(signum)
+
 class Window:
     def __init__(self, source, work, additional_storage=()):
         self.lock = threading.RLock()
@@ -586,9 +599,9 @@ class Window:
             for child in self.children:
                 proc=child["process"]
                 if proc.poll() is None:
-                    try:os.killpg(proc.pid,signal.SIGTERM)
+                    try:signal_original_child(proc,signal.SIGTERM)
                     except ProcessLookupError:pass
-                    except OSError as error:errors.setdefault(proc.pid,[]).append(dict(operation="signal",errorType=type(error).__name__,errno=error.errno))
+                    except (OSError,RuntimeError) as error:errors.setdefault(proc.pid,[]).append(dict(operation="signal",errorType=type(error).__name__,errno=getattr(error,'errno',None)))
             for child in self.children:
                 proc=child["process"]
                 try:
@@ -596,7 +609,7 @@ class Window:
                     except subprocess.TimeoutExpired:
                         # Still the original unreaped direct child, not a
                         # numeric /proc candidate. No foreign PID is selected.
-                        proc.kill();proc.wait(timeout=1)
+                        signal_original_child(proc,signal.SIGKILL,group=False);proc.wait(timeout=1)
                 except Exception as error:
                     errors.setdefault(proc.pid,[]).append(dict(operation="wait",errorType=type(error).__name__))
                 self.direct_cleanup_after_failure.append(dict(name=child["name"],pid=proc.pid,startTicks=child.get("startTicks"),rawReturnCode=proc.returncode,exited=proc.returncode is not None,**(dict(errors=errors[proc.pid]) if proc.pid in errors else {})))
@@ -619,7 +632,7 @@ class Window:
             if c["process"].poll() is None:
                 if re.fullmatch(r"(?:bootstrap|pq)-node-[0-3]", c["name"]):
                     normal_nodes[c["process"].pid] = c["startTicks"]
-                try: os.killpg(c["process"].pid, signal.SIGTERM)
+                try: signal_original_child(c["process"], signal.SIGTERM)
                 except ProcessLookupError: pass
         while time.monotonic() - started < CAPS["cleanupSeconds"]:
             rows, _ = guard.proc_inventory()
@@ -639,14 +652,16 @@ class Window:
                     try:
                         current = guard.parse_stat(guard.bounded(Path("/proc") / str(pid) / "stat"), pid)
                         if current["startTicks"] == expected["startTicks"]:
-                            os.kill(pid, signal.SIGKILL)
+                            owner=next((c["process"] for c in self.children if c["process"].pid==pid and (vars(c["process"]).get('_ynx_original_pidfd') is not None or vars(c["process"]).get('_ynx_original_pidfd_required',False))),None)
+                            if owner is not None:signal_original_child(owner,signal.SIGKILL,group=False)
+                            else:os.kill(pid, signal.SIGKILL)
                     except ProcessLookupError: pass
                     except FileNotFoundError: pass
             for c in self.children: c["process"].poll()
             time.sleep(.1)
         for c in self.children:
             if c["process"].poll() is None:
-                c["process"].kill()
+                signal_original_child(c["process"],signal.SIGKILL,group=False)
             c["process"].wait(timeout=1)
         for _, log in self.logs: log.close()
         # Reap only our own adopted children, never another runner task.
