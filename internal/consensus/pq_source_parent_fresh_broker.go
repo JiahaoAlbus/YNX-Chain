@@ -355,19 +355,63 @@ func (b *pqFreshScopeBroker) scope(r *pqFreshScopeRecord) {
 		b.finish(r, err, 4)
 		return
 	}
-	r.scope.original.mu.Lock()
-	wire := r.scope.original.wire
-	r.scope.original.mu.Unlock()
-	if wire != nil {
-		<-wire.done
+	b.completeScope(r)
+}
+
+// Complete only the same received scope. A clean local retirement after its
+// complete original CLOSE output must not create a failure or retry a closed
+// FD; any earlier Source/SDK/write/physical error remains distinct and retained.
+func (b *pqFreshScopeBroker) completeScope(r *pqFreshScopeRecord) {
+	owner, source, scope := r.owner, r.source, r.scope
+	if owner == nil || source == nil || scope == nil || scope.original == nil || source.original != owner || source.conn == nil || source.conn != owner.sourceConn {
+		b.retainUnfinishedScope(r)
+		return
 	}
-	// Core local worker EOF is local data only. The Native actual typed child
-	// retains its Source loan until its OWN SDK/Source drain token completes.
-	if source != nil {
-		err = source.closeLocal()
+	scope.original.mu.Lock()
+	wire := scope.original.wire
+	scope.original.mu.Unlock()
+	if wire == nil {
+		b.retainUnfinishedScope(r)
+		return
 	}
-	err = errors.Join(err, r.scope.close(), owner.closeUnused())
+	<-wire.done
+	written, failed := wire.terminalCloseObservation()
+	err := errors.Join(wire.cause(), source.cause())
+	if !written || failed {
+		err = errors.Join(err, errFreshScopeBroker)
+	}
+	// A unique private cause distinguishes THIS post-protocol local retirement
+	// from an independently arriving cancel, deadline or present=true/code=0.
+	localRetirement := errors.New("original fresh scope local protocol retirement")
+	if err == nil {
+		source.cancel(context.Canceled, localRetirement)
+	}
+	sourceErr := source.closeLocal()
+	if sourceErr != localRetirement {
+		err = errors.Join(err, sourceErr)
+	}
+	controlErr := source.closeOriginalControl() // same first actual Close, no retry
+	// The source now owns the sole recorded close attempt for this exact object.
+	// Preserve it on r.source, including error, instead of closing it again.
+	owner.mu.Lock()
+	owner.sourceConn = nil
+	owner.mu.Unlock()
+	scopeErr := scope.close()
+	unusedErr := owner.closeUnused()
+	err = errors.Join(err, controlErr, scopeErr, unusedErr)
 	b.finish(r, err, 0)
+}
+
+func (b *pqFreshScopeBroker) retainUnfinishedScope(r *pqFreshScopeRecord) {
+	b.mu.Lock()
+	if r.first == nil {
+		r.first = errFreshScopeBroker
+	}
+	r.status, r.reason = 3, 4
+	b.mu.Unlock()
+	b.seal(errFreshScopeBroker)
+	// Broken internal ownership cannot prove closure. Keep this same owner,
+	// active debt and unclosed done; Join must not release CODE on that basis.
 }
 func (b *pqFreshScopeBroker) finish(r *pqFreshScopeRecord, err error, reason uint32) {
 	b.mu.Lock()

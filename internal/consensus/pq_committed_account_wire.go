@@ -44,6 +44,11 @@ type pqCommittedAccountWire struct {
 	reader                              [32]byte
 	next                                uint64
 	selected, terminal, retired, closed bool
+	closeReplyWritten                   bool
+	closeReplyReader                    [32]byte
+	closeReplySequence                  uint64
+	closeReplyFailure                   bool
+	closeReplyEOF                       bool
 }
 
 // Private host BODY for the account purpose ONLY. The normal launcher must
@@ -138,6 +143,21 @@ func (w *pqCommittedAccountWire) record(e error) {
 }
 func (w *pqCommittedAccountWire) cause() error { w.mu.Lock(); defer w.mu.Unlock(); return w.firstCause }
 
+// Private, bounded observation after the actual serving worker has drained.
+// closed alone is insufficient: it precedes the response write. Even a complete
+// write is only this Core endpoint's fact, never a Native/SDK receipt of the ACK.
+func (w *pqCommittedAccountWire) terminalCloseObservation() (written, failed bool) {
+	select {
+	case <-w.done:
+	default:
+		return false, false
+	}
+	if !w.closed || !w.closeReplyWritten || !w.closeReplyEOF || w.closeReplyReader != w.reader || w.reader == [32]byte{} || w.closeReplySequence == 0 || w.handler == nil || !w.handler.IsClosed() {
+		return false, false
+	}
+	return true, w.closeReplyFailure
+}
+
 // Preserve the original terminal Source result even when the caller goes
 // straight from OPEN to cleanup. A context error alone loses present=true,
 // code=0, and cleanup must not depend on a failed productive READ to record it.
@@ -216,6 +236,7 @@ func (w *pqCommittedAccountWire) serve() {
 		request, err := readPQAccountWireRequest(w.conn)
 		if err != nil {
 			w.retainProtectedSourceCause()
+			w.closeReplyEOF = w.closed && errors.Is(err, io.EOF)
 			if !w.closed || !errors.Is(err, io.EOF) {
 				w.record(err)
 			}
@@ -226,6 +247,9 @@ func (w *pqCommittedAccountWire) serve() {
 			return
 		}
 		response := w.execute(request)
+		if request.op == pqAccountWireClose {
+			w.closeReplyWritten = false
+		}
 		header, err := response.header()
 		if err != nil {
 			w.retainProtectedSourceCause()
@@ -241,6 +265,12 @@ func (w *pqCommittedAccountWire) serve() {
 			w.retainProtectedSourceCause()
 			w.record(err)
 			return
+		}
+		if response.op == pqAccountWireClose && response.status == pqAccountWireClosed {
+			w.closeReplyWritten = true
+			w.closeReplyReader = response.reader
+			w.closeReplySequence = response.sequence
+			w.closeReplyFailure = response.failure
 		}
 		w.next++
 	}

@@ -51,6 +51,8 @@ type pqProtectedSourceParent struct {
 	terminal, consumed                  bool
 	timer                               *time.Timer
 	stopProcess                         func() bool
+	controlCloseOnce                    sync.Once
+	controlCloseErr                     error
 }
 
 func (p *pqProtectedSourceParent) Deadline() (time.Time, bool)      { return p.effectiveDeadline, true }
@@ -76,9 +78,20 @@ func (p *pqProtectedSourceParent) cancel(ctxErr, cause error) {
 	if timer != nil {
 		timer.Stop()
 	}
-	if p.conn != nil {
-		_ = p.conn.Close()
-	}
+	_ = p.closeOriginalControl()
+}
+
+// Retain the result of the one actual held control close. Existing v3 cancel
+// and closeLocal keep their original returned cause; the fresh-scope owner can
+// inspect this distinct physical result without repeating Close or ignoring an
+// already-closed error from a second attempt.
+func (p *pqProtectedSourceParent) closeOriginalControl() error {
+	p.controlCloseOnce.Do(func() {
+		if p.conn != nil {
+			p.controlCloseErr = p.conn.Close()
+		}
+	})
+	return p.controlCloseErr
 }
 func sourceText(s string, max int) bool {
 	if len(s) == 0 || len(s) > max || !utf8.ValidString(s) {
