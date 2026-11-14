@@ -508,6 +508,41 @@ class StagedIndependentSchedulerControls(unittest.TestCase):
             unrelated.join(timeout=1)
         self.assertFalse(unrelated.is_alive())
 
+    def test_monitor_stop_preserves_guard_failure_before_worker_cleanup_timeout(self):
+        stop = threading.Event()
+        release_worker = threading.Event()
+
+        class StalledBackend(StructuralBackend):
+            def publish(self, row, account, notify, stop_event):
+                stop_event.set()
+                release_worker.wait(timeout=1)
+
+        backend = StalledBackend()
+
+        def check():
+            if stop.is_set():
+                raise RuntimeError("owned RSS exceeded 4GiB")
+
+        original_join = threading.Thread.join
+
+        def join(thread, timeout=None):
+            if thread.name.startswith('normal-staged-'):
+                timeout = min(0.05, timeout)
+            return original_join(thread, timeout)
+
+        try:
+            with mock.patch.object(threading.Thread, 'join', join):
+                result = staged.run(plan(20, 8), backend, lambda event: None, check, stop)
+            self.assertEqual(result['firstCause'], 'owned RSS exceeded 4GiB')
+            self.assertFalse(result['pipeline']['workerThreadsRetired'])
+            timeouts = result['pipeline']['workerRetirementTimeouts']
+            stalled = next(row for row in timeouts if row['operationId'] is not None)
+            self.assertEqual(stalled['stage'], 'publish')
+            self.assertEqual(stalled['operationId'], result['rows'][stalled['index']]['operationId'])
+            self.assertEqual(result['qualified'], 0)
+        finally:
+            release_worker.set()
+
     def test_resource_failure_before_admission_has_zero_business_hits(self):
         backend = StructuralBackend()
 

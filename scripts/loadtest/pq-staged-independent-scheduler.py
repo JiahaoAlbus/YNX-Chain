@@ -32,11 +32,14 @@ def run(plan,backend,emit,check_resources,stop,origin=None,ledger_module=None):
     lock=threading.Lock();active={k:0 for k in STAGES};done={k:0 for k in STAGES};peak={k:0 for k in STAGES};retained={};samples=[];last_bucket=-1;failure=None;late_evidence=[];late_terminal=set()
     origin=time.monotonic_ns() if origin is None else origin;deadline=origin+plan['windowNs']+plan['tailNs'];clock=s.ArrivalClock(plan,origin,stop)
     def notify(row,payload):events.put(dict(payload,index=row['index'],id=row['id'],atNs=time.monotonic_ns()-origin))
+    current_operations={}
     def worker(stage):
         while not stop.is_set():
             try:row,account,handle=queues[stage].get(timeout=.02)
             except queue.Empty:continue
-            with lock:active[stage]+=1
+            with lock:
+                active[stage]+=1
+                current_operations[threading.current_thread().name] = (stage, row['index'], row['operationId'])
             ok=False;result=None
             try:
                 if stop.is_set():raise RuntimeError('staged lane canceled before original callee; preserve pending')
@@ -50,7 +53,9 @@ def run(plan,backend,emit,check_resources,stop,origin=None,ledger_module=None):
                 notify(row,dict(kind='failed' if isinstance(error,s.KnownFailure) else 'unknown',error=str(error)))
             finally:
                 events.put(dict(kind='_phase_done',stage=stage,index=row['index'],id=row['id'],account=account,handle=result,ok=ok))
-                with lock:active[stage]-=1;done[stage]+=1
+                with lock:
+                    active[stage]-=1;done[stage]+=1
+                    current_operations.pop(threading.current_thread().name)
                 queues[stage].task_done()
     threads=[threading.Thread(target=worker,args=(stage,),name='normal-staged-'+stage+'-'+str(i),daemon=True) for stage in STAGES for i in range(WORKERS[stage])]
     def enqueue(stage,row,account,handle):
@@ -105,6 +110,10 @@ def run(plan,backend,emit,check_resources,stop,origin=None,ledger_module=None):
     except BaseException as error:failure=str(error)
     finally:
         stop.set()
+        # The resource monitor may have set stop between iterations. Read its
+        # original failure before cleanup can report a secondary timeout.
+        try:check_resources()
+        except BaseException as error:failure=failure or str(error)
         queue_at_cutoff={k:q.qsize() for k,q in queues.items()}
         if clock.thread.ident is not None:clock.thread.join(timeout=1)
         if clock.thread.is_alive():failure=failure or 'original arrival clock did not retire'
@@ -113,7 +122,13 @@ def run(plan,backend,emit,check_resources,stop,origin=None,ledger_module=None):
         until=time.monotonic()+10
         for thread in threads:
             if thread.ident is not None:thread.join(timeout=max(0,until-time.monotonic()))
-        if any(t.is_alive() for t in threads):failure=failure or 'bounded staged original workers did not retire'
+        live_threads = [thread.name for thread in threads if thread.is_alive()]
+        with lock:
+            worker_timeouts = []
+            for name in live_threads:
+                stage, index, operation_id = current_operations.get(name, (None, None, None))
+                worker_timeouts.append(dict(worker=name, stage=stage, index=index, operationId=operation_id))
+        if worker_timeouts:failure=failure or 'bounded staged original workers did not retire'
         try:ledger.release_clock(clock);drain(allow_dispatch=False)
         except BaseException as error:failure=failure or str(error)
         for row in ledger.rows:
@@ -124,5 +139,5 @@ def run(plan,backend,emit,check_resources,stop,origin=None,ledger_module=None):
         except BaseException as error:failure=failure or str(error)
     result=ledger.report(time.monotonic_ns()-origin,failure)
     result.update(originMonotonicNs=str(origin),offeredWindowEndMonotonicNs=str(origin+plan['windowNs']),clockMeaning='same original parent monotonic clock; publication/inclusion/final-proof queues separated')
-    result['pipeline']=dict(stageWorkers=dict(WORKERS),queueCapacity=dict(config['queueCapacity']),queuePeak=peak,queueAtCutoff=queue_at_cutoff,queueAtRetirement={k:q.qsize() for k,q in queues.items()},completedByStage=done,completedByStageMeaning='worker calls returned or raised; not successful business counts',workerThreadsRetired=all(not t.is_alive() for t in threads),retainedUnfinishedHandles=list(retained.values()),lateEvidence=late_evidence,lateEvidenceMeaning='original events observed at/after configured window+tail; retained for same-operation reconciliation, never cutoff qualification or nonce release',queueSamples=samples,queueSamplingAtomic=False,extraNodeOrSignerPIDStartedByScheduler=False,fullDemandUnchanged=n,chainSaturationProven=False)
+    result['pipeline']=dict(stageWorkers=dict(WORKERS),queueCapacity=dict(config['queueCapacity']),queuePeak=peak,queueAtCutoff=queue_at_cutoff,queueAtRetirement={k:q.qsize() for k,q in queues.items()},completedByStage=done,completedByStageMeaning='worker calls returned or raised; not successful business counts',workerThreadsRetired=not worker_timeouts,workerRetirementTimeouts=worker_timeouts,retainedUnfinishedHandles=list(retained.values()),lateEvidence=late_evidence,lateEvidenceMeaning='original events observed at/after configured window+tail; retained for same-operation reconciliation, never cutoff qualification or nonce release',queueSamples=samples,queueSamplingAtomic=False,extraNodeOrSignerPIDStartedByScheduler=False,fullDemandUnchanged=n,chainSaturationProven=False)
     return result
