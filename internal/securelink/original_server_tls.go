@@ -314,7 +314,7 @@ func (o *OriginalServerTLS) OriginalFiniteGETRequestTransport(r *http.Request) (
 }
 
 func originalFiniteGETProofDigest(r *http.Request) (digest [sha256.Size]byte) {
-	if !localCallerV4EmptyGET(r) || r.Body != nil && r.Body != http.NoBody {
+	if !productSessionV4EmptyGET(r) || r.Body != nil && r.Body != http.NoBody {
 		return digest
 	}
 	var proof string
