@@ -139,6 +139,26 @@ class HelperLifecycleControls(unittest.TestCase):
             self.assertGreaterEqual(row['returnedMonotonicNs'],row['requestedMonotonicNs'])
             for _ in range(3):b.helper_slots.release()
             with self.assertRaises(ValueError):b.helper_slots.release()
+    def test_refused_proof_lane_reaps_its_original_process_before_window_stop(self):
+        with tempfile.TemporaryDirectory() as temp:
+            backend = self.backend(Path(temp))
+            command = [sys.executable, '-I', '-c', 'import sys; sys.stdin.buffer.read()']
+            process = subprocess.Popen(command, stdin=subprocess.PIPE)
+            self.addCleanup(process.wait)
+            self.addCleanup(lambda: process.kill() if process.poll() is None else None)
+            lane = dict(node=0, sequence=0, retired=False, originalProcess=process)
+            backend.queue = __import__('queue').Queue()
+            backend.queue.put(lane)
+            backend.live_materials_command = mock.Mock(side_effect=RuntimeError('original capture refused'))
+            with self.assertRaisesRegex(RuntimeError, 'original capture refused'):
+                backend.live_proof(dict(index=0), {}, None, None, lambda _event: None, backend.stop_event)
+            self.assertEqual(process.returncode, 0)
+            self.assertTrue(lane['retired'])
+            self.assertTrue(backend.queue.empty())
+            self.assertFalse(backend.stop_event.is_set())
+            self.assertEqual(backend.helper_cleanup_debt, [])
+            backend.live_materials_command.assert_called_once()
+
     def test_stop_during_launch_resource_guard_never_starts_a_new_helper(self):
         stop = threading.Event()
         window = object.__new__(driver.lab.Window)

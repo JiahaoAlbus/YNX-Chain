@@ -923,6 +923,34 @@ class NormalBackend:
             except __import__('queue').Empty:pass
         raise RuntimeError("live proof lane not supplied before cutoff")
 
+    def retire_live_lane(self, lane):
+        with self.live_lane_lock:
+            if lane['retired']:
+                return
+            lane['retired'] = True
+            self.live_lanes_remaining -= 1
+        process = lane.get('originalProcess')
+        if process is None:
+            return
+        try:
+            if process.stdin is not None and not process.stdin.closed:
+                process.stdin.close()
+            try:
+                process.wait(timeout=.25)
+            except subprocess.TimeoutExpired:
+                process.terminate()
+                try:
+                    process.wait(timeout=1)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=1)
+            self.w.retire_log(process)
+        except (OSError, RuntimeError, ValueError, subprocess.TimeoutExpired) as error:
+            self.helper_cleanup_debt.append(dict(name=f"load-live-session-{lane['node']}",
+                errorType=type(error).__name__, pid=process.pid,
+                meaning='Original retired proof lane cleanup unresolved; preserve pending original.'))
+            self.stop_event.set()
+
     def live_proof(self,row,tx,path,case,notify,stop):
         notify(dict(kind="normal_stage",stage="proof_queue"))
         lane=self.take_live_lane(stop)
@@ -956,10 +984,7 @@ class NormalBackend:
             normal.require_verified(verified,tx)
             return result,verified,public_closure
         except BaseException:
-            with self.live_lane_lock:
-                if not lane["retired"]:
-                    lane["retired"]=True
-                    self.live_lanes_remaining-=1
+            self.retire_live_lane(lane)
             raise
         finally:
             if not lane["retired"]:self.queue.put(lane)
@@ -1120,6 +1145,7 @@ def prepare_live_materials_session(backend, lane, check):
         "--synthetic", "--policy", str(lane["policy"]), "--policy-sha256", lane["pin"],
         "--ready", "--timings",
     ], stdin_pipe=True, thread_safe=True, private_log=True)
+    lane["originalProcess"] = stream.proc
     deadline = time.monotonic() + ceremony.proof_timeout
     # READY and requests stay in the private stream. The normal portable
     # catalog also requires the accepted original result frame for each proof.
