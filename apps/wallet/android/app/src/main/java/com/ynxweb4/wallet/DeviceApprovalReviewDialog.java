@@ -16,7 +16,7 @@ final class DeviceApprovalReviewDialog {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable expire;
     private final Activity activity;
-    private boolean listening;
+    private boolean listening, shown;
     private final Application.ActivityLifecycleCallbacks lifecycle = new Application.ActivityLifecycleCallbacks() {
         public void onActivityCreated(Activity target, Bundle state) { }
         public void onActivityStarted(Activity target) { }
@@ -47,6 +47,10 @@ final class DeviceApprovalReviewDialog {
     }
 
     void show() {
+        if (shown || review.state() != DeviceApprovalReview.State.OPEN) {
+            throw new IllegalStateException("Original review is no longer available");
+        }
+        shown = true;
         long remaining = review.expiresAtMillis() - System.currentTimeMillis();
         if (remaining <= 0) { review.expire(System.currentTimeMillis()); return; }
         if (dialog.getWindow() != null) dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
