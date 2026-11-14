@@ -893,14 +893,14 @@ jobs:
             /scripts/loadtest/test_pq_first100_held_ci.py
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 9c222c8f7fa0501c0aa1dbd86e031c434b897ac8
+          ref: c5fc3b2eeaa0c7a65d5f07c9bf54724400b9e43b
           path: source
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: /scripts/loadtest/pq-source-artifact-intake.py
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: b59687361d5651f863cac17c62bb2d61f0006275
+          ref: 55a1b571097887a5473568d3915e0668c0d13d09
           path: tools
           persist-credentials: false
           sparse-checkout-cone-mode: false
@@ -930,7 +930,7 @@ jobs:
           sparse-checkout: /scripts/loadtest/pq-first100-held-ci.py
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 9c222c8f7fa0501c0aa1dbd86e031c434b897ac8
+          ref: c5fc3b2eeaa0c7a65d5f07c9bf54724400b9e43b
           path: source
           fetch-depth: 0
           filter: blob:none
@@ -951,7 +951,7 @@ jobs:
             /packages/wallet-auth/native/source-parent/
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: b59687361d5651f863cac17c62bb2d61f0006275
+          ref: 55a1b571097887a5473568d3915e0668c0d13d09
           path: tools
           filter: blob:none
           persist-credentials: false
