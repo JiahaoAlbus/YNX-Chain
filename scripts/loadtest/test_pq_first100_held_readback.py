@@ -275,6 +275,19 @@ class HeldReadbackTests(unittest.TestCase):
         self.assertEqual(cohort['originalCohort']['counts']['qualifiedReceipt']['inTail'], 1)
         self.assertEqual(cohort['unresolvedRate'], 499/500)
         self.assertIsNone(cohort['originalCohort']['latencies']['submitToQualifiedReceiptObserved']['p95Ms'])
+        self.assertIsNone(report['originalFourNodeInclusion']['records'][0]['fourNodeRepliesObservedOffsetNs'])
+        inclusion_path = base+'four-node-inclusion.json'
+        original_inclusion = reader.strict(originals[inclusion_path])
+        originals[inclusion_path] = encode(dict(original_inclusion, observedMonotonicNs=origin+4_999_999_999))
+        raw, pin = self.fixture(confirmed=(originals, load))
+        record = reader.inspect(raw, sha(raw), self.controller, pin)['originalFourNodeInclusion']['records'][0]
+        self.assertEqual(record['submitToFourNodeRepliesObservedNs'], 3)
+        self.assertEqual(record['observationToLedgerEventNs'], 2)
+        originals[inclusion_path] = encode(dict(original_inclusion, observedMonotonicNs=origin+5_000_000_002))
+        raw, pin = self.fixture(confirmed=(originals, load))
+        with self.assertRaisesRegex(RuntimeError, 'outside ledger boundaries'):
+            reader.inspect(raw, sha(raw), self.controller, pin)
+        originals[inclusion_path] = encode(original_inclusion)
         originals[base+'successor-availability.json'] = encode(dict(
             transactionHeight=19, minimumSuccessorHeight=20,
             observations=[dict(node=i,engineHeight=20,applicationHeight=20) for i in range(4)],

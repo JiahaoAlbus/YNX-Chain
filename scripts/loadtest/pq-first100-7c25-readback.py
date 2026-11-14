@@ -85,9 +85,23 @@ def inclusion_replies(files,prefix,load):
                 'original included hash/height/bytes/execution differs')
             heights.add(reply['height'])
         require(len(heights)==1,'original node inclusion heights differ')
+        observed_at = record.get('observedMonotonicNs')
+        observed_offset = None
+        record_delay = None
+        if 'observedMonotonicNs' in record:
+            require(type(observed_at) is int and 0 < observed_at < 1 << 63,
+                    'original inclusion observation clock differs')
+            observed_offset = observed_at - int(load['originMonotonicNs'])
+            require(type(row['submittedNs']) is int
+                    and row['submittedNs'] <= observed_offset <= row['includedNs'],
+                    'original inclusion observation outside ledger boundaries')
+            record_delay = row['includedNs'] - observed_offset
         records.append(dict(index=row['index'],transactionHash=row['hash'],height=next(iter(heights)),
             sourceFile=base+'four-node-inclusion.json',sourceSHA256=hashlib.sha256(payload).hexdigest(),
-            includedOffsetNs=row['includedNs'],fourOrderedNodeRPCReplies=True,independentFinality=False))
+            includedOffsetNs=row['includedNs'], fourNodeRepliesObservedOffsetNs=observed_offset,
+            submitToFourNodeRepliesObservedNs=None if observed_offset is None else observed_offset-row['submittedNs'],
+            observationToLedgerEventNs=record_delay,
+            fourOrderedNodeRPCReplies=True,independentFinality=False))
     return dict(status='ORIGINALS_READ',configuredDemand=load['configuredDemand'],observed=len(records),
                 records=records,independentFinality=False,missingOrCensored=load['configuredDemand']-len(records))
 

@@ -625,9 +625,11 @@ class NormalBackend:
             stop.wait(.02)
         else:
             rows=[]
-        lab.require(len(rows)==4 and not stop.is_set() and time.monotonic_ns()<until,
+        observed_at = time.monotonic_ns()
+        lab.require(len(rows)==4 and not stop.is_set() and observed_at<until,
                     "original submitted hash unresolved at bounded inclusion cutoff; no replay")
-        lab.write_new(case/"four-node-inclusion.json",dict(rows=rows,qualifiedFinal=False,interpretation="original hash-bound execution observations only"))
+        lab.write_new(case/"four-node-inclusion.json",dict(rows=rows,observedMonotonicNs=observed_at,
+                          qualifiedFinal=False,interpretation="original hash-bound execution observations only"))
         lab.require(not stop.is_set() and time.monotonic_ns()<until,
                     "original inclusion evidence persisted after bounded inclusion cutoff; no replay")
         notify(dict(kind="included"))
