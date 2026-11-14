@@ -419,7 +419,7 @@ test('independent original observations survive account switches and resolve one
   } finally { h.ui.dispose(); }
 });
 
-test('opening Cross restores the original UNKNOWN before allowing a quote, even after closing the dialog', async () => {
+test('original observation on opening Cross restores UNKNOWN before allowing a quote, even after closing the dialog', async () => {
   const h = fixture();
   try {
     const pending = persistedOriginal(observedOriginal(h, 'local-cancelled-before-broadcast'));
@@ -452,7 +452,7 @@ test('opening Cross restores the original UNKNOWN before allowing a quote, even 
   } finally { h.ui.dispose(); }
 });
 
-test('opening Cross holds writes on failed or retired history and the normal restore can recover', async () => {
+test('original observation on opening Cross holds writes on failed or retired history and the normal restore can recover', async () => {
   const h = fixture();
   try {
     const old = h.hold('history');
