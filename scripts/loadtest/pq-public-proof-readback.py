@@ -28,7 +28,7 @@ PRE_OUTPUT_PHASES = frozenset((
 ))
 CAPTURE_OBSERVATION_LIMIT = 16 << 10
 CAPTURE_PHASES = frozenset('proof.' + name for name in (
-    'intentWrite', 'checkpoint', 'stateDecode', 'loadPQLab', 'stateValidate', 'anchorAndRegistry',
+    'intentWrite', 'checkpoint', 'stateDecode', 'loadPQLab', 'heldStaticCurrent', 'stateValidate', 'anchorAndRegistry',
     'retainedBlockSearch', 'advanceAnchor', 'lightBlocks', 'migrationCanonical', 'migrationOriginalRead',
     'derivedPlanWrite', 'derivedPlanInputs', 'sourceContextCapture', 'materialsEncode', 'verifierInputs',
     'materialsWrite', 'finalInputCurrent', 'resultWrite',

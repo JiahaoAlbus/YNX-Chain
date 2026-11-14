@@ -243,10 +243,10 @@ class NormalCallgraphControls(unittest.TestCase):
             self.assertEqual(record['originalRequestSHA256'], driver.lab.guard.digest(persisted))
             timing = dict(version='YNX-PQ-LAB-PROOF-CAPTURE-OBSERVATION/v1', owningNodeIndex=2,
                           sequence=1, policySHA256=lane['pin'], requestSHA256=record['originalRequestSHA256'],
-                          firstCauseSHA256='b'*64, outcome='unknown', lastEnteredPhase='proof.loadPQLab',
+                          firstCauseSHA256='b'*64, outcome='unknown', lastEnteredPhase='proof.heldStaticCurrent',
                           typedCrossings=1, captureBudgetNs=30_000_000_000, sinceCaptureStartNs=31_000_000_000,
                           timings=dict(version='YNX-PQ-LAB-CALLEE-ELAPSED/v1', clock='monotonic_elapsed_wall_ns',
-                                       intervalsOverlap=True, stages={'proof.loadPQLab': dict(calls=1, elapsedNs=25)}))
+                                       intervalsOverlap=True, stages={'proof.heldStaticCurrent': dict(calls=1, elapsedNs=25)}))
             sidecar = output/'capture-observation.json'
             sidecar.write_text(json.dumps(dict(timing, firstCauseSHA256='f'*64)))
             bad = backend.retain_stopped_live_proof_failures(load)['records'][0]
