@@ -1,0 +1,28 @@
+name: Wallet device V4 original outcome recovery
+on:
+  pull_request:
+    paths:
+      - 'packages/wallet-auth/native/product-session-device-v4-once.h'
+      - 'packages/wallet-auth/native/original-host-dirfd-journal.h'
+      - 'packages/wallet-auth/test/native/device-v4-once-recovery.cpp'
+      - 'packages/wallet-auth/test/device-v4-once-recovery.test.mjs'
+      - '.github/workflows/wallet-device-v4-once-recovery.yml'
+  push:
+    branches: ['codex/device-v4-once-original-recovery-20261114']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-journal-recovery:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node packages/wallet-auth/test/device-v4-once-recovery.test.mjs
