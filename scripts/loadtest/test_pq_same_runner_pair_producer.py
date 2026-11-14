@@ -1,8 +1,10 @@
 """Pure lifecycle/filesystem controls; no Linux/Go/node/Actions execution proof."""
 import copy
 import json
+import os
 from pathlib import Path
 import sys
+import stat
 import tempfile
 import types
 import unittest
@@ -52,7 +54,9 @@ class ControlledAdapter:
         self.work.mkdir(); (self.work/'.private').mkdir(); (self.work/'public').mkdir()
         if self.mode == 'old-state':
             (self.work/'.private/original-UNKNOWN').write_text('preserve me')
-        register(self.work)
+        try: register(self.work)
+        except OSError:
+            if self.mode != 'swallow-registration': raise
         prefix = self.case.fixture.prefixes[self.arm]
         for name, raw in self.case.fixture.files[self.arm].items():
             if not name.startswith(prefix): continue
@@ -241,6 +245,166 @@ class SameRunnerProducerTests(unittest.TestCase):
     def test_execution_cli_is_absent(self):
         with mock.patch.object(sys, 'stderr'), self.assertRaises(SystemExit):
             producer.main(['--execute'])
+
+
+class PublicSnapshotSafetyTests(unittest.TestCase):
+    def layout(self, name):
+        root = Path(name).resolve(strict=True)
+        work = root/'pq-independent-load-controls'
+        (work/'public').mkdir(parents=True)
+        (work/'.private').mkdir()
+        secret = work/'.private/retained-UNKNOWN'
+        secret.write_bytes(b'CONTROL private material must never enter PUBLIC')
+        return work, secret
+
+    def test_real_private_hardlink_is_refused_without_reading_or_changing_private(self):
+        with tempfile.TemporaryDirectory() as name:
+            work, secret = self.layout(name)
+            os.link(secret, work/'public/looks-public.log')
+            with self.assertRaisesRegex(RuntimeError, 'hard.link|single.link'):
+                producer.public_files(work)
+            self.assertEqual(secret.stat().st_nlink, 2)
+            self.assertEqual(secret.read_bytes(), b'CONTROL private material must never enter PUBLIC')
+
+    def test_real_file_replacement_between_stat_and_open_is_refused(self):
+        for replacement in ('symlink', 'regular'):
+            with self.subTest(replacement=replacement), tempfile.TemporaryDirectory() as name:
+                work, secret = self.layout(name)
+                target = work/'public/observed.log'; target.write_bytes(b'PUBLIC')
+                real_stat, switched = producer.os.stat, []
+                def replace_after_stat(path, *args, **kwargs):
+                    value = real_stat(path, *args, **kwargs)
+                    if not switched and os.fspath(path) in (str(target), target.name):
+                        switched.append(True)
+                        target.rename(work/'public/original-preserved.log')
+                        if replacement == 'symlink': target.symlink_to(secret)
+                        else: target.write_bytes(b'REPLACEMENT')
+                    return value
+                with mock.patch.object(producer.os, 'stat', side_effect=replace_after_stat):
+                    with self.assertRaises((RuntimeError, OSError)): producer.public_files(work)
+                self.assertEqual(switched, [True])
+                self.assertEqual((work/'public/original-preserved.log').read_bytes(), b'PUBLIC')
+
+    def test_directory_symlinks_and_parent_escape_are_refused(self):
+        with tempfile.TemporaryDirectory() as name:
+            work, secret = self.layout(name)
+            (work/'public/escape').symlink_to(work/'.private', target_is_directory=True)
+            with self.assertRaises((RuntimeError, OSError)): producer.public_files(work)
+            with self.assertRaises((RuntimeError, OSError)):
+                producer.public_bytes(work/'public/../.private'/secret.name)
+
+    def test_same_fd_changes_during_read_cannot_escape_into_snapshot(self):
+        for action in ('rewrite', 'rename', 'link', 'directory'):
+            with self.subTest(action=action), tempfile.TemporaryDirectory() as name:
+                work, secret = self.layout(name)
+                folder = work/'public/nested'; folder.mkdir()
+                target = folder/'observed.log'; target.write_bytes(b'PUBLIC')
+                original = target.stat()
+                real_read, switched = producer.os.read, []
+                def change_during_read(fd, count):
+                    current = os.fstat(fd)
+                    if not switched and (current.st_dev, current.st_ino) == (original.st_dev, original.st_ino):
+                        switched.append(True)
+                        if action == 'rewrite': target.write_bytes(b'CHANGED')
+                        elif action == 'rename':
+                            target.rename(work/'retained-original.log'); target.write_bytes(b'REPLACED')
+                        elif action == 'link': os.link(target, work/'.private/new-link')
+                        else:
+                            folder.rename(work/'retained-directory')
+                            folder.mkdir(); (folder/'observed.log').write_bytes(b'REPLACED')
+                    return real_read(fd, count)
+                with mock.patch.object(producer.os, 'read', side_effect=change_during_read):
+                    with self.assertRaisesRegex(RuntimeError, 'changed|replaced'):
+                        producer.public_files(work)
+                self.assertEqual(switched, [True])
+                self.assertEqual(secret.read_bytes(), b'CONTROL private material must never enter PUBLIC')
+
+    def test_real_directory_replacement_before_open_is_refused(self):
+        with tempfile.TemporaryDirectory() as name:
+            work, _ = self.layout(name)
+            directory = work/'public/nested'; directory.mkdir(); (directory/'a').write_bytes(b'PUBLIC')
+            real_stat, switched = producer.os.stat, []
+            def replace_directory(path, *args, **kwargs):
+                value = real_stat(path, *args, **kwargs)
+                if not switched and os.fspath(path) == 'nested':
+                    switched.append(True)
+                    directory.rename(work/'retained-directory')
+                    directory.mkdir(); (directory/'a').write_bytes(b'REPLACED')
+                return value
+            with mock.patch.object(producer.os, 'stat', side_effect=replace_directory):
+                with self.assertRaisesRegex(RuntimeError, 'directory path was replaced'):
+                    producer.public_files(work)
+            self.assertEqual(switched, [True])
+
+    def test_seal_rejects_private_hardlink_instead_of_uploading_it(self):
+        with tempfile.TemporaryDirectory() as name:
+            case = Case(Path(name)); case.run(); _, metadata = case.uploads()
+            secret = case.adapters['before'].work/'.private/original-UNKNOWN'
+            os.link(secret, case.root/'producer/before/linked-private.log')
+            with self.assertRaisesRegex(RuntimeError, 'hard.link'):
+                producer.seal_manifest(case.root/'producer', metadata)
+            self.assertFalse((case.root/'producer/manifest').exists())
+            self.assertEqual(secret.stat().st_nlink, 2)
+
+    def test_new_directory_and_fence_parent_replacement_are_refused(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name).resolve(strict=True); output = root/'producer'
+            real_sync, switched = producer.os.fsync, []
+            root_identity = (root.stat().st_dev, root.stat().st_ino)
+            def replace_on_sync(fd):
+                value = os.fstat(fd)
+                if not switched and (value.st_dev, value.st_ino) == root_identity:
+                    switched.append(True)
+                    output.rename(root/'retained-original'); output.mkdir()
+                return real_sync(fd)
+            with mock.patch.object(producer.os, 'fsync', side_effect=replace_on_sync):
+                with self.assertRaisesRegex(RuntimeError, 'directory path was replaced'):
+                    producer.mkdir_new(output)
+            self.assertEqual(switched, [True])
+            self.assertTrue((root/'retained-original').is_dir())
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name).resolve(strict=True); output = root/'producer'
+            original = producer.mkdir_new(output)
+            output.rename(root/'retained-original'); output.mkdir()
+            with self.assertRaisesRegex(RuntimeError, 'fence directory replaced'):
+                producer.write_new(output/'INTENT.json', b'{}', expected_parent=original)
+            self.assertFalse((output/'INTENT.json').exists())
+
+    def test_directory_sync_failure_keeps_one_use_fence_and_blocks_successor(self):
+        for phase in ('parent', 'INTENT.json', 'before-INTENT.json', 'before-REGISTERED.json', 'after-INTENT.json', 'swallowed'):
+            with self.subTest(phase=phase), tempfile.TemporaryDirectory() as name:
+                case = Case(Path(name)); output = case.root/'producer'
+                if phase == 'swallowed': case.adapters['before'].mode = 'swallow-registration'
+                real_sync, tripped = producer.os.fsync, []
+                def fail_directory(fd):
+                    state = os.fstat(fd)
+                    if stat.S_ISDIR(state.st_mode) and not tripped:
+                        root = case.root if phase == 'parent' else output
+                        filename = 'before-REGISTERED.json' if phase == 'swallowed' else phase
+                        if root.exists() and (state.st_dev, state.st_ino) == (root.stat().st_dev, root.stat().st_ino) \
+                                and (phase == 'parent' or (output/filename).exists()):
+                            tripped.append(True)
+                            raise OSError('CONTROL directory sync uncertain')
+                    return real_sync(fd)
+                with mock.patch.object(producer.os, 'fsync', side_effect=fail_directory):
+                    try: result = case.run()
+                    except OSError: result = None
+                self.assertEqual(tripped, [True])
+                self.assertTrue(output.exists())
+                self.assertNotIn('after:execute', case.events)
+                if phase in ('parent', 'INTENT.json', 'before-INTENT.json'):
+                    self.assertNotIn('before:execute', case.events)
+                if phase == 'before-REGISTERED.json':
+                    self.assertFalse((case.adapters['before'].work/'.private/original-UNKNOWN').exists())
+                if phase == 'swallowed':
+                    # A deliberately misbehaving control adapter continued its
+                    # first arm; only qualification/successor are blocked here.
+                    self.assertTrue((case.adapters['before'].work/'.private/original-UNKNOWN').exists())
+                if phase != 'parent': self.assertTrue((output/('before-REGISTERED.json' if phase == 'swallowed' else phase)).exists())
+                if result is not None: self.assertEqual(result['status'], 'INCOMPLETE')
+                events = list(case.events)
+                with self.assertRaises(FileExistsError): case.run()
+                self.assertEqual(case.events, events)
 
 
 if __name__ == '__main__':

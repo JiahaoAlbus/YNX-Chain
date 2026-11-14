@@ -8,6 +8,11 @@ or children. retire always runs and returns that Window's original child records
 (pid/startTicks/process), after stopping only its owned work. It must preserve
 the original receipt and workers' retirement evidence. No environment, source
 pin, existing single-window guard, account, nonce or password is patched here.
+The real adapter MUST propagate registration failures before starting any key or
+child work. If an adapter violates this and swallows the exception, this library
+can reject pair qualification and the next arm only after execute() returns; it
+cannot undo or prevent effects inside that misbehaving adapter. The owning real
+adapter still needs an injected fence-failure integration test before dispatch.
 
 run_pair writes a durable one-use intent and public payloads. After the workflow
 uploads before/after payloads separately, seal_manifest consumes their actual
@@ -23,6 +28,7 @@ roots; it is called again after copying public payloads so archive staging is no
 outside resource accounting. Refusals raise; successful checks return None.
 """
 import argparse
+from contextlib import contextmanager
 import copy
 import importlib.util
 import io
@@ -30,6 +36,7 @@ import json
 import os
 from pathlib import Path
 import re
+import stat
 import sys
 import threading
 import time
@@ -46,11 +53,29 @@ def encode(value):
     return json.dumps(value, sort_keys=True, separators=(',', ':')).encode()
 
 
-def write_new(path, value):
+def write_new(path, value, *, expected_parent=None):
     raw = value if type(value) is bytes else encode(value)
-    with Path(path).open('xb') as target:
-        os.chmod(path, 0o600)
-        target.write(raw); target.flush(); os.fsync(target.fileno())
+    path = absolute_path(path)
+    with directory_fd(path.parent) as parent:
+        require(expected_parent is None or directory_identity(os.fstat(parent)) == expected_parent,
+                'original fence directory replaced')
+        fd = os.open(path.name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
+                     0o600, dir_fd=parent)
+        try:
+            opened = os.fstat(fd)
+            require(stat.S_ISREG(opened.st_mode) and opened.st_nlink == 1, 'new single-link regular file required')
+            offset = 0
+            while offset < len(raw):
+                written = os.write(fd, raw[offset:])
+                require(written > 0, 'original file write did not advance')
+                offset += written
+            os.fsync(fd)
+            os.fsync(parent) # The one-use intent's name must survive a crash too.
+            final = os.fstat(fd)
+            require(file_identity(final) == file_identity(os.stat(path.name, dir_fd=parent, follow_symlinks=False))
+                    and final.st_nlink == 1 and final.st_size == len(raw), 'new file path changed during persistence')
+        finally:
+            os.close(fd)
 
 
 def identity():
@@ -80,32 +105,135 @@ def hosted(pair, environment):
     reader.pin(pair['pairID']); reader.pin(pair['controllerCommit'], 40)
 
 
-def public_files(work):
-    """Snapshot stopped PUBLIC regular files only; never delete private state."""
-    public = work/'public'
-    require(public.resolve(strict=True) == public, 'original public directory alias refused')
-    files, total = {}, 0
-    for path in sorted(public.rglob('*')):
-        require(not path.is_symlink() and not any(p.startswith('.') for p in path.relative_to(public).parts),
-                'public symlink or hidden entry refused')
-        if path.is_dir(): continue
-        require(path.is_file() and len(files) < 8190, 'bounded original regular public files required')
-        before = path.stat()
-        raw = public_bytes(path)
-        after = path.stat()
-        require((before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
-                == (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns),
-                'original public file changed during snapshot')
-        total += len(raw)
-        require(total <= 256 << 20, 'original public snapshot exceeds bound')
-        files[f'{work.name}/public/{path.relative_to(public).as_posix()}'] = raw
+def absolute_path(path):
+    path = Path(path)
+    require(path.is_absolute() and '..' not in path.parts and len(path.parts) <= 128,
+            'canonical bounded absolute path without escape required')
+    return path
+
+
+def directory_identity(value):
+    return value.st_dev, value.st_ino, value.st_mode
+
+
+def file_identity(value):
+    return (*directory_identity(value), value.st_nlink, value.st_size, value.st_mtime_ns, value.st_ctime_ns)
+
+
+def check_directory(parent, name, fd, expected):
+    actual = os.fstat(fd)
+    path = os.stat(name, dir_fd=parent, follow_symlinks=False)
+    require(stat.S_ISDIR(actual.st_mode) and directory_identity(actual) == directory_identity(expected)
+            == directory_identity(path), 'original directory path was replaced or escaped')
+
+
+@contextmanager
+def directory_fd(path, create=False):
+    """Keep every ancestor fd open; never resolve symlinks while walking names."""
+    path = absolute_path(path)
+    flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
+    descriptors, edges = [os.open(path.anchor, flags)], []
+    try:
+        for name in path.parts[1:]:
+            parent = descriptors[-1]
+            try: expected = os.stat(name, dir_fd=parent, follow_symlinks=False)
+            except FileNotFoundError:
+                if not create: raise
+                os.mkdir(name, mode=0o700, dir_fd=parent)
+                os.fsync(parent)
+                expected = os.stat(name, dir_fd=parent, follow_symlinks=False)
+            require(stat.S_ISDIR(expected.st_mode), 'original directory alias or non-directory refused')
+            child = os.open(name, flags, dir_fd=parent)
+            descriptors.append(child)
+            check_directory(parent, name, child, expected)
+            edges.append((parent, name, child, expected))
+        yield descriptors[-1]
+        for edge in edges: check_directory(*edge)
+    finally:
+        for fd in reversed(descriptors): os.close(fd)
+
+
+def mkdir_new(path):
+    path = absolute_path(path)
+    with directory_fd(path.parent) as parent:
+        os.mkdir(path.name, mode=0o700, dir_fd=parent)
+        expected = os.stat(path.name, dir_fd=parent, follow_symlinks=False)
+        child = os.open(path.name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=parent)
+        try:
+            check_directory(parent, path.name, child, expected)
+            os.fsync(parent) # Persist the output directory before creating any intent.
+            check_directory(parent, path.name, child, expected)
+            return directory_identity(os.fstat(child))
+        finally:
+            os.close(child)
+
+
+def read_regular(parent, name, expected):
+    require(stat.S_ISREG(expected.st_mode), 'original regular PUBLIC file required')
+    require(expected.st_nlink == 1, 'original PUBLIC hard-link refused; single-link file required')
+    # NONBLOCK prevents a swapped FIFO/device from blocking before fstat rejects it.
+    fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC, dir_fd=parent)
+    try:
+        opened = os.fstat(fd)
+        require(stat.S_ISREG(opened.st_mode) and opened.st_nlink == 1
+                and file_identity(opened) == file_identity(expected)
+                == file_identity(os.stat(name, dir_fd=parent, follow_symlinks=False)),
+                'original PUBLIC file replaced before read')
+        require(opened.st_size <= 8 << 20, 'original public file exceeds bound')
+        chunks, size = [], 0
+        while size <= 8 << 20:
+            chunk = os.read(fd, min(65536, (8 << 20) + 1 - size))
+            if not chunk: break
+            chunks.append(chunk); size += len(chunk)
+        final = os.fstat(fd)
+        require(file_identity(opened) == file_identity(final)
+                == file_identity(os.stat(name, dir_fd=parent, follow_symlinks=False))
+                and final.st_nlink == 1 and size == opened.st_size,
+                'original PUBLIC file changed during read')
+        return b''.join(chunks) # Empty original logs remain empty.
+    finally:
+        os.close(fd)
+
+
+def snapshot_tree(root):
+    files, total, entries = {}, 0, 0
+    def walk(fd, prefix, depth):
+        nonlocal total, entries
+        require(depth <= 32, 'bounded PUBLIC directory depth required')
+        before = os.fstat(fd)
+        for name in sorted(os.listdir(fd)):
+            entries += 1
+            require(entries <= 16384 and name not in ('.', '..') and not name.startswith('.')
+                    and '/' not in name and '\\' not in name, 'bounded public names without escape required')
+            observed = os.stat(name, dir_fd=fd, follow_symlinks=False)
+            if stat.S_ISDIR(observed.st_mode):
+                child = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fd)
+                try:
+                    check_directory(fd, name, child, observed)
+                    walk(child, prefix+name+'/', depth+1)
+                    check_directory(fd, name, child, observed)
+                finally: os.close(child)
+            else:
+                require(len(files) < 8192, 'bounded original public files required')
+                raw = read_regular(fd, name, observed)
+                total += len(raw)
+                require(total <= 256 << 20, 'original public snapshot exceeds bound')
+                files[prefix+name] = raw
+        require(file_identity(before) == file_identity(os.fstat(fd)), 'original PUBLIC directory changed during snapshot')
+    with directory_fd(root) as fd: walk(fd, '', 0)
     return files
 
 
+def public_files(work):
+    """Snapshot stopped PUBLIC single-link regular files; preserve private state."""
+    work = absolute_path(work)
+    return {f'{work.name}/public/{name}': raw for name, raw in snapshot_tree(work/'public').items()}
+
+
 def public_bytes(path):
-    with Path(path).open('rb') as stream: raw = stream.read((8 << 20) + 1)
-    require(len(raw) <= 8 << 20, 'original public file exceeds bound')
-    return raw # Empty original logs are retained, never filled or discarded.
+    path = absolute_path(path)
+    with directory_fd(path.parent) as parent:
+        return read_regular(parent, path.name, os.stat(path.name, dir_fd=parent, follow_symlinks=False))
 
 
 def inventory(files):
@@ -113,10 +241,10 @@ def inventory(files):
 
 
 def copy_payload(destination, files):
-    destination.mkdir(mode=0o700)
+    mkdir_new(destination)
     for relative, raw in files.items():
         path = destination/relative
-        path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        with directory_fd(path.parent, create=True): pass
         write_new(path, raw)
     return inventory(files)
 
@@ -189,9 +317,9 @@ def run_pair(output, *, pair, plans, adapters, environment=None, clock=time.mono
     require(output.is_absolute() and output.parent.resolve(strict=True) == output.parent,
             'canonical new producer output required')
     # Existing intents, including interrupted/UNKNOWN ones, are never resumed.
-    output.mkdir(mode=0o700)
+    output_identity = mkdir_new(output)
     write_new(output/'INTENT.json', dict(schema='YNX-PERF-SAME-RUNNER-INTENT/v1', pair=pair,
-        status='RESULT_UNKNOWN_NO_RETRY', configuredDemandPerArm=500))
+        status='RESULT_UNKNOWN_NO_RETRY', configuredDemandPerArm=500), expected_parent=output_identity)
     result = dict(schema='YNX-PERF-SAME-RUNNER-PRODUCER/v1', status='INCOMPLETE', pair=copy.deepcopy(pair),
         arms=[], firstCause=None, secondaryFailures=[], runtimeQualified=False,
         pressureAuthorized=False, unknownReplayed=False, originalDirectoriesPreserved=True)
@@ -207,8 +335,9 @@ def run_pair(output, *, pair, plans, adapters, environment=None, clock=time.mono
             started = reader.positive(clock())
             require(not validated or started > validated[-1]['end'], 'second arm precedes original cleanup')
             write_new(output/(arm+'-INTENT.json'), dict(arm=arm, startedMonotonicNs=started,
-                status='RESULT_UNKNOWN_NO_RETRY', configurationSHA256=strict(plans[arm])['configurationSHA256']))
-            registered = []
+                status='RESULT_UNKNOWN_NO_RETRY', configurationSHA256=strict(plans[arm])['configurationSHA256']),
+                expected_parent=output_identity)
+            registered, registration_failures = [], []
             def register(work):
                 path = Path(work)
                 require(not registered and path.is_absolute() and path.resolve(strict=True) == path
@@ -222,7 +351,12 @@ def run_pair(output, *, pair, plans, adapters, environment=None, clock=time.mono
                         and not (path/'public/receipt.json').exists()
                         and not (path/'public/load-plan.json').exists(), 'original work already contains operation state')
                 registered.append(path); retained.append(path)
-                write_new(output/(arm+'-REGISTERED.json'), dict(arm=arm, originalDirectory=str(path)))
+                try:
+                    write_new(output/(arm+'-REGISTERED.json'), dict(arm=arm, originalDirectory=str(path)),
+                              expected_parent=output_identity)
+                except BaseException as error:
+                    registration_failures.append(error)
+                    raise
             threads_before = set(threading.enumerate())
             primary, children = None, None
             try:
@@ -234,6 +368,10 @@ def run_pair(output, *, pair, plans, adapters, environment=None, clock=time.mono
                 except BaseException as error:
                     if primary is None: primary = error
                     else: result['secondaryFailures'].append(failure(error))
+            if registration_failures:
+                if primary is not None and primary is not registration_failures[0]:
+                    result['secondaryFailures'].append(failure(primary))
+                primary = registration_failures[0] # No pair/successor qualification after a swallowed fence error.
             if primary is not None: result['firstCause'] = failure(primary)
             require(len(registered) == 1, 'original Window registration missing; preserve intent')
             work = registered[0]
@@ -282,7 +420,7 @@ def run_pair(output, *, pair, plans, adapters, environment=None, clock=time.mono
                 arm_state['boundaryFailure'] = failure(error)
                 primary = primary or error
             arm_state['payloadFiles'] = copy_payload(output/arm, originals)
-            write_new(output/(arm+'-SEALED.json'), arm_state)
+            write_new(output/(arm+'-SEALED.json'), arm_state, expected_parent=output_identity)
             try:
                 require(adapter.admit(tuple(retained)) is None,
                         'post-copy original resource admission differs')
@@ -297,7 +435,7 @@ def run_pair(output, *, pair, plans, adapters, environment=None, clock=time.mono
     except BaseException as error:
         if result['firstCause'] is None: result['firstCause'] = failure(error)
         else: result['secondaryFailures'].append(failure(error))
-    write_new(output/'PRODUCER.json', result)
+    write_new(output/'PRODUCER.json', result, expected_parent=output_identity)
     return result
 
 
@@ -305,7 +443,7 @@ def seal_manifest(output, metadata):
     """After original before/after uploads: use actual Actions ZIP digest/size."""
     output = Path(output)
     require(output.resolve(strict=True) == output, 'canonical original producer directory required')
-    state = strict(reader.bounded(output/'PRODUCER.json', 8 << 20))
+    state = strict(public_bytes(output/'PRODUCER.json'))
     require(state['status'] == 'PAYLOADS_SEALED_AWAITING_ORIGINAL_ACTIONS_UPLOADS'
             and state['firstCause'] is None and [a['arm'] for a in state['arms']] == list(reader.ARMS),
             'both original arm payloads must be sealed')
@@ -322,12 +460,7 @@ def seal_manifest(output, metadata):
     ids = set()
     for arm in state['arms']:
         label = arm['arm']
-        require((output/label).resolve(strict=True) == output/label, 'sealed payload directory alias refused')
-        paths = list((output/label).rglob('*'))
-        require(len(paths) <= 16384 and not any(p.is_symlink() for p in paths),
-                'bounded sealed payload without aliases required')
-        files = {p.relative_to(output/label).as_posix(): public_bytes(p)
-                 for p in paths if p.is_file()}
+        files = snapshot_tree(output/label)
         require(inventory(files) == arm['payloadFiles'], 'sealed original payload changed after upload')
         uploads = [s for s in job['steps'] if s['name'] == 'Preserve same-runner '+label+' originals']
         matches = [a for a in artifacts['artifacts'] if a['name'] == f"pq-first100-same-runner-{pair['runID']}-1-{label}"]
@@ -345,7 +478,7 @@ def seal_manifest(output, metadata):
         declaration['archive'] = dict(bytes=artifact['size_in_bytes'], sha256=reader.pin(artifact['digest'][7:]))
         pair['arms'].append(declaration)
     destination = output/'manifest'
-    destination.mkdir(mode=0o700)
+    mkdir_new(destination)
     write_new(destination/'same-runner-pair.json', pair)
     return pair
 
