@@ -5,6 +5,28 @@ const CLIENT_ENVELOPE_MEDIA_TYPE = "application/vnd.ynx.cloud-encrypted+json";
 const CLIENT_ENVELOPE_DOMAIN = "ynx-cloud-client-envelope-v1";
 const CLIENT_RECOVERY_MEDIA_TYPE = "application/vnd.ynx.cloud-key-recovery+json";
 const CLIENT_RECOVERY_DOMAIN = "ynx-cloud-key-recovery-v1";
+// Local request selection only, never an authentication/Root capability.
+const deploymentReadTargets = new WeakMap();
+
+export function originalDeploymentReadSignal(signal, context) {
+  if (context === undefined) return signal;
+  const d = context && typeof context === "object" ? Object.getOwnPropertyDescriptors(context) : null;
+  if (!d || !Object.isFrozen(context) || Reflect.ownKeys(d).length !== 1 || !d.signal || !Object.hasOwn(d.signal, "value") || !d.signal.enumerable || !d.signal.value || (signal !== undefined && signal !== d.signal.value)) throw new YNXCloudError("Original deployment read context changed");
+  try { Object.getOwnPropertyDescriptor(AbortSignal.prototype, "aborted").get.call(d.signal.value); }
+  catch { throw new YNXCloudError("Original deployment read context changed"); }
+  // Adopt the original caller's signal; never construct or clone its context.
+  return d.signal.value;
+}
+
+function assertDeploymentReadSelection(client, selected, path, method, headers, signal) {
+  if (!selected) return;
+  if (selected.context !== undefined && originalDeploymentReadSignal(signal, selected.context) !== selected.signal) throw new YNXCloudError("Original deployment read context changed");
+  if (selected.signal?.aborted) throw selected.signal.reason;
+  if (selected.invalid || selected.client !== client || selected.endpoint !== client.endpoint || selected.product !== client.product || selected.sender !== client.fetch || selected.producer !== client.getDeploymentRequestHeaders || selected.path !== path || selected.method !== method || selected.url !== endpointURL(client.endpoint, path) || (headers !== undefined && selected.headers !== JSON.stringify([...new Headers(headers)]))) {
+    selected.invalid = true;
+    throw new YNXCloudError("Original deployment read selection changed");
+  }
+}
 
 export class YNXCloudError extends Error {
   constructor(message, { status = 0, requestId = "", errorId = "", retryAfter = 0, cause } = {}) {
@@ -415,6 +437,10 @@ export class YNXCloudClient {
 
   async request(path, { method = "GET", body, headers = {}, signal, response = "json", retry, redirect, originalAuthorizationHeaders } = {}) {
     method = method.toUpperCase();
+    const selected = deploymentReadTargets.get(originalAuthorizationHeaders);
+    signal = originalDeploymentReadSignal(signal, selected?.context);
+    assertDeploymentReadSelection(this, selected, path, method, originalAuthorizationHeaders, signal);
+    if (selected && body !== undefined) throw new YNXCloudError("Original deployment read selection changed");
     const attempts = retry ?? (IDEMPOTENT.has(method) ? this.maxRetries + 1 : 1);
     for (let attempt = 0; attempt < attempts; attempt++) {
       const requestHeaders = new Headers(headers);
@@ -432,11 +458,15 @@ export class YNXCloudClient {
         payload = JSON.stringify(body);
       }
       let result;
+      assertDeploymentReadSelection(this, selected, path, method, originalAuthorizationHeaders, signal);
       try {
-        result = await this.fetch(endpointURL(this.endpoint, path), { method, headers: requestHeaders, body: payload, signal, ...(redirect ? { redirect } : {}) });
+        const send = selected ? selected.sender : this.fetch;
+        const url = selected ? selected.url : endpointURL(this.endpoint, path);
+        result = await send.call(this, url, { method, headers: requestHeaders, body: payload, signal, ...(redirect ? { redirect } : {}) });
       } catch (cause) {
         throw new YNXCloudError("YNX Cloud request failed before a response was received", { cause });
       }
+      assertDeploymentReadSelection(this, selected, path, method, originalAuthorizationHeaders, signal);
       const requestId = result.headers.get("x-request-id") || "";
       const errorId = result.headers.get("x-error-id") || "";
       const retryAfter = parseRetryAfter(result.headers.get("retry-after"));
@@ -453,10 +483,13 @@ export class YNXCloudClient {
         throw new YNXCloudError(message, { status: result.status, requestId, errorId, retryAfter });
       }
       if (response === "response") return result;
-      if (response === "bytes") return new Uint8Array(await result.arrayBuffer());
-      if (response === "text") return result.text();
-      if (result.status === 204) return null;
-      return result.json();
+      let decoded;
+      if (response === "bytes") decoded = new Uint8Array(await result.arrayBuffer());
+      else if (response === "text") decoded = await result.text();
+      else if (result.status === 204) decoded = null;
+      else decoded = await result.json();
+      assertDeploymentReadSelection(this, selected, path, method, originalAuthorizationHeaders, signal);
+      return decoded;
     }
     throw new YNXCloudError("YNX Cloud retry budget was exhausted");
   }
@@ -501,34 +534,56 @@ export class YNXCloudClient {
     }
   }
 
-  async getIDEDeploymentStatus(requestId, { headers = {}, signal } = {}) {
+  async getIDEDeploymentStatus(requestId, { headers = {}, signal, originalRequestContext } = {}) {
+    signal = originalDeploymentReadSignal(signal, originalRequestContext);
     const id = deploymentRequestId(requestId);
     const path=`/ide/deployments/${id}`;
-    const originalHeaders=await this.deploymentHeaders("GET",path,id,headers,signal);
+    const originalHeaders=await this.deploymentHeaders("GET",path,id,headers,signal,undefined,originalRequestContext);
     const result = await deploymentAwait(signal, () => this.request(path, { headers:originalHeaders,originalAuthorizationHeaders:originalHeaders, signal, retry: 1, redirect: "error" }));
     if (result?.requestId !== id || !["unknown", "running", "completed", "failed"].includes(result?.state) || (result.state === "completed" && result.exitCode !== 0)) throw new YNXCloudDeploymentUnknownError(id);
     return result;
   }
 
-  async getIDEDeploymentLogs(requestId, { headers = {}, signal } = {}) {
+  async getIDEDeploymentLogs(requestId, { headers = {}, signal, originalRequestContext } = {}) {
+    signal = originalDeploymentReadSignal(signal, originalRequestContext);
     const id = deploymentRequestId(requestId);
     const path=`/ide/deployments/${id}/logs`;
-    const originalHeaders=await this.deploymentHeaders("GET",path,id,headers,signal);
+    const originalHeaders=await this.deploymentHeaders("GET",path,id,headers,signal,undefined,originalRequestContext);
     const result = await deploymentAwait(signal, () => this.request(path, { headers:originalHeaders,originalAuthorizationHeaders:originalHeaders, signal, retry: 1, redirect: "error" }));
     if (result?.requestId !== id || result.runtimeLogSource !== "original-resource" || typeof result.runtimeLogs !== "string" || new TextEncoder().encode(result.runtimeLogs).length > 65536 || !Array.isArray(result.operationLogs)) throw new YNXCloudDeploymentUnknownError(id);
     return result;
   }
 
-  async deploymentHeaders(method, path, operationRequestId, extra, signal) {
+  async deploymentHeaders(method, path, operationRequestId, extra, signal, bodySnapshot, originalRequestContext) {
+    if (originalRequestContext !== undefined && method !== "GET") throw new YNXCloudError("Original deployment read context changed");
+    signal = originalDeploymentReadSignal(signal, originalRequestContext);
     if (typeof this.getDeploymentRequestHeaders !== "function") throw new YNXCloudError("Original IDE deployment authentication provider is unavailable; ordinary Wallet login is not a deployment grant");
     const url = endpointURL(this.endpoint, path);
     const target = new URL(url);
     if (target.username || target.password || target.hash) throw new TypeError("deployment endpoint must not contain credentials or a fragment");
-    const original = await deploymentAwait(signal, () => this.getDeploymentRequestHeaders(Object.freeze({ method, path:target.pathname+target.search, url, operationRequestId })));
+    const request = { method, path:target.pathname+target.search, url, operationRequestId };
+    const selected = method === "GET" ? {client:this,endpoint:this.endpoint,product:this.product,sender:this.fetch,producer:this.getDeploymentRequestHeaders,path,method,url,signal,context:originalRequestContext,invalid:false} : null;
+    if (bodySnapshot !== undefined) {
+      if (!(bodySnapshot.bodyOriginal instanceof Uint8Array) || bodySnapshot.bodyOriginal.byteLength > 67108864 + 1048576 + 131072 || typeof bodySnapshot.contentType !== "string" || !bodySnapshot.contentType.startsWith("multipart/form-data; boundary=")) throw new TypeError("exact original multipart snapshot required");
+      // Public bytes for the original Native request proof producer. A private
+      // copy prevents that foreign call from changing the bytes later sent.
+      request.bodyOriginal = new Uint8Array(bodySnapshot.bodyOriginal);
+      request.contentType = bodySnapshot.contentType;
+    }
+    const original = await deploymentAwait(signal, () => {
+      assertDeploymentReadSelection(this, selected, path, method, undefined, signal);
+      const producer = selected ? selected.producer : this.getDeploymentRequestHeaders;
+      return originalRequestContext === undefined ? producer.call(this, Object.freeze(request)) : producer.call(this, Object.freeze(request), originalRequestContext);
+    });
     if (signal?.aborted) throw signal.reason;
     if (!original) throw new YNXCloudError("Original IDE deployment authentication headers are unavailable");
     const result = new Headers(extra);
     new Headers(original).forEach((value, name) => result.set(name, value));
+    if (selected) {
+      selected.headers = JSON.stringify([...result]);
+      assertDeploymentReadSelection(this, selected, path, method, result, signal);
+      deploymentReadTargets.set(result, selected);
+    }
     return result;
   }
   getObject(id) { return this.request(`/objects/${safeSegment(id)}`); }
