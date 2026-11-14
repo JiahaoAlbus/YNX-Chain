@@ -830,15 +830,21 @@ func pqLabWriteJSON(path string, value any) error {
 	return pqLabWrite(path, raw)
 }
 func pqLabWrite(path string, raw []byte) error {
+	return pqLabWritePublicFile(path, func(w io.Writer) error {
+		n, err := w.Write(raw)
+		if err == nil && n != len(raw) {
+			err = io.ErrShortWrite
+		}
+		return err
+	})
+}
+
+func pqLabWritePublicFile(path string, write func(io.Writer) error) error {
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
 		return err
 	}
-	n, writeErr := f.Write(raw)
-	if writeErr == nil && n != len(raw) {
-		writeErr = io.ErrShortWrite
-	}
-	err = errors.Join(writeErr, f.Sync(), f.Close())
+	err = errors.Join(write(f), f.Sync(), f.Close())
 	if err != nil {
 		return err
 	}

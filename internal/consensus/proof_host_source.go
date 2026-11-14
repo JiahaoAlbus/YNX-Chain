@@ -27,6 +27,7 @@ import (
 
 const ProofHostSourcePlanVersion = "YNX-PROOF-HOST-SOURCE-PLAN/v1"
 const MaxProofHostSourcePlanBytes = 48 << 20
+const maxProofHostMigrationBytes = 1 << 30
 
 // All coordinates, identities and trust parameters are operator inputs pinned
 // by the caller over the complete plan bytes. None are taken from proof/RPC.
@@ -426,13 +427,14 @@ func holdProofHostCapturedState(captured *pqEngineStateRead) (*proofHostOriginal
 }
 
 type proofHostInputs struct {
-	ctx       context.Context
-	plan      ProofHostSourcePlan
-	migration chain.ConsensusMigrationState
-	bootstrap *ConsensusBootstrap
-	engine    *PQEngineAuthorization
-	runtime   *RuntimeUpgradeAuthorization
-	originals map[string]*proofHostOriginal
+	ctx           context.Context
+	plan          ProofHostSourcePlan
+	migration     chain.ConsensusMigrationState
+	bootstrap     *ConsensusBootstrap
+	engine        *PQEngineAuthorization
+	runtime       *RuntimeUpgradeAuthorization
+	originals     map[string]*proofHostOriginal
+	heldMigration *pqLabProofMigration // only the live synthetic owner may lend this
 }
 
 func (in *proofHostInputs) contextErr() error {
@@ -452,9 +454,13 @@ func loadProofHostInputs(raw []byte, pin string) (_ *proofHostInputs, resultErr 
 
 // Shared original-file admission only. Each public entry validates its own
 // complete independently pinned plan before calling this private helper.
-func loadProofHostOriginalInputs(p ProofHostSourcePlan, chainID string) (_ *proofHostInputs, resultErr error) {
+func loadProofHostOriginalInputs(p ProofHostSourcePlan, chainID string) (*proofHostInputs, error) {
+	return loadProofHostInputsWithMigration(p, chainID, nil)
+}
+
+func loadProofHostInputsWithMigration(p ProofHostSourcePlan, chainID string, held *pqLabProofMigration) (_ *proofHostInputs, resultErr error) {
 	var err error
-	in := &proofHostInputs{plan: p, originals: map[string]*proofHostOriginal{}}
+	in := &proofHostInputs{plan: p, originals: map[string]*proofHostOriginal{}, heldMigration: held}
 	defer func() {
 		if resultErr != nil {
 			resultErr = errors.Join(resultErr, in.close())
@@ -463,24 +469,31 @@ func loadProofHostOriginalInputs(p ProofHostSourcePlan, chainID string) (_ *proo
 	for _, s := range []struct {
 		role, path, pin string
 		limit           int64
-	}{{"migration", p.MigrationFile, p.MigrationSHA256, 1 << 30}, {"genesis", p.GenesisFile, p.ConsensusGenesisSHA256, 64 << 20}, {"schedule", p.ScheduleFile, p.ScheduleSHA256, 32 << 10}} {
+	}{{"migration", p.MigrationFile, p.MigrationSHA256, maxProofHostMigrationBytes}, {"genesis", p.GenesisFile, p.ConsensusGenesisSHA256, 64 << 20}, {"schedule", p.ScheduleFile, p.ScheduleSHA256, 32 << 10}} {
+		if s.role == "migration" && held != nil {
+			if err = held.checkPlan(p, chainID); err != nil {
+				return nil, err
+			}
+			in.originals[s.role] = held.original
+			continue
+		}
 		r, e := readProofHostOriginal(s.path, s.pin, s.limit)
 		if e != nil {
 			return nil, e
 		}
 		in.originals[s.role] = r
 	}
-	if pqLightUniqueJSON(in.originals["migration"].raw) != nil {
-		return nil, errors.New("duplicate or malformed original migration JSON")
-	}
-	decoder := json.NewDecoder(bytes.NewReader(in.originals["migration"].raw))
-	decoder.DisallowUnknownFields()
-	if err = decoder.Decode(&in.migration); err != nil {
-		return nil, err
-	}
-	in.bootstrap, err = NewConsensusBootstrap(in.originals["genesis"].raw, ConsensusBootstrapPins{p.ConsensusGenesisSHA256, p.OriginalGenesisHash, p.MigrationStateHash}, in.migration)
-	if err != nil {
-		return nil, err
+	if held == nil {
+		in.migration, err = decodeProofHostMigration(in.originals["migration"].raw)
+		if err != nil {
+			return nil, err
+		}
+		in.bootstrap, err = NewConsensusBootstrap(in.originals["genesis"].raw, ConsensusBootstrapPins{p.ConsensusGenesisSHA256, p.OriginalGenesisHash, p.MigrationStateHash}, in.migration)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		in.migration, in.bootstrap = held.witness.migration, held.witness.bootstrap
 	}
 	in.engine, err = NewPQEngineAuthorization(in.originals["schedule"].raw, p.ScheduleHash)
 	if err != nil {
@@ -502,6 +515,21 @@ func loadProofHostOriginalInputs(p ProofHostSourcePlan, chainID string) (_ *proo
 	}
 	return in, nil
 }
+
+// The source has already checked the independently pinned file bytes. The
+// complete migration has its own byte limit and must still reject duplicates,
+// unknown fields and trailing data before any bootstrap or proof is accepted.
+func decodeProofHostMigration(raw []byte) (chain.ConsensusMigrationState, error) {
+	if err := proofHostCompleteUniqueJSON(raw, maxProofHostMigrationBytes); err != nil {
+		return chain.ConsensusMigrationState{}, fmt.Errorf("duplicate or malformed original migration JSON: %w", err)
+	}
+	migration, err := chain.ReadConsensusMigrationState(bytes.NewReader(raw))
+	if err != nil {
+		return chain.ConsensusMigrationState{}, err
+	}
+	return migration, nil
+}
+
 func (in *proofHostInputs) unchanged() error {
 	for _, r := range in.originals {
 		if e := r.unchanged(); e != nil {
@@ -513,7 +541,9 @@ func (in *proofHostInputs) unchanged() error {
 func (in *proofHostInputs) close() error {
 	var err error
 	for _, r := range in.originals {
-		err = errors.Join(err, r.file.Close())
+		if in.heldMigration == nil || r != in.heldMigration.original {
+			err = errors.Join(err, r.file.Close())
+		}
 	}
 	return err
 }

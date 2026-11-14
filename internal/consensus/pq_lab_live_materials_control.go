@@ -565,25 +565,17 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 		return out, err
 	}
 	trace.begin("proof.migrationCanonical")
-	migrationRaw, err := c.in.migration.CanonicalJSON()
+	migration, err := c.in.proofMigrationFor(static)
 	if err != nil {
 		return out, err
 	}
-	// The source plan identifies the actual held original, which may contain
-	// legal JSON whitespace. Its raw SHA is not the derived canonical SHA.
 	if err = ctx.Err(); err != nil {
 		return out, err
 	}
-	trace.begin("proof.migrationOriginalRead")
-	migrationOriginal, err := readProofHostOriginal(p.MigrationFile, "", 1<<30)
-	if err != nil {
-		return out, err
-	}
-	defer func() { err = errors.Join(err, migrationOriginal.unchanged(), migrationOriginal.file.Close()) }()
 	n := p.Nodes[c.in.policy.NodeIndex]
 	policy := c.in.policy
 	trace.begin("proof.derivedPlanWrite")
-	plan := ProofHostSourcePlan{Version: ProofHostSourcePlanVersion, SourceID: "pq-lab-" + p.SessionID, Epoch: "1", OperationID: r.TransactionSHA256, Account: owner, NetworkID: p.OriginalGenesisHash, OriginalHash: "0x" + r.NativeWireHash, MigrationFile: p.MigrationFile, MigrationSHA256: pqLabSHA(migrationOriginal.raw), GenesisFile: p.GenesisFile, ConsensusGenesisSHA256: p.CometGenesisSHA256, OriginalGenesisHash: p.OriginalGenesisHash, MigrationStateHash: p.MigrationStateHash, StateFile: n.StatePath, StateLayout: "atomic-json", CometDataDirectory: filepath.Join(n.Home, "data"), SigningStatePath: n.SignerStateFile, SigningLockKind: "pq-signer", ScheduleFile: a.ScheduleFile, ScheduleHash: a.ScheduleHash, ScheduleSHA256: pqLabSHA(c.in.schedule), EngineHeight: strconv.FormatInt(actual.LastBlockHeight, 10), EngineAppHash: hex.EncodeToString(actual.AppHash), TrustedHeight: strconv.FormatInt(trusted.Height, 10), TrustedBlockHash: hex.EncodeToString(trusted.Hash()), TrustingPeriodNanoseconds: strconv.FormatInt(int64(policy.TrustingPeriod), 10), MaxClockDriftNanoseconds: strconv.FormatInt(int64(policy.MaxClockDrift), 10), TrustLevelNumerator: strconv.FormatUint(policy.TrustNumerator, 10), TrustLevelDenominator: strconv.FormatUint(policy.TrustDenominator, 10), ExpectedTransaction: expected}
+	plan := ProofHostSourcePlan{Version: ProofHostSourcePlanVersion, SourceID: "pq-lab-" + p.SessionID, Epoch: "1", OperationID: r.TransactionSHA256, Account: owner, NetworkID: p.OriginalGenesisHash, OriginalHash: "0x" + r.NativeWireHash, MigrationFile: p.MigrationFile, MigrationSHA256: migration.rawSHA, GenesisFile: p.GenesisFile, ConsensusGenesisSHA256: p.CometGenesisSHA256, OriginalGenesisHash: p.OriginalGenesisHash, MigrationStateHash: p.MigrationStateHash, StateFile: n.StatePath, StateLayout: "atomic-json", CometDataDirectory: filepath.Join(n.Home, "data"), SigningStatePath: n.SignerStateFile, SigningLockKind: "pq-signer", ScheduleFile: a.ScheduleFile, ScheduleHash: a.ScheduleHash, ScheduleSHA256: pqLabSHA(c.in.schedule), EngineHeight: strconv.FormatInt(actual.LastBlockHeight, 10), EngineAppHash: hex.EncodeToString(actual.AppHash), TrustedHeight: strconv.FormatInt(trusted.Height, 10), TrustedBlockHash: hex.EncodeToString(trusted.Hash()), TrustingPeriodNanoseconds: strconv.FormatInt(int64(policy.TrustingPeriod), 10), MaxClockDriftNanoseconds: strconv.FormatInt(int64(policy.MaxClockDrift), 10), TrustLevelNumerator: strconv.FormatUint(policy.TrustNumerator, 10), TrustLevelDenominator: strconv.FormatUint(policy.TrustDenominator, 10), ExpectedTransaction: expected}
 	planRaw, err := json.Marshal(plan)
 	if err != nil {
 		return out, err
@@ -598,7 +590,11 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 		return out, err
 	}
 	trace.begin("proof.derivedPlanInputs")
-	in, err := loadProofHostInputs(planRaw, pqLabSHA(planRaw))
+	checkedPlan, err := DecodeProofHostSourcePlan(planRaw, pqLabSHA(planRaw))
+	if err != nil {
+		return out, err
+	}
+	in, err := loadProofHostInputsWithMigration(checkedPlan, checkedPlan.ExpectedTransaction.Block.ChainID, migration)
 	if err != nil {
 		return out, err
 	}
@@ -606,13 +602,7 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	if err = ctx.Err(); err != nil {
 		return out, err
 	}
-	canonicalMigration, err := in.migration.CanonicalJSON()
-	if err != nil {
-		return out, err
-	}
-	if !bytes.Equal(canonicalMigration, migrationRaw) {
-		return out, errors.New("held source migration differs from original live migration")
-	}
+
 	in.ctx = ctx
 	// These bytes were captured from the SAME original Node/App above. The
 	// final real read and original continuation validator authenticate any
@@ -644,19 +634,16 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	if err != nil {
 		return out, err
 	}
-	// captured.Files/Source retain the exact raw source. Only this separate
-	// verifier input is canonicalized after full original-source validation.
-	m := PQLabProofMaterials{Version: PQLabProofMaterialsVersion, Migration: canonicalMigration, Genesis: files["genesis"], CommittedState: files["state"], Schedule: files["schedule"], TrustedLightBlock: files["trustedLightBlock"], Pins: p.pins(), ScheduleHash: a.ScheduleHash, EngineHeight: actual.LastBlockHeight, EngineAppHash: bytes.Clone(actual.AppHash), TrustingPeriod: policy.TrustingPeriod, MaxClockDrift: policy.MaxClockDrift, TrustNumerator: policy.TrustNumerator, TrustDenominator: policy.TrustDenominator, Expected: e}
+	// captured.Files and Source retain the raw file; the independent verifier
+	// receives its separately qualified canonical representation.
+	m := PQLabProofMaterials{Version: PQLabProofMaterialsVersion, Migration: migration.canonical, Genesis: files["genesis"], CommittedState: files["state"], Schedule: files["schedule"], TrustedLightBlock: files["trustedLightBlock"], Pins: p.pins(), ScheduleHash: a.ScheduleHash, EngineHeight: actual.LastBlockHeight, EngineAppHash: bytes.Clone(actual.AppHash), TrustingPeriod: policy.TrustingPeriod, MaxClockDrift: policy.MaxClockDrift, TrustNumerator: policy.TrustNumerator, TrustDenominator: policy.TrustDenominator, Expected: e}
 	if err = ctx.Err(); err != nil {
 		return out, err
 	}
 	trace.begin("proof.materialsEncode")
-	materialRaw, err := json.Marshal(m)
+	materialHead, materialTail, err := pqLabProofMaterialFrame(m)
 	if err != nil {
 		return out, err
-	}
-	if len(materialRaw) > MaxPQLabProofMaterialsBytes {
-		return out, errors.New("public live proof materials exceed transport bound")
 	}
 	proof, err := DecodePQTransactionProofRequest(captured.Proof)
 	if err != nil {
@@ -666,7 +653,7 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 		return out, err
 	}
 	trace.begin("proof.verifierInputs")
-	verified, err := WritePQLabProofInputs(filepath.Join(output, "verifier"), m, proof, now)
+	verified, err := in.writeLiveProofVerifier(filepath.Join(output, "verifier"), m, proof, now)
 	if err != nil {
 		return out, err
 	}
@@ -675,10 +662,14 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	}
 	materialPath, proofPath, statePath := filepath.Join(output, "materials.json"), filepath.Join(output, "proof.json"), filepath.Join(output, "committed-state.json")
 	trace.begin("proof.materialsWrite")
+	materialFile, err := writePQLabProofMaterialFrame(materialPath, materialHead, m.Migration, materialTail)
+	if err != nil {
+		return out, err
+	}
 	for _, f := range []struct {
 		path string
 		raw  []byte
-	}{{materialPath, materialRaw}, {proofPath, captured.Proof}, {statePath, m.CommittedState}} {
+	}{{proofPath, captured.Proof}, {statePath, m.CommittedState}} {
 		if err = ctx.Err(); err != nil {
 			return out, err
 		}
@@ -686,7 +677,7 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 			return out, err
 		}
 	}
-	out = PQLabLiveMaterialsResult{Version: "YNX-PQ-LAB-LIVE-MATERIALS-RESULT/v1", PolicySHA256: c.in.pin, Sequence: r.Sequence, Outcome: "verified_transaction_data", SourceKind: "original-node-owning-stores", OwningNodeIndex: policy.NodeIndex, EngineHeight: actual.LastBlockHeight, EngineAppHash: hex.EncodeToString(actual.AppHash), TransactionHash: r.TransactionSHA256, NativeWireHash: r.NativeWireHash, Materials: pqLabFile(materialPath, materialRaw), Proof: pqLabFile(proofPath, captured.Proof), Checkpoint: pqLabFile(statePath, m.CommittedState), Verified: verified, SyntheticOnly: true, SourceReadOnly: true}
+	out = PQLabLiveMaterialsResult{Version: "YNX-PQ-LAB-LIVE-MATERIALS-RESULT/v1", PolicySHA256: c.in.pin, Sequence: r.Sequence, Outcome: "verified_transaction_data", SourceKind: "original-node-owning-stores", OwningNodeIndex: policy.NodeIndex, EngineHeight: actual.LastBlockHeight, EngineAppHash: hex.EncodeToString(actual.AppHash), TransactionHash: r.TransactionSHA256, NativeWireHash: r.NativeWireHash, Materials: materialFile, Proof: pqLabFile(proofPath, captured.Proof), Checkpoint: pqLabFile(statePath, m.CommittedState), Verified: verified, SyntheticOnly: true, SourceReadOnly: true}
 	if err = ctx.Err(); err != nil {
 		return out, err
 	}

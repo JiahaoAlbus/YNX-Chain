@@ -38,7 +38,13 @@ func decodePQLabAnchorCommittedState(raw []byte) (CommittedState, error) {
 }
 
 func pqLabAnchorStateUniqueJSON(raw []byte) error {
-	if len(raw) == 0 || len(raw) > pqLabAnchorStateMaxBytes || !utf8.Valid(raw) {
+	return proofHostCompleteUniqueJSON(raw, pqLabAnchorStateMaxBytes)
+}
+
+// Complete application records and migrations use their own existing byte
+// bounds. Small light-proof requests retain their distinct shape limits.
+func proofHostCompleteUniqueJSON(raw []byte, maxBytes int) error {
+	if len(raw) == 0 || len(raw) > maxBytes || !utf8.Valid(raw) {
 		return errors.New("invalid or oversized complete state JSON")
 	}
 	d := json.NewDecoder(bytes.NewReader(raw))

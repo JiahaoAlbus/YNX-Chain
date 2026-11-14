@@ -80,6 +80,7 @@ type pqLabLiveMaterialsInputs struct {
 	cache                *PQLabStaticCache
 	uncached             *pqLabLiveUncachedReads
 	heldStatic           *pqLabLiveStaticSnapshot
+	proofMigration       *pqLabProofMigration
 	heldStaticRoot       string
 	heldStaticPin        string
 	closed               bool
@@ -427,7 +428,7 @@ func (in *pqLabLiveMaterialsInputs) close() error {
 		return in.closeErr
 	}
 	in.closed = true
-	in.heldStatic = nil
+	in.heldStatic, in.proofMigration = nil, nil
 	in.heldStaticRoot, in.heldStaticPin = "", ""
 	var e error
 	for _, r := range in.originals {

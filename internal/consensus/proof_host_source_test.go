@@ -17,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch"
 	dbm "github.com/cometbft/cometbft-db"
@@ -262,6 +263,60 @@ func (s *proofHostSourceFixture) export(t *testing.T, output string) (ProofHostS
 	t.Helper()
 	raw := proofSourceJSON(t, s.plan)
 	return ExportStoppedProofHostSource(raw, proofHostSHA(raw), output, time.Now().UTC())
+}
+
+func TestProofHostSourceMigrationAccountsExceedLightProofLimits(t *testing.T) {
+	var original []byte
+	var err error
+	if publicFixture := os.Getenv("YNX_PQ_PROOF_HOST_MIGRATION_PUBLIC_FIXTURE"); publicFixture != "" {
+		original, err = os.ReadFile(publicFixture)
+	} else {
+		config := chain.DefaultNetworkConfig("devnet")
+		config.ChainID, config.IsPublicNet = PQLabNativeChainID, false
+		d := chain.NewDevnet(config)
+		for i := 1; i <= 504; i++ {
+			if _, err := d.Faucet(fmt.Sprintf("0x%040x", i), 2); err != nil {
+				t.Fatal(err)
+			}
+		}
+		d.ProduceBlock()
+		migration, exportErr := d.ExportConsensusMigrationState()
+		if exportErr != nil {
+			t.Fatal(exportErr)
+		}
+		original, err = migration.CanonicalJSON()
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = pqLightUniqueJSON(original); err == nil {
+		t.Fatal("large real migration did not reproduce the original light-proof parser refusal")
+	}
+	decoded, err := decodeProofHostMigration(original)
+	if err != nil {
+		t.Fatal("complete held history did not reach proof host admission", err)
+	}
+	comparison := pqLabCanonicalComparison{original: original}
+	if err = decoded.WriteCanonicalJSON(&comparison); err != nil || comparison.offset != len(original) || len(decoded.Accounts) < 504 {
+		t.Fatal("complete migration changed shape or original bytes", err)
+	}
+	if os.Getenv("YNX_PQ_PROOF_HOST_MIGRATION_PUBLIC_FIXTURE") != "" {
+		t.Logf("original migration admitted: bytes=%d accounts=%d sha256=%s", len(original), len(decoded.Accounts), proofHostSHA(original))
+		return
+	}
+	for name, raw := range map[string][]byte{
+		"duplicate root":           bytes.Replace(original, []byte("{"), []byte(`{"height":1,`), 1),
+		"escaped nested duplicate": bytes.Replace(original, []byte(`"parentHash":`), []byte(`"parent\u0048ash":"foreign","parentHash":`), 1),
+		"nested unknown":           bytes.Replace(original, []byte(`"parentHash":`), []byte(`"notAnOriginalBlockField":true,"parentHash":`), 1),
+		"trailing data":            append(bytes.Clone(original), []byte("{}")...),
+		"changed state hash":       bytes.Replace(original, []byte(decoded.StateHash), []byte(strings.Repeat("0", 64)), 1),
+	} {
+		t.Run(name, func(t *testing.T) {
+			if got, err := decodeProofHostMigration(raw); err == nil || got.Runtime != nil {
+				t.Fatal("invalid complete migration escaped proof host admission", err)
+			}
+		})
+	}
 }
 
 func TestProofHostSourceFromOriginalLedger(t *testing.T) {
