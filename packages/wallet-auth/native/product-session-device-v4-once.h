@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 #include "original-host-dirfd-journal.h"
 #include <array>
 #include <thread>
