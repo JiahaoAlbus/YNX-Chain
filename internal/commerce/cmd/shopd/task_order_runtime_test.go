@@ -71,3 +71,14 @@ func TestShopTaskOrderStartupRetainsUncertainOriginalListener(t *testing.T) {
 		t.Fatal("partial with cleanup debt could serve", err)
 	}
 }
+
+func TestShopTaskOrderStartupCannotServePartialRuntime(t *testing.T) {
+	original := &uncertainTaskOrderListener{}
+	runtime := &shopTaskOrderRuntime{listener: original}
+	if err := runtime.serve(); !errors.Is(err, net.ErrClosed) {
+		t.Fatalf("partial runtime should refuse serve: %v", err)
+	}
+	if runtime.served || original.calls != 0 {
+		t.Fatal("serve took ownership of a partial runtime listener")
+	}
+}

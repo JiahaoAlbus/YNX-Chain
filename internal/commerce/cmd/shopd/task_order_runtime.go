@@ -68,7 +68,7 @@ func openShopTaskOrderRuntime(ctx context.Context, store *commerce.Store, cfg co
 
 func (r *shopTaskOrderRuntime) serve() error {
 	r.closeMu.Lock()
-	if r.closed || r.listenerCloseSelected {
+	if r.closed || r.listenerCloseSelected || r.served || r.link == nil || r.listener == nil {
 		r.closeMu.Unlock()
 		return net.ErrClosed
 	}
