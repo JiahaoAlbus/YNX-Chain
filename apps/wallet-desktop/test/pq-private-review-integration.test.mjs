@@ -33,16 +33,16 @@ async function fixture(t,{missingCapsule=false,lateLock=false,broadcastSource=nu
  const lifecycle=new DesktopKeyLifecycle({authorizer:{available:()=>true,authenticate:async()=>({account}),method:'PUBLIC-controlled'}});lifecycle.setFocused(true);await lifecycle.unlock();t.after(()=>lifecycle.lock());
  const policyBytes=Buffer.from(JSON.stringify({version:snapshot.policyVersion,networkId:chain,enableAt:snapshot.enableAt,records:snapshot.records}));
  const at=Date.now(),observation=captureCometPolicyObservation({kind:'comet-node-observed-app-state/v1',source:'comet-rpc',recordsView:'committed',committedHeight:'5',committedAppHash:'a'.repeat(64),independentFinality:false},snapshot);
- const view=Object.freeze({version:'YNX-WALLET-TRANSACTION-POLICY/v3',networkId:chain,nativeChainId:'6423',canonicalOwner:account,authorization:snapshot,observation,originalPolicy:encodeObservedPolicyOriginal(policyBytes.toString(),snapshot),observedAt:new Date(at-1000).toISOString(),expiresAt:new Date(at+60000).toISOString()});let retired=false,borrows=0,selected;
+ const view=Object.freeze({version:'YNX-WALLET-TRANSACTION-POLICY/v3',networkId:chain,nativeChainId:'6423',canonicalOwner:account,authorization:snapshot,observation,originalPolicy:encodeObservedPolicyOriginal(policyBytes.toString(),snapshot),observedAt:new Date(at-1000).toISOString(),expiresAt:new Date(at+60000).toISOString()});let retired=false,borrows=0,sourceReads=0,selected;
  const policy={assertCurrent(){if(retired)throw Error('PUBLIC-retired');},readOriginal:()=>view,copyOriginalPolicyBytes:()=>new Uint8Array(policyBytes),recheck:async()=>{},retire(){retired=true;},join:async()=>{},close:async()=>{}};
  const store=new FileTransactionIntentStore({filePath:path.join(dir,'journal.json')});
  if(lateLock){const capture=store.capturePQTransferMember.bind(store);store.capturePQTransferMember=(...args)=>{const result=capture(...args);lifecycle.lock();return result;};}
  const vault={authorization:lifecycle,status:async()=>({initialized:true,account}),assertPQNativeTransactionAvailable(){},withPQKeys(){assert.fail('No portable signer fallback');},withPQNativeTransaction:async(binding,request,capture,permission)=>{permission.assert();assert.equal(binding.owner,account);assert.deepEqual(request.policyOriginal,policyBytes);assert.deepEqual(request.messageOriginal,Buffer.from(encodePQNativeTransfer(transfer)));assert.equal(request.keyVersion,snapshot.activeRevision);assert.equal(request.executionHeight,snapshot.executionHeight);borrows++;capture({member:Buffer.from(member)});permission.assert();}};
- const authority=new DesktopWalletAuthority({vault,permissions:new MemoryPermissionStore(),transactionSender:{submissions:{intentStore:store}},pqPolicySource:async()=>{retired=false;return policy;},pqPolicyRecognized:v=>v===policy,pqNetworkId:chain,pqTransactionPermissionSource:async(request,capsule,borrow)=>{selected=borrow;assert.equal(isOriginalPQTransactionReviewBorrow(borrow),true);return auth.acquireOriginalWalletTransactionPermission(request,capsule,borrow);},pqTransactionPermissionRecognized:auth.isOriginalWalletTransactionPermission,pqBroadcastSource:broadcastSource});
+ const authority=new DesktopWalletAuthority({vault,permissions:new MemoryPermissionStore(),transactionSender:{submissions:{intentStore:store}},pqPolicySource:async()=>{sourceReads++;retired=false;return policy;},pqPolicyRecognized:v=>v===policy,pqNetworkId:chain,pqTransactionPermissionSource:async(request,capsule,borrow)=>{selected=borrow;assert.equal(isOriginalPQTransactionReviewBorrow(borrow),true);return auth.acquireOriginalWalletTransactionPermission(request,capsule,borrow);},pqTransactionPermissionRecognized:auth.isOriginalWalletTransactionPermission,pqBroadcastSource:broadcastSource});
  const pending=await lifecycle.run(()=>authority.requestPQTransfer({to:transfer.to,amount:transfer.amount}));
  const sender=new EventEmitter();sender.isDestroyed=()=>false;sender.mainFrame={url:new URL('../src/index.html',import.meta.url).href};bindPublicWindow(sender);
  const event={sender,senderFrame:sender.mainFrame},capsule=missingCapsule?undefined:auth.captureOriginalWalletTransactionApprovalIPC(event,pending.request.id,'sign');
- return{authority,lifecycle,store,pending,capsule,sender,event,borrows:()=>borrows,borrow:()=>selected};
+ return{authority,lifecycle,store,pending,capsule,sender,event,borrows:()=>borrows,sourceReads:()=>sourceReads,borrow:()=>selected};
 }
 test('actual authority and Auth factory/kernel capture one PUBLIC Native stand-in result; completed current survives pending removal',async t=>{
  const f=await fixture(t),result=await f.lifecycle.run(()=>f.authority.approve(f.pending.request.id,f.capsule));
@@ -70,6 +70,30 @@ test('configured production permission supplier refuses missing real capsule bef
 test('late lock retains signed original before permission completion refusal and never signs again',async t=>{
  const f=await fixture(t,{lateLock:true});await assert.rejects(()=>f.lifecycle.run(()=>f.authority.approve(f.pending.request.id,f.capsule)));
  assert.equal(f.borrows(),1);assert.ok(f.store.localOriginal(account)?.pq?.wire);assert.equal(f.sender.listenerCount('destroyed'),0);
+});
+test('lost signed-result save after focus loss refuses a fresh review while retaining original recovery',async t=>{
+ const f=await fixture(t,{lateLock:true});await assert.rejects(()=>f.lifecycle.run(()=>f.authority.approve(f.pending.request.id,f.capsule)));
+ const held=f.store.localOriginal(account),originalWire=held.pq.wire,originalHash=held.pq.hash;
+ assert.ok((await f.store.unresolvedPreparation(account)));assert.equal(f.borrows(),1);
+ await f.lifecycle.unlock();
+ await assert.rejects(()=>f.lifecycle.run(()=>f.authority.requestPQTransfer({to:transfer.to,amount:transfer.amount})),e=>e.data?.code==='PQ_ORIGINAL_RECONCILE_REQUIRED');
+ assert.equal(f.borrows(),1);assert.equal(f.store.localOriginal(account).pq.wire,originalWire);
+ const cold=new FileTransactionIntentStore({filePath:f.store.filePath});f.authority.transactionSender.submissions.intentStore=cold;
+ await assert.rejects(()=>f.lifecycle.run(()=>f.authority.requestPQTransfer({to:transfer.to,amount:transfer.amount})),e=>e.data?.code==='PQ_ORIGINAL_RECONCILE_REQUIRED');
+ assert.ok(await cold.unresolvedPreparation(account));assert.equal(f.borrows(),1);
+ await f.store.saveOriginal(account,originalHash,()=>{});assert.equal((await f.store.readPQOriginals(account,()=>{}))[0].wire,originalWire);
+ await f.store.reserveOriginal('0x'+'ee'.repeat(20),'pq-transfer');
+ const next=await f.lifecycle.run(()=>f.authority.requestPQTransfer({to:transfer.to,amount:transfer.amount}));assert.equal(next.status,'approval-required');
+ assert.throws(()=>f.authority.reject(next.request.id));assert.equal(f.borrows(),1);
+});
+test('focus loss while checking the original journal cannot acquire a new policy or approval',async t=>{
+ const f=await fixture(t,{lateLock:true});await assert.rejects(()=>f.lifecycle.run(()=>f.authority.approve(f.pending.request.id,f.capsule)));
+ const held=f.store.localOriginal(account);await f.lifecycle.unlock();await f.store.saveOriginal(account,held.pq.hash,()=>{});
+ let release,entered;const started=new Promise(resolve=>{entered=resolve}),gate=new Promise(resolve=>{release=resolve});
+ const original=f.store.unresolvedPreparation.bind(f.store);f.store.unresolvedPreparation=async selected=>{entered();await gate;return original(selected);};
+ const before=f.sourceReads(),work=f.lifecycle.run(()=>f.authority.requestPQTransfer({to:transfer.to,amount:transfer.amount}));
+ await started;f.lifecycle.lock();release();await assert.rejects(work);assert.equal(f.sourceReads(),before);assert.equal(f.borrows(),1);
+ assert.equal((await f.store.readPQOriginals(account,()=>{}))[0].hash,held.pq.hash);
 });
 test('R95 navigation before factory retires actual original borrow without key access or preparation marker',async t=>{
  const f=await fixture(t);f.sender.emit('did-start-navigation');

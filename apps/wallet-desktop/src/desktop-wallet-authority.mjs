@@ -332,6 +332,13 @@ export class DesktopWalletAuthority {
     this.#pruneExpired();if(this.#pqOwners.size||this.#pqAcquiring)throw providerError(4100,'PQ_POLICY_RESOURCE_UNRESOLVED','Finish the original policy review and cleanup first.');
     const status=await this.vault.status();guard.assert();permission.assert();if(!status.initialized||status.account!==guard.account)throw providerError(4100,'ACCOUNT_CHANGED','Review the original selected account.');
     if(this.#pqOwners.size||this.#pqAcquiring)throw providerError(4100,'PQ_POLICY_RESOURCE_UNRESOLVED','Finish the original policy review and cleanup first.');
+    if(!migration&&!revocation){
+      const store=this.transactionSender?.submissions?.intentStore;
+      if(typeof store?.localOriginal!=='function'||typeof store?.unresolvedPreparation!=='function')throw providerError(4100,'PQ_ORIGINAL_JOURNAL_REQUIRED','The original transaction journal is required before a new transfer review.');
+      const held=store.localOriginal(status.account),unresolved=await store.unresolvedPreparation(status.account);guard.assert();permission.assert();
+      if(held||unresolved||store.localOriginal(status.account))throw providerError(4100,'PQ_ORIGINAL_RECONCILE_REQUIRED','Preserve and recover the original transaction before reviewing a new transfer.');
+      if(this.#pqOwners.size||this.#pqAcquiring||this.#pqTxOwners.size)throw providerError(4100,'PQ_POLICY_RESOURCE_UNRESOLVED','Finish the original policy review and cleanup first.');
+    }
     let resource;this.#pqAcquiring=true;
     try{resource=await this.#pqPolicySource({networkId:this.#pqNetworkId,nativeChainId:'6423',owner:status.account,operation,at:this.clock().toISOString()});}
     catch(error){
