@@ -165,7 +165,13 @@ import SwiftUI
         busy=true;let at=epoch,view=selection
         Task{defer{if at==epoch{busy=false}};do{
             guard at==epoch,view==selection,currentOrder(order) else{return};let check=try api.capture()
-            let result=try await readOriginalOrderResult(order,at:at,view:view,check:check)
+            let financeFence = {
+                try check()
+                guard at == self.epoch, view == self.selection, self.exactCurrentOrder(order),
+                      self.can("finance.read") else { throw ShopError.contextChanged }
+            }
+            let protectedRead = can("finance.read") ? try await api.observeProtectedOriginalOrder(order.paymentOrder, beforeDispatch: financeFence) : false
+            let result=try await readOriginalOrderResult(order,at:at,view:view,check:protectedRead ? financeFence : check)
             // Only this explicit user read may refresh permission to query the
             // same original again. The reconciliation flow's automatic GET
             // cannot unlock it, nor can a refreshed but rebound payment tuple.
@@ -180,8 +186,8 @@ import SwiftUI
             }
         }catch{if at==epoch,view==selection{state="unavailable"}}}
     }
-    private func readOriginalOrderResult(_ order:SellerOrder,at:Int,view:Int,check:()throws->Void)async throws->SellerOrder {
-        let response=try await api.raw("seller/orders/"+order.ID,method:"GET",json:[:]);try check()
+    private func readOriginalOrderResult(_ order:SellerOrder,at:Int,view:Int,check:@escaping ()throws->Void)async throws->SellerOrder {
+        let response=try await api.raw("seller/orders/"+order.ID,method:"GET",json:[:],beforeDispatch:check);try check()
         guard at==epoch,view==selection,currentOrder(order) else{throw ShopError.contextChanged}
         let result=try JSONDecoder().decode(SellerOrder.self,from:CanonicalJSON.data(response))
         guard result.ID==order.ID,result.StoreID==order.StoreID,result.Buyer==order.Buyer,result.Currency==order.Currency,result.TotalYNXT==order.TotalYNXT,result.PayIntentID==order.PayIntentID,result.InvoiceID==order.InvoiceID,result.PayMerchant==order.PayMerchant,result.PayPayoutAddress==order.PayPayoutAddress else{throw ShopError.security}

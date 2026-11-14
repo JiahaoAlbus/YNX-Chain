@@ -56,10 +56,80 @@ import Foundation
    do{try await navigation.openOriginalOrder(order,originalOperation:operation,expected:expected);throw NSError(domain:"wrong retained terms accepted",code:1)}catch ShopError.security{try check(invokes.count==before+1,"retained terms mismatch or authorization is refused without retry \(fault)")}
   }
   retainedTermsFault=nil
+  let originalOrder = Order(orderID: order, status: "payment_pending", totalYNXT: 25,
+      refundStatus: nil, trustStatus: nil, payDeepLink: nil, buyer: account, storeID: "store_original",
+      currency: "YNXT", invoiceID: "invoice_original", payIntentID: operation,
+      payMerchant: "0x" + String(repeating: "b", count: 40))
+  var revoked = false
+  let ownedChild = OriginalOrderQueryChild(onStatus: { revoked = true })
+  let authority = OriginalOrderQueryAuthority(expected)
+  let api = APIClient(authority: authority, acquireOriginalOrder: { action, args, original, session in
+      try check(action == "order-invoice" && args == [order] && original == operation && session == expected,
+                "reopened order uses the original operation and current session")
+      return ownedChild
+  })
+  do {
+      _ = try await api.observeProtectedOriginalOrder(originalOrder) {
+          if revoked { throw ShopError.contextChanged }
+      }
+      throw NSError(domain: "withdrawn selection invoked Main", code: 1)
+  } catch ShopError.contextChanged {
+      try check(ownedChild.calls == ["status", "close"], "withdrawn selection closes the original child before invoke")
+  }
+  let boundMerchant = originalOrder.payMerchant!
+  for invoice in ["invoice_original", "invoice_replaced"] {
+      let child = OriginalOrderQueryChild(onStatus: {}, reply: ["ok": true, "value": [
+          "reference": ["intentId": operation, "productId": "shop.order", "sourceOrder": order,
+                        "merchant": boundMerchant, "invoiceId": invoice],
+          "intent": ["intentId": operation, "originalOperation": operation, "state": "ISSUED"],
+          "bill": ["sourceOrder": order, "merchant": boundMerchant, "invoiceId": invoice],
+          "queryOnly": true, "approvalRequired": false, "canRetry": false, "clientIndependentFinality": false
+      ]])
+      let reopened = APIClient(authority: authority, acquireOriginalOrder: { _, _, _, _ in child })
+      do {
+          let result = try await reopened.observeProtectedOriginalOrder(originalOrder) {}
+          try check(result && invoice == "invoice_original", "reopened order accepts the original invoice")
+      } catch ShopError.security {
+          try check(invoice == "invoice_replaced", "reopened order rejects a replacement invoice")
+      }
+      try check(child.calls == ["status", "invoke", "close"], "invoice query drains one original child")
+  }
   let before=invokes.count,calls=statusCalls
   do{try await navigation.openOriginalOrder("../foreign",originalOperation:operation,expected:expected);throw NSError(domain:"bad order sent",code:1)}catch ShopError.security{try check(invokes.count==before && statusCalls==calls,"malformed original selector is rejected before Main")}
   current=ShopSession(account:account,token:expected.token,expiresAt:"2000-01-01T00:00:00Z",nativeGeneration:1)
   do{try await navigation.openOriginalOrder(order,originalOperation:operation,expected:current);throw NSError(domain:"expired accepted",code:1)}catch ShopError.contextChanged{try check(invokes.count==before,"expired Shop context cannot call status or Main")}
   print("Original Main Swift navigation checks PASS \(checks); controlled authenticated-port fixture only, no actual standalone Main transport or Source approval")
  }
+}
+
+@MainActor private final class OriginalOrderQueryAuthority: AppleNativeAuthority {
+    let current: ShopSession?
+    init(_ current: ShopSession) { self.current = current }
+    func restore() async throws {}
+    func connect() async throws { throw ShopError.unavailable }
+    func handleReturn(_ url: URL) async throws { throw ShopError.unavailable }
+    func disconnect() throws { throw ShopError.unavailable }
+    func proof(method: String, path: String, body: String, expected: ShopSession) async throws -> [String: Any] {
+        throw ShopError.unavailable
+    }
+}
+
+@MainActor private final class OriginalOrderQueryChild: AppleOriginalMainPayChild {
+    var calls: [String] = []
+    let onStatus: () -> Void
+    let reply: [String: Any]
+    init(onStatus: @escaping () -> Void, reply: [String: Any] = [:]) {
+        self.onStatus = onStatus
+        self.reply = reply
+    }
+    func status() async throws -> [String: Any] {
+        calls.append("status")
+        onStatus()
+        return ["ok": true, "value": ["normalMainEntry": true, "canRequest": true, "paymentAuthorized": false]]
+    }
+    func invoke() async throws -> [String: Any] {
+        calls.append("invoke")
+        return reply
+    }
+    func close() async throws { calls.append("close") }
 }

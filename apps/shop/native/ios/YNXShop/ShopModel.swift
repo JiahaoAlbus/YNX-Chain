@@ -263,9 +263,16 @@ import SwiftUI
         do {
             let check=try api.capture()
             let fence:()throws->Void={try check();guard self.originalOrderRevision==revision,self.originalOrderLink==link else{throw ShopError.contextChanged}}
-            try await api.confirmOriginalPayment(order,beforeDispatch:fence)
-            try fence()
-            await refreshOriginalOrderLink()
+            if try await api.observeProtectedOriginalOrder(order, beforeDispatch: fence) {
+                let result = try await api.readBoundBuyerOrder(order, account: link.account, beforeDispatch: fence)
+                try fence()
+                linkedOriginalOrder = result
+                originalOrderLoading = false
+            } else {
+                try await api.confirmOriginalPayment(order,beforeDispatch:fence)
+                try fence()
+                await refreshOriginalOrderLink()
+            }
         }catch{
             guard originalOrderRevision==revision,originalOrderLink==link else{return}
             originalOrderLoading=false;linkedOriginalOrder=nil;failure(error)
@@ -323,7 +330,35 @@ import SwiftUI
             try AppleBuyerReceipt.validate(order,account:session.account)
             let at=operationRevision;mutationBusy=true
             Task{defer{if at==operationRevision{mutationBusy=false;refreshOrderRecoveries()}}
-                do{try check();try await api.confirmOriginalPayment(order,beforeDispatch:check);try check();await resumeOriginalOrder();try check();let fresh=await readOrders();try check();if fresh,let observed=orders.first(where:{$0.orderID==order.orderID}){acceptExplicitReconciliationQuery(order,observed)}}
+                do {
+                    if try await api.observeProtectedOriginalOrder(order, beforeDispatch: check) {
+                        // Invalidate earlier list reads. A newer refresh may
+                        // supersede this targeted read while it is in flight.
+                        ordersRefreshRevision += 1
+                        let refresh = ordersRefreshRevision
+                        let fence = {
+                            try check()
+                            guard refresh == self.ordersRefreshRevision else { throw ShopError.contextChanged }
+                        }
+                        let observed = try await api.readBoundBuyerOrder(order, account: session.account, beforeDispatch: fence)
+                        try fence()
+                        guard let index = orders.firstIndex(where: { $0.orderID == order.orderID }) else { return }
+                        orders[index] = observed
+                        acceptExplicitReconciliationQuery(order, observed)
+                        state = ""
+                    } else {
+                        try check()
+                        try await api.confirmOriginalPayment(order,beforeDispatch:check)
+                        try check()
+                        await resumeOriginalOrder()
+                        try check()
+                        let fresh = await readOrders()
+                        try check()
+                        if fresh, let observed = orders.first(where: { $0.orderID == order.orderID }) {
+                            acceptExplicitReconciliationQuery(order, observed)
+                        }
+                    }
+                }
                 catch{guard at==operationRevision else{return};do{try check()}catch{return};failure(error)}
             }
         }catch{failure(error)}
