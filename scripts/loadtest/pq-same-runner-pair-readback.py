@@ -18,6 +18,7 @@ CPU, cache, I/O, cryptographic equivalence or sustained-throughput attestation.
 import argparse
 import copy
 import hashlib
+import inspect as signature_inspection
 import json
 from pathlib import Path
 import re
@@ -40,6 +41,21 @@ MARKER = 'YNX-PERF-SAME-RUNNER-ARM/v1'
 JOB = 'Held public-owner normal504 sequential pair'
 BRANCH = 'codex/ynx-pq-current75-baseline-20261101'
 ARMS = ('before', 'after')
+# Existing normal proof/archive contract from 961205644e9c27e806827e62fdb4adf40c41893d:
+# only a declared content-addressed migration may exceed ordinary PUBLIC 8 MiB.
+MIGRATION_FILE_LIMIT = 128 << 20
+PUBLIC_TOTAL_LIMIT = 256 << 20
+
+
+def original_archive(raw, pin):
+    archive = held.prior.original.public_archive
+    kwargs = dict(entry_limit=8192)
+    if 'proof_migration_limit' in signature_inspection.signature(archive).parameters:
+        kwargs['proof_migration_limit'] = MIGRATION_FILE_LIMIT
+    # Historical readers keep their original 8 MiB refusal. Large-migration
+    # integration requires the already-reviewed normal role-aware archive API;
+    # do not bypass it, modify its globals, or substitute a repacked archive.
+    return archive(raw, pin, **kwargs)
 
 
 def digest(raw):
@@ -176,7 +192,7 @@ def arm_read(raw, label, declaration, pair, expected):
             'frozen arm configuration differs')
     fields(declaration['archive'], 'sha256 bytes', 'arm archive')
     require(declaration['archive'] == dict(sha256=digest(raw), bytes=len(raw)), 'manifest arm archive differs')
-    files, inventory, _ = held.prior.original.public_archive(raw, digest(raw), entry_limit=8192)
+    files, inventory, _ = original_archive(raw, digest(raw))
     names = [n for n in files if n == 'receipt.json' or n == 'public/receipt.json' or n.endswith('/public/receipt.json')]
     require(len(names) == 1, 'one original arm receipt required')
     prefix = names[0].removesuffix('receipt.json')

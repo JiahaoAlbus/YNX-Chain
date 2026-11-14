@@ -49,6 +49,9 @@ class OriginalAdapterControls(unittest.TestCase):
         # another arm; do not carry that controlled coordinator into other tests.
         lease = mock.patch.object(bridge, '_WINDOW_LEASE', threading.Lock())
         lease.start(); self.addCleanup(lease.stop)
+        network = mock.patch.object(original.urllib.request.OpenerDirector, 'open',
+            side_effect=AssertionError('unit adapter control must never request network metadata'))
+        network.start(); self.addCleanup(network.stop)
 
     def adapter(self, run, *, source_commit=None):
         record = copy.deepcopy(self.record)
@@ -136,6 +139,17 @@ class OriginalAdapterControls(unittest.TestCase):
             adapter.execute(self.register)
         run.assert_not_called()
 
+    def test_equal_value_different_type_options_refuse_before_driver(self):
+        for key, value in (('accounts', 500.0), ('execute', 1), ('seconds', 5.0),
+                           ('network_accounting', 1)):
+            with self.subTest(key=key), mock.patch.object(bridge, '_WINDOW_LEASE', threading.Lock()):
+                run = mock.Mock()
+                adapter = self.adapter(run)
+                setattr(adapter.options, key, value)
+                with self.assertRaisesRegex(RuntimeError, 'options differ'):
+                    adapter.execute(self.register)
+                run.assert_not_called()
+
     def test_actual_driver_registration_directory_sync_failure_precedes_constructor_and_children(self):
         # Invoke the REAL driver.run body through the bridge. All preceding
         # platform/source/resource answers are explicitly synthetic unit DATA;
@@ -161,6 +175,7 @@ class OriginalAdapterControls(unittest.TestCase):
             stack.enter_context(mock.patch.object(original, 'sender_backend_kind', return_value='public-owner'))
             stack.enter_context(mock.patch.object(original, 'STARTUP_TIMING_ABI_SOURCES', (original.HELD_TRIAL_SOURCE,)))
             stack.enter_context(mock.patch.object(original, 'module', side_effect=lambda name, file: trial if file == 'pq-held-first100-source.py' else types.SimpleNamespace()))
+            stack.enter_context(mock.patch.object(original, 'held_first_trial_source', trial, create=True))
             stack.enter_context(mock.patch.object(original.lab, 'check_source', return_value=source_reply))
             stack.enter_context(mock.patch.object(original.lab, 'git', return_value=''))
             stack.enter_context(mock.patch.object(original.subprocess, 'check_output', return_value=b'live-materials'))

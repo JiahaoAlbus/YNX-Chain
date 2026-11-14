@@ -87,6 +87,7 @@ class OriginalDriverAdapter:
                 'original non-executing controller plan required')
         expected.update(source=self.options.source, execute=True)
         require(vars(self.options) == expected
+                and all(type(vars(self.options)[key]) is type(value) for key, value in expected.items())
                 and self.options.commit == self._record['configuration']['source'],
                 'original driver options differ from frozen arm configuration')
         roots((self.options.source,))
@@ -196,10 +197,10 @@ class OriginalDriverAdapter:
                     for row in window.children]
         # The driver may raise after writing its receipt. Trust those original
         # bytes, never its mutable return dict or an invented cleanup success.
-        files = producer.public_files(self.work)
-        path = self.work.name+'/public/receipt.json'
-        require(path in files, 'original arm receipt missing; cleanup alone is not completion')
-        receipt = producer.strict(files[path])
+        try:
+            receipt = producer.strict(producer.public_bytes(self.work/'public/receipt.json'))
+        except FileNotFoundError as error:
+            raise RuntimeError('original arm receipt missing; cleanup alone is not completion') from error
         producer.retired(receipt, children, self.threads_before)
         require(self.registration_error is None, 'original registration failure blocks successor')
         self.retired = True
