@@ -133,6 +133,7 @@ def compare_business(before, after):
                     firstSignerFailure=report.get('firstSignerFailure'),
                     observationRPC=report.get('observationRPC'),
                     stoppedLiveProofFailures=report.get('stoppedLiveProofFailures'),
+                    proofCaptureProgress=report.get('proofCaptureProgress'),
                     businessBlockCommitStages=report['businessBlockCommitStages'],
                     businessStageCostsByNode=report.get('businessStageCostsByNode'))
 
@@ -141,6 +142,24 @@ def compare_business(before, after):
                 sameReportedConditions=not differences and not hardware_differences,
                 identicalPhysicalHostProven=False, canonicalInputEqualityProven=False,
                 throughputGainAttributed=False, sustainedTPSQualified=False)
+
+
+def proof_capture_progress(load):
+    captures = []
+    for row in load['rows']:
+        points = dict(row['stageTimes'])
+        begin = points.get('live_capture')
+        if begin is None:
+            continue
+        read = points.get('live_read')
+        terminal = row['terminalNs']
+        end = read if read is not None else terminal
+        require(type(end) is int and end >= begin, 'original proof capture clock differs')
+        captures.append(dict(index=row['index'], captureOffsetNs=begin, readOffsetNs=read,
+                             spanNs=end-begin, resultReadStarted=read is not None,
+                             terminatedWithoutRead=row['error'] if read is None else None))
+    return dict(captures=captures, withoutResultRead=sum(not row['resultReadStarted'] for row in captures),
+                finalityInferred=False)
 
 
 def stopped_proof_failures(receipt, load, files, prefix):
@@ -523,6 +542,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
                 publicOwnerTiming=owner_timing, firstSignerFailure=first_signer_failure(owner_timing, files, prefix),
                 observationRPC=observation_rpc(receipt),
                 stoppedLiveProofFailures=stopped_proof_failures(receipt, load, files, prefix),
+                proofCaptureProgress=proof_capture_progress(load) if load is not None else None,
                 originalSuccessorAvailability=successor,
                 finalizeByNode=finalize_by_node, originalCommitCopies=commits, commitStages=stages.commit_stages(dict(originalCommitCopies=commits)),
                 finalizeCommitCheckpoints=checkpoints,
