@@ -25,6 +25,32 @@ def sha(raw):
 class HeldReadbackTests(unittest.TestCase):
     controller = 'e' * 40
 
+    def test_qualified_closure_binds_verified_materials_and_binary(self):
+        prefix, base = 'public/', 'load-operations/00000/'
+        name = base + 'original-public-proof-manifest.json'
+        source, binary = 'a'*40, 'b'*64
+        entries, files = {}, {}
+        for role in reader.proof_readback.FILES:
+            blob = role.encode()
+            pin = sha(blob)
+            relative = 'proof-public-blobs/' + pin + '.json'
+            entries[role] = dict(sha256=pin, bytes=len(blob), publicRelativePath=relative)
+            files[prefix + relative] = blob
+        files[prefix + name] = encode(dict(schema=reader.proof_readback.SCHEMA, sourceCommit=source,
+            verifierBinarySHA256=binary, syntheticOnly=True, authorityGranted=False,
+            actualNetworkExecutionClaim=False, independentReverification=False, entries=entries,
+            originalContextSHA256=entries['context']['sha256'], originalRequestSHA256=entries['request']['sha256']))
+        manifest = {path: dict(sha256=sha(blob), bytes=len(blob)) for path, blob in files.items()}
+        final = dict(originalPublicProofClosure=dict(manifest[prefix + name], path=name),
+                     normalLiveResult=dict(proof=entries['proof'], verified=dict(
+                         context=entries['context'], request=entries['request'])))
+        self.assertTrue(reader.verify_qualified_closure(final, base, files, manifest, prefix, source, binary))
+        with self.assertRaisesRegex(RuntimeError, 'source or scope differs'):
+            reader.verify_qualified_closure(final, base, files, manifest, prefix, source, 'c'*64)
+        del manifest[prefix + entries['migration']['publicRelativePath']]
+        with self.assertRaisesRegex(RuntimeError, 'blob differs'):
+            reader.verify_qualified_closure(final, base, files, manifest, prefix, source, binary)
+
     def test_only_declared_content_addressed_migration_can_exceed_zip_member_cap(self):
         payload = b'm' * ((8 << 20) + 1)
         digest = sha(payload)

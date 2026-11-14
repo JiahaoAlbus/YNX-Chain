@@ -567,6 +567,47 @@ def pipeline_pressure(load):
                 chainSaturationProven=False)
 
 
+def verify_qualified_closure(final, base, files, manifest, prefix, source, verifier_pin):
+    ref = final.get('originalPublicProofClosure')
+    if ref is None:
+        return False
+    path = prefix + base + 'original-public-proof-manifest.json'
+    require(prefix + ref['path'] == path and type(verifier_pin) is str
+            and re.fullmatch('[0-9a-f]{64}', verifier_pin) and path in manifest
+            and all(ref[key] == manifest[path][key] for key in ('sha256', 'bytes')),
+            'original qualified proof closure reference differs')
+    value = strict(files[path])
+    entries = value['entries']
+    require(value['schema'] == proof_readback.SCHEMA and value['sourceCommit'] == source
+            and value['verifierBinarySHA256'] == verifier_pin and value['syntheticOnly'] is True
+            and all(value[key] is False for key in ('authorityGranted', 'actualNetworkExecutionClaim',
+                                                    'independentReverification'))
+            and set(entries) in (set(proof_readback.FILES), set(proof_readback.FILES) | {'runtimePlan'}),
+            'original qualified proof closure source or scope differs')
+    total = 0
+    for role, entry in entries.items():
+        pin, size = entry['sha256'], entry['bytes']
+        relative = entry['publicRelativePath']
+        require(type(pin) is str and re.fullmatch('[0-9a-f]{64}', pin)
+                and relative == 'proof-public-blobs/' + pin + '.json'
+                and type(size) is int and 0 < size <= proof_readback.public_file_limit(role)
+                and prefix + relative in manifest
+                and (pin, size) == tuple(manifest[prefix + relative][k] for k in ('sha256', 'bytes')),
+                'original qualified proof blob differs')
+        total += size
+    require(total <= proof_readback.TOTAL_LIMIT and all(
+        entries[role]['sha256'] == value[key] for role, key in
+        (('context', 'originalContextSHA256'), ('request', 'originalRequestSHA256'))),
+        'original qualified proof closure pins or budget differ')
+    live = final['normalLiveResult']
+    for role, original in (('proof', live['proof']), ('context', live['verified']['context']),
+                           ('request', live['verified']['request'])):
+        require(entries[role]['sha256'] == original['sha256']
+                and str(entries[role]['bytes']) == str(original['bytes']),
+                'original qualified proof closure differs from the verified live reply')
+    return True
+
+
 def inspect(raw, sha256, controller, configuration_sha256):
     files, manifest, _ = prior.original.public_archive(
         raw, sha256, entry_limit=8192, proof_migration_limit=proof_readback.MIGRATION_FILE_LIMIT)
@@ -611,6 +652,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
     observed = prior.inclusion_replies(files, prefix, load)
     successor = prior.successor_availability(files, prefix, receipt)
     commits = prior.original.commit_original_copies(files, prefix, receipt)
+    closure_indices = []
     if load is not None:
         require(receipt['loadExecuted'] is True and runtime_pin is not None, 'original load boundary missing')
         for segment in receipt['journalSegments']:
@@ -652,6 +694,10 @@ def inspect(raw, sha256, controller, configuration_sha256):
                         and result['included'] is True and result['finalized'] is True
                         and result['executionSuccessful'] is True and str(result['executionCode']) == '0'
                         and result['nativeGrant'] is False, 'original proof execution or dual identity differs')
+            if verify_qualified_closure(final, base, files, manifest, prefix, source['commit'],
+                                        (receipt.get('binaries') or {}).get('ynx-consensus-proof-verify')):
+                closure_indices.append(row['index'])
+        report['fullCohort']['qualifiedPublicClosureIndices'] = closure_indices
     ready = receipt.get('heldReadyOnlyComplete') is True
     if ready:
         verify_ready_boundary(receipt, configuration, read, manifest, prefix)
