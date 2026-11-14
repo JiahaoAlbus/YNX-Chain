@@ -4,6 +4,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import tempfile
 import unittest
 
 HERE = Path(__file__).resolve().parent
@@ -60,6 +61,21 @@ class HeldControllerTests(unittest.TestCase):
         self.assertEqual(driver.validate_options(entry.options(root / 'source', False)), 500)
         self.assertEqual(driver.validate_options(entry.options(root / 'source', False, ready_only=False)), 500)
         self.assertEqual(intake.nonoverlapping_roots([root, root / 'source', root / 'tools']), [root])
+
+    @unittest.skipUnless(os.environ.get('YNX_HELD_CONTROLLER_INPUT_ROOT'), 'fixed checkouts required')
+    def test_fixed_source_passes_original_held_runtime_composer(self):
+        root = Path(os.environ['YNX_HELD_CONTROLLER_INPUT_ROOT']).resolve(strict=True)
+        entry.checkout(root / 'source', entry.SOURCE, entry.SOURCE_TREE)
+        entry.checkout(root / 'tools', entry.TOOLS, entry.TOOLS_TREE)
+        composer = entry.load_module('held_runtime_composer', root / 'tools/scripts/loadtest/pq-normal-live-reader.py')
+        with tempfile.TemporaryDirectory() as temp:
+            result = composer.prepare_matching_source(root / 'source', Path(temp).resolve() / 'held', held_source_only=True)
+            self.assertEqual((result['source']['commit'], result['source']['tree']), (entry.SOURCE, entry.SOURCE_TREE))
+            self.assertEqual(result['optionalForkTree'], entry.SUPPLIER_TREE)
+            self.assertTrue(result['sourceCompositionOnly'])
+            self.assertFalse(result['actualNetworkWindow'] or result['pressureAuthorized'])
+            native = result['originalNativeSourceDependencies']
+            self.assertTrue(Path(native['receiptPath']).is_file())
 
     def test_host_rejects_reruns_and_different_routes(self):
         env = dict(GITHUB_ACTIONS='true', RUNNER_ENVIRONMENT='github-hosted',

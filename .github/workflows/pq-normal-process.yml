@@ -894,16 +894,27 @@ jobs:
         with:
           ref: c5fc3b2eeaa0c7a65d5f07c9bf54724400b9e43b
           path: source
+          fetch-depth: 0
+          filter: blob:none
           persist-credentials: false
           sparse-checkout-cone-mode: false
-          sparse-checkout: /scripts/loadtest/pq-source-artifact-intake.py
+          sparse-checkout: |
+            /go.mod
+            /go.sum
+            /scripts/loadtest/pq-source-artifact-intake.py
+            /scripts/verify/wire-live-matching-source-ci.py
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 55a1b571097887a5473568d3915e0668c0d13d09
+          ref: 265efca5be2f80bb4dfdab02e2f8b6459a9a7115
           path: tools
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: /scripts/loadtest/
+      - name: Receive only the original immutable getter object for source composition
+        working-directory: source
+        env:
+          GIT_TERMINAL_PROMPT: '0'
+        run: git fetch --no-tags --no-recurse-submodules --depth=1 --no-write-fetch-head origin 5a49f5c91452604dffb910df736702b3b9df2562
       - name: Verify the fixed plan, real cross-checkout imports and single original dispatch route
         env:
           YNX_HELD_CONTROLLER_INPUT_ROOT: ${{ github.workspace }}
@@ -950,7 +961,7 @@ jobs:
             /packages/wallet-auth/native/source-parent/
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 55a1b571097887a5473568d3915e0668c0d13d09
+          ref: 265efca5be2f80bb4dfdab02e2f8b6459a9a7115
           path: tools
           filter: blob:none
           persist-credentials: false
