@@ -175,7 +175,7 @@ func TestPQLabLiveMaterialsCaptureObservationRetainsOriginalFailure(t *testing.T
 }
 
 func TestPQLabLiveMaterialsCancellationPreservesCurrentAndCloseFailure(t *testing.T) {
-	dir := t.TempDir()
+	dir := pqLabWorkloadTemp(t)
 	path := filepath.Join(dir, "original.json")
 	if err := os.WriteFile(path, []byte("original"), 0600); err != nil {
 		t.Fatal(err)
