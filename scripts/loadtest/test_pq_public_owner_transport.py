@@ -392,8 +392,10 @@ class TransportControls(unittest.TestCase):
             self.assertEqual(len(s.proc.stdin.getvalue().splitlines()),1)
             selected.append(True)
             return n.sender_command_data('sign',command()['request'],22,'c'*64)
+        stages=[]
         result=s.exchange(command(),None,threading.Event(),prepare_command=checkpoint,
-                          prepare_owner_path=Path('/PUBLIC-TEST'))
+                          prepare_owner_path=Path('/PUBLIC-TEST'),on_owner_prepare=lambda:stages.append('owner_prepare'))
+        self.assertEqual(stages,['owner_prepare'])
         self.assertEqual(result['code'],'ORIGINAL_SAVED')
         self.assertEqual(selected,[True])
         first,second=map(json.loads,s.proc.stdin.getvalue().splitlines())

@@ -80,6 +80,7 @@ def backend_class(Base, Session, normal, lab):
             options=dict(prepare_command=prepare)
             if getattr(self.c,'consumer_source',None) == '0b515124bda8ff7efaf3ec03456d69dee2c6ad18':
                 options['prepare_owner_path']=case/'original-prepare-owner-reply.json'
+                options['on_owner_prepare']=lambda:notify(dict(kind='normal_stage',stage='owner_prepare'))
             return self.public_session.exchange(command,case/'original-sign-reply.json',stop,**options)
 
         def confirm_original(self,row,request,proof,case,notify,stop):

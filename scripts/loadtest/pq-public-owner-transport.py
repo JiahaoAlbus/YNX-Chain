@@ -156,7 +156,7 @@ def session_class(Base, normal, lab):
             self.ready=dict(reply)
             return dict(reply)
 
-        def exchange(self, command, path, stop, prepare_command=None, prepare_owner_path=None):
+        def exchange(self, command, path, stop, prepare_command=None, prepare_owner_path=None, on_owner_prepare=None):
             lab.require(self.ready is not None,'original public scope READY required')
             operation=command.get('operation');request=command.get('request',{})
             owner=request.get('ownerIndex');identity=request.get('operationId')
@@ -179,6 +179,8 @@ def session_class(Base, normal, lab):
                 if prepare_owner_path is not None:
                     lab.require(operation == 'sign' and prepare_command is not None,
                                 'original owner preparation requires a sign and current checkpoint')
+                    if on_owner_prepare is not None:
+                        on_owner_prepare()
                     owner_request=dict(version='YNX-PQ-LAB-SENDER-REQUEST/v1',operationId='',
                                        ownerIndex=owner,firstNonce='0',members=0)
                     owner_command=normal.sender_command_data('prepare-owner',owner_request)
