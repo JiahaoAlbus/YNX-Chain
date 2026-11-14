@@ -413,10 +413,13 @@ func (s *Server) runTaskModel(ctx context.Context, session ProductSession, taskI
 	if blockedNewRun {
 		return taskRunView{}, errTaskEffectUnresolved
 	}
-	if prior.ID == "" {
+	resumesToolLoop := input.Resume && !prior.Active && !prior.Cancelled &&
+		prior.CheckpointCipher != "" && prior.Status != "COMPLETED" && !taskRunHasUndeliveredAnswer(prior) &&
+		prior.SessionID == session.ID && originalTask.Holder == session.DeviceID
+	if prior.ID == "" || resumesToolLoop {
 		if effects, ok := s.toolEffects.(*originalRuntimeToolEffects); ok {
-			// A known revoked runtime must not claim a new run or acquire page
-			// content. Per-round disclosure still checks the exact body later.
+			// Preserve the original checkpoint when execution is already revoked.
+			// Per-round disclosure still checks the exact outbound body.
 			if err := effects.runtime.current(ctx); err != nil {
 				return taskRunView{}, errors.Join(errTaskEffectSourceUnavailable, err)
 			}

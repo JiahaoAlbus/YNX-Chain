@@ -318,6 +318,48 @@ func TestP08AuthorityBrokerUnknownModelCheckpointRecovery(t *testing.T) {
 	}
 }
 
+func TestP08ShopModelResumeRefusesRevokedAuthorityBeforeClaim(t *testing.T) {
+	f, a, c := newP08BrokerFixture(t, false)
+	ctx := context.Background()
+	request := taskRunRequest{
+		RunID: "PUBLIC-shop-revoked-resume", TaskRevision: f.task.Revision, Generation: f.task.Generation,
+		Prompt: "Read the selected order.", AuthorizationRef: "PUBLIC-original-proof-ref", ToolIDs: []string{shopOrderToolID},
+	}
+	pending, err := f.server.runTaskModel(ctx, f.session, f.task.ID, request)
+	if err != nil || pending.Status != "NEEDS_APPROVAL" || len(pending.Steps) != 1 {
+		t.Fatalf("proposal: %+v %v", pending, err)
+	}
+	f.step, _ = f.store.Action(f.session.Account, pending.Steps[0])
+	f.approve(t)
+	c.result = p08BrokerResult(t, f)
+	before, err := os.ReadFile(f.store.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	revoked := errors.New("PUBLIC original effect authority revoked")
+	a.currentErr = revoked
+	request.Resume, request.Prompt = true, ""
+	_, err = f.server.runTaskModel(ctx, f.session, f.task.ID, request)
+	after, readErr := os.ReadFile(f.store.path)
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	if !errors.Is(err, revoked) || !errors.Is(err, errTaskEffectSourceUnavailable) ||
+		!bytes.Equal(before, after) || len(c.news) != 0 || len(c.queries) != 0 || f.providerRequests.Load() != 1 {
+		t.Fatalf("revoked resume changed checkpoint=%t, effect=%d query=%d provider=%d err=%v",
+			!bytes.Equal(before, after), len(c.news), len(c.queries), f.providerRequests.Load(), err)
+	}
+
+	a.currentErr = nil
+	p08BrokerRestart(t, f)
+	resumed, err := f.server.runTaskModel(ctx, f.session, f.task.ID, request)
+	if err != nil || resumed.Status != "COMPLETED" || resumed.ID != pending.ID ||
+		len(c.news) != 1 || len(c.queries) != 0 || f.providerRequests.Load() != 2 {
+		t.Fatalf("original checkpoint did not resume: status=%q effect=%d query=%d provider=%d err=%v",
+			resumed.Status, len(c.news), len(c.queries), f.providerRequests.Load(), err)
+	}
+}
+
 func TestP08AuthorityBrokerModelRevocationBeforeShopCommit(t *testing.T) {
 	f, a, c := newP08BrokerFixture(t, false)
 	ctx := context.Background()
