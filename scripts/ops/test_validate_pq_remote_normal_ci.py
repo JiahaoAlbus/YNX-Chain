@@ -1329,7 +1329,7 @@ def assert_product_device_codec_workflow_contract(raw):
         raise AssertionError("new codec must reuse the original full suite once without filtering")
 
 
-STATE_PARTITION_QUALIFIER = """state_partitions = [('state', '', '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$|TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)'), ('proof-wallet', '^(TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)', ''), ('production', '^TestProduction', ''), ('lab', '^TestPQLab', '^TestPQLab(LiveMaterials(CacheBoundOriginalSetupRequestResult|CaptureObservationRetainsOriginalFailure|CancelledAppReadDrainsOriginal|CaptureKnownCoordinatesNeverRebase)$|LiveSession(OriginalProofAndHeldScope|LifecycleAndOriginalRefusal)$|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)'), ('lab-caller', '^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)', '^TestPQLab(SenderPrepareOriginalWitnessAndCurrent|PublicOwnerPrepareBeforeCommands)$'), ('large-lab', '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$', '')]
+STATE_PARTITION_QUALIFIER = """state_partitions = [('state', '', '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$|TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)'), ('proof-wallet', '^(TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)', ''), ('production', '^TestProduction', ''), ('lab', '^TestPQLab', '^TestPQLab(LiveMaterials(CacheBoundOriginalSetupRequestResult|CaptureObservationRetainsOriginalFailure|CancelledAppReadDrainsOriginal|CaptureKnownCoordinatesNeverRebase|FinalReadOnlyOriginalCommitCrossings|FinalReadKeepsOriginalProofCheckpoint)$|LiveSession(OriginalProofAndHeldScope|LifecycleAndOriginalRefusal)$|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)'), ('lab-caller', '^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)', '^TestPQLab(SenderPrepareOriginalWitnessAndCurrent|PublicOwnerPrepareBeforeCommands)$'), ('large-lab', '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$', '')]
 state_opt_in_skips = ['TestFeeHistoryCost', 'TestABCITransferPerformance', 'TestCommitStorageMatchedPerformance', 'TestPQCheckpointAccessTwoUIDOriginalStateLayouts', 'TestPQCheckpointAccessUIDHelper', 'TestPQNetworkFourValidatorSignedBusinessConsumerAndIndependentFinality', 'TestPQNetworkFourValidatorOriginalStateTransitionAndRestart', 'TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming', 'TestPQNetworkFourValidatorRemoteSignerOriginalStateTransitionAndRestart', 'TestPQRemoteSignerNormalProcessColdRecoveryAndUnknown']
 def qualify_state_partitions(events):
     # These are independent executions of one source/package, not partial
@@ -1516,7 +1516,7 @@ def assert_state_math_required_workflow_contract(step):
     merge = ('          cat "$RUNNER_TEMP/ynx-production-operator-state-tests.jsonl" >> '
              '"$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"\n')
     live = ("          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s "
-            "-run '^TestPQLab' -skip '^TestPQLab(LiveMaterials(CacheBoundOriginalSetupRequestResult|CaptureObservationRetainsOriginalFailure|CancelledAppReadDrainsOriginal|CaptureKnownCoordinatesNeverRebase)$|LiveSession(OriginalProofAndHeldScope|LifecycleAndOriginalRefusal)$|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)' ./internal/consensus > \"$RUNNER_TEMP/ynx-lab-state-tests.jsonl\"; then\n")
+            "-run '^TestPQLab' -skip '^TestPQLab(LiveMaterials(CacheBoundOriginalSetupRequestResult|CaptureObservationRetainsOriginalFailure|CancelledAppReadDrainsOriginal|CaptureKnownCoordinatesNeverRebase|FinalReadOnlyOriginalCommitCrossings|FinalReadKeepsOriginalProofCheckpoint)$|LiveSession(OriginalProofAndHeldScope|LifecycleAndOriginalRefusal)$|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)' ./internal/consensus > \"$RUNNER_TEMP/ynx-lab-state-tests.jsonl\"; then\n")
     live_merge = ('          cat "$RUNNER_TEMP/ynx-lab-state-tests.jsonl" >> '
                   '"$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"\n')
     caller = '          if ! YNX_PQ_NETWORK_E2E=\'\' go test -json -p 1 -count=1 -timeout=180s -run \'^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)\' -skip \'^TestPQLab(SenderPrepareOriginalWitnessAndCurrent|PublicOwnerPrepareBeforeCommands)$\' ./internal/consensus > "$RUNNER_TEMP/ynx-lab-caller-state-tests.jsonl"; then\n'
@@ -3810,7 +3810,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("'TestPQLabLiveMaterialsIndependentAnchorAndEitherBranchRefusal']", "'TestPQLabLiveMaterialsIndependentAnchorAndEitherBranchRefusalMissing']"),
             ("'TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult'", "'TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResultMissing'"),
             ("'TestPQLabLiveMaterialsCacheFallbackOnlyExactBound'", "'TestPQLabLiveMaterialsCacheFallbackOnlyExactBoundMissing'"),
-            ("-skip '^TestPQLab(LiveMaterials(CacheBoundOriginalSetupRequestResult|CaptureObservationRetainsOriginalFailure|CancelledAppReadDrainsOriginal|CaptureKnownCoordinatesNeverRebase)$|LiveSession(OriginalProofAndHeldScope|LifecycleAndOriginalRefusal)$|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)'", "-skip '^TestPQLab'"),
+            ("-skip '^TestPQLab(LiveMaterials(CacheBoundOriginalSetupRequestResult|CaptureObservationRetainsOriginalFailure|CancelledAppReadDrainsOriginal|CaptureKnownCoordinatesNeverRebase|FinalReadOnlyOriginalCommitCrossings|FinalReadKeepsOriginalProofCheckpoint)$|LiveSession(OriginalProofAndHeldScope|LifecycleAndOriginalRefusal)$|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)'", "-skip '^TestPQLab'"),
             ("-run '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$'", "-run '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResultMissing$'"),
             ('          cat "$RUNNER_TEMP/ynx-lab-large-source-tests.jsonl" >>', '          echo "$RUNNER_TEMP/ynx-lab-large-source-tests.jsonl" >>'),
             ("'TestPQLabLiveMaterialsUncachedOriginalCurrentAndClose'", "'TestPQLabLiveMaterialsUncachedOriginalCurrentAndCloseMissing'"),
@@ -4238,6 +4238,8 @@ class CompleteStatePartitionControls(unittest.TestCase):
             'TestPQLabLiveMaterialsCaptureObservationRetainsOriginalFailure',
             'TestPQLabLiveMaterialsCancelledAppReadDrainsOriginal',
             'TestPQLabLiveMaterialsCaptureKnownCoordinatesNeverRebase',
+            'TestPQLabLiveMaterialsFinalReadOnlyOriginalCommitCrossings',
+            'TestPQLabLiveMaterialsFinalReadKeepsOriginalProofCheckpoint',
         })
         for name in original | future:
             selected = [g[0] for g in groups if (not g[1] or re.search(g[1], name)) and
@@ -4968,6 +4970,122 @@ class FuturePerfSourceBranchControls(unittest.TestCase):
         variants=[raw.replace("      - 'codex/ynx-pq-perf-source-20261108'\n",'',1),raw.replace("      - 'codex/ynx-pq-perf-source-20261108'\n","      - 'codex/*'\n",1),raw.replace(FUTURE_PERF_SOURCE_REF,FUTURE_PERF_SOURCE_REF+'-renamed'),raw.replace(FUTURE_PERF_SOURCE_IDENTITY,'',1),raw.replace(FUTURE_PERF_SOURCE_IDENTITY,FUTURE_PERF_SOURCE_IDENTITY.replace("= 'push'","= 'workflow_dispatch'"),1),raw.replace("github.ref != '"+FUTURE_PERF_SOURCE_REF+"' && (startsWith",'(startsWith',1)]
         for i,changed in enumerate(variants):
             with self.subTest(index=i),self.assertRaises(AssertionError):assert_future_perf_source_contract(changed)
+
+
+class HeldFinalFenceControls(unittest.TestCase):
+    """Exercise the original collector, without fabricating a Go qualification."""
+
+    def recipe(self):
+        import ast
+        root = Path(__file__).resolve().parents[2]
+        text = (root / 'scripts/verify/pq-held-sessions-ci.sh').read_text()
+        body = text.split("<<'PYCOLLECT'\n", 1)[1].split('\nPYCOLLECT', 1)[0]
+        groups = ast.literal_eval(next(node.iter for node in ast.parse(body).body
+                                      if isinstance(node, ast.For)))
+        return text, body, groups
+
+    def test_final_fence_names_execute_once_with_original_bounds(self):
+        text, _, groups = self.recipe()
+        expected = {
+            'TestPQLabLiveSessionOriginalProofAndHeldScope',
+            'TestPQLabLiveSessionLifecycleAndOriginalRefusal',
+            'TestPQLabLiveMaterialsCaptureObservationRetainsOriginalFailure',
+            'TestPQLabLiveMaterialsCancelledAppReadDrainsOriginal',
+            'TestPQLabLiveMaterialsCaptureKnownCoordinatesNeverRebase',
+            'TestPQLabLiveMaterialsFinalReadOnlyOriginalCommitCrossings',
+            'TestPQLabLiveMaterialsFinalReadKeepsOriginalProofCheckpoint',
+            'TestPQLabSenderPrepareOriginalWitnessAndCurrent',
+            'TestPQLabPublicOwnerPrepareBeforeCommands',
+        }
+        self.assertEqual(len(groups), 2)
+        self.assertEqual(groups[0][:2], ('core.jsonl', 'internal/consensus'))
+        self.assertEqual(len(groups[0][2]), 9)
+        self.assertEqual(set(groups[0][2]), expected)
+        self.assertEqual(len(groups[1][2]), 5)
+        selectors = re.findall(r"-run '([^']+)' (\./[^ ]+)", text)
+        self.assertEqual(len(selectors), 2)
+        self.assertTrue(all(re.search(selectors[0][0], name) for name in expected))
+        self.assertFalse(re.search(selectors[0][0], 'TestPQLabLiveMaterialsFinalReadFuture'))
+        self.assertEqual(text.count('timeout --signal=TERM --kill-after=5s 240s go test'), 2)
+        self.assertEqual(text.count('-timeout=160s'), 1)
+        self.assertEqual(text.count('-timeout=90s'), 1)
+        self.assertIn('GOMAXPROCS=2 GOMEMLIMIT=1024MiB', text)
+
+    def test_original_held_collector_refuses_missing_duplicate_foreign_and_child_skip(self):
+        import sys
+        import tempfile
+        _, body, groups = self.recipe()
+        streams = {}
+        for filename, package, names in groups:
+            package = 'github.com/JiahaoAlbus/YNX-Chain/' + package
+            events = [dict(Package=package, Action='start')]
+            for name in names:
+                events += [dict(Package=package, Test=name, Action='run'),
+                           dict(Package=package, Test=name + '/guard', Action='run'),
+                           dict(Package=package, Test=name + '/guard', Action='pass'),
+                           dict(Package=package, Test=name, Action='pass')]
+            events.append(dict(Package=package, Action='pass'))
+            streams[filename] = events
+        def collect(rows):
+            with tempfile.TemporaryDirectory(prefix='held-collector-pure-') as temp:
+                directory = Path(temp)
+                for filename, events in rows.items():
+                    (directory / filename).write_text(''.join(json.dumps(e) + '\n' for e in events))
+                with patch.object(sys, 'argv', ['original-collector', temp]), contextlib.redirect_stdout(io.StringIO()):
+                    exec(compile(body, '<original-held-collector>', 'exec'), {})
+        collect(streams)
+        for label in ('missing-first', 'missing-second', 'duplicate', 'foreign', 'child-skip', 'package-fail'):
+            changed = copy.deepcopy(streams)
+            core = changed['core.jsonl']
+            if label.startswith('missing-'):
+                name = ('TestPQLabLiveMaterialsFinalReadOnlyOriginalCommitCrossings' if label == 'missing-first'
+                        else 'TestPQLabLiveMaterialsFinalReadKeepsOriginalProofCheckpoint')
+                changed['core.jsonl'] = [e for e in core if e.get('Test', '').split('/')[0] != name]
+            elif label == 'duplicate':
+                core.insert(-1, copy.deepcopy(core[1]))
+            elif label == 'foreign':
+                core[-1]['Package'] = 'foreign/package'
+            elif label == 'child-skip':
+                core[3]['Action'] = 'skip'
+            else:
+                core[-1]['Action'] = 'fail'
+            with self.subTest(label=label), self.assertRaises(ValueError):
+                collect(changed)
+
+    def test_prepared_proof_original_stream_required_and_fail_closed(self):
+        import os
+        import tempfile
+        import textwrap
+        raw = (Path(__file__).resolve().parents[2] / '.github/workflows/resource-market-ci.yml').read_text()
+        bodies = re.findall(r"(?ms)^          python3 -B - <<'PY'\n(.*?)^          PY\n", raw)
+        selected = [textwrap.dedent(body) for body in bodies if 'YNX_PREPARED_PROOF_TRUST_TESTS' in body]
+        self.assertEqual(len(selected), 1)
+        for name in ('TestPQEngineBootstrapPreparationPUBLICOriginalAndDetached',
+                     'TestPQEngineBootstrapPreparationPUBLICFirstCause',
+                     'TestPQEngineBootstrapPreparationPUBLICDynamicStateAndRuntime'):
+            self.assertEqual(raw.count(repr(name)), 1)
+        package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-proof-verify'
+        name = 'TestProofVerifierPreparedTrustPUBLICSameInvocationAndFirstCause'
+        rows = [dict(Package=package, Action='start'),
+                dict(Package=package, Test=name, Action='run'),
+                dict(Package=package, Test=name+'/guard', Action='run'),
+                dict(Package=package, Test=name+'/guard', Action='pass'),
+                dict(Package=package, Test=name, Action='pass'),
+                dict(Package=package, Action='pass')]
+        def collect(events):
+            with tempfile.TemporaryDirectory(prefix='prepared-collector-pure-') as temp:
+                (Path(temp)/'ynx-production-entrypoint-tests.jsonl').write_text(''.join(json.dumps(e)+'\n' for e in events))
+                with patch.dict(os.environ, RUNNER_TEMP=temp, GITHUB_SHA='a'*40), contextlib.redirect_stdout(io.StringIO()):
+                    exec(compile(selected[0], '<original-prepared-collector>', 'exec'), {})
+        collect(rows)
+        for label in ('missing', 'duplicate', 'foreign', 'child-skip', 'package-fail'):
+            changed = copy.deepcopy(rows)
+            if label == 'missing': changed.pop(1)
+            elif label == 'duplicate': changed.insert(1, copy.deepcopy(changed[1]))
+            elif label == 'foreign': changed[1]['Package'] = 'foreign/package'
+            elif label == 'child-skip': changed[3]['Action'] = 'skip'
+            else: changed[-1]['Action'] = 'fail'
+            with self.subTest(label=label), self.assertRaises(RuntimeError): collect(changed)
 
 
 if __name__ == "__main__":

@@ -2183,6 +2183,24 @@ jobs:
               raise RuntimeError('original command stream failed or wallet policy CLI skipped')
           print('YNX_WALLET_POLICY_CLI_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=required, suitePassed=True, sourceQualified=False, liveCurrentVerified=False, independentFinalityVerified=False, nativeGrant=False), sort_keys=True))
           PY
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-production-entrypoint-tests.jsonl').read_text().splitlines()]
+          prepared_package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-proof-verify'
+          prepared_test = 'TestProofVerifierPreparedTrustPUBLICSameInvocationAndFirstCause'
+          prepared_events = [event for event in events if event.get('Package') == prepared_package]
+          prepared_runs = [event for event in events if event.get('Test') == prepared_test and event.get('Action') == 'run']
+          if len(prepared_runs) != 1 or prepared_runs[0].get('Package') != prepared_package:
+              raise RuntimeError('prepared proof loader did not run once in its original package')
+          if [event['Action'] for event in prepared_events if event.get('Test') == prepared_test and event['Action'] in ('pass', 'fail', 'skip')] != ['pass']:
+              raise RuntimeError('prepared proof loader did not pass once')
+          if [event['Action'] for event in prepared_events if 'Test' not in event and event['Action'] in ('start', 'pass', 'fail', 'skip')] != ['start', 'pass']:
+              raise RuntimeError('original proof command package did not start and pass once')
+          if any(event.get('Action') in ('fail', 'build-fail', 'skip') for event in prepared_events):
+              raise RuntimeError('original proof command failed or skipped a child')
+          print('YNX_PREPARED_PROOF_TRUST_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=[prepared_test], sourceQualified=False, nativeGrant=False), sort_keys=True))
+          PY
           go vet ./internal/consensus
           go test -p 1 -count=1 -timeout=90s -run '^(TestExportConsensusState|TestRunNodeConsensusExport|TestConsensusExport)' ./cmd/ynx-chaind
           go test -p 1 -count=1 -timeout=90s ./cmd/ynx-consensus-package
@@ -2530,7 +2548,7 @@ jobs:
           cat "$RUNNER_TEMP/ynx-production-operator-state-tests.jsonl" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"
           # Normal PQ lab producers and continuous capture run together in
           # their own bounded process. The original complete union is retained.
-          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLab' -skip '^TestPQLab(LiveMaterials(CacheBoundOriginalSetupRequestResult|CaptureObservationRetainsOriginalFailure|CancelledAppReadDrainsOriginal|CaptureKnownCoordinatesNeverRebase)$|LiveSession(OriginalProofAndHeldScope|LifecycleAndOriginalRefusal)$|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)' ./internal/consensus > "$RUNNER_TEMP/ynx-lab-state-tests.jsonl"; then
+          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLab' -skip '^TestPQLab(LiveMaterials(CacheBoundOriginalSetupRequestResult|CaptureObservationRetainsOriginalFailure|CancelledAppReadDrainsOriginal|CaptureKnownCoordinatesNeverRebase|FinalReadOnlyOriginalCommitCrossings|FinalReadKeepsOriginalProofCheckpoint)$|LiveSession(OriginalProofAndHeldScope|LifecycleAndOriginalRefusal)$|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)' ./internal/consensus > "$RUNNER_TEMP/ynx-lab-state-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-lab-state-tests.jsonl"
             exit 1
           fi
@@ -2554,7 +2572,7 @@ jobs:
           import json, os
           from pathlib import Path
           events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-initial-cache-state-tests.jsonl').read_text().splitlines()]
-          state_partitions = [('state', '', '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$|TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)'), ('proof-wallet', '^(TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)', ''), ('production', '^TestProduction', ''), ('lab', '^TestPQLab', '^TestPQLab(LiveMaterials(CacheBoundOriginalSetupRequestResult|CaptureObservationRetainsOriginalFailure|CancelledAppReadDrainsOriginal|CaptureKnownCoordinatesNeverRebase)$|LiveSession(OriginalProofAndHeldScope|LifecycleAndOriginalRefusal)$|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)'), ('lab-caller', '^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)', '^TestPQLab(SenderPrepareOriginalWitnessAndCurrent|PublicOwnerPrepareBeforeCommands)$'), ('large-lab', '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$', '')]
+          state_partitions = [('state', '', '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$|TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)'), ('proof-wallet', '^(TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)', ''), ('production', '^TestProduction', ''), ('lab', '^TestPQLab', '^TestPQLab(LiveMaterials(CacheBoundOriginalSetupRequestResult|CaptureObservationRetainsOriginalFailure|CancelledAppReadDrainsOriginal|CaptureKnownCoordinatesNeverRebase|FinalReadOnlyOriginalCommitCrossings|FinalReadKeepsOriginalProofCheckpoint)$|LiveSession(OriginalProofAndHeldScope|LifecycleAndOriginalRefusal)$|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)'), ('lab-caller', '^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)', '^TestPQLab(SenderPrepareOriginalWitnessAndCurrent|PublicOwnerPrepareBeforeCommands)$'), ('large-lab', '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$', '')]
           state_opt_in_skips = ['TestFeeHistoryCost', 'TestABCITransferPerformance', 'TestCommitStorageMatchedPerformance', 'TestPQCheckpointAccessTwoUIDOriginalStateLayouts', 'TestPQCheckpointAccessUIDHelper', 'TestPQNetworkFourValidatorSignedBusinessConsumerAndIndependentFinality', 'TestPQNetworkFourValidatorOriginalStateTransitionAndRestart', 'TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming', 'TestPQNetworkFourValidatorRemoteSignerOriginalStateTransitionAndRestart', 'TestPQRemoteSignerNormalProcessColdRecoveryAndUnknown']
           def qualify_state_partitions(events):
               # These are independent executions of one source/package, not partial
@@ -2685,6 +2703,7 @@ jobs:
           required += ['TestPQLabSenderPUBLICOperationParentPersistenceBarrier', 'TestPQLabSenderPUBLICOperationParentFailurePreservesUnknown', 'TestPQLabSenderPUBLICPersistenceRolesKeepOriginalWrites', 'TestPQLabSenderPUBLICWorkloadPublicationAncestorBarriers', 'TestPQLabNetworkPUBLICFreshRootParentPersistence']
           required += ['TestPQLabLiveColdOwnerSameOriginalFullBoundary', 'TestPQLabLiveColdOwnerPreservesOriginalFirstCause', 'TestPQLabLiveColdOwnerNormalizationAndEncodingFirstCause']
           required += ['TestPQLabLiveObservationClosedStagesAndBounds', 'TestPQLabLiveObservationDisabledAndOutputFailure']
+          required += ['TestPQEngineBootstrapPreparationPUBLICOriginalAndDetached', 'TestPQEngineBootstrapPreparationPUBLICFirstCause', 'TestPQEngineBootstrapPreparationPUBLICDynamicStateAndRuntime']
           combined_owner_required = ['TestCombinedValidatedMigrationPrivateOwnerMatchesTwoPassBoundary']
           for name in combined_owner_required:
               runs = [e for e in events if e.get('Test') == name and e.get('Action') == 'run']

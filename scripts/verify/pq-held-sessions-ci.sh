@@ -9,7 +9,7 @@ cd "$source_root"
 export GOMAXPROCS=2 GOMEMLIMIT=1024MiB
 # The original CI owns exact source Go directive, CGO, cache selection and job deadline.
 export YNX_PQLAB_LIVE_SESSION_FIXTURE_ROOT="$evidence/private-fixture"
-timeout --signal=TERM --kill-after=5s 240s go test -mod=readonly -json -p 1 -count=1 -timeout=160s -run '^TestPQLab(LiveSession(OriginalProofAndHeldScope|LifecycleAndOriginalRefusal)|LiveMaterials(CaptureObservationRetainsOriginalFailure|CancelledAppReadDrainsOriginal|CaptureKnownCoordinatesNeverRebase)|SenderPrepareOriginalWitnessAndCurrent|PublicOwnerPrepareBeforeCommands)$' ./internal/consensus > "$evidence/core.jsonl" 2> "$evidence/core.stderr.private"
+timeout --signal=TERM --kill-after=5s 240s go test -mod=readonly -json -p 1 -count=1 -timeout=160s -run '^TestPQLab(LiveSession(OriginalProofAndHeldScope|LifecycleAndOriginalRefusal)|LiveMaterials(CaptureObservationRetainsOriginalFailure|CancelledAppReadDrainsOriginal|CaptureKnownCoordinatesNeverRebase|FinalReadOnlyOriginalCommitCrossings|FinalReadKeepsOriginalProofCheckpoint)|SenderPrepareOriginalWitnessAndCurrent|PublicOwnerPrepareBeforeCommands)$' ./internal/consensus > "$evidence/core.jsonl" 2> "$evidence/core.stderr.private"
 export YNX_PQ_LAB_LIVE_FIXTURE_ROOT="$evidence/private-fixture"
 timeout --signal=TERM --kill-after=5s 240s go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run '^TestPQLab(LiveSession(CommandStrictInputs|FailureProjection|CommandOriginalSourceAndLostAck)|SenderPUBLICOwnersPreparedReady(Refusals)?)$' ./cmd/ynx-consensus-pq-lab > "$evidence/cli.jsonl" 2> "$evidence/cli.stderr.private"
 python3 -B - "$evidence" <<'PYCOLLECT'
@@ -17,7 +17,7 @@ import json,sys
 from pathlib import Path
 p=Path(sys.argv[1])
 for filename,package,names in [
- ('core.jsonl','internal/consensus',['TestPQLabLiveSessionOriginalProofAndHeldScope','TestPQLabLiveSessionLifecycleAndOriginalRefusal','TestPQLabLiveMaterialsCaptureObservationRetainsOriginalFailure','TestPQLabLiveMaterialsCancelledAppReadDrainsOriginal','TestPQLabLiveMaterialsCaptureKnownCoordinatesNeverRebase','TestPQLabSenderPrepareOriginalWitnessAndCurrent','TestPQLabPublicOwnerPrepareBeforeCommands']),
+ ('core.jsonl','internal/consensus',['TestPQLabLiveSessionOriginalProofAndHeldScope','TestPQLabLiveSessionLifecycleAndOriginalRefusal','TestPQLabLiveMaterialsCaptureObservationRetainsOriginalFailure','TestPQLabLiveMaterialsCancelledAppReadDrainsOriginal','TestPQLabLiveMaterialsCaptureKnownCoordinatesNeverRebase','TestPQLabLiveMaterialsFinalReadOnlyOriginalCommitCrossings','TestPQLabLiveMaterialsFinalReadKeepsOriginalProofCheckpoint','TestPQLabSenderPrepareOriginalWitnessAndCurrent','TestPQLabPublicOwnerPrepareBeforeCommands']),
  ('cli.jsonl','cmd/ynx-consensus-pq-lab',['TestPQLabLiveSessionCommandStrictInputs','TestPQLabLiveSessionFailureProjection','TestPQLabLiveSessionCommandOriginalSourceAndLostAck','TestPQLabSenderPUBLICOwnersPreparedReady','TestPQLabSenderPUBLICOwnersPreparedReadyRefusals'])]:
  package='github.com/JiahaoAlbus/YNX-Chain/'+package
  rows=[json.loads(x) for x in (p/filename).read_text().splitlines()]
