@@ -1,0 +1,109 @@
+{
+  "schema": "YNX_SOCIAL_DEVICE_DIRECTORY_PRINCIPAL_PRIVATE_DISPATCH_V4/v1",
+  "status": "SDK_R9_LOAN_CANDIDATE_PUBLIC_MODEL_ONLY",
+  "privateOperations": [
+    "currentExistingSocialDeviceDirectoryPrincipalV4",
+    "recheckExistingSocialDeviceDirectoryPrincipalV4"
+  ],
+  "acceptedRequestExact6": [
+    "requestId",
+    "method",
+    "path",
+    "body",
+    "proofHeader",
+    "expected"
+  ],
+  "method": "GET",
+  "paths": [
+    "/v4/devices/directory",
+    "/m1qa/v4/devices/directory"
+  ],
+  "emptyBodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "header": "x-ynx-product-session-proof-v4",
+  "expected17": [
+    "networkId",
+    "canonicalOwner",
+    "account",
+    "sessionBinding",
+    "productId",
+    "clientId",
+    "platform",
+    "applicationId",
+    "bundleId",
+    "packageId",
+    "origin",
+    "callback",
+    "deviceId",
+    "generation",
+    "registrationId",
+    "revision",
+    "registrationDigest"
+  ],
+  "independentSourceBinding": "Existing release-selected service inventory, separately Root-approved Social joint profile; never a caller Source/JSON flag or developer-purpose grant",
+  "requiredAuthServiceMethods": [
+    "assertSocialDeviceDirectoryPrincipalPurposeV4():void",
+    "existingSocialDeviceDirectoryPrincipalV4(SAMEopaqueHostSocialV4Credential):Promise<SAMEoriginalRootResponseObject>",
+    "assertOriginalSocialDeviceDirectoryPrincipalCompletionV4(SAMEcredential,SAMEresult):void",
+    "retainOriginalSocialDeviceDirectoryPrincipalResponseV4(SAMEcredential,SAMEresult):Promise<paired owner/error>",
+    "originalSocialDeviceDirectoryPrincipalResponseCleanupV4(SAMEcredential):cleanup|null"
+  ],
+  "HostCredentialPrivateRead": "readOriginalSocialDirectoryHTTPCredential(credential) returns rechecked actual session/method/path/empty-bodyDigest/proofExpiresMS + frozen originalRequest6/proofReplayKey only for social, completion rechecks SAME SQL nonce/current/revoke/expiry",
+  "RootSourceBodyOwning": "Auth actual protected Source body/factory must supply independent joint profile, not methodexists/receivedexpected; SDK services WeakSet gate alone is not new Source implementation",
+  "GoJointBodyActual16": [
+    "version",
+    "purpose",
+    "scope",
+    "realm",
+    "client",
+    "network",
+    "identity",
+    "device",
+    "classicPublic",
+    "pqPublic",
+    "v4Expected",
+    "sourceHistoryOriginalSHA256",
+    "issuerEpoch",
+    "anchorEpoch",
+    "issuedMS",
+    "expiresMS"
+  ],
+  "GoPolicyActual10": [
+    "version",
+    "purpose",
+    "role",
+    "realm",
+    "client",
+    "network",
+    "headerSHA256",
+    "notBeforeMS",
+    "expiresMS",
+    "maxLifetimeMS"
+  ],
+  "purpose": "YNX/SOCIAL/DEVICE-SESSION-PRINCIPAL/V1",
+  "roles": [
+    "record-issuer",
+    "record-anchor"
+  ],
+  "SourceCounterPresent": false,
+  "currentWitness": "SAME verified complete historyEnvelope original SHA256 + actual issuerEpoch/anchorEpoch; no catalog/floor/counter aliases",
+  "socialAlgorithmsUnchanged": "Classic33/sig64 + MLDSA87 public2592/sig4627; wallet E5 pkB does not produce Signal public33",
+  "transport": "NO new endpoint/IPC wire added; existing registered transport must invoke fixed private Host operation, retain original Root response/lease, and independently verify it at Go consumer. No Node WeakMap credential is serialized/restored. Actual registration caller not supplied in examined code.",
+  "actualExistingNonReusable": [
+    "Host.currentExistingDeveloperPrincipalV5 is developer and POST /api/v1/ide/deployments",
+    "old /v1/developer/original-http-principal endpoint is not newly broadened",
+    "P02 source_http_transport.go only public history/catalog fetch transport",
+    "generic17/SourceV2 N1 is not Social signed profile authority"
+  ],
+  "normalCallSequence": [
+    "registered transport accepted SAME request -> openOriginalSocialDeviceDirectoryPrincipalDispatchV4(actualHost,SAMErequest,exact operation)",
+    "run once -> pre-foreign retired/closed/firstCause fence",
+    "Host assert independent Social Source BEFORE authenticate/recheck nonce",
+    "SAME Host opaque Social credential -> Auth-owned Source method",
+    "retain same original Rootresponse -> original Host/Source/V4 credential delivery fences",
+    "independent registered transport returns original Root response/lease, no same-owner DTO fiction"
+  ],
+  "NativeRootSourceHTTPBusiness": false,
+  "responseLifecycle": "Dispatcher owns response cleanup, async current/read/join/close; same credential and original first cause; entry close is not LINK transport close",
+  "productionCallerVerified": false,
+  "installed": false
+}

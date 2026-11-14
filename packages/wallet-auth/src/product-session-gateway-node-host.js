@@ -29,7 +29,7 @@ import {createCentralBrowserSessionRegistry} from './central-browser-session-reg
 import {CentralBrowserSessionStore} from './central-browser-session-store.js';
 import {CentralBrowserSessionAuthority,CentralBrowserSessionNodeRoutes} from './central-browser-session.js';
 import {OriginalHostTerminalJournal} from './original-host-terminal-journal.js';
-import {handleOriginalAuthSourceCurrent,handleOriginalDeveloperPrincipalCurrent,assertOriginalDeveloperPrincipalSource} from './original-auth-identity-source-current.js';
+import {handleOriginalAuthSourceCurrent,handleOriginalDeveloperPrincipalCurrent,assertOriginalDeveloperPrincipalSource,handleOriginalSocialDeviceDirectoryPrincipalCurrentV4,assertOriginalSocialDeviceDirectoryPrincipalSourceV4} from './original-auth-identity-source-current.js';
 import {openOriginalAuthSourceCurrentRequest} from './original-auth-source-current-request.js';
 import {verifyProductSessionProofV2,productSessionProofV2Digest} from './product-session-proof-v2.js';
 import {httpBodyDigest} from './session-proof.js';
@@ -40,9 +40,14 @@ export const PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION = 1;
 // No structural callback/DTO can enter this inventory.
 const originalRuntimeHostSources = new WeakMap();
 const originalDeveloperHTTPCredentials = new WeakMap();
+const originalSocialDirectoryHTTPCredentials = new WeakMap();
 const originalDeveloperPrincipalResults = new WeakMap();
+const originalSocialDirectoryPrincipalResults = new WeakMap();
 // Only the actual original Host below creates this opaque reference. There is
 // no public registration callback, JSON restore or caller-supplied capability.
+// V4 authentication only: not a Social joint-binding, Source6 or directory grant.
+export async function readOriginalSocialDirectoryHTTPCredential(credential){const c=originalSocialDirectoryHTTPCredentials.get(credential);if(!c)fail('SOCIAL_V4_HTTP_CREDENTIAL_REQUIRED','Original Social V4 credential required');await c.recheck();return c.view;}
+export function assertOriginalSocialDirectoryHTTPCredentialCompletion(credential){const c=originalSocialDirectoryHTTPCredentials.get(credential);if(!c)fail('SOCIAL_V4_HTTP_CREDENTIAL_REQUIRED','Original Social V4 credential required');c.complete();return c.view;}
 export async function readOriginalDeveloperHTTPCredential(credential){
   const c=originalDeveloperHTTPCredentials.get(credential);if(!c)fail('ORIGINAL_HTTP_CREDENTIAL_REQUIRED','Original HTTP credential is unavailable');
   await c.recheck();return c.view;
@@ -289,13 +294,22 @@ export class ProductSessionGatewayNodeHost {
   async revalidateOriginalDeveloperHTTPRequestV4(input){
     return this.#originalDeveloperV4(input,true);
   }
-  async #originalDeveloperV4(input,alreadyConsumed){
+  async authenticateOriginalSocialDirectoryHTTPRequestV4(input){return this.#originalSocialDirectoryV4(input,false);}
+  async revalidateOriginalSocialDirectoryHTTPRequestV4(input){return this.#originalSocialDirectoryV4(input,true);}
+  async #originalSocialDirectoryV4(input,alreadyConsumed){
+    const v=privateData(input,['requestId','method','path','body','proofHeader','expected']);
+    if(v.method!=='GET'||!['/v4/devices/directory','/m1qa/v4/devices/directory'].includes(v.path)||v.body!=='')fail('SOCIAL_DIRECTORY_EXACT_REQUEST_REQUIRED','Original exact Social directory GET required');
+    v.expected=Object.freeze(privateData(v.expected,PRODUCT_SESSION_DEVICE_V4_EXPECTED_FIELDS));
+    return this.#originalProductV4(Object.freeze(v),alreadyConsumed,'social',originalSocialDirectoryHTTPCredentials);
+  }
+  async #originalDeveloperV4(input,alreadyConsumed){return this.#originalProductV4(input,alreadyConsumed,'developer',originalDeveloperHTTPCredentials);}
+  async #originalProductV4(input,alreadyConsumed,productId,credentialInventory){
     const v=privateData(input,['requestId','method','path','body','proofHeader','expected']);
     if(!validRequestId(v.requestId)||typeof v.body!=='string'||Buffer.byteLength(v.body)>1048576||typeof v.proofHeader!=='string')fail('ORIGINAL_HTTP_REQUEST_INVALID','Original v4 request invalid');
     if(this.#deviceCurrent===null)fail('PRODUCT_SESSION_DEVICE_CURRENT_NOT_SUPPLIED','Original v4 device current source required');
     if(this.#accountPolicy===null)fail('ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','Original registered account current is independently required');
     this.#assertStateIdentity();const p=decodeProductSessionProofHeaderV4(v.proofHeader),session=this.#handler.snapshot().authority.sessions.find(s=>s.sessionBinding===p.sessionBinding);
-    if(!session||session.version!=='4'||session.productId!=='developer')fail('CROSS_PRODUCT_SESSION','Original v4 developer session required');
+    if(!session||session.version!=='4'||session.productId!==productId)fail('CROSS_PRODUCT_SESSION','Original v4 product session required');
     const controller=new AbortController(),abortContext=Object.freeze({signal:controller.signal}),key=productSessionHTTPProofV4ReplayKey(v.proofHeader);
     const verify=async(existing,requiredScopes)=>{
       const before=snapshotDigest(this.#handler.snapshot());let selectedContext=null;
@@ -315,10 +329,10 @@ export class ProductSessionGatewayNodeHost {
     };
     try{await verify(alreadyConsumed,session.scopes);}
     catch(error){controller.abort();throw error;}
-    const expires=Math.min(Date.parse(p.expiresAt),Date.parse(session.expiresAt)),credential=Object.freeze({}),view=Object.freeze({session,method:v.method,path:v.path,bodyDigest:p.bodyDigest,proofExpiresMS:expires});let completed=null,last=Date.parse(p.issuedAt);
+    const expires=Math.min(Date.parse(p.expiresAt),Date.parse(session.expiresAt)),credential=Object.freeze({}),view=Object.freeze({session,method:v.method,path:v.path,bodyDigest:p.bodyDigest,proofExpiresMS:expires,...(productId==='social'?{originalRequest:Object.freeze(v),proofReplayKey:key}:{})});let completed=null,last=Date.parse(p.issuedAt);
     const complete=()=>{this.#assertStateIdentity();const at=+this.#now();if(completed===null||snapshotDigest(this.#handler.snapshot())!==completed||at<last||at>=expires)fail('ORIGINAL_HTTP_COMPLETION_CHANGED','Original v4 credential no longer current');last=at;};
     const recheck=async()=>{completed=null;await verify(true,session.scopes);completed=snapshotDigest(this.#handler.snapshot());complete();};
-    originalDeveloperHTTPCredentials.set(credential,{view,recheck,complete});await recheck();return credential;
+    credentialInventory.set(credential,{view,recheck,complete});await recheck();return credential;
   }
 
 
@@ -448,6 +462,32 @@ export class ProductSessionGatewayNodeHost {
   }
   // Actual V5 opaque credential -> the existing registered Root project
   // Source. No session DTO, restored credential or caller Source is accepted.
+  // Separate fixed Social GET principal dispatch. The independent Social Source
+  // must exist BEFORE the same Host SQL nonce/opaque V4 credential is consumed.
+  // Same Host credential remains private. Capture response cleanup before interpreting errors.
+  async openOriginalSocialDirectoryResponseLoanV4(input,operation){
+    assertOriginalSocialDeviceDirectoryPrincipalSourceV4(this.#authSourceCurrent);
+    const source=this.#authSourceCurrent;
+    if(typeof source.retainOriginalSocialDeviceDirectoryPrincipalResponseV4!=='function'||typeof source.originalSocialDeviceDirectoryPrincipalResponseCleanupV4!=='function')fail('SOCIAL_DIRECTORY_RESPONSE_LOAN_NOT_SUPPLIED','Original response cleanup required');
+    if(operation!=='currentExistingSocialDeviceDirectoryPrincipalV4'&&operation!=='recheckExistingSocialDeviceDirectoryPrincipalV4')fail('SOCIAL_DIRECTORY_PRIVATE_DISPATCH_REQUIRED','Original operation required');
+    const credential=operation==='currentExistingSocialDeviceDirectoryPrincipalV4'?await this.authenticateOriginalSocialDirectoryHTTPRequestV4(input):await this.revalidateOriginalSocialDirectoryHTTPRequestV4(input);
+    const recovery=Object.freeze({recover:()=>source.originalSocialDeviceDirectoryPrincipalResponseCleanupV4(credential)});
+    let result=null,firstPresent=false,first,cleanup;
+    try{result=await handleOriginalSocialDeviceDirectoryPrincipalCurrentV4(source,credential);originalSocialDirectoryPrincipalResults.set(result,{host:this,credential});this.assertOriginalSocialDeviceDirectoryPrincipalDeliveryV4(result);}catch(error){firstPresent=true;first=error;}
+    // existing has settled. The cleanup-only accessor does not call current.
+    try{cleanup=source.originalSocialDeviceDirectoryPrincipalResponseCleanupV4(credential);}catch(error){return Object.freeze({owner:null,cleanup:null,recovery,result,errorPresent:true,error:firstPresent?first:error,cleanupUnknown:true});}
+    if(firstPresent)return Object.freeze({owner:null,cleanup,recovery,result,errorPresent:true,error:first,cleanupUnknown:false});
+    if(!cleanup)return Object.freeze({owner:null,cleanup:null,recovery,result,errorPresent:true,error:Object.assign(Error('SOCIAL_DIRECTORY_CLEANUP_MISSING'),{code:'SOCIAL_DIRECTORY_CLEANUP_MISSING'}),cleanupUnknown:true});
+    try{const paired=await source.retainOriginalSocialDeviceDirectoryPrincipalResponseV4(credential,result);const owner=paired?.owner??null;if(paired?.errorPresent!==false||!owner)return Object.freeze({owner,cleanup,recovery,result,errorPresent:true,error:paired?.error,cleanupUnknown:false});return Object.freeze({owner,cleanup,recovery,result,errorPresent:false,cleanupUnknown:false});}
+    catch(error){return Object.freeze({owner:null,cleanup,recovery,result,errorPresent:true,error,cleanupUnknown:false});}
+  }
+  assertOriginalSocialDeviceDirectoryPrincipalDeliveryV4(result){
+    const retained=originalSocialDirectoryPrincipalResults.get(result);
+    if(!retained||retained.host!==this)fail('SOCIAL_DIRECTORY_PRINCIPAL_ORIGINAL_REQUIRED','Original Social principal result required');
+    this.#assertStateIdentity();
+    this.#authSourceCurrent.assertOriginalSocialDeviceDirectoryPrincipalCompletionV4(retained.credential,result);
+    assertOriginalSocialDirectoryHTTPCredentialCompletion(retained.credential);
+  }
   async currentExistingDeveloperPrincipalV5(input){
     assertOriginalDeveloperPrincipalSource(this.#authSourceCurrent);
     return this.#originalPrincipalResultV5(await this.authenticateOriginalDeveloperHTTPRequestV5(input));
