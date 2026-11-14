@@ -18,6 +18,14 @@ test('private Native facade captures only public output once and wipes the tempo
 test('lost Native acknowledgement retains original public output before propagating the falsy first cause',()=>{
  const h=setup({throwAfterResult:true}),owner=h.open(),seen=[];assert.throws(()=>owner.transactionOnce(request(),v=>seen.push(v.member)),e=>e===false);assert.equal(seen.length,1);assert.throws(()=>owner.transactionOnce(request(),()=>{}),{code:'PQ_NATIVE_SIGN_ONCE'});owner.close(()=>assert.fail('No repeated capture'));assert.equal(h.counts.once,1);assert.equal(h.custody.cleanupUnresolved(),false);
 });
+test('capture failure keeps the original owner and never repeats the callback or signature',()=>{
+ for(const first of [Error('PUBLIC capture failed'),false]){
+  const h=setup(),owner=h.open();let captures=0;
+  assert.throws(()=>owner.transactionOnce(request(),()=>{captures++;throw first;}),e=>e===first);
+  assert.throws(()=>owner.close(()=>{captures++;}),e=>e===first);assert.throws(()=>owner.close(()=>{captures++;}),e=>e===first);
+  assert.equal(captures,1);assert.equal(h.counts.once,1);assert.equal(h.counts.release,0);assert.equal(h.custody.cleanupUnresolved(),true);
+ }
+});
 test('changed retained result or unknown primitive cleanup prevents owner release',()=>{
  for(const unknown of [false,true]){const h=setup(unknown?{cleanupStatus:0}:{}),owner=h.open();if(unknown)assert.throws(()=>owner.transactionOnce(request(),()=>{}));else{owner.transactionOnce(request(),()=>{});h.change();}assert.throws(()=>owner.close(()=>{}),{code:unknown?'PQ_NATIVE_CLEANUP_UNRESOLVED':'PQ_NATIVE_ORIGINAL_OUTCOME_CHANGED'});assert.equal(h.counts.release,0);assert.equal(h.custody.cleanupUnresolved(),true);}
 });

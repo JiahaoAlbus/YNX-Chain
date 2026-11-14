@@ -18,7 +18,7 @@ export function createOriginalNativePQCustody({load=fixedNative}={}){
   try{packet=initial===null?api.originalPQOpen(wire,password,Buffer.from(JSON.stringify(binding))):api.originalPQOpenInitial(wire,password,Buffer.from(JSON.stringify(binding)),initial.messageOriginal,initial.genesisOriginal,initial.genesisPin,BigInt(initial.nativeChainId),Buffer.from(initial.executionHeight));}finally{password.fill(0);}
   // Retain the original returned ID before inspecting status/currentness.
   const id=Object.getOwnPropertyDescriptor(packet??{},'ownerId')?.value;
-  let selected=false,retired=false,released=false,firstOutcome=null,notified=false,closeResult=null,closeEntered=false,debt=false;
+  let selected=false,retired=false,released=false,firstOutcome=null,notified=false,captureFailed=false,captureCause,closeResult=null,closeEntered=false,debt=false;
   const owner={};if(typeof id==='bigint'&&id>0n)held.add(owner);
   const check=code=>{if(code!==0)throw failure('PQ_NATIVE_CUSTODY_FAILED',code);};
   function current(){if(retired||released||closeEntered)throw failure('PQ_NATIVE_RETIRED');check(api.originalPQCurrent(id));}
@@ -30,7 +30,7 @@ export function createOriginalNativePQCustody({load=fixedNative}={}){
    if(firstOutcome&&(firstOutcome.primitiveStatus!==value.primitiveStatus||firstOutcome.cleanupStatus!==value.cleanupStatus||firstOutcome.selected!==value.selected||!firstOutcome.member.equals(value.member)))throw failure('PQ_NATIVE_ORIGINAL_OUTCOME_CHANGED');
    if(value.selected)firstOutcome??=value;
    if(value.selected&&![1,2].includes(value.cleanupStatus))debt=true;
-   if(value.member.length&&!notified){notified=true;capture(value);}
+   if(value.member.length&&!notified){notified=true;try{capture(value);}catch(error){captureFailed=true;captureCause=error;debt=true;throw error;}}
    return firstOutcome??value;
   }
   function copy(capture){return retain(api.originalPQCopyOutcome(id),capture);}
@@ -47,7 +47,7 @@ export function createOriginalNativePQCustody({load=fixedNative}={}){
   }
   function close(capture){
    if(closeEntered){if(closeResult?.failed)throw closeResult.cause;return;}
-   closeEntered=true;let failed=false,cause,retained=false;
+   closeEntered=true;let failed=captureFailed,cause=captureCause,retained=false;
    const attempt=fn=>{try{fn();}catch(error){if(!failed){failed=true;cause=error;}}};
    attempt(()=>{try{copy(capture);retained=true;}catch(error){debt=true;throw error;}});attempt(()=>retire());
    let code;attempt(()=>{code=api.originalPQClose(id);check(code);});
