@@ -166,6 +166,30 @@ test('a lost original reconciliation response exposes only original queries, nev
  let posts=0;const f=boot({read:()=>({...bill(),operations:{[nativeHash]:originalOperation()}}),operation:()=>{posts++;throw Object.assign(Error(),{code:'PUBLIC_RECONCILIATION_REPLY_LOST'});}});
  const r=await f.entry.invokeResult({action:'order-reconcile-operation',...ref,nativeHash});assert.equal(r.ok,false);assert.equal(r.code,'PUBLIC_RECONCILIATION_REPLY_LOST');assert.equal(posts,1);assert.equal(r.reference.nativeHash,nativeHash);assert.equal(r.canRetry,false);assert.ok(r.recoveryActions.every(a=>['recover-archive','order-receipt','order-invoice','reconcile-archive'].includes(a.action)));
 });
+test('protected refund recovers its terminal receipt after a lost reconcile response without another POST',async()=>{
+ const refundHash='0x'+'a'.repeat(64),refundABCI='0x'+'b'.repeat(64),refundId='refund-original';
+ const action={action:'order-reconcile-operation',...ref,nativeHash:refundHash};
+ const originalRefund={...originalOperation(),nativeHash:refundHash,abciHash:refundABCI,kind:'invoice_refund',owner:merchant};
+ const archive={...receipt(),nativeHash:refundHash,abciHash:refundABCI,kind:'invoice_refund',settlementNativeHash:nativeHash,refundId,
+  principalAtoms:'30',refundedAtoms:'30',netPaidAtoms:'70',assetId:'YNXT',unitVersion:'1',executionIndex:'0',executionMember:'0',executionEvent:'0',payer,recipient:payer};
+ let finished=false,posts=0;
+ const fixture=boot({read:()=>({...bill(),status:'committed_paid',refundStatus:finished?'partial_refund':'unknown',paidAtoms:'100',
+  refundedAtoms:finished?'30':'0',netPaidAtoms:finished?'70':'100',settlementNativeHash:nativeHash,
+  operations:{[refundHash]:{...originalRefund,status:finished?'confirmed':'unknown'}}}),operation:()=>{
+   posts++;finished=true;throw Object.assign(Error(),{code:'PUBLIC_REFUND_RECONCILE_REPLY_LOST'});
+  },extra:{readOriginalArchiveReceipt:async(selected,current)=>{current();assert.equal(selected.nativeHash,refundHash);return archive;}}});
+ const invoke=()=>fixture.entry.invokeOriginalOrderResult(action,intentId,()=>{});
+ const lost=await invoke();
+ assert.equal(lost.code,'PUBLIC_REFUND_RECONCILE_REPLY_LOST');
+ assert.deepEqual(lost.recoveryActions,[protectedRead]);
+ const result=await invoke();
+ assert.equal(result.ok,true,JSON.stringify(result));
+ assert.equal(result.archiveReceipt.refundId,refundId);
+ assert.equal(result.archiveReceipt.netPaidAtoms,'70');
+ assert.equal(result.reconciledOriginal.nativeHash,refundHash);
+ assert.equal(result.canRetry,false);
+ assert.equal(posts,1);
+});
 test('post-reconcile current revocation cannot publish old bill/receipt or retry',async()=>{
  let revoke;const f=boot({read:()=>({...bill(),operations:{[nativeHash]:originalOperation()}}),operation:()=>{revoke();return {...originalOperation(),status:'confirmed'};}});revoke=f.revoke;
  const r=await f.entry.invokeResult({action:'order-reconcile-operation',...ref,nativeHash});assert.equal(r.ok,false);assert.equal(r.reference,null);assert.equal(r.archiveReceipt,undefined);assert.equal(f.calls.length,4);
@@ -177,11 +201,17 @@ test('terms recovery accepts PREPARED original terms and cannot select payment b
  const pending=boot({lookup:()=>({...view(),state:'PREPARED',phase:'unknown'}),read:()=>({...bill(),operations:{[nativeHash]:originalOperation()}})});
  assert.equal((await pending.entry.invokeResult({action:'order-reconcile-operation',...ref,nativeHash})).code,'NATIVE_PAY_ORIGINAL_OPERATION_CHANGED');assert.equal(pending.calls.length,3);
 });
-test('invalid hash fails before Source read and terminal originals cannot change or regress',async()=>{
+test('invalid hash fails before Source read and terminal originals require a matching archive',async()=>{
  const invalid=boot();assert.equal((await invalid.entry.invokeResult({action:'order-reconcile-operation',...ref,nativeHash:'different'})).code,'NATIVE_PAY_ORIGINAL_HASH_REQUIRED');assert.equal(invalid.calls.length,0);
  for(const status of ['unknown','submitted','confirmed_failed']){
-  const f=boot({read:()=>({...bill(),operations:{[nativeHash]:{...originalOperation(),status:'confirmed'}}}),operation:()=>({...originalOperation(),status})});
-  assert.equal((await f.entry.invokeResult({action:'order-reconcile-operation',...ref,nativeHash})).code,'NATIVE_PAY_ORIGINAL_OPERATION_CHANGED');assert.equal(f.calls.length,4);
+  const archive=status==='confirmed_failed'?{...receipt(),status,eventClaim:undefined,principalAtoms:'0',paidAtoms:'0',netPaidAtoms:'0'}:{...receipt(),status};
+  delete archive.eventClaim;
+  const f=boot({read:()=>({...bill(),operations:{[nativeHash]:{...originalOperation(),status:'confirmed'}}}),
+   extra:{readOriginalArchiveReceipt:async()=>archive}});
+  const result=await f.entry.invokeResult({action:'order-reconcile-operation',...ref,nativeHash});
+  assert.equal(result.ok,false);assert.equal(result.archiveReceipt,undefined);
+  assert.equal(result.code,status==='confirmed_failed'?'NATIVE_PAY_ORIGINAL_OPERATION_CHANGED':'NATIVE_PAY_ARCHIVE_RECEIPT_BINDING');
+  assert.equal(f.calls.length,3);
  }
 });
 test('finality cannot regress in post-read or splice another receipt after reconciliation',async()=>{
