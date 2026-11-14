@@ -43,8 +43,11 @@ func newPublicShopV4Server(t *testing.T, handler http.HandlerFunc) *publicShopPr
 		t.Fatal(err)
 	}
 	p := &publicShopProofServer{client: client, server: server, done: make(chan error, 1)}
+	ready := localTestServeReady(server)
 	go func() { p.done <- server.Serve(listener) }()
+	t.Cleanup(func() { _ = listener.Close() })
 	t.Cleanup(func() { p.stop(t) })
+	localTestAwaitServe(t, ready, p.done)
 	return p
 }
 
