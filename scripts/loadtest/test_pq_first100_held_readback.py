@@ -40,7 +40,7 @@ class HeldReadbackTests(unittest.TestCase):
         stem = 'load-00000-live-session-request'
         files = {stem+'-reply.json': encode(frame), 'load-operations/00000/live-proof-attempt.json': encode(attempt)}
         load = dict(rows=[row])
-        result = reader.proof_publication(load, files, '')
+        result = reader.proof_publication(load, files, '', tail_seconds=30)
         self.assertIsNone(result['records'][0]['parentElapsedNs'])
         self.assertFalse(result['independentFinality'])
         timing = dict(node=2, policySHA256='d'*64, sequence=1, calleeElapsedNs=10,
@@ -48,30 +48,30 @@ class HeldReadbackTests(unittest.TestCase):
                       timings=dict(version='YNX-PQ-LAB-CALLEE-ELAPSED/v1', clock='monotonic_elapsed_wall_ns',
                                    intervalsOverlap=True, stages={'live.heldStaticWitnessCurrent': dict(calls=4, elapsedNs=8)}))
         files[stem+'.json'] = encode(timing)
-        measured = reader.proof_publication(load, files, '')['records'][0]
+        measured = reader.proof_publication(load, files, '', tail_seconds=30)['records'][0]
         self.assertEqual(measured['replyProjectionWriteNs'], 2)
         self.assertEqual(measured['originalStages']['live.heldStaticWitnessCurrent'], dict(calls=4, elapsedNs=8))
         files[stem+'.json'] = encode({key: value for key, value in timing.items() if key != 'replyProjectionWriteNs'})
-        legacy = reader.proof_publication(load, files, '')['records'][0]
+        legacy = reader.proof_publication(load, files, '', tail_seconds=30)['records'][0]
         self.assertEqual(legacy['parentElapsedNs'], 15)
         self.assertIsNone(legacy['replyProjectionWriteNs'])
         files[stem+'.json'] = encode(dict(timing, replyProjectionWriteNs=6))
         with self.assertRaisesRegex(RuntimeError, 'clock or timing identity differs'):
-            reader.proof_publication(load, files, '')
+            reader.proof_publication(load, files, '', tail_seconds=30)
         files[stem+'.json'] = encode(dict(timing, parentElapsedNs=21))
         with self.assertRaisesRegex(RuntimeError, 'clock or timing identity differs'):
-            reader.proof_publication(load, files, '')
+            reader.proof_publication(load, files, '', tail_seconds=30)
         files[stem+'-reply.json'] = encode(dict(frame, sequence=2))
         with self.assertRaisesRegex(RuntimeError, 'projection identity differs'):
-            reader.proof_publication(load, files, '')
+            reader.proof_publication(load, files, '', tail_seconds=30)
         files[stem+'-reply.json'] = encode(dict(frame, firstCausePresent=True, failureClass='BUSY'))
         with self.assertRaisesRegex(RuntimeError, 'publication outcome differs'):
-            reader.proof_publication(load, files, '')
+            reader.proof_publication(load, files, '', tail_seconds=30)
         files[stem+'-reply.json'] = encode(frame)
         files[stem+'.json'] = encode(timing)
-        late = dict(kind='normal_stage', stage='live_publish', id='row0', index=0, atNs=60)
+        late = dict(kind='normal_stage', stage='live_publish', id='row0', index=0, atNs=30_000_000_060)
         result = reader.proof_publication(dict(rows=[dict(row, id='row0', stageTimes=[])],
-            windowNs=40, tailNs=10, pipeline=dict(lateEvidence=[late])), files, '')
+            windowNs=40, pipeline=dict(lateEvidence=[late])), files, '', tail_seconds=30)
         self.assertEqual((result['published'], result['latePublished']), (0, 1))
 
     def test_pipeline_pressure_uses_sampled_queue_and_active_worker_boundaries(self):

@@ -169,7 +169,7 @@ def proof_capture_progress(load):
                 finalityInferred=False)
 
 
-def proof_publication(load, files, prefix):
+def proof_publication(load, files, prefix, *, tail_seconds):
     """Join archived publication replies to the original operation and parent clock."""
     if load is None:
         return None
@@ -178,7 +178,8 @@ def proof_publication(load, files, prefix):
         if event['kind'] != 'normal_stage' or event['stage'] not in ('live_publish', 'live_capture'):
             continue
         key = (event['index'], event['id'], event['stage'])
-        require(key not in late and type(event['atNs']) is int and event['atNs'] >= load['windowNs'] + load['tailNs'],
+        require(key not in late and type(event['atNs']) is int
+                and event['atNs'] >= load['windowNs'] + tail_seconds * 1_000_000_000,
                 'original late proof publication boundary differs')
         late[key] = event['atNs']
     records = []
@@ -701,7 +702,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
                 signerCalleeTiming=signer_callee_timing(receipt, load, files, prefix),
                 observationRPC=observation_rpc(receipt),
                 stoppedLiveProofFailures=stopped_proof_failures(receipt, load, files, prefix),
-                proofPublication=proof_publication(load, files, prefix),
+                proofPublication=proof_publication(load, files, prefix, tail_seconds=request['tailSeconds']),
                 proofCaptureProgress=proof_capture_progress(load) if load is not None else None,
                 originalSuccessorAvailability=successor,
                 finalizeByNode=finalize_by_node, originalCommitCopies=commits, commitStages=stages.commit_stages(dict(originalCommitCopies=commits)),
