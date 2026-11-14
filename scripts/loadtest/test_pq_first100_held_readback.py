@@ -43,9 +43,13 @@ class HeldReadbackTests(unittest.TestCase):
         self.assertIsNone(result['records'][0]['parentElapsedNs'])
         self.assertFalse(result['independentFinality'])
         timing = dict(node=2, policySHA256='d'*64, sequence=1, calleeElapsedNs=10,
-                      parentElapsedNs=15, replyProjectionWriteNs=2)
+                      parentElapsedNs=15, replyProjectionWriteNs=2,
+                      timings=dict(version='YNX-PQ-LAB-CALLEE-ELAPSED/v1', clock='monotonic_elapsed_wall_ns',
+                                   intervalsOverlap=True, stages={'live.heldStaticWitnessCurrent': dict(calls=4, elapsedNs=8)}))
         files[stem+'.json'] = encode(timing)
-        self.assertEqual(reader.proof_publication(load, files, '')['records'][0]['replyProjectionWriteNs'], 2)
+        measured = reader.proof_publication(load, files, '')['records'][0]
+        self.assertEqual(measured['replyProjectionWriteNs'], 2)
+        self.assertEqual(measured['originalStages']['live.heldStaticWitnessCurrent'], dict(calls=4, elapsedNs=8))
         files[stem+'.json'] = encode(dict(timing, parentElapsedNs=21))
         with self.assertRaisesRegex(RuntimeError, 'clock or timing identity differs'):
             reader.proof_publication(load, files, '')

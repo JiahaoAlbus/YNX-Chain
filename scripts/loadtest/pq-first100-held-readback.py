@@ -200,6 +200,7 @@ def proof_publication(load, files, prefix):
         callee = frame['calleeElapsedNs']
         stages.integer(callee, 'proof publication callee time')
         parent = overhead = None
+        original_stages = None
         points = dict(row['stageTimes'])
         timing_bytes = files.get(prefix + stem + '.json')
         require('live_publish' in points and (outcome == 'request_published' or timing_bytes is None),
@@ -213,11 +214,26 @@ def proof_publication(load, files, prefix):
                     and 0 <= overhead <= parent and 0 <= callee <= parent
                     and type(end) is int and parent <= end - points['live_publish'],
                     'original proof publication clock or timing identity differs')
+            snapshot = timing.get('timings')
+            if snapshot is not None:
+                require(snapshot['version'] == 'YNX-PQ-LAB-CALLEE-ELAPSED/v1'
+                        and snapshot['clock'] == 'monotonic_elapsed_wall_ns'
+                        and snapshot['intervalsOverlap'] is True and type(snapshot['stages']) is dict,
+                        'original proof publication stage schema differs')
+                original_stages = {}
+                for name in ('live.publishTotal', 'live.heldStaticWitnessCurrent', 'live.controlDurablePublish'):
+                    if name in snapshot['stages']:
+                        stage = snapshot['stages'][name]
+                        require(type(stage['calls']) is int and 0 < stage['calls'] < 1 << 64
+                                and type(stage['elapsedNs']) is int and 0 <= stage['elapsedNs'] <= callee,
+                                'original proof publication stage counters differ')
+                        original_stages[name] = stage
         records.append(dict(index=row['index'], node=attempt['node'], sequence=attempt['sequence'], outcome=outcome,
                             originalReplySHA256=frame['originalReplySHA256'], projectionPath=projection_path,
-                            calleeElapsedNs=callee, parentElapsedNs=parent, replyProjectionWriteNs=overhead))
+                            calleeElapsedNs=callee, parentElapsedNs=parent, replyProjectionWriteNs=overhead,
+                            originalStages=original_stages))
     return dict(records=records, published=sum(row['outcome'] == 'request_published' for row in records),
-                rawReplyReverified=False, independentFinality=False)
+                rawReplyReverified=False, stageIntervalsAdded=False, independentFinality=False)
 
 
 def stopped_proof_failures(receipt, load, files, prefix):
