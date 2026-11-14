@@ -271,4 +271,31 @@ class PoisonControls(unittest.TestCase):
                 self.assertFalse(a.is_alive() or b.is_alive());self.assertTrue(reaper.is_set());self.assertEqual(errors,[])
                 for _,log in w.logs:log.close()
 
+    def test_terminal_stop_refuses_late_launch_before_open_or_popen(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);(root/'public').mkdir()
+            w=driver.lab.Window.__new__(driver.lab.Window)
+            w.lock=threading.Lock();w.children=[];w.known={};w.logs=[];w.work=root;w.source=root;w.env={};w.cpus=[0];w.sample=lambda:None
+            w._stop_locked=lambda:True
+            self.assertTrue(w.stop())
+            with mock.patch.object(driver.lab.subprocess,'Popen') as spawn:
+                with self.assertRaisesRegex(RuntimeError,'terminal stop'):
+                    w.launch('load-public-owners',['no-exec'],True,stdin_pipe=True,thread_safe=True,original_pidfd=True)
+                spawn.assert_not_called()
+            self.assertEqual(w.children,[]);self.assertEqual(w.logs,[])
+
+    def test_bootstrap_stopping_flag_does_not_close_launch_gate(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);(root/'public').mkdir()
+            w=driver.lab.Window.__new__(driver.lab.Window)
+            w.lock=threading.Lock();w.children=[];w.known={};w.logs=[];w.work=root;w.source=root;w.env={};w.cpus=[0];w.sample=lambda:None
+            w.stopping=True;w.closed_for_launch=False
+            process=SimpleNamespace(pid=12345,returncode=None)
+            with mock.patch.object(driver.lab.subprocess,'Popen',return_value=process), \
+                 mock.patch.object(driver.lab.guard,'bounded',return_value=b''), \
+                 mock.patch.object(driver.lab.guard,'parse_stat',return_value=dict(startTicks=123)):
+                try:self.assertIs(w.launch('activation',['no-exec'],True,stdin_pipe=True,thread_safe=True),process)
+                finally:
+                    for _,log in w.logs:log.close()
+
 if __name__=='__main__':unittest.main()

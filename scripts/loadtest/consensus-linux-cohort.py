@@ -374,6 +374,7 @@ class Window:
         self.logs = []
         self.closed_log_identity = {}
         self.stopping = False
+        self.closed_for_launch = False # Terminal Window.stop fence, distinct from bootstrap halt.
         self.env = {k: v for k, v in os.environ.items() if not k.startswith(("CMT_", "YNX_", "GOFLAGS"))}
         self.env.update(GOMAXPROCS="2", GOMEMLIMIT="1024MiB", GOGC="75",
                         GOTOOLCHAIN="local", GOCACHE=str(work / ".private/cache"),
@@ -485,6 +486,7 @@ class Window:
             return self._launch(name, command, persistent, pass_fds, stdin_path, stdin_pipe, thread_safe, private_log, stop, original_pidfd)
 
     def _launch(self, name, command, persistent, pass_fds, stdin_path, stdin_pipe, thread_safe, private_log, stop=None, original_pidfd=False):
+        require(not getattr(self,'closed_for_launch',False), 'original Window has already entered terminal stop')
         require(not (stdin_pipe and stdin_path is not None), "one original stdin transport required")
         require(type(original_pidfd) is bool and (not original_pidfd or (persistent and thread_safe and stdin_pipe)),
                 'original pidfd only for one persistent owned stdin stream')
@@ -603,6 +605,7 @@ class Window:
         # final waitpid(-1) reaps. In particular pidfd attachment completes
         # under this same lock before any stop/reaper can begin.
         with self.lock:
+            self.closed_for_launch=True
             return self._stop_locked()
 
     def _stop_locked(self):
