@@ -4885,5 +4885,116 @@ class NormalSourceParentCIControls(unittest.TestCase):
         self.assertIn("version='YNX-FOCUSED-PUBLIC-TEST-STREAMS/v2'", PUBLIC_TEST_STREAM_RETENTION_STEPS)
 
 
+HELD_SESSION_STEPS = '      - name: Verify prepared signing and held proof sessions on original inputs\n        id: pqheldsessions\n        if: ${{ !cancelled() && steps.identity.outcome == \'success\' && (github.ref == \'refs/heads/codex/ynx-pq-perf-source-20261108\' || github.ref == \'refs/heads/codex/ynx-pq-perf-integration\') && github.event_name == \'push\' }}\n        timeout-minutes: 7\n        run: bash scripts/verify/pq-held-sessions-ci.sh "$GITHUB_WORKSPACE" "$RUNNER_TEMP/ynx-pq-held-sessions"\n      - name: Retain original held session public test evidence\n        if: ${{ !cancelled() && steps.pqheldsessions.outcome == \'success\' }}\n        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02\n        with:\n          name: ynx-pq-held-sessions-${{ github.sha }}-${{ github.run_id }}\n          path: |\n            ${{ runner.temp }}/ynx-pq-held-sessions/core.jsonl\n            ${{ runner.temp }}/ynx-pq-held-sessions/cli.jsonl\n          if-no-files-found: error\n          retention-days: 7\n'
+HELD_SESSION_COMMANDS = ['timeout --signal=TERM --kill-after=5s 240s go test -mod=readonly -json -p 1 -count=1 -timeout=160s -run \'^TestPQLab(LiveSession(OriginalProofAndHeldScope|LifecycleAndOriginalRefusal)|LiveMaterials(CaptureObservationRetainsOriginalFailure|CancelledAppReadDrainsOriginal|CaptureKnownCoordinatesNeverRebase|FinalReadOnlyOriginalCommitCrossings|FinalReadKeepsOriginalProofCheckpoint)|SenderPrepareOriginalWitnessAndCurrent|PublicOwnerPrepareBeforeCommands)$\' ./internal/consensus > "$evidence/core.jsonl" 2> "$evidence/core.stderr.private"', 'timeout --signal=TERM --kill-after=5s 240s go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run \'^TestPQLab(LiveSession(CommandStrictInputs|FailureProjection|CommandOriginalSourceAndLostAck)|SenderPUBLICOwnersPreparedReady(Refusals)?|LiveObservation(CommandOptInAndLegacy|CommandScopeAndSink|SignalForwarding))$\' ./cmd/ynx-consensus-pq-lab > "$evidence/cli.jsonl" 2> "$evidence/cli.stderr.private"']
+HELD_SESSION_GROUPS = [('core.jsonl', 'internal/consensus', ['TestPQLabLiveSessionOriginalProofAndHeldScope', 'TestPQLabLiveSessionLifecycleAndOriginalRefusal', 'TestPQLabLiveMaterialsCaptureObservationRetainsOriginalFailure', 'TestPQLabLiveMaterialsCancelledAppReadDrainsOriginal', 'TestPQLabLiveMaterialsCaptureKnownCoordinatesNeverRebase', 'TestPQLabLiveMaterialsFinalReadOnlyOriginalCommitCrossings', 'TestPQLabLiveMaterialsFinalReadKeepsOriginalProofCheckpoint', 'TestPQLabSenderPrepareOriginalWitnessAndCurrent', 'TestPQLabPublicOwnerPrepareBeforeCommands']), ('cli.jsonl', 'cmd/ynx-consensus-pq-lab', ['TestPQLabLiveSessionCommandStrictInputs', 'TestPQLabLiveSessionFailureProjection', 'TestPQLabLiveSessionCommandOriginalSourceAndLostAck', 'TestPQLabSenderPUBLICOwnersPreparedReady', 'TestPQLabSenderPUBLICOwnersPreparedReadyRefusals', 'TestPQLabLiveObservationCommandOptInAndLegacy', 'TestPQLabLiveObservationCommandScopeAndSink', 'TestPQLabLiveObservationSignalForwarding'])]
+PREPARED_TRUST_BLOCK = "def qualify_prepared_trust(rows):\n    package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-proof-verify'\n    name = 'TestProofVerifierPreparedTrustPUBLICSameInvocationAndFirstCause'\n    selected = [e for e in rows if e.get('Package') == package]\n    if [e['Action'] for e in selected if not e.get('Test') and e['Action'] in ('start', 'pass', 'fail', 'skip')] != ['start', 'pass']:\n        raise RuntimeError('original proof verifier package did not start/pass once')\n    tests = {e['Test'] for e in selected if e.get('Test') == name or e.get('Test', '').startswith(name + '/')}\n    if name not in tests or any(e.get('Action') in ('fail', 'build-fail') for e in selected):\n        raise RuntimeError('prepared trust original proof test missing or failed')\n    for test in tests:\n        if [(e.get('Package'), e['Action']) for e in rows if e.get('Test') == test and e['Action'] in ('run', 'pass', 'fail', 'skip')] != [(package, 'run'), (package, 'pass')]:\n            raise RuntimeError('prepared trust original child incomplete, foreign, duplicate or skipped')\n    return [name]\nprepared_trust_passed = qualify_prepared_trust(events)\nprint('PREPARED_TRUST_OWNER_DATA_ONLY ' + json.dumps(dict(requiredPassed=prepared_trust_passed, sourceQualified=False), sort_keys=True))\n"
+PREPARED_TRUST_CORE = ['TestPQEngineBootstrapPreparationPUBLICOriginalAndDetached', 'TestPQEngineBootstrapPreparationPUBLICFirstCause', 'TestPQEngineBootstrapPreparationPUBLICDynamicStateAndRuntime']
+
+
+def assert_held_session_contract(raw, recipe):
+    import ast
+    if raw.count(HELD_SESSION_STEPS) != 1 or raw.count("      - 'scripts/verify/pq-held-sessions-ci.sh'\n") != 1:
+        raise AssertionError('exact ordinary held producer and two original public streams required')
+    commands = [line for line in recipe.splitlines() if line.startswith('timeout ')]
+    if commands != HELD_SESSION_COMMANDS or recipe.count('go test ') != 2:
+        raise AssertionError('original two bounded Go invocations changed')
+    if recipe.count('export GOMAXPROCS=2 GOMEMLIMIT=1024MiB') != 1:
+        raise AssertionError('original held resource boundary changed')
+    if recipe.count('export YNX_PQLAB_LIVE_SESSION_FIXTURE_ROOT="$evidence/private-fixture"') != 1 or recipe.count('export YNX_PQ_LAB_LIVE_FIXTURE_ROOT="$evidence/private-fixture"') != 1:
+        raise AssertionError('original Core-to-CLI fixture closure changed')
+    code = recipe.split("<<'PYCOLLECT'\n", 1)[1].split('\nPYCOLLECT', 1)[0]
+    tree = ast.parse(code)
+    groups = ast.literal_eval(next(n for n in tree.body if isinstance(n, ast.For)).iter)
+    if groups != HELD_SESSION_GROUPS:
+        raise AssertionError('held exact denominator changed')
+    trust = ''.join('          ' + line + '\n' for line in PREPARED_TRUST_BLOCK.splitlines())
+    if raw.count(trust) != 1 or raw.count('          required += ' + repr(PREPARED_TRUST_CORE) + '\n') != 1:
+        raise AssertionError('four original trust owners must be required in their existing calls')
+    if recipe.count('sourceQualified=false nodeStarted=false fourLaneRSSQualified=false') != 1:
+        raise AssertionError('held DATA marker changed qualification')
+    return code
+
+
+class HeldSessionCIControls(unittest.TestCase):
+    def parts(self):
+        root = Path(__file__).resolve().parents[2]
+        raw = (root / '.github/workflows/resource-market-ci.yml').read_text()
+        recipe = (root / 'scripts/verify/pq-held-sessions-ci.sh').read_text()
+        return root, raw, recipe, assert_held_session_contract(raw, recipe)
+
+    def streams(self):
+        result = {}
+        for filename, package, names in HELD_SESSION_GROUPS:
+            package = 'github.com/JiahaoAlbus/YNX-Chain/' + package
+            events = [dict(Package=package, Action='start')]
+            for name in names:
+                events += [dict(Package=package, Test=n, Action=a) for n, a in ((name, 'run'), (name+'/original', 'run'), (name+'/original', 'pass'), (name, 'pass'))]
+            events.append(dict(Package=package, Action='pass'))
+            result[filename] = events
+        return result
+
+    def collect(self, code, streams):
+        import contextlib, io, tempfile
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            for filename, rows in streams.items():
+                (Path(directory) / filename).write_text(''.join(json.dumps(e)+'\n' for e in rows))
+            output = io.StringIO()
+            with patch('sys.argv', ['collector', directory]), contextlib.redirect_stdout(output):
+                exec(compile(code, 'original-held-collector', 'exec'), {})
+            self.assertEqual(output.getvalue(), 'LIVE_MATERIALS_SESSION_DATA_ONLY sourceQualified=false nodeStarted=false fourLaneRSSQualified=false\n')
+
+    def test_exact_original_source_selector_and_required_closure(self):
+        root, raw, recipe, code = self.parts()
+        self.collect(code, self.streams())
+        for (_, package, names), command in zip(HELD_SESSION_GROUPS, HELD_SESSION_COMMANDS):
+            selector = re.search(r"-run '([^']+)'", command).group(1)
+            all_names = []
+            for path in (root / package).glob('*_test.go'):
+                all_names += re.findall(r'^func (Test\w+)\(t \*testing.T\)', path.read_text(), re.M)
+            self.assertEqual(sorted(n for n in all_names if re.search(selector,n)), sorted(names))
+        self.assertEqual([len(group[2]) for group in HELD_SESSION_GROUPS], [9,8])
+        self.assertIn('TestPQLabLiveMaterialsFinalReadOnlyOriginalCommitCrossings', HELD_SESSION_GROUPS[0][2])
+        self.assertIn('TestPQLabLiveMaterialsFinalReadKeepsOriginalProofCheckpoint', HELD_SESSION_GROUPS[0][2])
+        self.assertIn('return runPQLabLiveMaterialsSession(args[1:], out)', (root/'cmd/ynx-consensus-pq-lab/main.go').read_text())
+
+    def test_recipe_cannot_drop_final_fence_expand_selector_or_budget(self):
+        _,raw,recipe,_ = self.parts()
+        changes = [recipe.replace('FinalReadOnlyOriginalCommitCrossings|','',1), recipe.replace('-timeout=160s','-timeout=161s',1),recipe.replace('240s go test','241s go test',1),recipe.replace('GOMAXPROCS=2','GOMAXPROCS=3',1),recipe.replace('sourceQualified=false','sourceQualified=true',1)]
+        for changed in changes:
+            with self.assertRaises(AssertionError): assert_held_session_contract(raw,changed)
+        for changed in [raw.replace(HELD_SESSION_STEPS,''),raw.replace('steps.pqheldsessions.outcome == \'success\'','true',1),raw.replace('ynx-pq-held-sessions/core.jsonl','ynx-pq-held-sessions/**',1),raw.replace('timeout-minutes: 7\n        run: bash scripts/verify/pq-held','timeout-minutes: 8\n        run: bash scripts/verify/pq-held',1),raw.replace('prepared_trust_passed = qualify_prepared_trust(events)','prepared_trust_passed = []',1)]:
+            with self.assertRaises(AssertionError):assert_held_session_contract(changed,recipe)
+
+    def test_original_collector_refuses_partial_duplicate_foreign_skipped_top_and_child(self):
+        _,_,_,code = self.parts();good=self.streams()
+        for filename,package,names in HELD_SESSION_GROUPS:
+            rows=good[filename]
+            bad=[[],rows[1:],rows[:-1],rows+rows,rows+[dict(Package='foreign',Action='pass')]]
+            for name in names:
+                bad.append([e for e in rows if not e.get('Test','').startswith(name)])
+                for test in (name,name+'/original'):
+                    for action in ('run','pass'):
+                        i=next(i for i,e in enumerate(rows) if e.get('Test')==test and e['Action']==action)
+                        bad += [rows[:i]+rows[i+1:],rows[:i]+[rows[i]]+rows[i:]]
+                    i=next(i for i,e in enumerate(rows) if e.get('Test')==test and e['Action']=='pass')
+                    for action in ('fail','skip','build-fail'):
+                        bad.append(rows[:i]+[dict(rows[i],Action=action)]+rows[i+1:])
+            for i,changed in enumerate(bad):
+                with self.subTest(stream=filename,variant=i),self.assertRaises(ValueError):self.collect(code,dict(good,**{filename:changed}))
+
+    def test_prepared_trust_original_package_child_and_failure_are_closed(self):
+        self.parts();scope={};exec(PREPARED_TRUST_BLOCK.split('prepared_trust_passed =',1)[0],scope)
+        package='github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-proof-verify';name='TestProofVerifierPreparedTrustPUBLICSameInvocationAndFirstCause'
+        rows=[dict(Package=package,Action='start')]+[dict(Package=package,Test=n,Action=a) for n,a in [(name,'run'),(name+'/original','run'),(name+'/original','pass'),(name,'pass')]]+[dict(Package=package,Action='pass')]
+        self.assertEqual(scope['qualify_prepared_trust'](rows),[name])
+        for i in range(len(rows)):
+            for bad in (rows[:i]+rows[i+1:],rows[:i]+[rows[i]]+rows[i:],rows[:i]+[dict(rows[i],Package='foreign')]+rows[i+1:]):
+                with self.assertRaises(RuntimeError):scope['qualify_prepared_trust'](bad)
+        for action in ('fail','skip','build-fail'):
+            with self.assertRaises(RuntimeError):scope['qualify_prepared_trust'](rows[:3]+[dict(rows[3],Action=action)]+rows[4:])
+
+
 if __name__ == "__main__":
     unittest.main()

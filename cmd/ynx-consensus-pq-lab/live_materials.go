@@ -9,12 +9,17 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"os"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 )
 
 func runPQLabLiveMaterials(args []string, out io.Writer) error {
+	return runPQLabLiveMaterialsDiagnostic(args, out, os.Stderr)
+}
+
+func runPQLabLiveMaterialsDiagnostic(args []string, out io.Writer, diagnostic *os.File) error {
 	if len(args) == 0 || args[0] != "setup" && args[0] != "request" && args[0] != "result" {
 		return errors.New("live-materials requires setup, request or result")
 	}
@@ -26,6 +31,7 @@ func runPQLabLiveMaterials(args []string, out io.Writer) error {
 	var nodeIndex *int
 	var maxOps, sequence, num, den *uint64
 	var period, drift, timeout *time.Duration
+	var observe *bool
 	if args[0] == "setup" {
 		root = f.String("root", "", "original independent lab root")
 		planPin = f.String("plan-sha256", "", "independent original full network plan pin")
@@ -42,6 +48,7 @@ func runPQLabLiveMaterials(args []string, out io.Writer) error {
 		policyPin = f.String("policy-sha256", "", "independent startup policy pin")
 		sequence = f.Uint64("sequence", 0, "next original serial operation slot")
 		if args[0] == "request" {
+			observe = f.Bool("observe-stages", false, "bounded closed stage observations on the original regular stderr log; no completion or authority claim")
 			txFile = f.String("transaction", "", "original public corpus/sender .abci file")
 			txHash = f.String("transaction-sha256", "", "exact original ABCI envelope hash")
 			nativeHash = f.String("native-wire-hash", "", "exact original native wire hash without 0x")
@@ -57,6 +64,17 @@ func runPQLabLiveMaterials(args []string, out io.Writer) error {
 	var metrics *consensus.PQLabMetrics
 	if *timings {
 		metrics = &consensus.PQLabMetrics{}
+	}
+	if observe != nil && *observe {
+		var observation *consensus.PQLabLiveRequestObservation
+		var err error
+		metrics, observation, err = consensus.NewPQLabLiveRequestObservation(diagnostic)
+		if err != nil {
+			return err
+		}
+		defer observation.Finish()
+		stopSignals := pqLabObserveRequestSignals(observation)
+		defer stopSignals()
 	}
 	var value any
 	var err error
@@ -84,7 +102,7 @@ func runPQLabLiveMaterials(args []string, out io.Writer) error {
 		value, err = consensus.ReadPQLabLiveMaterialsResultMeasured(*policyPath, *policyPin, uint32(*sequence), metrics)
 	}
 	if err != nil {
-		if metrics != nil {
+		if *timings {
 			measured, _ := json.Marshal(struct {
 				Version, Outcome string
 				CalleeElapsedNS  int64
@@ -94,7 +112,7 @@ func runPQLabLiveMaterials(args []string, out io.Writer) error {
 		}
 		return err
 	}
-	if metrics != nil {
+	if *timings {
 		raw, e := json.Marshal(value)
 		if e != nil {
 			return e

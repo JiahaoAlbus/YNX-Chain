@@ -71,6 +71,7 @@ on:
       - 'scripts/ops/pq-ci-stage-inputs.py'
       - 'scripts/ops/test_pq_ci_stage_inputs.py'
       - 'scripts/ops/test_validate_pq_remote_normal_ci.py'
+      - 'scripts/verify/pq-held-sessions-ci.sh'
       - 'scripts/ops/test_validate_pq_wallet_policy_ci.py'
       - 'scripts/ops/test_validate_pq_current4_ci.py'
       - 'scripts/ops/test_validate_pq_source_parent_ci.py'
@@ -2287,6 +2288,21 @@ jobs:
           import json, os
           from pathlib import Path
           events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-production-entrypoint-tests.jsonl').read_text().splitlines()]
+          def qualify_prepared_trust(rows):
+              package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-proof-verify'
+              name = 'TestProofVerifierPreparedTrustPUBLICSameInvocationAndFirstCause'
+              selected = [e for e in rows if e.get('Package') == package]
+              if [e['Action'] for e in selected if not e.get('Test') and e['Action'] in ('start', 'pass', 'fail', 'skip')] != ['start', 'pass']:
+                  raise RuntimeError('original proof verifier package did not start/pass once')
+              tests = {e['Test'] for e in selected if e.get('Test') == name or e.get('Test', '').startswith(name + '/')}
+              if name not in tests or any(e.get('Action') in ('fail', 'build-fail') for e in selected):
+                  raise RuntimeError('prepared trust original proof test missing or failed')
+              for test in tests:
+                  if [(e.get('Package'), e['Action']) for e in rows if e.get('Test') == test and e['Action'] in ('run', 'pass', 'fail', 'skip')] != [(package, 'run'), (package, 'pass')]:
+                      raise RuntimeError('prepared trust original child incomplete, foreign, duplicate or skipped')
+              return [name]
+          prepared_trust_passed = qualify_prepared_trust(events)
+          print('PREPARED_TRUST_OWNER_DATA_ONLY ' + json.dumps(dict(requiredPassed=prepared_trust_passed, sourceQualified=False), sort_keys=True))
           package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet'
           required = ['TestInspectWalletPolicyNormalOriginalCheckpointAndRefusals', 'TestInspectWalletPolicyNoRegistrationAndArgumentsFailClosed']
           for name in required:
@@ -2543,6 +2559,21 @@ jobs:
           test "$YNX_SOURCE_LOG_RED" -ne 0
           grep -F 'source logs reached a later record before enforcing response budget' "$YNX_SOURCE_LOG_CASE/original-red.log"
           go test -p 1 -count=1 -timeout=60s -run '^TestMigrationHistoryLogsStopsAtByteBudgetBeforeLaterRecords$' ./internal/consensus
+      - name: Verify prepared signing and held proof sessions on original inputs
+        id: pqheldsessions
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' && (github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && github.event_name == 'push' }}
+        timeout-minutes: 7
+        run: bash scripts/verify/pq-held-sessions-ci.sh "$GITHUB_WORKSPACE" "$RUNNER_TEMP/ynx-pq-held-sessions"
+      - name: Retain original held session public test evidence
+        if: ${{ !cancelled() && steps.pqheldsessions.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-held-sessions-${{ github.sha }}-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/ynx-pq-held-sessions/core.jsonl
+            ${{ runner.temp }}/ynx-pq-held-sessions/cli.jsonl
+          if-no-files-found: error
+          retention-days: 7
       - name: Verify complete state bridge and sponsor continuity
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         env:
@@ -2756,6 +2787,7 @@ jobs:
               if len(runs) != 1 or runs[0].get('Package') != 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus' or outcomes != [('github.com/JiahaoAlbus/YNX-Chain/internal/consensus', 'pass')]:
                   raise RuntimeError('combined private migration owner did not execute uniquely: ' + name)
           required += ['TestCombinedValidatedMigrationPrivateOwnerMatchesTwoPassBoundary']
+          required += ['TestPQEngineBootstrapPreparationPUBLICOriginalAndDetached', 'TestPQEngineBootstrapPreparationPUBLICFirstCause', 'TestPQEngineBootstrapPreparationPUBLICDynamicStateAndRuntime']
           sender_checkpoint_required = ['TestPQLabSenderCheckpointSourceSameInputColdAndSteadyParity', 'TestPQLabSenderCheckpointSourceCanonicalColdAndSteadyParity', 'TestPQLabSenderCheckpointSourceScopeCurrentAndClose', 'TestPQLabSenderCheckpointSourceRevocationNonceAndUnknown', 'TestPQLabSenderBootstrapOriginalCanonicalPinsAndWitness', 'TestPQLabCheckpointReadCrossNodeExactBytesAndClose']
           required += ['TestPQLabSenderCheckpointSourceSameInputColdAndSteadyParity', 'TestPQLabSenderCheckpointSourceCanonicalColdAndSteadyParity', 'TestPQLabSenderCheckpointSourceScopeCurrentAndClose', 'TestPQLabSenderCheckpointSourceRevocationNonceAndUnknown', 'TestPQLabSenderBootstrapOriginalCanonicalPinsAndWitness', 'TestPQLabCheckpointReadCrossNodeExactBytesAndClose']
           sender_checkpoint_required += ['TestPQLabCheckpointRefusalStagesAndOriginalErrors', 'TestPQLabCheckpointRefusalOriginalAdvanceRemainsRefused']

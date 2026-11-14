@@ -214,6 +214,13 @@ class WalletPolicyCIControls(unittest.TestCase):
         packages = [MODULE + p for p in COMMAND_PACKAGES] if kind == "cli" else [package]
         if kind == "reader":
             packages *= 5  # Five disjoint bounded processes, each original case once.
+        if kind == "cli":
+            proof_package = MODULE + "cmd/ynx-consensus-proof-verify"
+            proof_top = "TestProofVerifierPreparedTrustPUBLICSameInvocationAndFirstCause"
+            events += [dict(Action="start", Package=proof_package)]
+            events += [dict(Action=action, Package=proof_package, Test=name)
+                       for name, action in ((proof_top, "run"), (proof_top + "/original", "run"),
+                                            (proof_top + "/original", "pass"), (proof_top, "pass"))]
         events += [dict(Action="pass", Package=p) for p in packages]
         return events
 
