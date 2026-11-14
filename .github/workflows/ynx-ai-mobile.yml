@@ -104,6 +104,8 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
       - run: pnpm install --frozen-lockfile
       - run: pnpm run typecheck && pnpm test && pnpm run product-check
       - name: Read Android normal native build inputs

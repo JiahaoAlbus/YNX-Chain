@@ -126,7 +126,8 @@ const [main,server,observabilityRuntime,backupRuntime,gatewayServer,gatewayRunti
 ]);
 assert.doesNotMatch(server+web+mobile,/OPENAI_API_KEY\s*=|sk-[A-Za-z0-9]{20,}/);
 assert.doesNotMatch(mobile,/\?prompt=|searchParams\.set\(["']prompt/);
-assert.match(server,/http\.MethodPost, "\/ai\/stream"/);
+assert.match(server,/gatewayPath := "\/ai\/stream"/);
+assert.match(server,/s\.gatewayRequest\(ctx, http\.MethodPost, gatewayPath, payload\)/);
 assert.match(gatewayServer,/HandleFunc\("POST \/ai\/stream"/);
 assert.doesNotMatch(gatewayServer,/HandleFunc\("GET \/ai\/stream"/);
 assert.match(gatewayServer,/query parameters are not allowed on the AI stream endpoint/);
