@@ -144,3 +144,55 @@ func TestMerchantMutationLookupRecurringDraftAndCurrentRole(t *testing.T) {
 		t.Fatal("role downgrade exposed result", w.Code, w.Body)
 	}
 }
+
+// A lost invoice response must recover only the stored original after the
+// current merchant authority returns. Missing authority is not a new invoice.
+func TestMerchantInvoiceLookupKeepsOriginalAcrossAuthorityRefusals(t *testing.T) {
+	s, merchant, verifier, server := merchantBusinessQA(t)
+	pay := &fakePay{invoice: chain.Invoice{Merchant: merchant.CentralMerchantID, PayoutAddress: merchant.PayoutAddress, Amount: 8}}
+	s.pay = pay
+	session := merchantQASession(t, server, merchant, "")
+	raw := `{"amount":8,"description":"Original invoice","expiresInMinutes":30,"idempotencyKey":"original-invoice-key"}`
+	created := merchantQARequest(server, "POST", "/v1/merchant/invoices", raw, session.Token, "")
+	var invoice Invoice
+	if created.Code != 201 || json.Unmarshal(created.Body.Bytes(), &invoice) != nil || invoice.ID == "" {
+		t.Fatal("original invoice not stored", created.Code, created.Body)
+	}
+	beforeIntent, beforeInvoice := pay.intentCalls, pay.invoiceCalls
+	reopened, err := OpenStore(s.store.path, s.key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.store = reopened
+	lookup, err := json.Marshal(merchantMutationLookupInput{Method: "POST", Path: "/v1/merchant/invoices", OriginalBody: raw})
+	if err != nil {
+		t.Fatal(err)
+	}
+	closed := newMerchantBusinessServer(s, nil)
+	if w := merchantQARequest(closed, "POST", "/v1/merchant/mutations/lookup", string(lookup), session.Token, ""); w.Code != 503 || strings.Contains(w.Body.String(), invoice.ID) {
+		t.Fatal("missing authority leaked original", w.Code, w.Body)
+	}
+	server = newMerchantBusinessServer(s, verifier)
+	verifier.active.Store(false)
+	if w := merchantQARequest(server, "POST", "/v1/merchant/mutations/lookup", string(lookup), session.Token, ""); w.Code != 401 || strings.Contains(w.Body.String(), invoice.ID) {
+		t.Fatal("revoked current leaked original", w.Code, w.Body)
+	}
+	verifier.active.Store(true)
+	w := merchantQARequest(server, "POST", "/v1/merchant/mutations/lookup", string(lookup), session.Token, "")
+	var recovered struct {
+		Result Invoice `json:"result"`
+	}
+	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &recovered) != nil || recovered.Result.ID != invoice.ID {
+		t.Fatal("same original not recovered", w.Code, w.Body)
+	}
+	if pay.intentCalls != beforeIntent || pay.invoiceCalls != beforeInvoice {
+		t.Fatal("readback dispatched another payment")
+	}
+	var count int
+	if err := s.store.View(func(data Snapshot) error { count = len(data.Invoices); return nil }); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Fatalf("readback changed invoice count: %d", count)
+	}
+}

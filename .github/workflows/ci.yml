@@ -2,12 +2,13 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/v5-p06-pay]
   pull_request:
     branches: [main]
 
 jobs:
   test:
+    if: github.ref != 'refs/heads/codex/v5-p06-pay'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,3 +38,24 @@ jobs:
       - run: make ecosystem-package
       - run: make exchange-package
       - run: make mainnet-readiness
+
+  pay-original-recovery:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/v5-p06-pay'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Test Source liveness and original invoice lookup
+        run: go test ./internal/payproduct -run '^Test(LivenessDoesNotClaimNativePaySourceReadiness|MerchantInvoiceLookupKeepsOriginalAcrossAuthorityRefusals)$' -count=1
+      - name: Test normal Pay Source status and original recovery
+        run: node --test apps/pay/native/r6/main-result.test.mjs
+      - name: Install exact original merchant dependencies
+        working-directory: apps/merchant-console
+        run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+      - name: Test original merchant lookup and authority refusal
+        run: node --test apps/merchant-console/test/request-boundary.test.js apps/merchant-console/test/merchant-recovery-normal.test.js

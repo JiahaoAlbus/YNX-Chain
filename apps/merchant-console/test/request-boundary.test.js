@@ -1,4 +1,4 @@
-import test from'node:test';import assert from'node:assert/strict';import{createRequestContext,contextChanged}from'../src/request-context.js';
+import test from'node:test';import assert from'node:assert/strict';import{createRequestContext,contextChanged,merchantFailureMessage}from'../src/request-context.js';
 globalThis.YNX_PAY_API_URL='https://commerce-qa.invalid';
 const{PayAPI}=await import('../src/api.js?boundary');
 // Controlled authorizer verifies transport ordering only, not actual approval.
@@ -10,3 +10,33 @@ test('historical domain token alone cannot dispatch a private Pay operation',asy
 
 test('durable unknown marker runs only after proof admission and immediately before the exact HTTP dispatch',async()=>{const before=globalThis.fetch;const events=[];globalThis.fetch=async()=>{events.push('fetch');return new Response('{"id":"original"}')};try{await new PayAPI('qa-product-bearer',undefined,async(_,options)=>{events.push('proof');return options}).invoice({idempotencyKey:'original-key'},()=>events.push('unknown'));assert.deepEqual(events,['proof','unknown','fetch']);events.length=0;await assert.rejects(new PayAPI('qa-product-bearer',undefined,async()=>{throw Error('proof rejected')}).invoice({},()=>events.push('unknown')));assert.deepEqual(events,[])}finally{globalThis.fetch=before}});
 test('original readback uses the implemented lookup endpoint and rejects another merchant receipt',async()=>{const before=globalThis.fetch;const subject={account:'ynx1'+'q'.repeat(38),merchantId:'mrc_original'};let wire;globalThis.fetch=async(url,init)=>{wire={url,init};return new Response(JSON.stringify({...subject,merchantId:'mrc_foreign',method:'POST',path:'/v1/merchant/invoices',idempotencyKey:'original-key',result:{id:'foreign'}}))};try{await assert.rejects(new PayAPI('qa-product-bearer',undefined,authorize).lookupMutation(subject,'POST','/v1/merchant/invoices',{amount:8,idempotencyKey:'original-key'}),error=>error.code==='MERCHANT_CONTEXT_REJECTED');assert.equal(wire.url,'https://commerce-qa.invalid/v1/merchant/mutations/lookup');assert.equal(wire.init.method,'POST');assert.deepEqual(JSON.parse(JSON.parse(wire.init.body).originalBody),{amount:8,idempotencyKey:'original-key'})}finally{globalThis.fetch=before}});
+
+test('original lookup preserves bounded V4 and current refusal codes',async()=>{
+ const before=globalThis.fetch,subject={account:'ynx1'+'q'.repeat(38),merchantId:'mrc_original'};
+ try{
+  for(const [status,code] of [[503,'ORIGINAL_AUTHORITY_REQUIRED'],[503,'AUTHORITY_SNAPSHOT_REQUIRED'],[403,'INVALID_SESSION']]){
+   globalThis.fetch=async()=>new Response(JSON.stringify({error:code,code}),{status});
+   await assert.rejects(new PayAPI('original-session',undefined,authorize).lookupMutation(subject,'POST','/v1/merchant/invoices',{amount:8,idempotencyKey:'original-key'}),error=>error.status===status&&error.code===code);
+  }
+ }finally{globalThis.fetch=before}
+});
+
+test('merchant refusal messages distinguish missing authority, invalid session and unknown original',()=>{
+ assert.match(merchantFailureMessage({code:'ORIGINAL_AUTHORITY_REQUIRED'}),/authorization is unavailable/);
+ assert.match(merchantFailureMessage({code:'AUTHORITY_SNAPSHOT_REQUIRED'}),/original request/);
+ assert.match(merchantFailureMessage({code:'INVALID_SESSION'}),/current merchant session/);
+ assert.match(merchantFailureMessage({code:'MERCHANT_MUTATION_OUTCOME_UNCONFIRMED'}),/outcome is unconfirmed/);
+ assert.match(merchantFailureMessage({code:'AUTHORITY_SNAPSHOT_REQUIRED'},'zh-Hans'),/商户授权暂不可用/);
+ assert.match(merchantFailureMessage({code:'INVALID_SESSION'},'zh-Hant'),/工作階段無權/);
+ assert.equal(merchantFailureMessage({code:'UNREVIEWED_SERVER_CODE'}),null);
+});
+
+test('noncanonical or oversized response codes are not promoted to local error codes',async()=>{
+ const before=globalThis.fetch;
+ try{
+  for(const code of ['bad value','X'.repeat(129),'<img src=x>']){
+   globalThis.fetch=async()=>new Response(JSON.stringify({error:'unavailable',code}),{status:503});
+   await assert.rejects(new PayAPI('original-session',undefined,authorize).state(),error=>error.status===503&&error.code===undefined);
+  }
+ }finally{globalThis.fetch=before}
+});
