@@ -33,6 +33,26 @@ class PublicProofClosureControls(unittest.TestCase):
         for path in (public/'load-00000-normal-verifier.log',case/'four-node-inclusion.json',case/'original-confirm-reply.json',public/'load-00000-live-result.log',case/'original-sign-reply.json'):path.write_bytes(b'PUBLIC original transport unit marker; not proof success')
         portable=p.finalize_portable_catalog(public,case,ref,row)
         return f,ref,portable
+    def test_crossing_observation_limit_is_bound_to_exact_source(self):
+        failure={'FirstCauseSHA256':'b'*64}
+        frame=dict(version='YNX-PQ-LAB-PROOF-CAPTURE-OBSERVATION/v1', owningNodeIndex=2, sequence=1,
+                   policySHA256='a'*64, requestSHA256='c'*64, firstCauseSHA256='b'*64,
+                   outcome='unknown', lastEnteredPhase='proof.sourceContextCapture', typedCrossings=5,
+                   captureBudgetNs=30, sinceCaptureStartNs=10,
+                   timings=dict(version='YNX-PQ-LAB-CALLEE-ELAPSED/v1',clock='monotonic_elapsed_wall_ns',
+                                intervalsOverlap=True,stages={}))
+        args=dict(node=2,sequence=1,pin='a'*64,request_sha256='c'*64,failure=failure)
+        raw=json.dumps(frame).encode()
+        with self.assertRaisesRegex(RuntimeError, 'identity or phase'):
+            p.capture_observation(raw, **args)
+        with self.assertRaisesRegex(RuntimeError, 'identity or phase'):
+            p.capture_observation(raw, source='0b515124bda8ff7efaf3ec03456d69dee2c6ad18', **args)
+        self.assertEqual(p.capture_observation(raw, source='59f7885d11bd3eeb5d27dce7232779aae480a806',
+                                               **args)['typedCrossings'], 5)
+        with self.assertRaisesRegex(RuntimeError, 'identity or phase'):
+            p.capture_observation(json.dumps(dict(frame, typedCrossings=6)).encode(),
+                                  source='59f7885d11bd3eeb5d27dce7232779aae480a806', **args)
+
     def test_exact_original_bytes_and_existing_normal_closed_catalog(self):
         with tempfile.TemporaryDirectory() as temp:
             base=Path(temp).resolve();f,ref,portable=self.completed_fixture(base);original=(f[2]/'trust-context.json').read_bytes();manifest=f[0]/ref['path'];m=p.strict(manifest.read_bytes())

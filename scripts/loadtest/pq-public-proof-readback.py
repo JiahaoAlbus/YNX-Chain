@@ -55,7 +55,8 @@ def pre_output_failure(raw, pin, sequence):
     return value
 
 
-def capture_observation(raw, *, node, sequence, pin, request_sha256, failure):
+def capture_observation(raw, *, node, sequence, pin, request_sha256, failure, source=None):
+    crossing_limit = 5 if source == '59f7885d11bd3eeb5d27dce7232779aae480a806' else 3
     require(type(raw) is bytes and 0 < len(raw) <= CAPTURE_OBSERVATION_LIMIT,
             'bounded original proof capture observation required')
     value = strict(raw)
@@ -69,7 +70,7 @@ def capture_observation(raw, *, node, sequence, pin, request_sha256, failure):
         and value['requestSHA256'] == request_sha256 and value['firstCauseSHA256'] == failure['FirstCauseSHA256']
         and value['outcome'] == 'unknown' and type(value['lastEnteredPhase']) is str
         and value['lastEnteredPhase'] in CAPTURE_PHASES
-        and type(value['typedCrossings']) is int and 0 <= value['typedCrossings'] <= 3
+        and type(value['typedCrossings']) is int and 0 <= value['typedCrossings'] <= crossing_limit
         and all(type(value[key]) is int and 0 <= value[key] < 1 << 63
                 for key in ('captureBudgetNs', 'sinceCaptureStartNs')),
         'original proof capture observation identity or phase differs')

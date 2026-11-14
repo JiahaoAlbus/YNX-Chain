@@ -381,7 +381,8 @@ def stopped_proof_failures(receipt, load, files, prefix):
                     'original capture observation digest or failure boundary differs')
             capture_data = proof_readback.capture_observation(
                 raw, node=request['node'], sequence=request['sequence'], pin=request['policySHA256'],
-                request_sha256=record.get('originalRequestSHA256'), failure=data)
+                request_sha256=record.get('originalRequestSHA256'), failure=data,
+                source=(receipt.get('source') or {}).get('commit'))
         output.append(dict(record, originalFailure=data, originalPreOutputFailure=pre_output_data,
                            originalCaptureObservation=capture_data,
                            matchedContextError=CONTEXT_FAILURE_DIGESTS.get(data['FirstCauseSHA256']) if data else None,

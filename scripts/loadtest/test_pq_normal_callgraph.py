@@ -253,7 +253,10 @@ class NormalCallgraphControls(unittest.TestCase):
             self.assertEqual(bad['status'], 'ALREADY_RETAINED')
             self.assertTrue(bad['captureObservationUnavailable'])
             self.assertNotIn('captureObservation', bad)
-            sidecar.write_text(json.dumps(timing))
+            sidecar.write_text(json.dumps(dict(timing, typedCrossings=5)))
+            old = backend.retain_stopped_live_proof_failures(load)['records'][0]
+            self.assertTrue(old['captureObservationUnavailable'])
+            backend.c.consumer_source = '59f7885d11bd3eeb5d27dce7232779aae480a806'
             good = backend.retain_stopped_live_proof_failures(load)['records'][0]
             self.assertEqual((public/good['captureObservation']['path']).read_bytes(), sidecar.read_bytes())
             self.assertEqual(good['captureObservation']['sha256'], driver.lab.guard.digest(sidecar))

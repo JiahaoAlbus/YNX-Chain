@@ -858,7 +858,8 @@ class NormalBackend:
                                                            limit=proof_readback.CAPTURE_OBSERVATION_LIMIT)
                         failure = proof_readback.strict(proof_readback.read_original(retained, limit=4096))
                         proof_readback.capture_observation(raw, node=lane['node'], sequence=sequence, pin=lane['pin'],
-                                                          request_sha256=request_digest, failure=failure)
+                                                          request_sha256=request_digest, failure=failure,
+                                                          source=getattr(self.c, 'consumer_source', None))
                         target = case / 'original-live-proof-capture-observation.json'
                         if target.exists():
                             lab.require(proof_readback.read_original(target, limit=proof_readback.CAPTURE_OBSERVATION_LIMIT)
