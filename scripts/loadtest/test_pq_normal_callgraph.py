@@ -14,6 +14,32 @@ spec=importlib.util.spec_from_file_location('normal_callgraph',Path(__file__).wi
 driver=importlib.util.module_from_spec(spec);spec.loader.exec_module(driver)
 
 class NormalCallgraphControls(unittest.TestCase):
+    def test_inclusion_requires_explicit_success_and_all_replies_before_cutoff(self):
+        backend=object.__new__(driver.NormalBackend)
+        backend.c=SimpleNamespace(proof_timeout=1,plan={'nodes':[dict(index=i) for i in range(4)]})
+        for mode in ('valid','missing_code','late_reply'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as temp:
+                case=Path(temp)
+                clock=[0]
+                events=[]
+                def rpc(node,method,query):
+                    self.assertEqual((method,query),('tx','?hash=0x'+'a'*64+'&prove=true'))
+                    if mode=='late_reply' and node['index']==3:
+                        clock[0]=1_000_000_000
+                    result={} if mode=='missing_code' and node['index']==3 else dict(code=0)
+                    return dict(hash='a'*64,height='19',tx_result=result)
+                backend.observed_rpc=rpc
+                def observe():
+                    return backend.observe_inclusion({},dict(abciHash='a'*64),case,events.append,threading.Event())
+                with mock.patch.object(driver.time,'monotonic_ns',side_effect=lambda:clock[0]):
+                    if mode=='valid':
+                        self.assertEqual(observe(),19)
+                    else:
+                        with self.assertRaisesRegex(RuntimeError,'execution/height differs|bounded inclusion cutoff'):
+                            observe()
+                self.assertEqual(any(e['kind']=='included' for e in events),mode=='valid')
+                self.assertEqual((case/'four-node-inclusion.json').exists(),mode=='valid')
+
     def test_live_proof_retains_only_matching_original_failure_bytes(self):
         backend=object.__new__(driver.NormalBackend)
         with tempfile.TemporaryDirectory() as temp:

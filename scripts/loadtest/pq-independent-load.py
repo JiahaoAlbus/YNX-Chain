@@ -593,12 +593,24 @@ class NormalBackend:
     def observe_inclusion(self,row,tx,case,notify,stop):
         expected=normal.comet_hash(tx["abciHash"])
         notify(dict(kind="normal_stage",stage="inclusion"))
-        until=time.monotonic()+self.c.proof_timeout
-        while time.monotonic()<until and not stop.is_set():
+        until=time.monotonic_ns()+int(self.c.proof_timeout*1e9)
+        nodes=self.c.plan["nodes"]
+        lab.require(len(nodes)==4 and {n["index"] for n in nodes}==set(range(4)),
+                    "four original inclusion nodes required")
+        while time.monotonic_ns()<until and not stop.is_set():
             try:
-                rows=[self.observed_rpc(n,"tx","?hash=0x"+expected+"&prove=true") for n in self.c.plan["nodes"]]
+                rows=[]
+                for node in nodes:
+                    if stop.is_set() or time.monotonic_ns()>=until:
+                        break
+                    rows.append(self.observed_rpc(node,"tx","?hash=0x"+expected+"&prove=true"))
+                if len(rows)!=4 or stop.is_set() or time.monotonic_ns()>=until:
+                    break
                 lab.require(all(normal.comet_hash(r["hash"])==expected for r in rows),"normal included transaction identity differs")
-                lab.require(len({int(r["height"]) for r in rows})==1 and all(int(r["tx_result"].get("code",0))==0 for r in rows),"normal included execution/height differs")
+                heights={int(r["height"]) for r in rows}
+                lab.require(len(heights)==1 and next(iter(heights))>0
+                            and all(type(r["tx_result"].get("code")) is int and r["tx_result"]["code"]==0 for r in rows),
+                            "normal included execution/height differs")
                 notify(dict(kind="included"))
                 lab.write_new(case/"four-node-inclusion.json",dict(rows=rows,qualifiedFinal=False,interpretation="original hash-bound execution observations only"));return int(rows[0]["height"])
             except (OSError,ValueError,KeyError):pass
