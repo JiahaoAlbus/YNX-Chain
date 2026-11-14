@@ -8,6 +8,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/commerce"
@@ -187,8 +189,24 @@ func main() {
 	}
 	srv := &http.Server{Addr: *addr, Handler: mounted, ReadHeaderTimeout: 5 * time.Second}
 	log.Printf("ynx-shopd listening on %s", *addr)
-	serveErr := srv.ListenAndServe()
-	log.Fatal(errors.Join(serveErr, closeTaskOrders(), closeInvoiceRead()))
+	stop, cancelStop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancelStop()
+	serveErr := make(chan error, 1)
+	go func() { serveErr <- srv.ListenAndServe() }()
+	var shutdownErr error
+	select {
+	case shutdownErr = <-serveErr:
+	case <-stop.Done():
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		shutdownErr = srv.Shutdown(ctx)
+		cancel()
+	}
+	if errors.Is(shutdownErr, http.ErrServerClosed) {
+		shutdownErr = nil
+	}
+	if err := errors.Join(shutdownErr, closeTaskOrders(), closeInvoiceRead()); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func sellerHTTPReadiness(seller http.Handler) string {

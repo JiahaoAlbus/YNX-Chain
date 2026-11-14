@@ -27,12 +27,13 @@ type shopTaskOrderPublisher struct {
 var errShopTaskOrderPublisherNotSupplied = errors.New("SHOP_TASK_ORDER_PUBLISHER_NOT_SUPPLIED")
 
 type shopTaskOrderRuntime struct {
-	reader   *commerce.PreparedOriginalShopTaskOrders
-	link     *securelink.HTTPServer
-	listener net.Listener
-	closeMu  sync.Mutex
-	closed   bool
-	closeErr error
+	reader                *commerce.PreparedOriginalShopTaskOrders
+	link                  *securelink.HTTPServer
+	listener              net.Listener
+	closeMu               sync.Mutex
+	closed                bool
+	listenerCloseSelected bool
+	closeErr              error
 }
 
 func openShopTaskOrderRuntime(ctx context.Context, store *commerce.Store, cfg commerce.ServerConfig, publisher *shopTaskOrderPublisher) (runtime *shopTaskOrderRuntime, err error) {
@@ -77,15 +78,18 @@ func (r *shopTaskOrderRuntime) close(ctx context.Context) error {
 	if r.closed {
 		return r.closeErr
 	}
+	if r.listenerCloseSelected && r.closeErr != nil {
+		return r.closeErr
+	}
 	if r.link != nil {
 		if err := r.link.Shutdown(ctx); err != nil {
 			return err
 		}
 	}
 	if r.listener != nil {
+		r.listenerCloseSelected = true
 		if err := r.listener.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
 			r.closeErr = err
-			r.closed = true
 			return r.closeErr
 		}
 	}
