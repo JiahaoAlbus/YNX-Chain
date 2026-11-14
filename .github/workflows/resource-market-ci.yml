@@ -2752,7 +2752,7 @@ jobs:
           sender_checkpoint_required = ['TestPQLabSenderCheckpointSourceSameInputColdAndSteadyParity', 'TestPQLabSenderCheckpointSourceCanonicalColdAndSteadyParity', 'TestPQLabSenderCheckpointSourceScopeCurrentAndClose', 'TestPQLabSenderCheckpointSourceRevocationNonceAndUnknown', 'TestPQLabSenderBootstrapOriginalCanonicalPinsAndWitness', 'TestPQLabCheckpointReadCrossNodeExactBytesAndClose']
           required += ['TestPQLabSenderCheckpointSourceSameInputColdAndSteadyParity', 'TestPQLabSenderCheckpointSourceCanonicalColdAndSteadyParity', 'TestPQLabSenderCheckpointSourceScopeCurrentAndClose', 'TestPQLabSenderCheckpointSourceRevocationNonceAndUnknown', 'TestPQLabSenderBootstrapOriginalCanonicalPinsAndWitness', 'TestPQLabCheckpointReadCrossNodeExactBytesAndClose']
           sender_checkpoint_required += ['TestPQLabCheckpointRefusalStagesAndOriginalErrors', 'TestPQLabCheckpointRefusalOriginalAdvanceRemainsRefused']
-          required += sender_checkpoint_required[-2:]
+          required += ['TestPQLabCheckpointRefusalStagesAndOriginalErrors', 'TestPQLabCheckpointRefusalOriginalAdvanceRemainsRefused']
           sender_checkpoint_package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
           for name in sender_checkpoint_required:
               runs = [e for e in events if e.get('Test') == name and e.get('Action') == 'run']
