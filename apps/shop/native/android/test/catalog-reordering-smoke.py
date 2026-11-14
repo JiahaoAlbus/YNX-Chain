@@ -14,6 +14,7 @@ release = {key: threading.Event() for key in started}
 finished = {key: threading.Event() for key in started}
 sent = {}
 fresh_sent = threading.Event()
+initial_sent = threading.Event()
 
 def product(title):
     return {"ID": title, "Title": title, "Description": "Controlled public catalog",
@@ -24,6 +25,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         url = urllib.parse.urlsplit(self.path)
         query = urllib.parse.parse_qs(url.query).get("q", [""])[0]
+        print(f"fixture request: {self.path}", flush=True)
         if url.path != "/api/products":
             self.send_error(404)
             return
@@ -46,6 +48,8 @@ class Handler(BaseHTTPRequestHandler):
                 sent[query] = 200
             if query == "fresh":
                 fresh_sent.set()
+            if not query:
+                initial_sent.set()
         finally:
             if query in finished:
                 finished[query].set()
@@ -88,14 +92,18 @@ server = ThreadingHTTPServer(("127.0.0.1", 8095), Handler)
 threading.Thread(target=server.serve_forever, daemon=True).start()
 try:
     adb("shell", "am", "start", "-W", "-n", "com.ynxweb4.shop.debug/com.ynxweb4.shop.MainActivity")
-    time.sleep(2)
+    if not initial_sent.wait(8):
+        print("Initial catalog request absent; UI:", [(n.get("text"), n.get("content-desc")) for n in snapshot()], flush=True)
+        raise AssertionError("initial catalog request did not reach fixture")
     nodes = snapshot()
     field = position(find(nodes, "Search products and categories"))
     button = position(find(nodes, "Search"))
     cart = position(find(nodes, "Cart"))
 
     search("oldone", field, button)
-    assert started["oldone"].wait(5), "old search did not reach fixture"
+    if not started["oldone"].wait(5):
+        print("Search request absent; UI:", [(n.get("text"), n.get("content-desc"), n.get("bounds")) for n in snapshot()], flush=True)
+        raise AssertionError("old search did not reach fixture")
     search("fresh", field, button)
     assert fresh_sent.wait(5), "fresh response was not sent"
     require(snapshot(), "FRESH PRODUCT")
