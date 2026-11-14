@@ -18,6 +18,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/apps/network/internal/accountengine"
+	"github.com/JiahaoAlbus/YNX-Chain/apps/network/internal/current4transport"
 	"github.com/JiahaoAlbus/YNX-Chain/apps/network/localipc"
 )
 
@@ -38,6 +40,14 @@ type Config struct {
 	StopGrace              time.Duration
 	RuntimeCandidate       *RuntimeCandidate
 	ExpectedRuntimeNetwork *RuntimeNetwork
+	ObserverRuntime        *ObserverRuntimeConfig
+	Current4Host           *Current4Host
+	// Original build profile only. This selects an independent transport,
+	// never an account/engineReference, Root row or proof permission.
+	AccountEnginePurpose string
+	// Separate qualified transport profile only; legacy account purpose never
+	// silently enables fresh scopes or changes its original socket lifetime.
+	SourceBrokerPurpose string
 	// FixtureSynchronizationNetwork enables only the isolated transport fixture.
 	// It is not an original ordinary-runtime launch or admission contract.
 	FixtureSynchronizationNetwork *RuntimeNetwork
@@ -50,20 +60,21 @@ type Capacity struct {
 	Enforcement string `json:"enforcement"`
 }
 type Status struct {
-	NodeID              string                `json:"nodeId"`
-	Stage               string                `json:"stage"`
-	Mode                string                `json:"mode"`
-	Generation          uint64                `json:"generation,string"`
-	RunID               string                `json:"runId"`
-	ProcessOwned        bool                  `json:"processOwned"`
-	LastPID             int                   `json:"lastPid"`
-	ArtifactSHA256      string                `json:"artifactSHA256"`
-	FirstCause          string                `json:"firstCause"`
-	LastExit            string                `json:"lastExit"`
-	ProductionSupported bool                  `json:"productionSupported"`
-	Capacity            Capacity              `json:"capacity"`
-	Diagnostics         Diagnostics           `json:"diagnostics"`
-	RuntimeCandidate    *RuntimeCandidateView `json:"runtimeCandidate,omitempty"`
+	NodeID              string                   `json:"nodeId"`
+	Stage               string                   `json:"stage"`
+	Mode                string                   `json:"mode"`
+	Generation          uint64                   `json:"generation,string"`
+	RunID               string                   `json:"runId"`
+	ProcessOwned        bool                     `json:"processOwned"`
+	LastPID             int                      `json:"lastPid"`
+	ArtifactSHA256      string                   `json:"artifactSHA256"`
+	FirstCause          string                   `json:"firstCause"`
+	LastExit            string                   `json:"lastExit"`
+	ProductionSupported bool                     `json:"productionSupported"`
+	Capacity            Capacity                 `json:"capacity"`
+	Diagnostics         Diagnostics              `json:"diagnostics"`
+	RuntimeCandidate    *RuntimeCandidateView    `json:"runtimeCandidate,omitempty"`
+	ObserverRuntime     *ObserverRuntimeReadback `json:"observerRuntime,omitempty"`
 }
 type Intent struct {
 	ManagerID      string `json:"managerId"`
@@ -85,8 +96,12 @@ type Approval struct {
 	native              bool
 }
 type child struct {
+	current4      *current4transport.LaunchOwner
 	cmd           *exec.Cmd
 	done          chan struct{}
+	terminating   chan struct{} // Serialized under the manager mutex, across Stop and Close.
+	terminateErr  error         // First termination owner failure, under the manager mutex.
+	waitErr       error         // Written by the sole Wait owner before closing done.
 	runID         string
 	stopRequested bool
 	capture       *runtimeCapture
@@ -94,12 +109,19 @@ type child struct {
 	exited        chan struct{}
 	readContext   context.Context
 	cancelReads   context.CancelFunc
+	syncEndpoint  *synchronizationEndpoint
 	syncBusy      bool
 	syncReadback  Synchronization
 	syncSocket    os.FileInfo
 	syncExpires   time.Time
 }
 type Manager struct {
+	originalSourceParentProfile           *originalSourceParentNormalProfile
+	current4Host                          *Current4Host
+	pendingCurrent4                       *current4transport.LaunchOwner
+	pendingAccount                        *accountengine.EngineOwner
+	accountEngine                         bool
+	sourceBroker                          bool
 	mu                                    sync.Mutex
 	directory                             string
 	uid                                   uint32
@@ -107,18 +129,36 @@ type Manager struct {
 	rootInfo, stateInfo                   os.FileInfo
 	stateRaw                              []byte
 	state                                 persistentState
+	rootLock                              *os.File
 	lock                                  *os.File
 	lockInfo                              os.FileInfo
+	lockRaw                               []byte
 	maxArtifact, quotaBytes, minFreeBytes uint64
 	stopGrace                             time.Duration
 	approvals                             map[string]*Approval
 	process                               *child
+	termination                           *child
+	starting                              *nodeStartAttempt
 	runtime                               *RuntimeCandidate
 	syncNetwork                           *RuntimeNetwork
+	versionProbe                          *observerProbe
+	closeMu                               sync.Mutex
+	closeInFlight                         chan struct{}
+	closeComplete                         bool
+	closeResult                           error
+	closeFailure                          error
+	closeWaitErr                          error
+	closeTerminationErr                   error
 	closed, released                      bool
 }
 
 func New(cfg Config) (*Manager, error) {
+	if cfg.SourceBrokerPurpose != "" && (cfg.SourceBrokerPurpose != current4transport.SourceBrokerPurpose || cfg.AccountEnginePurpose != accountengine.Purpose || cfg.Current4Host == nil) {
+		return nil, ErrOriginalReleaseMissing
+	}
+	if cfg.AccountEnginePurpose != "" && (cfg.AccountEnginePurpose != accountengine.Purpose || cfg.Current4Host == nil) {
+		return nil, ErrOriginalReleaseMissing
+	}
 	if !platformSupported() {
 		return nil, ErrUnsupported
 	}
@@ -151,7 +191,18 @@ func New(cfg Config) (*Manager, error) {
 	if err != nil {
 		return nil, err
 	}
-	m := &Manager{directory: cfg.Directory, uid: uint32(uid), fixture: cfg.IsolatedFixture, rootInfo: root, maxArtifact: cfg.MaxArtifactBytes, quotaBytes: cfg.StorageQuotaBytes, minFreeBytes: cfg.MinimumFreeBytes, stopGrace: cfg.StopGrace, approvals: make(map[string]*Approval)}
+	m := &Manager{directory: cfg.Directory, uid: uint32(uid), fixture: cfg.IsolatedFixture, rootInfo: root, maxArtifact: cfg.MaxArtifactBytes, quotaBytes: cfg.StorageQuotaBytes, minFreeBytes: cfg.MinimumFreeBytes, stopGrace: cfg.StopGrace, approvals: make(map[string]*Approval), current4Host: cfg.Current4Host}
+	if err := m.acquireRootLock(); err != nil {
+		return nil, err
+	}
+	complete := false
+	defer func() {
+		if !complete {
+			_ = m.closeLocks()
+		}
+	}()
+	m.accountEngine = cfg.AccountEnginePurpose == accountengine.Purpose
+	m.sourceBroker = cfg.SourceBrokerPurpose == current4transport.SourceBrokerPurpose
 	if cfg.FixtureSynchronizationNetwork != nil {
 		network := *cfg.FixtureSynchronizationNetwork
 		m.syncNetwork = &network
@@ -183,63 +234,15 @@ func New(cfg Config) (*Manager, error) {
 	} else if *m.state.RootIdentity != rootIdentity {
 		return nil, ErrUnsafePath
 	}
-	lockPath := filepath.Join(cfg.Directory, lockName)
-	if _, err = os.Lstat(lockPath); err == nil {
-		if fresh {
-			return nil, errors.New("unknown manager lock preserved")
-		}
-		lockRaw, _, err := readOwnedFile(lockPath, m.uid, 4096)
-		if err != nil {
-			return nil, err
-		}
-		var record lockRecord
-		if strictRecord(lockRaw, &record) != nil || record.Version != stateVersion || record.ManagerID != m.state.ManagerID {
-			return nil, errors.New("unknown manager lock preserved")
-		}
-		m.lock, err = os.OpenFile(lockPath, os.O_RDWR, 0)
-		if err != nil {
-			return nil, err
-		}
-	} else if errors.Is(err, os.ErrNotExist) {
-		m.lock, err = os.OpenFile(lockPath, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0o600)
-		if err != nil {
-			return nil, err
-		}
-		record, _ := json.Marshal(lockRecord{Version: stateVersion, ManagerID: m.state.ManagerID})
-		if _, err = m.lock.Write(record); err != nil {
-			m.lock.Close()
-			return nil, err
-		}
-		if err = m.lock.Sync(); err != nil {
-			m.lock.Close()
-			return nil, err
-		}
-	} else {
+	if err := m.acquireLock(fresh); err != nil {
 		return nil, err
 	}
-	if err = lockFile(m.lock); err != nil {
-		m.lock.Close()
-		return nil, errors.New("another owner holds the node manager")
-	}
-	m.lockInfo, err = m.lock.Stat()
-	if err != nil {
-		_ = unlockFile(m.lock)
-		_ = m.lock.Close()
+	// Another manager can finish and close between our first journal read
+	// and marker lock acquisition if it uses the older entry point. Do not
+	// use that earlier snapshot to manage a run.
+	if err := m.checkStateFile(); err != nil {
 		return nil, err
 	}
-	lockNamed, err := os.Lstat(lockPath)
-	if err != nil || !os.SameFile(lockNamed, m.lockInfo) {
-		_ = unlockFile(m.lock)
-		_ = m.lock.Close()
-		return nil, ErrUnsafePath
-	}
-	complete := false
-	defer func() {
-		if !complete {
-			_ = unlockFile(m.lock)
-			_ = m.lock.Close()
-		}
-	}()
 	for _, name := range []string{"bin", "data"} {
 		info, dirErr := privateDir(filepath.Join(cfg.Directory, name), m.uid, true)
 		if dirErr != nil {
@@ -274,6 +277,15 @@ func New(cfg Config) (*Manager, error) {
 	}
 	if _, err := m.installedRuntime(); err != nil {
 		return nil, err
+	}
+	if err := validateObserverRecord(m.state.Observer); err != nil {
+		return nil, err
+	}
+	if err := m.observerRuntimeBinding(); err != nil {
+		return nil, err
+	}
+	if m.state.Observer != nil && m.state.Observer.Version != nil && m.state.Observer.Version.ArtifactSHA256 != m.state.ArtifactSHA256 {
+		return nil, ErrObserverInputs
 	}
 	if !fresh && m.state.Stage == "not_installed" {
 		if err = m.save(); err != nil {
@@ -317,6 +329,11 @@ func New(cfg Config) (*Manager, error) {
 			return nil, ErrRuntimeManifest
 		}
 		if err := m.bindRuntimeCandidate(cfg.RuntimeCandidate, *cfg.ExpectedRuntimeNetwork); err != nil {
+			return nil, err
+		}
+	}
+	if cfg.ObserverRuntime != nil {
+		if err := m.bindObserverRuntime(context.Background(), *cfg.ObserverRuntime); err != nil {
 			return nil, err
 		}
 	}
@@ -501,6 +518,7 @@ func (m *Manager) Status(peer localipc.Peer) (Status, error) {
 	}
 	capacity, err := m.capacity(0)
 	out := Status{NodeID: NodeID, Stage: m.state.Stage, Mode: m.state.Mode, Generation: m.state.Generation, RunID: m.state.RunID, ProcessOwned: m.process != nil, LastPID: m.state.LastPID, ArtifactSHA256: m.state.ArtifactSHA256, FirstCause: m.state.FirstCause, LastExit: m.state.LastExit, Capacity: capacity, Diagnostics: m.diagnostics()}
+	out.ObserverRuntime = m.observerReadback()
 	if m.runtime != nil {
 		view := m.runtime.View()
 		if candidateErr := m.runtime.unchanged(); candidateErr != nil {
@@ -511,7 +529,7 @@ func (m *Manager) Status(peer localipc.Peer) (Status, error) {
 	return out, err
 }
 func (m *Manager) firstCause(err error) {
-	if m.state.FirstCause == "" {
+	if err != nil && m.state.FirstCause == "" {
 		m.state.FirstCause = err.Error()
 	}
 }
