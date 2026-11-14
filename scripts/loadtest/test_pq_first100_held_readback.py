@@ -88,6 +88,29 @@ class HeldReadbackTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'request binding differs'):
             reader.stopped_proof_failures(receipt, load, files, prefix)
 
+    def test_pre_output_failure_readback_without_publish_ack_preserves_unknown(self):
+        path = 'load-operations/00000/original-live-proof-pre-output-failure.json'
+        row = dict(index=0, operationId='a'*64, hash='b'*64, nativeHash='c'*64, status='unknown')
+        attempt = dict(node=2, sequence=1, policySHA256='d'*64, operationId=row['operationId'],
+                       transactionSHA256=row['hash'], nativeWireHash=row['nativeHash'])
+        marker = dict(version=reader.proof_readback.PRE_OUTPUT_FAILURE_VERSION, policySHA256='d'*64,
+                      sequence=1, phase='current-source', outcome='unknown', firstCauseSHA256='e'*64)
+        raw = encode(marker)
+        files = {path: raw, 'load-operations/00000/live-proof-attempt.json': encode(attempt)}
+        record = dict(index=0, node=2, sequence=1, status='FAILURE_NOT_SUPPLIED',
+                      stoppedOutputEntries={}, originalRequestSHA256='f'*64,
+                      preOutputFailure=dict(path=path, sha256=sha(raw)))
+        receipt = dict(cleanupComplete=True, stoppedLiveProofFailures=dict(records=[record], altersLoadResult=False))
+        load = dict(configuredDemand=500, rows=[row])
+        actual = reader.stopped_proof_failures(receipt, load, files, '')['records'][0]
+        self.assertEqual(actual['originalPreOutputFailure'], marker)
+        self.assertEqual(actual['originalCohortStatus'], 'unknown')
+        self.assertIsNone(actual['originalFailure'])
+        wrong_slot = encode(dict(marker, sequence=2))
+        record['preOutputFailure']['sha256'] = sha(wrong_slot)
+        with self.assertRaisesRegex(RuntimeError, 'pre-output proof failure record differs'):
+            reader.stopped_proof_failures(receipt, load, dict(files, **{path: wrong_slot}), '')
+
     def test_observation_rpc_preserves_counts_and_keeps_elapsed_intervals_separate(self):
         first = dict(node=0, method='tx', attempted=4, returned=1, raised=2, completed=3, inFlight=1)
         second = dict(node=1, method='tx', attempted=1, returned=1, raised=0, completed=1, inFlight=0)
