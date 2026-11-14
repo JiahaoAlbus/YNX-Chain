@@ -404,6 +404,9 @@ func (c *PQLabLiveMaterialsControl) captureCheckpoint(ctx context.Context, loadA
 			// The App sentinel proves App == actual+1. After one observed
 			// forward step, it would require crossing a SECOND boundary.
 			if errors.Is(err, errProofHostCheckpointCrossing) && actual.LastBlockHeight > firstHeight {
+				if crossing(err) {
+					trace.noteCrossing()
+				}
 				return fail(err)
 			}
 		}
@@ -452,17 +455,21 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	if err = ctx.Err(); err != nil {
 		return out, err
 	}
-	trace.begin("proof.loadPQLab")
-	_, _, b, err := loadPQLabMeasured(p.RootDir, c.in.policy.PlanSHA256, trace.collector())
+	trace.begin("proof.heldStaticCurrent")
+	// This same policy owner already performed the complete bootstrap parse
+	// and validation. Reuse only its immutable bootstrap and recheck the
+	// original held file identities and full bytes at this boundary.
+	static, err := c.in.loadStatic()
 	if err != nil {
 		return out, err
 	}
+	b := static.witness.bootstrap
 	state.bootstrap = b
 	if err = ctx.Err(); err != nil {
 		return out, err
 	}
 	trace.begin("proof.stateValidate")
-	if err = state.Validate(c.in.migration); err != nil {
+	if err = state.validateOwned(static.witness); err != nil {
 		return out, err
 	}
 	if state.PQEngineSchedule == nil {
@@ -496,7 +503,7 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	if err = ctx.Err(); err != nil {
 		return out, err
 	}
-	snapshot, err := newPQEngineSnapshot(b, state.ValidatorRegistry, state.PQEngineSchedule, state.Height)
+	snapshot, err := newPQEngineSnapshotOwned(static.witness, b, state.ValidatorRegistry, state.PQEngineSchedule, state.Height)
 	if err != nil {
 		return out, err
 	}

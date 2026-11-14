@@ -206,9 +206,17 @@ func TestPQLabLiveMaterialsCaptureKnownCoordinatesNeverRebase(t *testing.T) {
 				}
 				return sm.State{}, errors.New("unexpected extra capture")
 			}
-			actual, raw, err := control.captureCheckpoint(context.Background(), load, nil)
+			trace := newPQLabProofCaptureObservation(0, 1, "", "")
+			actual, raw, err := control.captureCheckpoint(context.Background(), load, trace)
 			if err == nil || calls != 2 || len(raw) != 0 || actual.LastBlockHeight != 0 || !errors.Is(err, errProofHostCheckpointCrossing) {
 				t.Fatal("known-coordinate refusal retried or lost first crossing", calls, err)
+			}
+			wantCrossings := uint32(1)
+			if scenario == "cumulative-forward" {
+				wantCrossings = 2
+			}
+			if trace.crossings != wantCrossings || trace.metrics.Snapshot().Stages["proof.engineRead"].Calls != 2 {
+				t.Fatal("observation omitted a terminal typed crossing or counted a coordinate rejection", scenario, trace.crossings)
 			}
 			// Preserve the actual historical engine coordinate used by the first
 			// pair; no old AppHash is relabeled at the subsequently observed H.

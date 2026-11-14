@@ -30,15 +30,11 @@ func newPQLabProofCaptureObservation(nodeIndex int, sequence uint32, policy, req
 	return t
 }
 
-func (t *pqLabProofCaptureObservation) collector() *PQLabMetrics {
-	if t == nil {
-		return nil
-	}
-	return &t.metrics
-}
-
 func (t *pqLabProofCaptureObservation) measure(stage string) func() {
-	return pqLabMeasure(t.collector(), stage)
+	if t == nil {
+		return pqLabMeasure(nil, stage)
+	}
+	return pqLabMeasure(&t.metrics, stage)
 }
 
 func (t *pqLabProofCaptureObservation) begin(stage string) {

@@ -591,8 +591,16 @@ func pqLabLiveMaterialsAssertContinuousProof(t *testing.T, root string, p PQLabN
 		if _, e = PublishPQLabLiveMaterialsRequest(setup.Policy.Path, setup.Policy.SHA256, request); e == nil {
 			t.Fatal("original request overwritten/replayed")
 		}
+		held, e := control.in.loadStatic()
+		if e != nil {
+			t.Fatal("original lab capture has no held static validation", e)
+		}
 		if present, e := control.step(context.Background()); !present || e != nil {
 			t.Fatal("actual owning Node live capture", present, e)
+		}
+		afterCapture, e := control.in.loadStatic()
+		if e != nil || afterCapture.witness != held.witness || (held.uncached != nil && control.in.cache.Stats().Entries != 0) {
+			t.Fatal("capture replaced its static witness or admitted oversized input into the optional cache", e)
 		}
 		result, e := ReadPQLabLiveMaterialsResult(setup.Policy.Path, setup.Policy.SHA256, uint32(i+1))
 		if e != nil {
