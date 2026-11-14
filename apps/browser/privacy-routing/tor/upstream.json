@@ -1,0 +1,41 @@
+{
+  "schema": "ynx-browser-arti-source-intake-v1",
+  "package": "arti",
+  "version": "2.7.0",
+  "releaseSource": "https://blog.torproject.org/arti_2_7_0_released/",
+  "releaseDate": "2026-10-01",
+  "repository": "https://gitlab.torproject.org/tpo/core/arti.git",
+  "requestedTag": "arti-v2.7.0",
+  "tagCommit": null,
+  "sourceArchiveSHA256": "a567e05cf614b579609d958e41b54602eea6983bccfec46d1e933a45605dd813",
+  "binarySHA256": "fbb7d956875f58b5bf25f329c3066d437d9a223098d450a1c7209970634d8e6a",
+  "license": "MIT OR Apache-2.0",
+  "licenseEvidence": "https://docs.rs/crate/arti/latest/source/Cargo.toml (publisher source shown as version 2.7.0 during intake)",
+  "rustVersionEvidence": "publisher Cargo.toml Rust1.92; managed official Rust1.92 installed into isolated supply tooling with no global PATH modification",
+  "officialBinaryStatus": "Tor's compiling guide states no official binaries; a fixed source build is required",
+  "errorsPreserved": [
+    "crates.io version metadata GET returned HTTP 403",
+    "fixed GitLab source/license URLs were inaccessible through web tool"
+  ],
+  "sourceBuild": "PASS actual macOSarm64 release locked jobs1 fixedRust1.92.0 -Cstrip=none; lock unchanged",
+  "dependencyLock": "Cargo.lock SHA256866b32b0fea381705308414e976d4125644c7b88772dbf508ea950369dd29689",
+  "sourceAndBinaryIntake": "verified publishedsource registrychecksum + full publishedlock + toolchain + actualbinary; separate from Git tag and Browser release",
+  "productionPlatformAdmission": "BLOCKED: observed WebKit IPv4/IPv6 RTC leakage; system filter source compiled but unsigned/uninstalled/unactivated; user has no Apple developer team",
+  "networkTests": "PASS original deferred greeting/shutdown and new existing-profile exclusive-lease regression. PASS actual bridged Native adapter Tor check IsTor=true. DuckDuckGo error418 is not successful search. Actual proxy-only WebKit RTC leakage FAIL; new OS filter NOT_RUN.",
+  "sourceOrigin": "https://static.crates.io/crates/arti/arti-2.7.0.crate",
+  "checksumOrigin": "https://index.crates.io/ar/ti/arti",
+  "commitEvidence": "published .cargo_vcs_info.json; direct GitLab tag lookup timed out, tag-to-commit not independently verified",
+  "publishedSourceVCSCommit": "ce8bc6e0998bd5a4efdf06dd62dce53c98ea1087",
+  "managedTransport": {
+    "version": "lyrebird 0.9.0",
+    "expertBundle": "16.0 macos-aarch64",
+    "publisherSource": "https://dist.torproject.org/torbrowser/16.0/tor-expert-bundle-macos-aarch64-16.0.tar.gz",
+    "officiallyListedMirror": "https://tor.eff.org/dist/torbrowser/16.0/tor-expert-bundle-macos-aarch64-16.0.tar.gz",
+    "archiveSHA256": "b8da251eccbe9e82f3681ee3af3c97fb4291c4a4e153e5b824bde48a1117cd6a",
+    "primaryFingerprint": "EF6E286DDA85EA2A4BA7DE684E2C6E8793298290",
+    "signatureVerification": "OpenPGP.js6.3.2 primary validity and detached signature verified; original failed/incomplete verifier attempts preserved",
+    "executableRelativePath": "tor/pluggable_transports/lyrebird",
+    "executableSHA256": "7c0ac55caec0d0977477cbe3fcba4ea35867d84876af7d61c7f7373b1f2f3e1d",
+    "licenseRelativePath": "docs/lyrebird.txt"
+  }
+}

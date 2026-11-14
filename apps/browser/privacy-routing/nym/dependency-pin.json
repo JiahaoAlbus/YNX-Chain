@@ -1,0 +1,54 @@
+{
+  "release": "nym-binaries-v2026.21-hanoi",
+  "commit": "f92749c5f45bf1fdaacb824f9796bca2d641c6f9",
+  "crateVersion": "1.1.88",
+  "officialPublishedSocksBinarySHA256": "f4c9062f6d238a8ceb6c4d6f30e5479e4a6c6a18b93107ca3c1bf60ff09991a9",
+  "officialReleaseURL": "https://github.com/nymtech/nym/releases/tag/nym-binaries-v2026.21-hanoi",
+  "sources": {
+    "clients/socks5/src/commands/init.rs": {
+      "bytes": 4842,
+      "sha256": "668efbdaf80a8e5442702a2a297c58d1bbeddf945d8a485a11132fe99085b39b",
+      "url": "https://raw.githubusercontent.com/nymtech/nym/f92749c5f45bf1fdaacb824f9796bca2d641c6f9/clients/socks5/src/commands/init.rs"
+    },
+    "clients/socks5/src/commands/run.rs": {
+      "bytes": 3295,
+      "sha256": "df320b445947d7d55654b3ec91d4ebb26189e85de414be4c80d6995ec5473bbc",
+      "url": "https://raw.githubusercontent.com/nymtech/nym/f92749c5f45bf1fdaacb824f9796bca2d641c6f9/clients/socks5/src/commands/run.rs"
+    },
+    "clients/socks5/src/config/mod.rs": {
+      "bytes": 5441,
+      "sha256": "40e929870b379329777f3f7760775211b49e0c5f9ef60edd82929fd0260decfd",
+      "url": "https://raw.githubusercontent.com/nymtech/nym/f92749c5f45bf1fdaacb824f9796bca2d641c6f9/clients/socks5/src/config/mod.rs"
+    },
+    "clients/socks5/Cargo.toml": {
+      "bytes": 1654,
+      "sha256": "2475d3e475d7bdfb503e46cfe25ba8de7c88f0511f6fe11e1acbce7ce545fdf0",
+      "url": "https://raw.githubusercontent.com/nymtech/nym/f92749c5f45bf1fdaacb824f9796bca2d641c6f9/clients/socks5/Cargo.toml"
+    },
+    "common/socks5-client-core/src/config/mod.rs": {
+      "bytes": 5838,
+      "sha256": "850b2e2455554640f1baa46f9f1da27ac72010608133233defb632e62583f85d",
+      "url": "https://raw.githubusercontent.com/nymtech/nym/f92749c5f45bf1fdaacb824f9796bca2d641c6f9/common/socks5-client-core/src/config/mod.rs"
+    },
+    "Cargo.toml": {
+      "bytes": 27197,
+      "sha256": "a4ed1bd0f63062fd990341ab2ea5062069f3d22272c361f0ecaa4926165c4104",
+      "url": "https://raw.githubusercontent.com/nymtech/nym/f92749c5f45bf1fdaacb824f9796bca2d641c6f9/Cargo.toml"
+    },
+    "Cargo.lock": {
+      "bytes": 366390,
+      "sha256": "467c16dec695795084b23a28d76411b3955f993fb9cf17965ee5825faacfa695",
+      "url": "https://raw.githubusercontent.com/nymtech/nym/f92749c5f45bf1fdaacb824f9796bca2d641c6f9/Cargo.lock"
+    },
+    "LICENSE": {
+      "error": "HTTP Error 404: Not Found"
+    }
+  },
+  "macOSBinarySupply": "BUILT locally: Mach-O arm64 21968080B SHA9d6bd3ab792de5c0e2635c6e5fa347447a50e72aa2012ee546e5a169ca7b3df7; not A official release/install",
+  "license": "Apache-2.0 (source SPDX and workspace)",
+  "runtime": "CLI checks pass; fresh free B1 init fails gateway DNS; separate B2 startup cancellation pass; no route READY",
+  "initAnonymousFlag": "--use-reply-surbs true",
+  "runAnonymousFlag": "--use-anonymous-replies true",
+  "macOSToolchain": "managed Rust1.94.0 (4a4ef493e3a1488c6e321570238084b38948f6db), isolated no-modify-path installation",
+  "buildFlags": "--release --locked --jobs1, RUSTFLAGS=-Cstrip=none, offline after full locked workspace fetch"
+}

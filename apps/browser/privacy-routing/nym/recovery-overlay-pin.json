@@ -1,0 +1,52 @@
+{
+  "baseCommit": "f92749c5f45bf1fdaacb824f9796bca2d641c6f9",
+  "class": "YNX explicit recovery/control-plane DNS/run-provider/storage-preservation overlay, not official original bytes",
+  "files": {
+    "common/client-core/src/cli_helpers/client_init.rs": {
+      "before": "101ab0e9de47a5b342e5846386a6fa11bd10c8b2c5c454a53b72859b56bd841e",
+      "after": "9f16d01d470b16d3400dd8531c0c42417bfeaa0d8e024a61297bde1cdbe120ff"
+    },
+    "clients/socks5/src/commands/init.rs": {
+      "before": "668efbdaf80a8e5442702a2a297c58d1bbeddf945d8a485a11132fe99085b39b",
+      "after": "d0269a7cbac88887724d4c5be37fdfb8c1fe4514d02bbdfff167c217fbd052ae"
+    },
+    "common/client-libs/gateway-client/src/client/config.rs": {
+      "before": "0120016b1065083b971a09434494f90d809a0da890e674b89004eebfd02e60f3",
+      "after": "654cca9dac64ce2d94f14b50e8d8abd0188c4fb489733e48a55f87c614be3486"
+    },
+    "clients/socks5/src/commands/run.rs": {
+      "before": "df320b445947d7d55654b3ec91d4ebb26189e85de414be4c80d6995ec5473bbc",
+      "after": "39261bc33c2be47b3f4fe7c0fead1b95e4faf37431e165a2e07bf7dcb7f7d7ac"
+    },
+    "common/client-core/src/client/base_client/non_wasm_helpers.rs": {
+      "before": "46c2fd55a7fca5b94041ff7ae4139d8946fe2309c0d8fa5c4a5b69c2777c5702",
+      "after": "752bc9a5da4981a76f998aa9d218d3400168802f7cd09ba60777ea1d1ccad097"
+    },
+    "common/client-core/surb-storage/src/backend/fs_backend/mod.rs": {
+      "before": "4fdf57d5eed590409f0c22a55b5a16e1889ff4cce8721e2b49492b97989780fe",
+      "after": "798c6ed892f02a99756978b8d1e1a9a420c9460672e30c5b2791379d42f00c8f"
+    },
+    "common/client-core/src/client/real_messages_control/message_handler.rs": {
+      "before": "fff9ca8b2b78b19fef0b71a247daffb0d8e06d31f8c9827d16c004e9ac294e58",
+      "after": "139e337505836e4da9d5a4686370a26aaa86138489ad2d46618384b82d7f0885"
+    },
+    "common/client-core/src/client/received_buffer.rs": {
+      "before": "3086141f6c641469407a374e94a7047bed1eb7fe7ff58459aba1a3e490a4d258",
+      "after": "e3de28477fc7f766a65e86546af543514186ebc4bda31eabf99acacc2fe32e41"
+    },
+    "common/socks5-client-core/src/lib.rs": {
+      "before": "bbc65e11026449fee9bc24502fb70352e3e3dee25f824c96a913b295472c2636",
+      "after": "fbe204d7c9b93519545c52979073065b1c8cdec18ce31507127101cee4f6e0df"
+    },
+    "common/socks5-client-core/src/socks/client.rs": {
+      "before": "3070ec76252202d8c5b4c9ba127dcf064262c762eef5f0e682ce7d4af1c0f4f3",
+      "after": "b74923c71725ddd060fef7ebf686ba5476c6de66c78dc82ad9127854b9128f7f"
+    },
+    "common/socks5-client-core/src/socks/mixnet_responses.rs": {
+      "before": "23a48f04aad19280da9ee91652374135e2af18f646f8704c7fc54c654051bad0",
+      "after": "f319835a30cc4626ac526a5a393303730e82f1b3609229b386aaa59d321d4624"
+    }
+  },
+  "patchSHA256": "28b6d9447563a8fd459344f97569502e3c9472c7cb826ab9a9ea905d975324a1",
+  "originalBinarySHA256": "9d6bd3ab792de5c0e2635c6e5fa347447a50e72aa2012ee546e5a169ca7b3df7"
+}

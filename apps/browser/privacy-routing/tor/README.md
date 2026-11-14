@@ -1,0 +1,45 @@
+# Official Arti macOS dependency
+
+Official published Arti 2.7.0 source was retrieved from static.crates.io and its SHA-256 matched the official index.crates.io entry: a567e05cf614b579609d958e41b54602eea6983bccfec46d1e933a45605dd813. Published VCS commit is ce8bc6e0998bd5a4efdf06dd62dce53c98ea1087; this is registry publisher provenance, not independent Git tag verification. The complete published Cargo.lock SHA-256 is 866b32b0fea381705308414e976d4125644c7b88772dbf508ea950369dd29689. Publisher Cargo.toml declares MIT OR Apache-2.0 and Rust1.92. The earlier metadata403/Git-tag timeout remain recorded, not bypassed with a mirror.
+
+Fixed Rust1.92.0 was installed through official rustup1.28.2 into the owner's external supply tooling directory with private RUSTUP_HOME/CARGO_HOME and --no-modify-path. Actual cargo release --locked --jobs1 succeeded. macOS27 initially rejected a proc-macro dylib's malformed LINKEDIT; normal RUSTFLAGS=-Cstrip=none fixed compiler output without changing runtime checks. Lock remained unchanged. Actual arm64 Arti binary is20,098,328 bytes, SHA-256 fbb7d956875f58b5bf25f329c3066d437d9a223098d450a1c7209970634d8e6a. No distribution or notarization claim.
+
+Exact source/toolchain/argv/env/hash/build records are in owner/P05/privacy-routing/supply/tor/build and artifact/SOURCE-BINARY.json. Reproduction uses the recorded fixed toolchain, source and unchanged lock, with independent CARGO_HOME/TARGET/TMP and the above strip flag; no global toolchain or system proxy is changed. This is a dependency build, not the original A owner's formal Browser package.
+
+ArtiProcessAdapter validates exact published source pin, fixed version and executable SHA before spawn. Generated config binds SOCKS only127.0.0.1, disables DNS/RPC listeners, confines cache/state, and defaults defer_bootstrap=true. Process-running and listener creation are never ready. Bounded complete INFO lines from fixed upstream proxy module separately identify deferred bootstrap and sufficient bootstrap; unrecognized/partial/oversize output stays unready. A new process generation rejects old callbacks. Cancel drops readiness before termination and retains the process handle until exit. For actual network bootstrap, path changes and sleep/wake fence the process; actual host Wi-Fi/sleep transitions remain untested.
+
+TorRouteProvider conforms to the parent PrivacyRouteProvider contract. It accepts a trusted supplied pin/profile only after the parent-owned platform admission permits content; bootstrap has a180s direct or600s bridged bound and supports cancellation, and timeout/exits remain blocked. Default supplied-build admission isfalse, so the provider never opens web content. TorRoutedWebViewFactory independently checks admission before fresh nonpersistent data store -> SOCKSv5 ProxyConfiguration allowFailover=false -> WKWebView construction. No JavaScript or private KVC preference substitutes for egress isolation.
+
+## Actual checks and boundary
+
+13 concentrated configuration/pin/parser/fence checks passed. Real official --version, --help and proxy --help returned0. Real adapter Manual/deferred startup acknowledged the official signal; a loopback SOCKS5 greeting returned05/00 without CONNECT or a target; cancel/shutdown exit and a second process's forced SIGKILL exit9 were observed. Configuration first failed because the external mount root is group-writable under Arti fs-mistrust. No check was disabled or mount permission changed: synthetic application state moved to a fresh private normal-user Library/Application Support/YNX Browser Route QA directory. The real parser also exposed JSON escaped slash as invalid TOML; it was corrected with withoutEscapingSlashes.
+
+An earlier actual Tor-entry/bootstrap-only attempt sent no website/CONNECT target but did not observe sufficient-bootstrap readiness within90s. The owned process was stopped; that original direct attempt did not verify a Tor-ready outcome. Later bridged evidence is recorded below. The first negative probe used an unhandled Swift test error and exited-5; that is not a Browser crash/fault acceptance result. The test harness now reports ordinary exit1 for an unverified result. Runtime profiles and errors remain preserved.
+
+The current public WebKit proxy API does not establish full WebRTC/STUN/QUIC/UDP/DNS-prefetch/native-download/background isolation. Current production admission remainsfalse. Real Browser routed package, two-site/search/cross-origin/download test, scoped packet capture, Wi-Fi/sleep/wake/browser-crash faults and P50/P95 are NOT_RUN. No claim of anonymity or equivalence to Tor Browser.
+
+## Focused helpers
+
+From the Browser worktree, the helpers can be compiled as a single temporary test module without Package/lock edits:
+
+```sh
+swiftc -module-name YNXBrowserCore -parse-as-library apps/browser/native/Sources/YNXBrowserCore/*.swift apps/browser/native/Sources/YNXBrowserNative/PrivacyTorPlatform.swift apps/browser/privacy-routing/tor/tests/PlatformProbe.swift -o /tmp/ynx-p05-tor/platform-probe
+swiftc -module-name YNXBrowserCore -parse-as-library apps/browser/native/Sources/YNXBrowserCore/*.swift apps/browser/native/Sources/YNXBrowserNative/PrivacyTorPlatform.swift apps/browser/privacy-routing/tor/tests/LifecycleProbe.swift -o /tmp/ynx-p05-tor/lifecycle-probe
+```
+
+The expected self-import warning is specific to this test compile; normal Native imports the real Core module. LifecycleProbe takes the exact official binary path, a fresh private user QA parent directory, and a free loopback port; default is Manual/deferred. Optional fifth argument requests bounded Tor-entry bootstrap only and still never sends a website target. Do not use real browsing/account data or production routing state.
+
+Primary sources: [official release](https://blog.torproject.org/arti_2_7_0_released/), [compiling guide](https://arti.torproject.org/guides/compiling-arti/), [publisher crate](https://docs.rs/crate/arti/2.7.0), [CLI](https://arti.torproject.org/guides/cli-reference/), [Tor browser-leak warning](https://arti.torproject.org/guides/configuring-arti/), [Apple proxy API](https://developer.apple.com/documentation/network/proxyconfiguration), [Rust LINKEDIT bug](https://github.com/rust-lang/rust/issues/157750).
+
+
+## Current bridged backend and process isolation
+
+The original direct-entry attempt is preserved. A later managed obfs4 run did bootstrap using Arti's own transport lifecycle. Lyrebird0.9.0 came from the Tor Expert Bundle16.0 macOS-aarch64 archive, SHA256 b8da251eccbe9e82f3681ee3af3c97fb4291c4a4e153e5b824bde48a1117cd6a. The archive's detached publisher signature and primary key were verified with OpenPGP.js6.3.2, known primary fingerprint EF6E286DDA85EA2A4BA7DE684E2C6E8793298290. The selected transport SHA256 is7c0ac55caec0d0977477cbe3fcba4ea35867d84876af7d61c7f7373b1f2f3e1d. Transport bytes were copied unchanged into a private user application-support directory. No mount permission, trust store, global proxy or DNS setting changed.
+
+The actual Native adapter then returned sufficient-bootstrap readiness. Normal HTTPS over SOCKS5h to check.torproject.org reported IsTor=true, exit192.42.116.102. DuckDuckGo followed one redirect to its error418 page with HTTP200 and no result links; that is **not successful search**. A later official DuckDuckGo onion-address trial had a SOCKS failure/no body, and the actual adapter path-change fence stopped its original process. Original failure logs and warm/cold timing remain separate, with no P50/P95 claim.
+
+The adapter now accepts an existing private current-user route directory, holds an exclusive no-follow profile lease before replacing its own generated config, and uses SIGINT plus bounded shutdown. OwnershipProbe used the exact sealed Arti in deferred mode: existing-state reuse, simultaneous-owner rejection before config write, reaping, lease release, stop-reason reset and preservation of original marker bytes passed. No CONNECT or external target was sent by that regression.
+
+Ordinary Browser now opens dedicated per-mode LaunchServices helper apps instead of placing Standard/Tor/Nym windows in one process. All three are built from the same Native executable. Signed parent metadata pins each separately signed helper executable; helpers have immutable mode metadata, exact launch arguments and no registered Wallet callback scheme. Routed startup constructs no ordinary controller, profile restore or Wallet consumer. RoutedPackageProbe verifies those real signed package objects and runs in the existing macOS packaging path. This separation does not establish actual Network Extension source-app attribution or grant platform admission.
+
+The controlled installed WebKit matrix found real IPv4/IPv6 WebRTC leakage with proxyConfigurations alone. The new system-filter source is compiled but not signed/installed/activated. The user reports no Apple developer team; production route admission remainsfalse. Actual OS source-app attribution, complete filter lifecycle, successful DuckDuckGo result rendering and routed downloads remain outstanding.

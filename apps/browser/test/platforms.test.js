@@ -47,7 +47,7 @@ test("desktop apps expose mature engine, recovery, files, permissions and Wallet
   for (const token of ["WKWebView", "isRestorable = false", "runOpenPanelWith", "WKDownloadDelegate", "requestMediaCapturePermissionFor", "Signed update boundary"]) {
     assert.ok(mac.includes(token), `macOS host omits ${token}`);
   }
-  for (const token of ["clearLegacyWindowFrames()", "minimumWindowSize = NSSize(width: 920, height: 620)", "addTab.translatesAutoresizingMaskIntoConstraints = false", "privateTab.translatesAutoresizingMaskIntoConstraints = false", "YNX_BROWSER_WINDOW_EVIDENCE_FILE"]) {
+  for (const token of ["clearLegacyWindowFrames()", "minimumWindowSize = NSSize(width: 1000, height: 700)", "addTab.translatesAutoresizingMaskIntoConstraints = false", "createWindow(privateMode: true)", "YNX_BROWSER_WINDOW_EVIDENCE_FILE"]) {
     assert.ok(mac.includes(token), `macOS window usability gate omits ${token}`);
   }
   assert.match(mac, /downloadContexts\[ObjectIdentifier\(download\)\]/);

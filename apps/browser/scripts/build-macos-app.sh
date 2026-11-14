@@ -4,11 +4,16 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 swift build -c release --package-path "$ROOT/native"
 APP="$ROOT/dist/macos/YNX Browser Testnet Preview.app"
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$ROOT/native/.build/release/YNXBrowserNative" "$APP/Contents/MacOS/YNXBrowserNative"
-cp "$ROOT/native/AppBundle/Info.plist" "$APP/Contents/Info.plist"
-codesign --force --sign - --timestamp=none "$APP"
-codesign --verify --deep --strict "$APP"
+mkdir -p "$(dirname "$APP")"
+/usr/bin/python3 "$ROOT/scripts/package-macos-native.py" --binary "$ROOT/native/.build/release/YNXBrowserNative" --output "$APP"
+VERIFY_DIR="$(mktemp -d "${TMPDIR:-/tmp}/ynx-routed-package.XXXXXX")"
+trap 'rm -rf "$VERIFY_DIR"' EXIT
+swiftc -module-name YNXBrowserCore -parse-as-library "$ROOT"/native/Sources/YNXBrowserCore/*.swift \
+  "$ROOT/native/Sources/YNXBrowserNative/PrivacyTorPlatform.swift" \
+  "$ROOT/native/Sources/YNXBrowserNative/PrivacyRouteWindow.swift" \
+  "$ROOT/native/Sources/YNXBrowserNative/BrowserRoutedApplication.swift" \
+  "$ROOT/privacy-routing/tor/tests/RoutedPackageProbe.swift" -o "$VERIFY_DIR/verify-package"
+"$VERIFY_DIR/verify-package" "$APP"
 
 # Normalize archive metadata and entry order so identical source bytes produce
 # an identical local Testnet Preview ZIP. This does not change the ad-hoc

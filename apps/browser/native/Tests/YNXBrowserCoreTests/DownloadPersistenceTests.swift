@@ -4,6 +4,26 @@ import Testing
 
 @Suite("Native download persistence boundary")
 struct DownloadPersistenceTests {
+    @Test("P05-04 strips paths and commits complete bytes atomically")
+    func atomicFileCommit() throws {
+        #expect(BrowserDownloadFile.safeFilename("../../outside.txt") == "outside.txt")
+        #expect(BrowserDownloadFile.safeFilename("C:\\private\\report.txt") == "report.txt")
+        #expect(BrowserDownloadFile.safeFilename("..") == "Download")
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let destination = directory.appendingPathComponent("saved.txt")
+        try Data("old".utf8).write(to: destination)
+        let staging = BrowserDownloadFile.stagingURL(for: destination)
+        try Data("complete download".utf8).write(to: staging)
+        #expect(try Data(contentsOf: destination) == Data("old".utf8))
+        try BrowserDownloadFile.commit(staging: staging, destination: destination)
+        #expect(try Data(contentsOf: destination) == Data("complete download".utf8))
+        #expect(!FileManager.default.fileExists(atPath: staging.path))
+        #expect(throws: (any Error).self) { try BrowserDownloadFile.commit(staging: staging, destination: destination) }
+        #expect(try Data(contentsOf: destination) == Data("complete download".utf8))
+    }
+
     @Test("normal then private persists only the normal record")
     func normalPrivatePair() throws {
         let (suite, defaults) = isolatedDefaults()

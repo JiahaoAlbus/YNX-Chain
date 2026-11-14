@@ -1,0 +1,26 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Synthetic route probe</title>
+<h1>Synthetic route probe</h1><p>This local fixture sends only this run's test traffic. It does not read browsing history, cookies, forms, microphone or camera.</p>
+<button id="start">Run HTTPS, WSS and WebRTC probes</button>
+<a id="download" href="/download?probe=download-__RUN_ID__" download>Save synthetic download</a><pre id="result"></pre>
+<script>
+const result = document.getElementById('result');
+const report = value => { result.textContent += JSON.stringify(value) + '\n'; };
+document.getElementById('start').onclick = async () => {
+  report({runID:'__RUN_ID__', kind:'probe', protocol:'https'});
+  try { const response = await fetch('/https?probe=https-__RUN_ID__', {cache:'no-store'}); report({protocol:'https', status:response.status}); } catch { report({protocol:'https', status:'unavailable'}); }
+  const ws = new WebSocket('wss://' + location.host + '/wss?probe=wss-__RUN_ID__');
+  ws.onmessage = () => { report({protocol:'wss', status:'received-synthetic-frame'}); ws.close(); };
+  ws.onerror = () => report({protocol:'wss', status:'unavailable'});
+  if (!window.RTCPeerConnection) { report({protocol:'webrtc', status:'unavailable-not-proof-of-block'}); return; }
+  const rtc = new RTCPeerConnection({iceServers:[{urls:'stun:__RUN_ID__.leak.test:__STUN_PORT__'}]});
+  rtc.createDataChannel('synthetic');
+  rtc.onicecandidate = event => {
+    if (!event.candidate) { report({protocol:'webrtc', status:'gathering-complete-not-capture-proof'}); return; }
+    // Do not export raw local interface addresses or candidate strings.
+    const address = event.candidate.address || '';
+    report({protocol:'webrtc', candidateType:event.candidate.type || 'unknown', addressFamily:address.endsWith('.local') ? 'mdns' : address.includes(':') ? 'ipv6' : /^\d+\./.test(address) ? 'ipv4' : 'unknown'});
+  };
+  try { await rtc.setLocalDescription(await rtc.createOffer()); } catch { report({protocol:'webrtc', status:'unavailable'}); }
+  setTimeout(() => rtc.close(), 5000);
+};
+</script></html>

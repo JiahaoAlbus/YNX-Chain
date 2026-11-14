@@ -1,4 +1,30 @@
 import Foundation
+import Darwin
+
+public enum BrowserDownloadFile {
+    public static func safeFilename(_ suggested: String) -> String {
+        let leaf = suggested.replacingOccurrences(of: "\\", with: "/").components(separatedBy: "/").last ?? ""
+        let cleaned = leaf.components(separatedBy: .controlCharacters).joined().trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleaned.isEmpty || cleaned == "." || cleaned == ".." ? "Download" : String(cleaned.prefix(240))
+    }
+
+    public static func stagingURL(for destination: URL) -> URL {
+        destination.deletingLastPathComponent().appendingPathComponent(".ynx-download-\(UUID().uuidString).part")
+    }
+
+    /// Both paths are in the chosen directory so POSIX rename commits the complete file atomically.
+    public static func commit(staging: URL, destination: URL) throws {
+        guard staging.isFileURL, destination.isFileURL,
+              staging.deletingLastPathComponent().standardizedFileURL == destination.deletingLastPathComponent().standardizedFileURL,
+              staging.lastPathComponent.hasPrefix(".ynx-download-"), staging.pathExtension == "part" else {
+            throw CocoaError(.fileWriteInvalidFileName)
+        }
+        let result = staging.withUnsafeFileSystemRepresentation { source in
+            destination.withUnsafeFileSystemRepresentation { target in rename(source!, target!) }
+        }
+        guard result == 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+    }
+}
 
 public struct BrowserDownloadRecord: Codable, Equatable, Sendable {
     public let filename: String

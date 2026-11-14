@@ -1,0 +1,547 @@
+--- a/clients/socks5/src/commands/init.rs
++++ b/clients/socks5/src/commands/init.rs
+@@ -25,6 +25,8 @@
+ impl InitialisableClient for CliSocks5Client {
+     type InitArgs = Init;
+ 
++    fn resume_unconfigured(args: &Self::InitArgs) -> bool { args.resume_unconfigured }
++
+     fn initialise_storage_paths(id: &str) -> Result<(), Self::Error> {
+         fs::create_dir_all(default_data_directory(id))?;
+         fs::create_dir_all(default_config_directory(id))?;
+@@ -45,6 +47,9 @@
+ 
+ #[derive(Args, Clone, Debug)]
+ pub(crate) struct Init {
++    /// Recover an unconfigured YNX route profile using its existing keys; never generate replacements.
++    #[clap(long)]
++    resume_unconfigured: bool,
+     #[command(flatten)]
+     common_args: CommonClientInitArgs,
+ 
+--- a/clients/socks5/src/commands/run.rs
++++ b/clients/socks5/src/commands/run.rs
+@@ -32,6 +32,10 @@
+     #[clap(long)]
+     provider: Option<Recipient>,
+ 
++    /// Explicit local YNX callee contract; original upstream clients reject this flag.
++    #[clap(long, value_parser = ["ynx-mixnet-v1"])]
++    ynx_runtime_contract: Option<String>,
++
+     /// Port for the socket to listen on
+     #[clap(short, long)]
+     port: Option<u16>,
+@@ -64,11 +68,48 @@
+     }
+ }
+ 
++fn apply_run_overrides(config: crate::config::Config, args: &Run) -> crate::config::Config {
++    let mut config = override_config(config, OverrideConfig::from(args.clone()));
++    // YNX: upstream parsed --provider but dropped it before applying overrides.
++    // Apply to the in-memory run config only; never rewrite the saved profile.
++    if let Some(provider) = args.provider {
++        config.core.socks5.provider_mix_address = provider.to_string();
++    }
++
++    config
++}
++
++fn validate_runtime_contract(config: &crate::config::Config) -> Result<(), std::io::Error> {
++    let normal = nym_client_core::config::DebugConfig::default();
++    let traffic = config.core.base.debug.traffic;
++    let cover = config.core.base.debug.cover_traffic;
++    let valid = config.core.socks5.send_anonymously
++        && config.core.base.client.disabled_credentials_mode
++        && config.core.socks5.bind_address.ip() == std::net::Ipv4Addr::LOCALHOST
++        && config.core.socks5.bind_address.port() > 0
++        && traffic.packet_type == nym_sphinx::params::PacketType::Mix
++        && !traffic.disable_main_poisson_packet_distribution
++        && !cover.disable_loop_cover_traffic_stream
++        && traffic.secondary_packet_size.is_none()
++        && traffic.average_packet_delay == normal.traffic.average_packet_delay
++        && traffic.message_sending_average_delay == normal.traffic.message_sending_average_delay
++        && cover.loop_cover_traffic_average_delay == normal.cover_traffic.loop_cover_traffic_average_delay;
++    if !valid {
++        return Err(std::io::Error::other("YNX runtime contract rejects non-anonymous/paid/non-loopback/fast traffic config"));
++    }
++    Ok(())
++}
++
+ pub(crate) async fn execute(args: Run) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+     eprintln!("Starting client {}...", args.common_args.id);
+ 
+     let mut config = try_load_current_config(&args.common_args.id).await?;
+-    config = override_config(config, OverrideConfig::from(args.clone()));
++    config = apply_run_overrides(config, &args);
++    if args.ynx_runtime_contract.is_some() {
++        validate_runtime_contract(&config)?;
++        log::info!("YNX runtime contract ynx-mixnet-v1 applied; provider={}", config.core.socks5.provider_mix_address);
++    }
++
+ 
+     let storage = OnDiskPersistent::from_paths(
+         config.storage_paths.common_paths,
+@@ -86,3 +127,30 @@
+     .run_forever()
+     .await
+ }
++
++#[cfg(test)]
++mod ynx_run_override_tests {
++    use super::*;
++    use clap::Parser;
++    #[derive(Parser)]
++    struct Cli { #[command(flatten)] run: Run }
++
++    #[test]
++    fn supplied_provider_reaches_actual_run_config() {
++        let original = "HnyaYScEQKAPqdYaUDQZfRrS4rju3uj6MuqFhKj1zBwM.6Rj9DU8W6N4fP1kd4zqGcvGo4byCTwfidAYPkSctesW4@GD9GX9Qb4poPf2JTf3Z9iggABxojVfPB3AgY59RXKu6n";
++        let selected = "EhWXU9uaE9t8tBaZRp7d6ZTTFCeqrpYhByuK9kTszdGK.3nTZiGp3Fasyw31KUvkRmARk9fC3aSziRyCbvYZaSUQi@Hb8A6xoAKazBRWTGZ7eaCDZdR1eciaKWKrNqmydn4Bbw";
++        let args = Cli::try_parse_from(["test", "--id", "ynx-route-provider-fixture", "--provider", selected, "--use-anonymous-replies", "true"]).unwrap().run;
++        let config = apply_run_overrides(crate::config::Config::new("ynx-route-provider-fixture", original), &args);
++        assert_eq!(config.core.socks5.provider_mix_address, selected);
++        assert!(config.core.socks5.send_anonymously);
++        let mut safe = config.clone();
++        safe.core.base.client.disabled_credentials_mode = true;
++        assert!(validate_runtime_contract(&safe).is_ok());
++        safe.core.socks5.send_anonymously = false;
++        assert!(validate_runtime_contract(&safe).is_err());
++        safe.core.socks5.send_anonymously = true;
++        safe.core.base.debug.traffic.disable_main_poisson_packet_distribution = true;
++        assert!(validate_runtime_contract(&safe).is_err());
++
++    }
++}
+--- a/common/client-core/src/cli_helpers/client_init.rs
++++ b/common/client-core/src/cli_helpers/client_init.rs
+@@ -8,7 +8,7 @@
+         base_client::{
+             non_wasm_helpers::setup_fs_gateways_storage, storage::helpers::set_active_gateway,
+         },
+-        key_manager::persistence::{OnDiskKeys, Passphrase},
++        key_manager::persistence::{KeyStore, OnDiskKeys, Passphrase},
+     },
+     init::types::{GatewaySelectionSpecification, GatewaySetup, InitResults},
+ };
+@@ -31,6 +31,9 @@
+     fn default_config_path(id: &str) -> PathBuf;
+ 
+     fn construct_config(init_args: &Self::InitArgs) -> Self::Config;
++
++    /// Explicit YNX recovery path: load existing keys, never generate replacements.
++    fn resume_unconfigured(_init_args: &Self::InitArgs) -> bool { false }
+ }
+ 
+ #[cfg_attr(feature = "cli", derive(clap::Args))]
+@@ -131,7 +134,19 @@
+         .into());
+     }
+ 
+-    C::initialise_storage_paths(id)?;
++    let resume = C::resume_unconfigured(&init_args);
++    let config_path = C::default_config_path(id);
++    let _resume_lock = if resume {
++        if !id.starts_with("ynx-route-") || !id.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'-') {
++            return Err(resume_error::<C>(id, &config_path, "Recovery is restricted to an explicit YNX route profile").into());
++        }
++        let parent = config_path.parent().ok_or_else(|| resume_error::<C>(id, &config_path, "Missing config parent"))?;
++        let file = std::fs::OpenOptions::new().create(true).truncate(false).read(true).write(true)
++            .open(parent.join(".ynx-resume.lock")).map_err(|_| resume_error::<C>(id, &config_path, "Recovery profile unavailable"))?;
++        file.try_lock().map_err(|_| resume_error::<C>(id, &config_path, "Another recovery owns this profile"))?;
++        if config_path.exists() { return Err(resume_error::<C>(id, &config_path, "Config already exists").into()); }
++        Some(file)
++    } else { C::initialise_storage_paths(id)?; None };
+ 
+     // Attempt to use a user-provided gateway, if possible
+     let user_chosen_gateway_id = common_args.gateway;
+@@ -163,14 +178,32 @@
+     );
+ 
+     let key_store = OnDiskKeys::with_passphrase(paths.keys.clone(), key_passphrase);
++    let key_binding = if resume {
++        KeyStore::load_keys(&key_store).await.map_err(|source| ClientCoreError::KeyStoreError { source: Box::new(source) })?;
++        Some(resume_key_binding(&paths.keys).map_err(|_| resume_error::<C>(id, &config_path, "Recovery keys unavailable"))?)
++    } else { None };
+     let details_store = setup_fs_gateways_storage(&paths.gateway_registrations).await?;
++    let registered = if resume {
++        crate::client::base_client::storage::helpers::get_all_registered_identities(&details_store).await?
++    } else { Vec::new() };
++    let resume_gateway = if registered.is_empty() { None } else {
++        let active = crate::client::base_client::storage::helpers::get_active_gateway_identity(&details_store).await?;
++        match active {
++            Some(id) => Some(id.to_base58_string()),
++            None if registered.len() == 1 => Some(registered[0].to_base58_string()),
++            None => return Err(resume_error::<C>(id, &config_path, "Ambiguous original gateway state").into()),
++        }
++    };
+ 
+     // `ThreadRng` is not `Send`, and this rng is passed into an async fn
+     let mut rng = os_rng();
+-    crate::init::generate_new_client_keys(&mut rng, &key_store).await?;
++    if !resume { crate::init::generate_new_client_keys(&mut rng, &key_store).await?; }
+ 
+     // Setup gateway by either registering a new one, or creating a new config from the selected
+     // one but with keys kept, or reusing the gateway configuration.
++    let gateway_setup = if let Some(gateway_id) = resume_gateway {
++        GatewaySetup::MustLoad { gateway_id: Some(gateway_id) }
++    } else {
+     let available_gateways = if let Some(custom_mixnet) = common_args.custom_mixnet.as_ref() {
+         let hardcoded_topology = NymTopology::new_from_file(custom_mixnet).map_err(|source| {
+             ClientCoreError::CustomTopologyLoadFailure {
+@@ -194,11 +227,12 @@
+         .await?
+     };
+ 
+-    let gateway_setup = GatewaySetup::New {
++    GatewaySetup::New {
+         specification: selection_spec,
+         available_gateways,
+         #[cfg(unix)]
+         connection_fd_callback: None,
++    }
+     };
+ 
+     let init_details =
+@@ -206,7 +240,20 @@
+ 
+     // TODO: ask the service provider we specified for its interface version and set it in the config
+     let config_save_location = config.default_store_location();
+-    if let Err(err) = config.save_to(&config_save_location) {
++    let saved = if let Some(binding) = key_binding {
++        let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_nanos();
++        let staged = config_save_location.with_extension(format!("ynx-resume-{}-{nonce}.toml", std::process::id()));
++        let reserved = std::fs::OpenOptions::new().write(true).create_new(true).open(&staged);
++        reserved.and_then(|_| config.save_to(&staged)).and_then(|_| {
++            if resume_key_binding(&paths.keys)? != binding {
++                return Err(std::io::Error::other("Recovery keys changed concurrently; config not published"));
++            }
++            // hard_link is a no-replace atomic publish on the same filesystem, never rename-overwrite.
++            std::fs::hard_link(&staged, &config_save_location)?;
++            std::fs::remove_file(&staged)
++        })
++    } else { config.save_to(&config_save_location) };
++    if let Err(err) = saved {
+         return Err(ClientCoreError::ConfigSaveFailure {
+             typ: C::NAME.to_string(),
+             id: id.to_string(),
+@@ -241,3 +288,18 @@
+         init_results,
+     })
+ }
++
++fn resume_error<C: CliClient>(id: &str, path: &std::path::Path, message: &str) -> ClientCoreError {
++    ClientCoreError::ConfigSaveFailure { typ: C::NAME.to_string(), id: id.to_string(), path: path.to_path_buf(), source: std::io::Error::other(message) }
++}
++
++fn resume_key_binding(paths: &crate::config::disk_persistence::ClientKeysPaths) -> std::io::Result<Vec<(std::path::PathBuf, u64, std::time::SystemTime, [u8; 32])>> {
++    use sha2::{Digest, Sha256};
++    [&paths.private_identity_key_file, &paths.public_identity_key_file, &paths.private_encryption_key_file,
++     &paths.public_encryption_key_file, &paths.ack_key_file].into_iter().map(|path| {
++        let metadata = std::fs::symlink_metadata(path)?;
++        if !metadata.is_file() { return Err(std::io::Error::other("Not a regular key file")); }
++        let hash: [u8; 32] = Sha256::digest(std::fs::read(path)?).into();
++        Ok((path.clone(), metadata.len(), metadata.modified()?, hash))
++    }).collect()
++}
+--- a/common/client-core/src/client/base_client/non_wasm_helpers.rs
++++ b/common/client-core/src/client/base_client/non_wasm_helpers.rs
+@@ -9,16 +9,9 @@
+ };
+ use nym_client_core_gateways_storage::OnDiskGatewaysDetails;
+ use nym_validator_client::{QueryHttpRpcNyxdClient, nyxd};
+-use std::{io, path::Path, time::Duration};
+-use time::OffsetDateTime;
++use std::path::Path;
+ use tracing::{error, info, trace};
+ use url::Url;
+-
+-/// Maximum rename retry attempts when the database file is temporarily locked.
+-const ARCHIVE_MAX_RETRY_ATTEMPTS: u8 = 15;
+-
+-/// Delay between archive rename retry attempts.
+-const ARCHIVE_RETRY_DELAY: Duration = Duration::from_millis(200);
+ 
+ async fn setup_fresh_backend<P: AsRef<Path>>(
+     db_path: P,
+@@ -63,75 +56,6 @@
+ //     )
+ // }
+ 
+-async fn archive_corrupted_database<P: AsRef<Path>>(db_path: P) -> io::Result<()> {
+-    let db_path = db_path.as_ref();
+-    debug_assert!(db_path.exists());
+-
+-    let now = OffsetDateTime::now_utc().unix_timestamp();
+-    let suffix = format!("_{now}.corrupted");
+-
+-    let new_extension =
+-        if let Some(existing_extension) = db_path.extension().and_then(|ext| ext.to_str()) {
+-            format!("{existing_extension}.{suffix}")
+-        } else {
+-            suffix
+-        };
+-    let renamed = db_path.with_extension(new_extension);
+-
+-    // On Windows, sqlx may release its OS file handles asynchronously after
+-    // pool.close() returns, briefly keeping the file locked
+-    // (ERROR_SHARING_VIOLATION, os error 32).  Retry with a short delay to
+-    // give the OS time to flush the remaining handles.
+-    for attempt in 0..ARCHIVE_MAX_RETRY_ATTEMPTS {
+-        match tokio::fs::rename(db_path, &renamed).await {
+-            Ok(()) => return Ok(()),
+-            Err(e) if is_file_locked_error(&e) && (attempt + 1) < ARCHIVE_MAX_RETRY_ATTEMPTS => {
+-                trace!(
+-                    "Database file is temporarily locked, retrying archive \
+-                     (attempt {}/{}): {e}",
+-                    attempt + 1,
+-                    ARCHIVE_MAX_RETRY_ATTEMPTS
+-                );
+-                tokio::time::sleep(ARCHIVE_RETRY_DELAY).await;
+-            }
+-            Err(e) => {
+-                error!(
+-                    "Failed to rename corrupt database file: {} to {}",
+-                    db_path.display(),
+-                    renamed.display()
+-                );
+-                return Err(e);
+-            }
+-        }
+-    }
+-
+-    // Reached only when every attempt was blocked by a file lock.
+-    error!(
+-        "Failed to rename corrupt database file after {} attempts: {} to {}",
+-        ARCHIVE_MAX_RETRY_ATTEMPTS,
+-        db_path.display(),
+-        renamed.display()
+-    );
+-    Err(io::Error::other(
+-        "corrupt database archive blocked by persistent file lock",
+-    ))
+-}
+-
+-/// Returns `true` when the IO error indicates a temporary file lock held by another handle
+-/// within the same process.  Only meaningful on Windows; always `false` elsewhere.
+-fn is_file_locked_error(e: &io::Error) -> bool {
+-    #[cfg(windows)]
+-    {
+-        // ERROR_SHARING_VIOLATION = 32, ERROR_LOCK_VIOLATION = 33
+-        matches!(e.raw_os_error(), Some(32) | Some(33))
+-    }
+-    #[cfg(not(windows))]
+-    {
+-        let _ = e;
+-        false
+-    }
+-}
+-
+ pub async fn setup_fs_reply_surb_backend<P: AsRef<Path>>(
+     db_path: P,
+     surb_config: &config::ReplySurbs,
+@@ -144,11 +68,10 @@
+         match fs_backend::Backend::try_load(db_path).await {
+             Ok(backend) => Ok(backend),
+             Err(err) => {
+-                error!(
+-                    "setup_fs_reply_surb_backend: Failed to setup persistent storage backend for our reply needs: {err}. We're going to create a fresh database instead. This behaviour might change in the future"
+-                );
+-                archive_corrupted_database(db_path).await?;
+-                setup_fresh_backend(db_path, surb_config).await
++                // YNX: preserve an unclean/unknown reply store in place. Archiving and
++                // silently substituting an empty store can lose pending reply state.
++                error!("Reply storage failed validation; refusing automatic replacement: {err}");
++                Err(ClientCoreError::SurbStorageError { source: Box::new(err) })
+             }
+         }
+     } else {
+@@ -187,3 +110,35 @@
+     QueryHttpRpcNyxdClient::connect(client_config, nyxd_url.as_str())
+         .map_err(|source| ClientCoreError::RpcClientCreationFailure { source })
+ }
++
++#[cfg(test)]
++mod ynx_preservation_tests {
++    use super::*;
++
++    #[tokio::test]
++    async fn corrupt_reply_store_is_never_replaced_or_archived() {
++        let directory = tempfile::tempdir().unwrap();
++        let path = directory.path().join("reply.sqlite");
++        let original = b"YNX public corrupt-store rejection fixture";
++        std::fs::write(&path, original).unwrap();
++        assert!(setup_fs_reply_surb_backend(&path, &Default::default()).await.is_err());
++        assert_eq!(std::fs::read(&path).unwrap(), original);
++        assert!(std::fs::read_dir(directory.path()).unwrap().all(|p| !p.unwrap().file_name().to_string_lossy().contains("corrupted")));
++    }
++    #[tokio::test]
++    async fn unclean_completed_flush_is_rejected_without_purge() {
++        let directory = tempfile::tempdir().unwrap();
++        let path = directory.path().join("reply.sqlite");
++        let mut backend = fs_backend::Backend::init(&path).await.unwrap();
++        let storage = CombinedReplyStorage::new(1, 2);
++        backend.init_fresh(&storage).await.unwrap();
++        backend.flush_surb_storage(&storage).await.unwrap();
++        // Simulate a crash after a completed flush but before stop_storage_session.
++        // Upstream used to purge both SURBs and reply keys for this state.
++        backend.shutdown().await;
++        let before = std::fs::read(&path).unwrap();
++        assert!(setup_fs_reply_surb_backend(&path, &Default::default()).await.is_err());
++        assert!(std::fs::read(&path).unwrap() == before, "rejected reply database bytes changed");
++    }
++
++}
+--- a/common/client-core/src/client/real_messages_control/message_handler.rs
++++ b/common/client-core/src/client/real_messages_control/message_handler.rs
+@@ -594,6 +594,7 @@
+         // the surbs and the message carrying them are built against the same view of the network
+         let topology = self.get_topology()?;
+         let reply_surbs = self.generate_reply_surbs(&topology, num_reply_surbs as usize)?;
++        info!("YNX_ANON_SURBS generated={} message_bytes={} packet={}", reply_surbs.len(), message.len(), packet_type);
+ 
+         let reply_keys = reply_surbs
+             .iter()
+@@ -614,7 +615,9 @@
+         .await?;
+ 
+         tracing::trace!("storing {} reply keys", reply_keys.len());
++        let dispatched_surbs = reply_keys.len();
+         self.reply_key_storage.insert_multiple(reply_keys);
++        info!("YNX_ANON_DISPATCH queued=true stored_reply_keys={} packet={}", dispatched_surbs, packet_type);
+ 
+         Ok(())
+     }
+--- a/common/client-core/src/client/received_buffer.rs
++++ b/common/client-core/src/client/received_buffer.rs
+@@ -139,6 +139,7 @@
+         // note: this performs decryption IN PLACE without extra allocation
+         self.message_receiver
+             .recover_plaintext_from_reply(reply_ciphertext, reply_key)?;
++        debug!("YNX_REPLY_DECRYPTED encrypted_bytes={}", reply_ciphertext_size);
+         let fragment_data = reply_ciphertext;
+ 
+         Ok(self.recover_from_fragment(fragment_data, reply_ciphertext_size))
+--- a/common/client-core/surb-storage/src/backend/fs_backend/mod.rs
++++ b/common/client-core/surb-storage/src/backend/fs_backend/mod.rs
+@@ -12,6 +12,7 @@
+ use async_trait::async_trait;
+ use nym_sphinx::anonymous_replies::requests::AnonymousSenderTag;
+ use std::path::{Path, PathBuf};
++use sqlx::{ConnectOptions, Connection};
+ use time::OffsetDateTime;
+ use tracing::{error, info, warn};
+ 
+@@ -61,6 +62,23 @@
+             });
+         }
+ 
++        // YNX: reject UNKNOWN state before writable initialization/migrations.
++        // Even a migration lock can alter SQLite metadata before returning an error.
++        let options = sqlx::sqlite::SqliteConnectOptions::new()
++            .filename(database_path.as_ref())
++            .read_only(true)
++            .create_if_missing(false)
++            .disable_statement_logging();
++        let mut connection = sqlx::SqliteConnection::connect_with(&options).await?;
++        let status = sqlx::query_as::<_, (bool, OffsetDateTime, bool)>(
++            "SELECT flush_in_progress, previous_flush, client_in_use FROM status"
++        ).fetch_all(&mut connection).await;
++        connection.close().await?;
++        let status = status?;
++        if status.len() != 1 || status[0].0 || status[0].1 == OffsetDateTime::UNIX_EPOCH || status[0].2 {
++            return Err(StorageError::IncompleteDataFlush);
++        }
++
+         let manager = StorageManager::init(database_path, false).await?;
+         match Self::try_load_inner(&manager).await {
+             Ok(()) => Ok(Backend {
+@@ -97,9 +115,9 @@
+         // meaning the database doesn't contain valid data anymore
+         // so we have to purge it
+         if manager.get_client_in_use_status().await? {
+-            error!("the client hasn't undergone through graceful shutdown the last time it's gone down - we can't trust its reply surbs or stored encryption keys. They shall get purged");
+-            manager.delete_all_reply_surb_data().await?;
+-            manager.delete_all_reply_keys().await?;
++            // YNX: an unclean session is UNKNOWN, never permission to purge replies/keys.
++            error!("Unclean previous reply-storage session; refusing automatic purge");
++            return Err(StorageError::IncompleteDataFlush);
+         }
+ 
+         if let Err(err) = manager.get_reply_surb_storage_metadata().await {
+--- a/common/client-libs/gateway-client/src/client/config.rs
++++ b/common/client-libs/gateway-client/src/client/config.rs
+@@ -89,7 +89,9 @@
+             should_reconnect_on_failure: true,
+             reconnection_attempts: Self::DEFAULT_RECONNECTION_ATTEMPTS,
+             reconnection_backoff: Self::DEFAULT_RECONNECTION_BACKOFF,
+-            use_hickory_dns: true,
++            // macOS control-plane gateway hostnames use native getaddrinfo through the existing
++            // official non-Hickory connector. TLS/SNI stays unchanged; SOCKS target DNS is untouched.
++            use_hickory_dns: !cfg!(target_os = "macos"),
+         }
+     }
+ }
+--- a/common/socks5-client-core/src/lib.rs
++++ b/common/socks5-client-core/src/lib.rs
+@@ -127,6 +127,10 @@
+             .secondary_packet_size
+             .unwrap_or(base_debug.traffic.primary_packet_size);
+ 
++        info!("YNX_LISTENER_CONFIG anon={} bind={} connection_start_surbs={} per_request_surbs={} packet={} provider_interface={} socks_protocol={}",
++            socks5_config.send_anonymously, socks5_config.bind_address,
++            socks5_config.socks5_debug.connection_start_surbs, socks5_config.socks5_debug.per_request_surbs,
++            packet_type, socks5_config.provider_interface_version, socks5_config.socks5_protocol_version);
+         let authenticator = Authenticator::new(auth_methods, allowed_users);
+         let mut sphinx_socks = NymSocksServer::new(
+             socks5_config.bind_address,
+@@ -215,6 +219,15 @@
+             Some(default_query_dkg_client_from_config(&self.config.base)?)
+         };
+ 
++        info!("YNX_CONSUMED_CONFIG anon={} credentials_enabled={} dkg_client_created={} bind={} packet={} poisson_disabled={} loop_cover_disabled={} per_hop_ms={} send_ms={} cover_ms={}",
++            self.config.socks5.send_anonymously, !self.config.base.client.disabled_credentials_mode,
++            dkg_query_client.is_some(), self.config.socks5.bind_address, self.config.base.debug.traffic.packet_type,
++            self.config.base.debug.traffic.disable_main_poisson_packet_distribution,
++            self.config.base.debug.cover_traffic.disable_loop_cover_traffic_stream,
++            self.config.base.debug.traffic.average_packet_delay.as_millis(),
++            self.config.base.debug.traffic.message_sending_average_delay.as_millis(),
++            self.config.base.debug.cover_traffic.loop_cover_traffic_average_delay.as_millis());
++
+         let mut base_builder =
+             BaseClientBuilder::new(self.config.base(), self.storage, dkg_query_client)
+                 .with_shutdown(self.shutdown_manager.shutdown_tracker_owned())
+--- a/common/socks5-client-core/src/socks/client.rs
++++ b/common/socks5-client-core/src/socks/client.rs
+@@ -343,9 +343,11 @@
+         let msg =
+             Socks5ProviderRequest::new_provider_data(self.config.provider_interface_version, req);
+ 
++        let bytes = msg.into_bytes();
++        info!("YNX_ANON_CONNECT return_address=false requested_surbs={} request_bytes={}", self.config.connection_start_surbs, bytes.len());
+         let input_message = InputMessage::new_anonymous(
+             self.service_provider,
+-            msg.into_bytes(),
++            bytes,
+             self.config.connection_start_surbs,
+             TransmissionLane::ConnectionId(self.connection_id),
+             self.packet_type,
+@@ -475,6 +477,8 @@
+             SocksVersion::V5 => SocksRequest::from_stream_socks5(&mut self.stream).await?,
+         };
+ 
++        info!("YNX_SOCKS_REQUEST version={} domain={} port={} address_bytes={} target_resolution=exit",
++            request.version, matches!(request.addr_type, super::types::AddrType::Domain), request.port, request.addr.len());
+         let remote_address = request.address_string();
+ 
+         // setup for receiving from the mixnet
+--- a/common/socks5-client-core/src/socks/mixnet_responses.rs
++++ b/common/socks5-client-core/src/socks/mixnet_responses.rs
+@@ -101,6 +101,7 @@
+         reconstructed_message: ReconstructedMessage,
+     ) -> Result<(), Socks5ClientCoreError> {
+         let raw_message = reconstructed_message.message;
++        debug!("YNX_PROVIDER_RESPONSE bytes={}", raw_message.len());
+         if reconstructed_message.sender_tag.is_some() {
+             warn!("this message was sent anonymously - it couldn't have come from the service provider");
+         }
