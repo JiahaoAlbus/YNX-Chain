@@ -591,3 +591,7 @@ echo 'operator transition source controls passed: independent pins, common appro
 
 # Read-only metadata capacity controls; no remote operation or runtime binary.
 python3 -B "$repo/scripts/ops/test_public_bft_transition_capacity.py"
+
+# Actual inode/flock/fsync/no-replace controls with inert custody and explicit
+# service/UID/keycheck doubles; not a service or signing qualification.
+python3 -B "$repo/scripts/ops/test_public_bft_cold_custody.py"

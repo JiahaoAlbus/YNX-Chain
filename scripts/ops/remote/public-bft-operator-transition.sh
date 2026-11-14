@@ -90,8 +90,13 @@ try:
             need(old[k]==target[k],'original identity/layout/runtime changed: '+k)
         newroles={r['role']:r for r in target['roles']}; need(set(newroles)==set(roles),'new role set changed')
         for name in roles:
-            for k in ('role','home','abciState','legacyKeyPath','legacyStatePath','nodeKeyPath'):
+            for k in ('role','home','abciState','legacyStatePath'):
                 need(oldroles[name][k]==newroles[name][k],'original state/custody path changed: '+name+'/'+k)
+            previous,current=oldroles[name],newroles[name]
+            if any(previous[k]!=current[k] for k in ('legacyKeyPath','nodeKeyPath')):
+                base='/etc/ynx/consensus-candidate/'+name
+                need(previous['legacyKeyPath']==base+'/priv_validator_key.json' and previous['legacyStatePath']==base+'/priv_validator_state.json' and previous['nodeKeyPath']==base+'/node_key.json','cold handoff requires the exact original same-role custody')
+                need(current['legacyKeyPath']=='/etc/ynx/consensus-pq-legacy/'+name+'/priv_validator_key.json' and current['nodeKeyPath']=='/etc/ynx/consensus-pq-engine/'+name+'/node_key.json','cold handoff destinations differ from the fixed same-role profile')
         schedule=json.loads(base64.b64decode(target['pqSchedule'],validate=True),object_pairs_hook=unique)
         cp=a['checkpoint']; need(type(cp) is dict and set(cp)=={'height','appHash','registryRoot','registryEventCount'} and decimal(cp['height']) and decimal(cp['registryEventCount']) and pin(cp['appHash']) and pin(cp['registryRoot']),'independent stopped checkpoint required')
         need(schedule['registryHeight']==int(cp['height']) and schedule['registryRoot']==cp['registryRoot'] and schedule['registryEventCount']==int(cp['registryEventCount']),'new schedule differs from approved exact committed registry')
@@ -102,6 +107,8 @@ try:
         need(re.fullmatch('/[A-Za-z0-9_./-]+',r[k]) and str(pathlib.PurePosixPath(r[k]))==r[k] and '..' not in pathlib.PurePosixPath(r[k]).parts,'unsafe original path')
     out=dict(version='YNX-OPERATOR-TRANSITION-BINDING/v1',phase=phase,transitionId=tx,role=role,approvalSHA256=approvalpin,oldOperatorPlanSHA256=oldpin,nextOperatorPlanSHA256=None if newpin=='-' else newpin,oldRuntimeCommit=oldcommit,oldRuntimeManifestSHA256=oldmanifest,runtimeCommit=commit,runtimeManifestSHA256=manifest,oldCometSHA256=oldsrc['binaries']['ynx-comet']['sha256'],cometSHA256=src['binaries']['ynx-comet']['sha256'],packageVerifierSHA256=src['binaries']['ynx-consensus-package']['sha256'],keycheckSHA256=src['binaries']['ynx-consensus-keycheck']['sha256'],originalRole=r,chainId=old['chainId'],consensusGenesisSHA256=old['consensusGenesisSHA256'],originalGenesisHash=old['originalGenesisHash'],migrationStateHash=old['migrationStateHash'],stateLayout=old['stateLayout'],runtimePlanHash=old['runtimePlanHash'],scheduleHash=target['pqScheduleHash'],schedule=schedule,checkpoint=a['checkpoint'],backupSHA256=None if a['backups'] is None else a['backups'][role],cutoverTransactionId=a['cutoverTransactionId'],freezeSHA256=a['freezeSHA256'][role],nativePauseSHA256=a['nativePauseSHA256'])
     out['oldKeycheckSHA256']=oldsrc['binaries']['ynx-consensus-keycheck']['sha256']
+    if phase!='quiesce' and any(oldroles[role][k]!=newroles[role][k] for k in ('legacyKeyPath','nodeKeyPath')):
+        out['custodyHandoff']=dict(version='YNX-ORIGINAL-SIGNER-CUSTODY/v1',legacyKeyPath=newroles[role]['legacyKeyPath'],nodeKeyPath=newroles[role]['nodeKeyPath'],legacyStatePath=r['legacyStatePath'])
     need(all(pin(out[k]) for k in ('oldCometSHA256','oldKeycheckSHA256','cometSHA256','packageVerifierSHA256','keycheckSHA256')),'full binary pins required')
     out.update(quiesceMode='height-halt' if halt_session else 'parallel-stop',heightHaltSessionId=halt_session,futureTargetHeight=future)
     print(json.dumps(out,separators=(',',':'),sort_keys=True))
@@ -429,12 +436,303 @@ assert len(m['files'])==2
 PY
 }
 
+operator_transition_cold_custody() {
+  python3 -B - "$1" "$binding" "$root/quiesce-attempt" "$root/install-attempt" "$stage/bin/ynx-consensus-keycheck" "$old_package/roles/$role/role-manifest.json" "$new_package/roles/$role/role-manifest.json" <<'PYCUSTODY'
+import contextlib,ctypes,errno,fcntl,hashlib,json,os,pathlib,pwd,stat,subprocess,sys,tarfile
+P=pathlib.Path
+VERSION='YNX-ORIGINAL-SIGNER-CUSTODY/v1'
+UNIT='ynx-consensus-operator-candidate.service'
+def need(ok,message):
+    if not ok: raise ValueError(message)
+def unique(pairs):
+    value={}
+    for key,item in pairs:
+        need(key not in value,'duplicate original field');value[key]=item
+    return value
+def decode(raw):return json.loads(raw,object_pairs_hook=unique)
+def sha(raw):return hashlib.sha256(raw).hexdigest()
+def identity(s):return (s.st_dev,s.st_ino,s.st_mode,s.st_uid,s.st_gid,s.st_nlink,s.st_size,s.st_mtime_ns,s.st_ctime_ns)
+def inode(s):return (s.st_dev,s.st_ino)
+def sync_dir(path):
+    fd=os.open(path,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+    try:os.fsync(fd)
+    finally:os.close(fd)
+def publish(path,value):
+    raw=json.dumps(value,separators=(',',':'),sort_keys=True).encode()+b'\n'
+    fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+    try:need(os.write(fd,raw)==len(raw),'incomplete durable record');os.fsync(fd)
+    finally:os.close(fd)
+    sync_dir(path.parent)
+def original(path,limit=1<<20):
+    path=P(path);need(path.is_absolute() and path.resolve(strict=True)==path,'original no-alias path required')
+    before=path.lstat();need(stat.S_ISREG(before.st_mode) and before.st_nlink==1 and 0<before.st_size<=limit,'original bounded single-link file required')
+    fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+    try:
+        need(identity(before)==identity(os.fstat(fd)),'original replaced while opening')
+        raw=os.read(fd,limit+1)
+        need(len(raw)==before.st_size and identity(before)==identity(os.fstat(fd))==identity(path.lstat()),'original changed while reading')
+        return raw
+    finally:os.close(fd)
+def rename_exclusive(source,target):
+    # Linux is the production host. Darwin is only the native pure-control
+    # filesystem; neither branch implements copy/unlink fallback.
+    lib=ctypes.CDLL(None,use_errno=True)
+    if sys.platform=='linux':
+        fn=lib.renameat2;fn.argtypes=[ctypes.c_int,ctypes.c_char_p,ctypes.c_int,ctypes.c_char_p,ctypes.c_uint]
+        result=fn(-100,os.fsencode(source),-100,os.fsencode(target),1)
+    elif sys.platform=='darwin':
+        fn=lib.renamex_np;fn.argtypes=[ctypes.c_char_p,ctypes.c_char_p,ctypes.c_uint]
+        result=fn(os.fsencode(source),os.fsencode(target),4)
+    else:raise ValueError('exclusive native rename is unavailable')
+    if result:raise OSError(ctypes.get_errno(),'exclusive original rename refused')
+class Host:
+    def owners(self):
+        engine=pwd.getpwnam('ynx');signer=pwd.getpwnam('ynx-pq-signer')
+        need(engine.pw_uid>0 and signer.pw_uid>0 and engine.pw_uid!=signer.pw_uid,'distinct original service owners required')
+        return engine.pw_uid,engine.pw_gid,signer.pw_uid,signer.pw_gid
+    def command(self,argv,accepted=(0,)):
+        p=subprocess.run(argv,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=30)
+        need(p.returncode in accepted and len(p.stdout)<=65536,'original host verification refused')
+        return p.stdout
+    def stopped(self,expected):
+        fields=('ActiveState','MainPID','ExecMainPID','ExecMainStartTimestampMonotonic','InvocationID','ExecMainCode','ExecMainStatus','Result','ControlGroup')
+        raw=self.command(['/usr/bin/systemctl','show',*['--property='+x for x in fields],'--',UNIT])
+        values=dict(line.split('=',1) for line in raw.decode().splitlines());need(set(values)==set(fields),'complete terminal identity required')
+        need(values['ActiveState']=='inactive' and values['MainPID']=='0' and values['ExecMainPID']==expected['mainPid'] and values['ExecMainStartTimestampMonotonic']==expected['execMainStartTimestampMonotonic'] and values['InvocationID']==expected['invocationId'],'original bootstrap process incarnation is not stopped')
+        need((values['ExecMainCode'],values['ExecMainStatus'],values['Result'])==('1','0','success'),'bootstrap terminal is UNKNOWN')
+        self.inactive()
+        return values
+    def inactive(self):
+        for unit in (UNIT,'ynx-consensus-abci-candidate.service','ynx-consensus-comet-candidate.service','ynx-consensus-pq-remote-signer.service'):
+            raw=self.command(['/usr/bin/systemctl','show','--property=LoadState','--property=ActiveState','--property=MainPID','--property=ControlGroup','--',unit],(0,1))
+            data=dict(line.split('=',1) for line in raw.decode().splitlines());need(set(data)=={'LoadState','ActiveState','MainPID','ControlGroup'} and data['LoadState'] in ('loaded','not-found') and data['ActiveState']=='inactive' and data['MainPID']=='0','competing original unit is not stopped')
+            need(data['LoadState']!='not-found' or data['ControlGroup']=='','missing original unit has a live cgroup')
+            group=data['ControlGroup']
+            need(not group or group.startswith('/') and '..' not in P(group).parts,'invalid original cgroup')
+            if group:
+                p=P('/sys/fs/cgroup'+group)/'cgroup.procs'
+                if p.exists():
+                    with p.open('rb') as f:need(f.read(65537).strip()==b'','original cgroup still has a writer')
+        return True
+    def keycheck(self,binary,manifest,key,node,pin):
+        need(sha(original(binary,128<<20))==pin,'original keycheck binary changed')
+        self.command([str(binary),'-role-manifest',str(manifest),'-private-validator-key',str(key),'-node-key',str(node)])
+    def chown(self,fd,uid,gid):os.fchown(fd,uid,gid)
+    def trusted(self,path):
+        path=P(path)
+        while True:
+            s=path.lstat();need(path.resolve(strict=True)==path and stat.S_ISDIR(s.st_mode) and s.st_uid==0 and not s.st_mode&0o022,'existing root-controlled namespace required')
+            if path==path.parent:break
+            path=path.parent
+@contextlib.contextmanager
+def held(path,uid,directory=False,renamed=None):
+    path=P(path);need(path.resolve(strict=True)==path,'held custody path has an alias')
+    before=path.lstat();need((stat.S_ISDIR(before.st_mode) if directory else stat.S_ISREG(before.st_mode) and before.st_nlink==1) and before.st_uid==uid and stat.S_IMODE(before.st_mode)==(0o700 if directory else 0o600),'original custody owner/mode differs')
+    fd=os.open(path,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW if directory else os.O_RDWR|os.O_NOFOLLOW|os.O_NONBLOCK)
+    try:
+        need(identity(before)==identity(os.fstat(fd)),'custody replaced while opening')
+        yield fd,before
+        named=path if renamed is None else renamed[0]
+        need(inode(os.fstat(fd))==inode(named.lstat())==inode(before),'custody inode replaced')
+    finally:os.close(fd)
+def contents(fd,maximum):
+    os.lseek(fd,0,os.SEEK_SET);raw=os.read(fd,maximum+1);need(len(raw)<=maximum,'bounded original custody required');return raw
+def descriptor(b):
+    d=b.get('custodyHandoff')
+    if d is None:return None
+    role=b['role'];base='/etc/ynx/consensus-candidate/'+role
+    need(role in ('primary','singapore','silicon-valley','seoul') and b['phase'] in ('install','start'),'original installation phase required')
+    need(d==dict(version=VERSION,legacyKeyPath='/etc/ynx/consensus-pq-legacy/'+role+'/priv_validator_key.json',nodeKeyPath='/etc/ynx/consensus-pq-engine/'+role+'/node_key.json',legacyStatePath=base+'/priv_validator_state.json'),'fixed same-role custody profile required')
+    need(all(b['originalRole'][k]==base+'/'+v for k,v in [('legacyKeyPath','priv_validator_key.json'),('legacyStatePath','priv_validator_state.json'),('nodeKeyPath','node_key.json')]),'exact original custody paths required')
+    return d
+def archive_hashes(path,selected,expected):
+    # The compressed SHA and selected members MUST share the same held FD.
+    # No path reopen may substitute new history after the approved SHA check.
+    path=P(path);need(path.resolve(strict=True)==path,'original backup alias')
+    before=path.lstat();need(stat.S_ISREG(before.st_mode) and before.st_nlink==1 and before.st_size>0,'original backup is not a single regular file')
+    fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+    result={}
+    with os.fdopen(fd,'rb') as source:
+        need(identity(before)==identity(os.fstat(source.fileno())),'original backup changed while opening')
+        h=hashlib.sha256()
+        for chunk in iter(lambda:source.read(1<<20),b''):h.update(chunk)
+        need(h.hexdigest()==expected,'original committed backup changed')
+        source.seek(0)
+        with tarfile.open(fileobj=source,mode='r|gz') as tar:
+            for member in tar:
+                name='/'+member.name
+                if name not in selected:continue
+                need(name not in result and member.isfile() and 0<member.size<=selected[name],'original backup member is not unique/bounded')
+                stream=tar.extractfile(member);raw=stream.read(selected[name]+1)
+                need(len(raw)==member.size,'original backup member incomplete');result[name]=sha(raw)
+        need(identity(before)==identity(os.fstat(source.fileno()))==identity(path.lstat()),'held original backup changed/replaced')
+    need(set(result)==set(selected),'original backup omitted custody')
+    return result
+def transfer(b,qroot,install,binary,oldmanifest,newmanifest,host):
+    d=descriptor(b)
+    if d is None:return
+    need(b['phase']=='install','handoff is only the explicitly approved install')
+    eu,eg,su,sg=host.owners();old=b['originalRole'];key=P(old['legacyKeyPath']);state=P(old['legacyStatePath']);node=P(old['nodeKeyPath']);lock=P(str(state)+'.writer.lock')
+    target=P(d['legacyKeyPath']);nextnode=P(d['nodeKeyPath']);output=install/'custody-handoff';applock=P(old['abciState']+'.writer.lock')
+    config=P(old['home'])/'config/config.toml';retained=config.with_name('config.toml.retained-custody-'+b['transitionId']);pending=config.with_name('config.toml.custody-'+b['transitionId']+'.new')
+    need(not os.path.lexists(output),'original handoff/UNKNOWN exists; no retry')
+    incarnation=decode(original(qroot/'halt-incarnation.json'))
+    process_raw=original(qroot/'original-process.json');process=decode(process_raw)
+    need(incarnation['originalProcessSHA256']==sha(process_raw) and incarnation['mainPid']==process['mainPid'] and incarnation['startTicks']==process['startTicks'],'original quiesce incarnation differs')
+    terminal=host.stopped(incarnation)
+    host.trusted(key.parent.parent)
+    manifest_raw=original(qroot/'backup-manifest.json');manifest=decode(manifest_raw)
+    need(sha(manifest_raw)==b['backupSHA256'] and manifest['committedSourceConsistent'] is True and set(manifest['files'])=={'committed-source.tar.gz','original-launch.tar.gz'},'approved original backup differs')
+    backup=qroot/'committed-source.tar.gz'
+    archived=archive_hashes(backup,{str(key):65536,str(state):2<<20,str(node):65536},manifest['files'][backup.name])
+    with contextlib.ExitStack() as stack:
+        parentfd,parentstat=stack.enter_context(held(key.parent,eu,True))
+        need(set(os.listdir(key.parent))=={'priv_validator_key.json','priv_validator_state.json','node_key.json','priv_validator_state.json.writer.lock'},'original custody has unqualified extra/UNKNOWN entries')
+        fds={};stats={};keyname=[key]
+        # Match the normal Node's lock order: original App then original Ed HRS.
+        appfd,appstat=stack.enter_context(held(applock,eu));fcntl.flock(appfd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        for p in (key,state,node,lock):fds[p],stats[p]=stack.enter_context(held(p,eu,renamed=keyname if p==key else None))
+        fcntl.flock(fds[lock],fcntl.LOCK_EX|fcntl.LOCK_NB)
+        # Flock belongs to this open description/inode, not its pathname or
+        # UID. Never replace/remove the lock; fchown below cannot release it.
+        configname=[config];configfd,configstat=stack.enter_context(held(config,eu,renamed=configname))
+        stack.enter_context(held(config.parent,eu,True))
+        configraw=contents(configfd,1<<20);newconfig=original(newmanifest.parent/'config/config.toml')
+        need(configraw==original(oldmanifest.parent/'config/config.toml'),'original Home config differs from normal verified old package')
+        need(not os.path.lexists(retained) and not os.path.lexists(pending),'Home config transfer partial already exists')
+        hashes={str(p):sha(contents(fds[p],2<<20 if p==state else 65536)) for p in (key,state,node,lock)}
+        need(all(hashes[k]==v for k,v in archived.items()),'current authoritative key/HRS differs from stopped backup')
+        for directory in (target.parent,nextnode.parent):
+            namespace=directory.parent
+            host.trusted(namespace if os.path.lexists(namespace) else namespace.parent)
+            if namespace.exists():need(stat.S_IMODE(namespace.stat().st_mode)==0o755,'fixed root namespace must permit service traversal')
+            need(not os.path.lexists(directory),'destination or partial already exists')
+            need((namespace if namespace.exists() else namespace.parent).stat().st_dev==parentstat.st_dev,'cold custody rename must stay on the original filesystem')
+        # This is the target SOURCE-pinned checker, deliberately validating
+        # both original and next normal manifests with the same key identity.
+        host.keycheck(binary,oldmanifest,key,node,b['keycheckSHA256'])
+        need(host.stopped(incarnation)==terminal,'original terminal changed before custody mutation')
+        os.mkdir(output,0o700);sync_dir(output.parent)
+        common=dict(version=VERSION,transitionId=b['transitionId'],role=b['role'],oldOperatorPlanSHA256=b['oldOperatorPlanSHA256'],nextOperatorPlanSHA256=b['nextOperatorPlanSHA256'],runtimeCommit=b['runtimeCommit'],runtimeManifestSHA256=b['runtimeManifestSHA256'],approvalSHA256=b['approvalSHA256'],backupSHA256=b['backupSHA256'],descriptor=d,engineUID=eu,engineGID=eg,signerUID=su,signerGID=sg,originalSHA256=hashes,originalInodes={str(p):list(inode(stats[p])) for p in stats},originalDirectoryInode=list(inode(parentstat)),incarnation=incarnation,oldHomeConfigSHA256=sha(configraw),nextHomeConfigSHA256=sha(newconfig),oldHomeConfigInode=list(inode(configstat)))
+        publish(output/'intent.json',dict(common,status='unknown',automaticRetry=False))
+        # Only the two fixed, root-owned namespaces may be created here. Other
+        # roles can share them; their exclusive 0700 role directories cannot.
+        for namespace in (target.parent.parent,nextnode.parent.parent):
+            if not os.path.lexists(namespace):
+                try:
+                    os.mkdir(namespace,0o755)
+                    fd=os.open(namespace,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+                    try:os.fchmod(fd,0o755);os.fsync(fd)
+                    finally:os.close(fd)
+                except FileExistsError:pass
+                sync_dir(namespace.parent)
+            host.trusted(namespace)
+            need(stat.S_IMODE(namespace.stat().st_mode)==0o755,'fixed root namespace must permit service traversal')
+        for directory in (target.parent,nextnode.parent):os.mkdir(directory,0o700);sync_dir(directory.parent)
+        # P2P transport identity may be copied. The Ed signing key is renamed
+        # exactly once; the authoritative HRS and lock are never copied/moved.
+        nodefd=os.open(nextnode,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+        try:
+            raw=contents(fds[node],65536);need(os.write(nodefd,raw)==len(raw),'incomplete original P2P identity copy');host.chown(nodefd,eu,eg);os.fsync(nodefd)
+        finally:os.close(nodefd)
+        host.keycheck(binary,newmanifest,key,nextnode,b['keycheckSHA256'])
+        need(host.stopped(incarnation)==terminal,'original terminal changed before rename')
+        rename_exclusive(key,target);keyname[0]=target;sync_dir(key.parent);sync_dir(target.parent)
+        need(inode(target.lstat())==inode(stats[key]) and not os.path.lexists(key),'original signing key was not exclusively moved')
+        for p in (key,state,lock):host.chown(fds[p],su,sg);os.fsync(fds[p])
+        host.chown(parentfd,su,sg);os.fsync(parentfd)
+        for directory,uid,gid in ((target.parent,su,sg),(nextnode.parent,eu,eg)):
+            fd=os.open(directory,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+            try:host.chown(fd,uid,gid);os.fsync(fd)
+            finally:os.close(fd)
+            sync_dir(directory.parent)
+        need(all(sha(contents(fds[p],2<<20 if p==state else 65536))==hashes[str(p)] for p in fds),'custody bytes changed during transfer')
+        need(inode(state.lstat())==inode(stats[state]) and inode(lock.lstat())==inode(stats[lock]),'authoritative HRS/lock replaced')
+        for path,uid,gid,mode in ((target,su,sg,0o600),(state,su,sg,0o600),(lock,su,sg,0o600),
+                                 (key.parent,su,sg,0o700),(target.parent,su,sg,0o700),
+                                 (nextnode,eu,eg,0o600),(nextnode.parent,eu,eg,0o700)):
+            info=path.lstat()
+            need(info.st_uid==uid and info.st_gid==gid and stat.S_IMODE(info.st_mode)==mode,'completed custody owner/mode differs')
+        host.keycheck(binary,newmanifest,target,nextnode,b['keycheckSHA256'])
+        configout=os.open(pending,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+        try:
+            need(os.write(configout,newconfig)==len(newconfig),'incomplete approved Home config');host.chown(configout,eu,eg);os.fsync(configout)
+        finally:os.close(configout)
+        need(identity(config.lstat())==identity(os.fstat(configfd)),'original Home config replaced before retention')
+        rename_exclusive(config,retained);configname[0]=retained;sync_dir(config.parent)
+        rename_exclusive(pending,config);sync_dir(config.parent)
+        need(original(config)==newconfig and inode(retained.lstat())==inode(configstat),'approved Home config publication differs')
+        need(host.stopped(incarnation)==terminal,'obsolete process changed during custody transfer')
+        # A new writer on the exact lock must still be refused until this
+        # owner finishes. Verify against an independent open description.
+        probe=os.open(lock,os.O_RDWR|os.O_NOFOLLOW)
+        try:
+            try:fcntl.flock(probe,fcntl.LOCK_EX|fcntl.LOCK_NB)
+            except BlockingIOError:pass
+            else:raise ValueError('original writer lease did not survive ownership change')
+        finally:os.close(probe)
+        need(inode(applock.lstat())==inode(appstat),'original App lease changed')
+        publish(output/'result.json',dict(common,status='cold_handoff_complete_not_started',automaticRetry=False,legacyHRSMoved=False,legacyHRSCopied=False,signingKeyCopied=False,nodeIdentityPreserved=True,runtimeStarted=False))
+def verify(b,qroot,install,binary,newmanifest,host):
+    d=descriptor(b)
+    if d is None:return
+    recorded=decode(original(install/'binding.json'))
+    result=decode(original(install/'custody-handoff/result.json'))
+    intent=decode(original(install/'custody-handoff/intent.json'))
+    need(recorded['phase']=='install' and recorded.get('custodyHandoff')==d,'original approved install binding differs')
+    for field in ('transitionId','role','oldOperatorPlanSHA256','nextOperatorPlanSHA256','runtimeCommit','runtimeManifestSHA256','backupSHA256'):
+        need(recorded[field]==b[field]==result[field]==intent[field],'custody receipt does not bind the original transition')
+    need(result['approvalSHA256']==intent['approvalSHA256']==recorded['approvalSHA256'],'original install approval differs')
+    expected=dict(intent,status='cold_handoff_complete_not_started',legacyHRSMoved=False,legacyHRSCopied=False,signingKeyCopied=False,nodeIdentityPreserved=True,runtimeStarted=False)
+    need(result==expected and intent['status']=='unknown' and intent['automaticRetry'] is False,'partial or changed custody result')
+    eu,eg,su,sg=host.owners()
+    need((result['engineUID'],result['engineGID'],result['signerUID'],result['signerGID'])==(eu,eg,su,sg),'original service owners changed')
+    host.inactive()
+    old=b['originalRole'];key=P(old['legacyKeyPath']);state=P(old['legacyStatePath']);node=P(old['nodeKeyPath']);lock=P(str(state)+'.writer.lock')
+    target=P(d['legacyKeyPath']);nextnode=P(d['nodeKeyPath']);applock=P(old['abciState']+'.writer.lock')
+    need(not os.path.lexists(key),'obsolete signing key pathname reappeared')
+    config=P(old['home'])/'config/config.toml';retained=config.with_name('config.toml.retained-custody-'+b['transitionId'])
+    need(not os.path.lexists(config.with_name('config.toml.custody-'+b['transitionId']+'.new')),'Home config publication remains partial')
+    need(set(os.listdir(key.parent))=={'priv_validator_state.json','node_key.json','priv_validator_state.json.writer.lock'},'original custody entries changed after handoff')
+    with contextlib.ExitStack() as stack:
+        afd,_=stack.enter_context(held(applock,eu));fcntl.flock(afd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        directory,ds=stack.enter_context(held(key.parent,su,True))
+        need(list(inode(ds))==result['originalDirectoryInode'],'authoritative history parent replaced')
+        for parent,uid in ((target.parent,su),(nextnode.parent,eu)):
+            stack.enter_context(held(parent,uid,True))
+        configfd,_=stack.enter_context(held(config,eu));retainedfd,oldinfo=stack.enter_context(held(retained,eu))
+        need(sha(contents(configfd,1<<20))==result['nextHomeConfigSHA256'] and contents(configfd,1<<20)==original(newmanifest.parent/'config/config.toml') and sha(contents(retainedfd,1<<20))==result['oldHomeConfigSHA256'] and list(inode(oldinfo))==result['oldHomeConfigInode'],'retained/approved Home config changed')
+        fds={}
+        for path,uid in ((lock,su),(target,su),(state,su),(node,eu),(nextnode,eu)):
+            fd,info=stack.enter_context(held(path,uid));fds[path]=fd
+            if path==lock:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+            original_path=key if path==target else node if path==nextnode else path
+            need(sha(contents(fd,2<<20 if path==state else 65536))==result['originalSHA256'][str(original_path)],'original custody bytes changed before signer startup')
+            if path!=nextnode:need(list(inode(info))==result['originalInodes'][str(original_path)],'original custody inode changed before signer startup')
+        host.keycheck(binary,newmanifest,target,nextnode,b['keycheckSHA256'])
+        host.inactive()
+def main():
+    need(sys.platform=='linux' and os.geteuid()==0,'normal original Linux root operator required')
+    mode,bpath,qroot,install,binary,oldmanifest,newmanifest=sys.argv[1:]
+    need(mode in ('transfer','verify'),'fixed custody action required')
+    b=decode(original(bpath))
+    if mode=='transfer':transfer(b,P(qroot),P(install),P(binary),P(oldmanifest),P(newmanifest),Host())
+    else:verify(b,P(qroot),P(install),P(binary),P(newmanifest),Host())
+if __name__=='__main__':main()
+PYCUSTODY
+}
+
 operator_transition_receipt() {
   local status="$1" checkpoint="$2" backup="$3" process="${4:-}"
   python3 -B - "$binding" "$status" "$checkpoint" "$backup" "$process" <<'PY'
 import json,sys
 b=json.load(open(sys.argv[1])); b.update(version='YNX-OPERATOR-TRANSITION-RESULT/v1',status=sys.argv[2],checkpoint=json.load(open(sys.argv[3])) if sys.argv[3] else None,backupSHA256=sys.argv[4] or None,originalMaterialRetained=True,pqActivationVerified=False,independentFinalityVerified=False)
 if sys.argv[5]: b['process']=json.load(open(sys.argv[5]))
+if b.get('custodyHandoff') is not None:
+    import hashlib,pathlib
+    root=pathlib.Path(sys.argv[1]).parent.parent
+    raw=(root/'install-attempt/custody-handoff/result.json').read_bytes()
+    b['custodyHandoffReceiptSHA256']=hashlib.sha256(raw).hexdigest()
 print(json.dumps(b,separators=(',',':'),sort_keys=True))
 PY
 }
@@ -841,6 +1139,7 @@ PY
     else
       # Legacy fallback has no same-height guarantee. The four independently
       # inspected stopped checkpoints must still agree, or installation fails.
+      operator_transition_record_halt_identity || return $?
       timeout --signal=TERM --kill-after=5 30 systemctl stop "$unit"
     fi
     operator_transition_stopped
@@ -884,10 +1183,12 @@ for k,v in b['checkpoint'].items(): assert r['checkpoint'][k]==v
 PY
     if [[ "$phase" == install ]]; then
       operator_transition_installed "$old_package" "$old_comet_pin" "$(operator_transition_value oldKeycheckSHA256)"
+      operator_transition_cold_custody transfer || return $?
       # Keep the gateway's existing SOURCE untouched; this provenance belongs
       # only to the newly installed operator, under its retained attempt.
       dd if="$stage/SOURCE.json" of="$attempt/operator-runtime-SOURCE.json" conv=excl,fsync status=none
       operator_transition_publish
+      operator_transition_cold_custody verify || return $?
       operator_transition_installed "$new_package" "$comet_pin" "$keycheck_pin"
       operator_transition_stopped
       operator_transition_receipt installed_not_started "$attempt/checkpoint.json" "$(operator_transition_value backupSHA256)" >"$attempt/result.json"
@@ -900,6 +1201,7 @@ for k in ('transitionId','role','oldOperatorPlanSHA256','nextOperatorPlanSHA256'
 for k,v in b['checkpoint'].items(): assert r['checkpoint'][k]==v
 PY
       operator_transition_installed "$new_package" "$comet_pin" "$keycheck_pin"
+      operator_transition_cold_custody verify || return $?
       # The normal factory, remote SecretConnection and durable signer acquire
       # their ORIGINAL leases. Failure never falls back to the old Ed profile.
       timeout --signal=TERM --kill-after=5 30 systemctl start "$unit"

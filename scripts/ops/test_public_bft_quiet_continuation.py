@@ -151,6 +151,72 @@ class Fixture:
             write(evidence/'light.proof-result.json',result)
         return evidence
 
+class ColdCustodyContinuationTests(unittest.TestCase):
+    def fixture(self):
+        temporary = tempfile.TemporaryDirectory(prefix='cold-custody-continuation-')
+        self.addCleanup(temporary.cleanup)
+        f = Fixture(Path(temporary.name).resolve())
+        for role in f.plan['roles']:
+            base = '/etc/ynx/consensus-candidate/' + role['role']
+            role.update(legacyKeyPath=base+'/priv_validator_key.json', legacyStatePath=base+'/priv_validator_state.json',
+                        nodeKeyPath=base+'/node_key.json')
+        f.plan_pin = write(f.plan_path, f.plan)
+        f.a['operatorPlanSha256'] = f.plan_pin
+        write(f.root/'approval.json', f.a)
+        f.transition()
+        for role in f.current['roles']:
+            role.update(legacyKeyPath='/etc/ynx/consensus-pq-legacy/'+role['role']+'/priv_validator_key.json',
+                        nodeKeyPath='/etc/ynx/consensus-pq-engine/'+role['role']+'/node_key.json')
+        current_pin = write(f.current_package/'common/operator-plan.json', f.current)
+        f.packet['currentOperatorPlanSHA256'] = current_pin
+        approval_path = Path(f.packet['transitionApproval'])
+        approval = json.loads(approval_path.read_bytes()); approval['nextOperatorPlanSHA256'] = current_pin
+        approval_pin = write(approval_path, approval)
+        f.packet['transitionApprovalSHA256'] = approval_pin
+        for role in f.current['roles']:
+            descriptor = dict(version='YNX-ORIGINAL-SIGNER-CUSTODY/v1',
+                              **{key:role[key] for key in ('legacyKeyPath','legacyStatePath','nodeKeyPath')})
+            for phase in ('install','start'):
+                path=f.transition_root/(phase+'-attempt')/(role['role']+'.result.json')
+                value=json.loads(path.read_bytes())
+                value.update(nextOperatorPlanSHA256=current_pin,approvalSHA256=approval_pin,
+                             custodyHandoff=descriptor,custodyHandoffReceiptSHA256='8'*64)
+                write(path,value)
+                if phase=='start':
+                    path=f.transition_root/'start-attempt'/(role['role']+'.binding.json')
+                    value=json.loads(path.read_bytes()); value.update(nextOperatorPlanSHA256=current_pin,
+                        approvalSHA256=approval_pin,custodyHandoff=descriptor)
+                    write(path,value)
+        f.packet_pin=write(f.packet_path,f.packet)
+        return f
+
+    def test_exact_completed_handoff_continues_with_original_hrs_and_no_activation_claim(self):
+        f=self.fixture()
+        before=(f.root/'journal.jsonl').read_bytes()
+        result=q.resume_check(*f.args())
+        self.assertFalse(result['activationVerified'])
+        self.assertEqual((f.root/'journal.jsonl').read_bytes(),before)
+
+    def test_missing_changed_handoff_or_same_role_path_escape_refused(self):
+        for kind in ('missing','changed','path','old-key'):
+            with self.subTest(kind=kind):
+                f=self.fixture()
+                if kind in ('missing','changed'):
+                    p=f.transition_root/'start-attempt/primary.result.json'
+                    value=json.loads(p.read_bytes())
+                    if kind=='missing':del value['custodyHandoffReceiptSHA256']
+                    else:value['custodyHandoffReceiptSHA256']='9'*64
+                    write(p,value)
+                else:
+                    f.current['roles'][0]['legacyKeyPath'] = (f.plan['roles'][0]['legacyKeyPath'] if kind=='old-key'
+                        else '/etc/ynx/consensus-pq-legacy/seoul/priv_validator_key.json')
+                    pin=write(f.current_package/'common/operator-plan.json',f.current)
+                    f.packet['currentOperatorPlanSHA256']=pin;f.packet_pin=write(f.packet_path,f.packet)
+                before=(f.root/'journal.jsonl').read_bytes()
+                with self.assertRaises(ValueError):q.resume_check(*f.args())
+                self.assertEqual((f.root/'journal.jsonl').read_bytes(),before)
+
+
 class QuietContinuationTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.parent=Path(self.temp.name).resolve();self.f=Fixture(self.parent)

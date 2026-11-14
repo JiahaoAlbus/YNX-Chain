@@ -987,5 +987,82 @@ class SignerInstallerCLIControls(unittest.TestCase):
                 self.assertEqual(stopped.exception.code,2);run.assert_not_called();self.assertEqual(out.getvalue(),'')
 
 
+class OriginalBootstrapCustodyBoundaryTests(unittest.TestCase):
+    """Actual input callee with inert files, never host custody or a daemon."""
+
+    def test_distinct_signer_uid_cannot_consume_original_engine_owned_0600(self):
+        with tempfile.TemporaryDirectory(prefix='ynx-original-custody-') as temporary:
+            f = Fixture(Path(temporary).resolve(), 'distinct-owner')
+            before = {p: p.read_bytes() for p in (f.legacy, Path(f.config['legacyState']))}
+            # Use the normal metadata reader, not the old fixture's UID
+            # substitution. The distinct UID is synthetic; these real 0600
+            # placeholder files belong to the current test user.
+            f.host.private_stat = installer.LocalHost().private_stat
+            signer_uid = 65533 if os.getuid() != 65533 else 65532
+            with self.assertRaisesRegex(ValueError, 'ORIGINAL_SERVICE_OWNED_0600_FILE_REQUIRED'):
+                installer.original_inputs(f.args, f.config, f.host, signer_uid)
+            self.assertEqual(before, {p: p.read_bytes() for p in before})
+            self.assertFalse(Path(f.args.output_dir).exists())
+            self.assertEqual(f.host.owners, [])
+
+    def test_same_original_key_and_hrs_directory_still_refused_after_uid_alignment(self):
+        with tempfile.TemporaryDirectory(prefix='ynx-original-custody-') as temporary:
+            f = Fixture(Path(temporary).resolve(), 'original-layout')
+            # First prove the original fixture's split representation reaches
+            # the real complete input callee. Then express the original
+            # bootstrap layout, whose key/HRS/node key share one 0700 parent.
+            installer.original_inputs(f.args, f.config, f.host, os.getuid())
+            directory = f.root / 'original-bootstrap-custody'
+            directory.mkdir(mode=0o700)
+            f.legacy.rename(directory / 'priv_validator_key.json')
+            Path(f.config['legacyState']).rename(directory / 'priv_validator_state.json')
+            write(directory / 'node_key.json', b'INERT ORIGINAL NODE IDENTITY; NO KEY MATERIAL\n')
+            f.config.update(legacyKey=str(directory / 'priv_validator_key.json'),
+                            legacyState=str(directory / 'priv_validator_state.json'))
+            for role in f.plan['roles']:
+                role.update(legacyKeyPath=f.config['legacyKey'], legacyStatePath=f.config['legacyState'],
+                            nodeKeyPath=str(directory / 'node_key.json'))
+            raw = (json.dumps(f.plan, separators=(',', ':')) + '\n').encode()
+            f.plan_path.write_bytes(raw)
+            f.args.operator_plan_sha256 = sha(raw)
+            before = {p: p.read_bytes() for p in directory.iterdir()}
+            with self.assertRaisesRegex(ValueError, 'SOURCE_INSIDE_WRITABLE_HISTORY_DIRECTORY'):
+                installer.original_inputs(f.args, f.config, f.host, os.getuid())
+            self.assertEqual(before, {p: p.read_bytes() for p in before})
+            self.assertFalse(Path(f.args.output_dir).exists())
+            self.assertEqual(f.host.owners, [])
+
+            # Representation check only: same original HRS/lock location and
+            # bytes, a same-filesystem key rename, and an independently chosen
+            # node-key copy. This is NOT a production transfer or authorization:
+            # this fixture has one UID and no service/lease/approved transition.
+            # It establishes whether existing native input validation needs a
+            # new crypto/HRS format once a real cold handoff exists.
+            history = Path(f.config['legacyState'])
+            key = Path(f.config['legacyKey'])
+            history_identity = (history.stat().st_dev, history.stat().st_ino)
+            key_identity = (key.stat().st_dev, key.stat().st_ino)
+            separated = f.root / 'separate-original-ed-key'
+            engine = f.root / 'separate-original-node-key'
+            separated.mkdir(mode=0o700)
+            engine.mkdir(mode=0o700)
+            key.rename(separated / 'priv_validator_key.json')
+            write(engine / 'node_key.json', (directory / 'node_key.json').read_bytes())
+            f.config['legacyKey'] = str(separated / 'priv_validator_key.json')
+            for role in f.plan['roles']:
+                role.update(legacyKeyPath=f.config['legacyKey'], nodeKeyPath=str(engine / 'node_key.json'))
+            raw = (json.dumps(f.plan, separators=(',', ':')) + '\n').encode()
+            f.plan_path.write_bytes(raw)
+            f.args.operator_plan_sha256 = sha(raw)
+            installer.original_inputs(f.args, f.config, f.host, os.getuid())
+            self.assertFalse(key.exists())
+            self.assertEqual(key_identity, (Path(f.config['legacyKey']).stat().st_dev,
+                                            Path(f.config['legacyKey']).stat().st_ino))
+            self.assertEqual(history_identity, (history.stat().st_dev, history.stat().st_ino))
+            self.assertEqual(history.read_bytes(), before[history])
+            self.assertEqual((directory / 'node_key.json').read_bytes(), (engine / 'node_key.json').read_bytes())
+            self.assertEqual(f.host.owners, [])
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -578,9 +578,21 @@ def continuation(root_path, bootstrap_path, bootstrap_pin, packet_path, packet_p
     old_roles = {r['role']: r for r in old['roles']}
     new_roles = {r['role']: r for r in new['roles']}
     need(set(old_roles) == set(new_roles) == set(ROLES), 'four original roles required')
+    custody_handoffs = {}
     for role in ROLES:
-        for key in ('role', 'home', 'abciState', 'legacyKeyPath', 'legacyStatePath', 'nodeKeyPath'):
+        for key in ('role', 'home', 'abciState', 'legacyStatePath'):
             need(old_roles[role][key] == new_roles[role][key], 'original state/custody path changed')
+        before, after = old_roles[role], new_roles[role]
+        if any(before[key] != after[key] for key in ('legacyKeyPath', 'nodeKeyPath')):
+            base = '/etc/ynx/consensus-candidate/' + role
+            need(before['legacyKeyPath'] == base + '/priv_validator_key.json' and
+                 before['legacyStatePath'] == base + '/priv_validator_state.json' and before['nodeKeyPath'] == base + '/node_key.json',
+                 'cold handoff requires exact original role custody')
+            want = dict(version='YNX-ORIGINAL-SIGNER-CUSTODY/v1',
+                        legacyKeyPath='/etc/ynx/consensus-pq-legacy/' + role + '/priv_validator_key.json',
+                        nodeKeyPath='/etc/ynx/consensus-pq-engine/' + role + '/node_key.json', legacyStatePath=before['legacyStatePath'])
+            need(all(after[key] == want[key] for key in ('legacyKeyPath', 'nodeKeyPath')), 'cold handoff destinations differ')
+            custody_handoffs[role] = want
     a, _ = load(c['transitionApproval'], c['transitionApprovalSHA256'], 1 << 20)
     need(a.get('version') == 'YNX-OPERATOR-TRANSITION-APPROVAL/v1' and a.get('approved') is True and a.get('phase') == 'start' and
          a.get('transitionId') == c['transitionId'] and a.get('cutoverTransactionId') == root.name and
@@ -617,6 +629,15 @@ def continuation(root_path, bootstrap_path, bootstrap_pin, packet_path, packet_p
             if phase == 'start':
                 need(entry.get('approvalSHA256') == c['transitionApprovalSHA256'] and
                      entry.get('scheduleHash') == new['pqScheduleHash'] and entry.get('schedule') == schedule, 'start receipt differs from external plan/approval')
+            if phase != 'quiesce' and role in custody_handoffs:
+                need(entry.get('custodyHandoff') == custody_handoffs[role] and pin(entry.get('custodyHandoffReceiptSHA256')),
+                     'normal cold custody receipt missing or differs')
+                if phase == 'start':
+                    need(entry['custodyHandoffReceiptSHA256'] == entries['install']['value']['custodyHandoffReceiptSHA256'],
+                         'start did not consume original completed custody handoff')
+            elif phase != 'quiesce':
+                need('custodyHandoff' not in entry and 'custodyHandoffReceiptSHA256' not in entry,
+                     'unchanged custody cannot claim a transfer')
             entries[phase] = {'sha256': sha(entry_raw), 'value': entry}
         binding, binding_raw = load(transition / 'start-attempt' / (role + '.binding.json'), limit=1 << 20)
         need(binding.get('version') == 'YNX-OPERATOR-TRANSITION-BINDING/v1' and
