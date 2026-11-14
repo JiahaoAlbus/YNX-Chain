@@ -65,6 +65,7 @@ jobs:
               apps/cloud/cmd/ynx-cloudd/main.go|apps/cloud/cmd/ynx-cloudd/ide_runtime*.go) ;;
               apps/cloud/sdk/index.js|apps/cloud/sdk/index.d.ts|apps/cloud/sdk/package.json) ;;
               apps/cloud/sdk/observe-ide-deployment.mjs|apps/cloud/sdk/observe-ide-deployment.d.ts) ;;
+              apps/cloud/client/deployment-client.mjs|apps/cloud/client/deployment-observation.mjs|apps/cloud/client/deployment-usage-data.mjs) ;;
               apps/cloud/tests/ide-deployment*.test.mjs|apps/cloud/IDE_DEPLOYMENT_SOURCE_INPUTS.json) ;;
               apps/cloud/scripts/load-protected-cloud-image.sh|apps/cloud/scripts/verify-protected-cloud-image.sh|apps/cloud/CONTAINER_OPERATIONS.md) ;;
               infra/docker/ynx-cloudd.Dockerfile|infra/docker/ynx-cloudd.Dockerfile.dockerignore) ;;
