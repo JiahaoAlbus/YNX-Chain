@@ -33,6 +33,14 @@ import Foundation
   // The authenticated Seller wire contains the same original financial fields.
   var sellerRaw=source;sellerRaw.merge(["SubtotalYNXT":100,"ShippingYNXT":0,"TaxYNXT":0,"TaxStatus":"","LogisticsStatus":"","TrustStatus":"","Lines":[],"Address":["Recipient":"","Line1":"","City":"","Region":"","PostalCode":"","Country":""],"Timeline":[]]){_,v in v}
   let seller=try JSONDecoder().decode(SellerOrder.self,from:CanonicalJSON.data(sellerRaw));try check(seller.paymentDisplayState=="native_partial_refund" && seller.paymentOrder.nativePayment!.NetPaidAtoms=="70","Seller uses original native atoms instead of missing legacy settlement")
+  var pendingSeller=sellerRaw
+  var pendingPayment=pendingSeller["NativePayment"] as! [String:Any]
+  pendingPayment["PendingOriginals"]=[pending]
+  pendingPayment["CompleteKnownOriginals"]=false
+  pendingSeller["NativePayment"]=pendingPayment
+  let pendingOrder=try JSONDecoder().decode(SellerOrder.self,from:CanonicalJSON.data(pendingSeller))
+  try check(pendingOrder.paymentDisplayState=="native_reconcile_required" && pendingOrder.NativePayment?.RefundedAtoms=="30",
+            "Seller keeps refund pending while preserving confirmed refund atoms")
   var full=source;var p=full["NativePayment"] as! [String:Any];var rows=p["Receipts"] as! [[String:Any]];rows[1]["principalAtoms"]="100";rows[1]["refundedAtoms"]="100";rows[1]["netPaidAtoms"]="0";p["Receipts"]=rows;p["RefundedAtoms"]="100";p["NetPaidAtoms"]="0";full["NativePayment"]=p;full["Status"]="refunded";full["RefundStatus"]="native_refunded"
   let refunded=try order(full);try refunded.nativePayment!.validate(refunded);try check(refunded.nativePayment!.NetPaidAtoms=="0","complete original refund remains exact zero net without a new payment")
   var maximum=source;var maxPayment=maximum["NativePayment"] as! [String:Any];var maxRows=maxPayment["Receipts"] as! [[String:Any]];let max=String(UInt64.max)

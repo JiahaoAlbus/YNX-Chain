@@ -126,7 +126,7 @@ extension SellerOrder {
     var paymentDisplayState:String {
         guard PayIntentID.hasPrefix("npi_") else{return Settlement?.Status ?? "unavailable"}
         guard let payment=NativePayment,(try? payment.validate(paymentOrder,requirePaid:false)) != nil else{return "native_receipt_unavailable"}
-        if payment.ReconciliationRequired{return "native_reconcile_required"}
+        if payment.ReconciliationRequired || !payment.CompleteKnownOriginals || !(payment.PendingOriginals ?? []).isEmpty{return "native_reconcile_required"}
         if payment.PaidAtoms=="0"{return "native_unpaid"}
         if payment.RefundedAtoms=="0"{return "native_paid"}
         return payment.RefundedAtoms==payment.PaidAtoms ? "native_refunded":"native_partial_refund"
