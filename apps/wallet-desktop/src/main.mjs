@@ -985,12 +985,15 @@ handleWalletIPC("wallet:walletconnect-decode-qr", (_event, input) => safeIPC(() 
 handleWalletIPC("wallet:walletconnect-disconnect", (_event, topic) => safeIPC(async () => {
   originalPayContextBridge.invalidateAll();
   const origin = walletConnect.sessionOrigin(topic);
-  for (const entry of walletConnectInbox.pending()) if (entry.event.topic === topic) {
-    walletConnectInbox.finish(entry.key);
-    await terminateWalletConnectReview(entry, "WALLETCONNECT_SESSION_DISCONNECTED");
-  }
+  // Disconnect marks the topic unusable synchronously before persisting or
+  // contacting the relay. Retire every queued entry before awaiting cleanup.
+  const disconnect = walletConnect.disconnectSession(topic);
+  void disconnect.catch(() => {});
+  const entries = walletConnectInbox.pending().filter(entry => entry.event.topic === topic);
+  for (const entry of entries) walletConnectInbox.finish(entry.key);
+  for (const entry of entries) await terminateWalletConnectReview(entry, "WALLETCONNECT_SESSION_DISCONNECTED");
   await walletAuthority.revokeOrigin(origin);
-  const result = await walletConnect.disconnectSession(topic);
+  const result = await disconnect;
   mainWindow?.webContents.send("wallet:walletconnect-session-changed", { type: "disconnected", topic, origin });
   return { ...result, localPermissionRevoked: true };
 }));
