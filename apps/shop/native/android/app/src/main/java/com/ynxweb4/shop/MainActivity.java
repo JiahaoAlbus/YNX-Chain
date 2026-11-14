@@ -31,7 +31,7 @@ public final class MainActivity extends Activity {
     private final AIPresentation aiPresentation=new AIPresentation();
     private AlertDialog aiDialog;
     private void clearAI(){aiPresentation.clear();if(aiDialog!=null){aiDialog.dismiss();aiDialog=null;}}
-    private Object cartWork,paymentReadbackWork;private volatile Object payHandoffWork;private volatile long payPresentationRevision;private AlertDialog invoiceDialog;private volatile long viewRevision;
+    private Object cartWork,paymentReadbackWork,catalogWork;private volatile Object payHandoffWork;private volatile long payPresentationRevision;private AlertDialog invoiceDialog;private volatile long viewRevision;
     private interface CartTask {void run(NativeCart.Sender sender,ProductSession session,long generation)throws Exception;}
     private NativeCart.Sender cartSender(){return new NativeCart.Sender(){public ProductSession session()throws Exception{return api.session();}public JSONObject request(String method,String path,JSONObject body,ProductSession expected,long generation)throws Exception{return api.requestForSession(method,path,body,expected,generation);}};}
     private void runCartTask(CartTask task,Runnable success){
@@ -126,9 +126,13 @@ public final class MainActivity extends Activity {
     }
 
     private void loadCatalog(String query,LinearLayout results){
+        final long view=viewRevision;
+        final Object work=new Object();
+        catalogWork=work;
         status.setText(getString(R.string.loading));results.removeAllViews();
         String path="/products"+(query.isBlank()?"":"?q="+Uri.encode(query));
-        api.request("GET",path,null,(value,error)->runOnUiThread(()->{
+        api.request("GET",path,null,()->view==viewRevision && catalogWork==work,(value,error)->runOnUiThread(()->{
+            if(view!=viewRevision || catalogWork!=work)return;
             if(error!=null){status.setText(isOnline()?message(error):getString(R.string.offline));Button retry=button(getString(R.string.retry));retry.setOnClickListener(v->loadCatalog(query,results));results.addView(retry);return;}
             products=value.optJSONArray("products");if(products==null)products=new JSONArray();status.setText(products.length()==0?getString(R.string.empty_catalog):getResources().getQuantityString(R.plurals.catalog_count,products.length(),products.length()));
             for(int i=0;i<products.length();i++)try{results.addView(productCard(products.getJSONObject(i)));}catch(Exception e){status.setText(getString(R.string.security_error));}
