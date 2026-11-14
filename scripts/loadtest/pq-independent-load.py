@@ -810,7 +810,8 @@ class NormalBackend:
                             'original stopped proof output directory differs')
                 progress = {}
                 for name in ('intent.json', 'derived-source-plan.json', 'source-context', 'verifier',
-                             'materials.json', 'proof.json', 'committed-state.json', 'result.json', 'failure.json'):
+                             'materials.json', 'proof.json', 'committed-state.json', 'result.json', 'failure.json',
+                             'capture-observation.json'):
                     try:
                         mode = (output / name).lstat().st_mode
                     except FileNotFoundError:
@@ -847,6 +848,23 @@ class NormalBackend:
                                 == proof_readback.read_original(retained, limit=4096),
                                 'retained proof failure differs from stopped original')
                     status = 'ALREADY_RETAINED'
+                if 'capture-observation.json' in progress:
+                    try:
+                        raw = proof_readback.read_original(output / 'capture-observation.json',
+                                                           limit=proof_readback.CAPTURE_OBSERVATION_LIMIT)
+                        failure = proof_readback.strict(proof_readback.read_original(retained, limit=4096))
+                        proof_readback.capture_observation(raw, node=lane['node'], sequence=sequence, pin=lane['pin'],
+                                                          request_sha256=request_digest, failure=failure)
+                        target = case / 'original-live-proof-capture-observation.json'
+                        if target.exists():
+                            lab.require(proof_readback.read_original(target, limit=proof_readback.CAPTURE_OBSERVATION_LIMIT)
+                                        == raw, 'retained capture observation differs from stopped original')
+                        else:
+                            proof_readback.write_new(target, raw)
+                        context['captureObservation'] = dict(path=str(target.relative_to(public)),
+                                                             sha256=hashlib.sha256(raw).hexdigest())
+                    except (OSError, KeyError, RuntimeError, TypeError, ValueError):
+                        context['captureObservationUnavailable'] = True
                 records.append(dict(context, status=status,
                                     path=str(retained.relative_to(public)), sha256=lab.guard.digest(retained)))
             except (OSError, KeyError, RuntimeError, ValueError) as error:

@@ -26,6 +26,15 @@ PRE_OUTPUT_PHASES = frozenset((
     'request-stat', 'current-source', 'request-read', 'request-decode', 'request-sequence',
     'transaction-replay', 'request-cancelled', 'transaction-validation', 'output-cancelled', 'output-create',
 ))
+CAPTURE_OBSERVATION_LIMIT = 16 << 10
+CAPTURE_PHASES = frozenset('proof.' + name for name in (
+    'intentWrite', 'checkpoint', 'stateDecode', 'loadPQLab', 'stateValidate', 'anchorAndRegistry',
+    'retainedBlockSearch', 'advanceAnchor', 'lightBlocks', 'migrationCanonical', 'migrationOriginalRead',
+    'derivedPlanWrite', 'derivedPlanInputs', 'sourceContextCapture', 'materialsEncode', 'verifierInputs',
+    'materialsWrite', 'finalInputCurrent', 'resultWrite',
+))
+CAPTURE_SUBPHASES = frozenset(('proof.engineRead', 'proof.appReadLockWait',
+                              'proof.appLockedCheckpoint', 'proof.appEncodeCheckpoint'))
 
 def require(ok,message):
     if not ok:raise RuntimeError(message)
@@ -41,6 +50,41 @@ def pre_output_failure(raw, pin, sequence):
             and re.fullmatch('[0-9a-f]{64}', value['firstCauseSHA256']),
             'original pre-output proof failure record differs')
     return value
+
+
+def capture_observation(raw, *, node, sequence, pin, request_sha256, failure):
+    require(type(raw) is bytes and 0 < len(raw) <= CAPTURE_OBSERVATION_LIMIT,
+            'bounded original proof capture observation required')
+    value = strict(raw)
+    require(type(value) is dict and set(value) == {
+        'version', 'owningNodeIndex', 'sequence', 'policySHA256', 'requestSHA256', 'firstCauseSHA256',
+        'outcome', 'lastEnteredPhase', 'typedCrossings', 'captureBudgetNs', 'sinceCaptureStartNs', 'timings',
+    } and value['version'] == 'YNX-PQ-LAB-PROOF-CAPTURE-OBSERVATION/v1'
+        and type(value['owningNodeIndex']) is int and value['owningNodeIndex'] == node
+        and type(value['sequence']) is int and value['sequence'] == sequence
+        and value['policySHA256'] == pin and re.fullmatch('[0-9a-f]{64}', request_sha256 or '')
+        and value['requestSHA256'] == request_sha256 and value['firstCauseSHA256'] == failure['FirstCauseSHA256']
+        and value['outcome'] == 'unknown' and type(value['lastEnteredPhase']) is str
+        and value['lastEnteredPhase'] in CAPTURE_PHASES
+        and type(value['typedCrossings']) is int and 0 <= value['typedCrossings'] <= 3
+        and all(type(value[key]) is int and 0 <= value[key] < 1 << 63
+                for key in ('captureBudgetNs', 'sinceCaptureStartNs')),
+        'original proof capture observation identity or phase differs')
+    timing = value['timings']
+    require(type(timing) is dict and set(timing) == {'version', 'clock', 'intervalsOverlap', 'stages'}
+            and timing['version'] == 'YNX-PQ-LAB-CALLEE-ELAPSED/v1'
+            and timing['clock'] == 'monotonic_elapsed_wall_ns' and timing['intervalsOverlap'] is True
+            and type(timing['stages']) is dict and len(timing['stages']) <= 128,
+            'original proof capture timing schema differs')
+    for label, stage in timing['stages'].items():
+        require((label in CAPTURE_PHASES or label in CAPTURE_SUBPHASES or re.fullmatch(r'lab\.[A-Za-z0-9]{1,100}', label))
+                and type(stage) is dict and set(stage) == {'calls', 'elapsedNs'}
+                and type(stage['calls']) is int and 0 < stage['calls'] < 1 << 64
+                and type(stage['elapsedNs']) is int and 0 <= stage['elapsedNs'] < 1 << 63,
+                'original proof capture stage counters differ')
+    return value
+
+
 def sha(raw):return hashlib.sha256(raw).hexdigest()
 def strict(raw):
     def pairs(items):

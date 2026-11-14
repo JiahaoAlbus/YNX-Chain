@@ -173,6 +173,14 @@ def proof_publication(load, files, prefix):
     """Join archived publication replies to the original operation and parent clock."""
     if load is None:
         return None
+    late = {}
+    for event in (load.get('pipeline') or {}).get('lateEvidence', []):
+        if event['kind'] != 'normal_stage' or event['stage'] not in ('live_publish', 'live_capture'):
+            continue
+        key = (event['index'], event['id'], event['stage'])
+        require(key not in late and type(event['atNs']) is int and event['atNs'] >= load['windowNs'] + load['tailNs'],
+                'original late proof publication boundary differs')
+        late[key] = event['atNs']
     records = []
     for row in load['rows']:
         stem = f"load-{row['index']:05d}-live-session-request"
@@ -196,23 +204,29 @@ def proof_publication(load, files, prefix):
                     ('authorityGranted', 'independentFinality', 'rawReplyIncluded', 'pathsAndPayloadsIncluded', 'timingsIncluded')),
                 'original proof publication projection identity differs')
         outcome = frame['outcome']
-        require(outcome in ('request_published', 'REFUSED_OR_UNKNOWN_NO_RETRY'), 'original proof publication outcome differs')
+        require((outcome == 'request_published' and frame['firstCausePresent'] is False and frame['failureClass'] is None)
+                or (outcome == 'REFUSED_OR_UNKNOWN_NO_RETRY' and frame['firstCausePresent'] is True
+                    and frame['failureClass'] in ('BUSY', 'CONTEXT_ENDED', 'REFUSED_OR_UNKNOWN')),
+                'original proof publication outcome differs')
         callee = frame['calleeElapsedNs']
         stages.integer(callee, 'proof publication callee time')
         parent = overhead = None
         original_stages = None
         points = dict(row['stageTimes'])
+        late_publication = 'live_publish' not in points
+        publish = points.get('live_publish', late.get((row['index'], row.get('id'), 'live_publish')))
+        capture = points.get('live_capture', late.get((row['index'], row.get('id'), 'live_capture')))
         timing_bytes = files.get(prefix + stem + '.json')
-        require('live_publish' in points and (outcome == 'request_published' or timing_bytes is None),
+        require(type(publish) is int and (outcome == 'request_published' or timing_bytes is None),
                 'original proof publication boundary differs')
         if timing_bytes is not None:
             timing = strict(timing_bytes)
-            parent, overhead = (timing[key] for key in ('parentElapsedNs', 'replyProjectionWriteNs'))
-            end = points.get('live_capture', row['terminalNs'])
+            parent, overhead = timing['parentElapsedNs'], timing.get('replyProjectionWriteNs')
+            end = row['terminalNs'] if capture is None and not late_publication else capture
             require(all(timing[key] == attempt[key] for key in ('node', 'sequence', 'policySHA256'))
-                    and timing['calleeElapsedNs'] == callee and type(parent) is int and type(overhead) is int
-                    and 0 <= overhead <= parent and 0 <= callee <= parent
-                    and type(end) is int and parent <= end - points['live_publish'],
+                    and timing['calleeElapsedNs'] == callee and type(parent) is int and 0 <= callee <= parent
+                    and (overhead is None or type(overhead) is int and 0 <= overhead <= parent - callee)
+                    and (end is None or type(end) is int and parent <= end - publish),
                     'original proof publication clock or timing identity differs')
             snapshot = timing.get('timings')
             if snapshot is not None:
@@ -231,8 +245,11 @@ def proof_publication(load, files, prefix):
         records.append(dict(index=row['index'], node=attempt['node'], sequence=attempt['sequence'], outcome=outcome,
                             originalReplySHA256=frame['originalReplySHA256'], projectionPath=projection_path,
                             calleeElapsedNs=callee, parentElapsedNs=parent, replyProjectionWriteNs=overhead,
-                            originalStages=original_stages))
-    return dict(records=records, published=sum(row['outcome'] == 'request_published' for row in records),
+                            originalStages=original_stages, publicationStartedAfterCutoff=late_publication))
+    return dict(records=records, published=sum(row['outcome'] == 'request_published'
+                                               and not row['publicationStartedAfterCutoff'] for row in records),
+                latePublished=sum(row['outcome'] == 'request_published'
+                                  and row['publicationStartedAfterCutoff'] for row in records),
                 rawReplyReverified=False, stageIntervalsAdded=False, independentFinality=False)
 
 
@@ -279,7 +296,8 @@ def stopped_proof_failures(receipt, load, files, prefix):
         progress = record.get('stoppedOutputEntries')
         if progress is not None:
             allowed = {'intent.json', 'derived-source-plan.json', 'source-context', 'verifier',
-                       'materials.json', 'proof.json', 'committed-state.json', 'result.json', 'failure.json'}
+                       'materials.json', 'proof.json', 'committed-state.json', 'result.json', 'failure.json',
+                       'capture-observation.json'}
             require(type(progress) is dict and progress.keys() <= allowed
                     and all(kind in ('directory', 'file', 'unexpected') for kind in progress.values())
                     and record['node'] == request['node'] and record['sequence'] == request['sequence'],
@@ -314,7 +332,20 @@ def stopped_proof_failures(receipt, load, files, prefix):
                     and hashlib.sha256(raw).hexdigest() == pre_output['sha256'],
                     'original pre-output proof failure digest differs')
             pre_output_data = proof_readback.pre_output_failure(raw, request['policySHA256'], request['sequence'])
+        capture = record.get('captureObservation')
+        capture_data = None
+        if capture is not None:
+            path = f'load-operations/{index:05d}/original-live-proof-capture-observation.json'
+            raw = files.get(prefix + path)
+            require(data is not None and progress is not None and progress.get('capture-observation.json') == 'file'
+                    and capture['path'] == path and raw is not None
+                    and hashlib.sha256(raw).hexdigest() == capture['sha256'],
+                    'original capture observation digest or failure boundary differs')
+            capture_data = proof_readback.capture_observation(
+                raw, node=request['node'], sequence=request['sequence'], pin=request['policySHA256'],
+                request_sha256=record.get('originalRequestSHA256'), failure=data)
         output.append(dict(record, originalFailure=data, originalPreOutputFailure=pre_output_data,
+                           originalCaptureObservation=capture_data,
                            matchedContextError=CONTEXT_FAILURE_DIGESTS.get(data['FirstCauseSHA256']) if data else None,
                            originalCohortStatus=cohort[index]['status']))
     return dict(records=output, altersLoadResult=False)

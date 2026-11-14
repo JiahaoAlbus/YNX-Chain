@@ -33,6 +33,7 @@ class HeldReadbackTests(unittest.TestCase):
         frame = dict(schema='YNX-PERF-LIVE-REPLY-PUBLIC-PROJECTION/v1', operation='request', sequence=1,
                      sourceReplyVersion='YNX-PQ-LAB-LIVE-MATERIALS-REPLY/v1', calleeElapsedNs=10,
                      session=dict(nodeIndex=2, policySHA256='d'*64), outcome='request_published',
+                     firstCausePresent=False, failureClass=None,
                      originalReplySHA256='e'*64, originalReplyBytes=400, syntheticOnly=True,
                      authorityGranted=False, independentFinality=False, rawReplyIncluded=False,
                      pathsAndPayloadsIncluded=False, timingsIncluded=False)
@@ -50,12 +51,28 @@ class HeldReadbackTests(unittest.TestCase):
         measured = reader.proof_publication(load, files, '')['records'][0]
         self.assertEqual(measured['replyProjectionWriteNs'], 2)
         self.assertEqual(measured['originalStages']['live.heldStaticWitnessCurrent'], dict(calls=4, elapsedNs=8))
+        files[stem+'.json'] = encode({key: value for key, value in timing.items() if key != 'replyProjectionWriteNs'})
+        legacy = reader.proof_publication(load, files, '')['records'][0]
+        self.assertEqual(legacy['parentElapsedNs'], 15)
+        self.assertIsNone(legacy['replyProjectionWriteNs'])
+        files[stem+'.json'] = encode(dict(timing, replyProjectionWriteNs=6))
+        with self.assertRaisesRegex(RuntimeError, 'clock or timing identity differs'):
+            reader.proof_publication(load, files, '')
         files[stem+'.json'] = encode(dict(timing, parentElapsedNs=21))
         with self.assertRaisesRegex(RuntimeError, 'clock or timing identity differs'):
             reader.proof_publication(load, files, '')
         files[stem+'-reply.json'] = encode(dict(frame, sequence=2))
         with self.assertRaisesRegex(RuntimeError, 'projection identity differs'):
             reader.proof_publication(load, files, '')
+        files[stem+'-reply.json'] = encode(dict(frame, firstCausePresent=True, failureClass='BUSY'))
+        with self.assertRaisesRegex(RuntimeError, 'publication outcome differs'):
+            reader.proof_publication(load, files, '')
+        files[stem+'-reply.json'] = encode(frame)
+        files[stem+'.json'] = encode(timing)
+        late = dict(kind='normal_stage', stage='live_publish', id='row0', index=0, atNs=60)
+        result = reader.proof_publication(dict(rows=[dict(row, id='row0', stageTimes=[])],
+            windowNs=40, tailNs=10, pipeline=dict(lateEvidence=[late])), files, '')
+        self.assertEqual((result['published'], result['latePublished']), (0, 1))
 
     def test_pipeline_pressure_uses_sampled_queue_and_active_worker_boundaries(self):
         workers = dict(publish=2, observe=2, finalize=4)
