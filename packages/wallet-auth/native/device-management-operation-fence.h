@@ -45,7 +45,7 @@ class ManagementOperationFence final {
  // A missing row is never a retry entitlement. Every attempted write, even
  // a failed/ambiguous write, consumes this instance and must remain UNKNOWN.
  void reserve(){thread();if(selected_)fail("MANAGEMENT_FENCE_RECOVER_ONLY");selected_=true;try{for(const auto&n:journal_.list())if(n==key_+".entered"||n==key_+".terminal")fail("MANAGEMENT_FENCE_RECOVER_ONLY");journal_.writeProductDeviceV4OnceExclusive(key_+".entered",record_);if(journal_.read(key_+".entered",131072)!=record_)fail("MANAGEMENT_FENCE_READBACK");}catch(const std::exception&e){fail(e.what());}}
- Observation observe(){thread();try{for(const auto&n:journal_.list())if(n==key_+".entered")return journal_.read(n,131072)==record_?Observation::MATCHED_ORIGINAL:Observation::MISMATCH;return Observation::UNKNOWN;}catch(const std::exception&e){fail(e.what());}}
+ Observation observe(){thread();selected_=true;try{for(const auto&n:journal_.list())if(n==key_+".entered")return journal_.read(n,131072)==record_?Observation::MATCHED_ORIGINAL:Observation::MISMATCH;return Observation::UNKNOWN;}catch(const std::exception&e){fail(e.what());}}
  const std::string&firstCauseDATA()const{thread();return first_;}
 };
 }

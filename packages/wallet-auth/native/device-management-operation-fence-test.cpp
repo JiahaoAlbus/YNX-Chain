@@ -18,6 +18,7 @@ int main(){
  auto changed=b;changed.replayKey=fill(8);ManagementOperationFence alternate(journal,changed);assert(alternate.observe()==ManagementOperationFence::Observation::MISMATCH);denied=false;try{alternate.reserve();}catch(const std::exception&){denied=true;}assert(denied);
  changed=b;changed.bodyDigest=fill(9);ManagementOperationFence alteredBody(journal,changed);assert(alteredBody.observe()==ManagementOperationFence::Observation::MISMATCH);
  for(unsigned field=0;field<4;++field){changed=b;if(field==0)changed.actor=fill(11);if(field==1)changed.session=fill(11);if(field==2)changed.proofDigest=fill(11);if(field==3)changed.expiresMs++;ManagementOperationFence different(journal,changed);assert(different.observe()==ManagementOperationFence::Observation::MISMATCH);denied=false;try{different.reserve();}catch(const std::exception&){denied=true;}assert(denied);}
- changed=b;changed.operation=fill(10);ManagementOperationFence absent(journal,changed);assert(absent.observe()==ManagementOperationFence::Observation::UNKNOWN);
+ changed=b;changed.operation=fill(10);ManagementOperationFence absent(journal,changed);assert(absent.observe()==ManagementOperationFence::Observation::UNKNOWN);assert(absent.observe()==ManagementOperationFence::Observation::UNKNOWN);denied=false;try{absent.reserve();}catch(const std::exception&){denied=true;}assert(denied);assert(absent.observe()==ManagementOperationFence::Observation::UNKNOWN);
+ changed=b;changed.operation=fill(12);ManagementOperationFence fresh(journal,changed);fresh.reserve();assert(fresh.observe()==ManagementOperationFence::Observation::MATCHED_ORIGINAL);denied=false;try{fresh.reserve();}catch(const std::exception&){denied=true;}assert(denied);
  assert(journal.close());return 0;
 }
