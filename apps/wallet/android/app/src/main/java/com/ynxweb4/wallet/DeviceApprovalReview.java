@@ -20,6 +20,8 @@ final class DeviceApprovalReview {
         // Records the decision against the same original request.
         void reject();
         default void cancel() { }
+        // Only the original protected actor can attest its physical cleanup.
+        default boolean canReleaseResolved() { return false; }
     }
 
     private final Original original;

@@ -4,11 +4,12 @@ import junit.framework.TestCase;
 
 public final class DeviceApprovalOriginalReviewTest extends TestCase {
     private static final class Scope implements DeviceApprovalOriginalReview.Scope {
-        boolean live = true, loseAck; int revokeAtCheck;
+        boolean live = true, loseAck, closed, closeFailure; int revokeAtCheck;
         int confirms, rejects, checks;
         public boolean current() { if (++checks == revokeAtCheck) live=false; return live; }
         public void confirmed(DeviceApprovalOriginalReview review) { confirms++; if (loseAck) throw new IllegalStateException(); }
         public void rejected(DeviceApprovalOriginalReview review) { rejects++; }
+        public boolean physicallyClosed() { if (closeFailure) throw new IllegalStateException(); return closed; }
     }
     private static final class Journal implements DeviceApprovalOriginalReview.SnapshotReader {
         int reads; byte[][] row;
@@ -86,5 +87,11 @@ public final class DeviceApprovalOriginalReviewTest extends TestCase {
         try { review.acknowledgeInsertedClaim(); fail(); } catch (IllegalStateException expected) { }
         assertFalse(review.originalClaimCurrent("operation-A",new byte[]{1,2}));
         assertEquals(1,scope.confirms);
+    }
+    public void testCleanupMustBeObservedFromSameScope() {
+        Scope scope = new Scope(); DeviceApprovalOriginalReview review = make(scope,new Journal());
+        assertFalse(review.canReleaseResolved());
+        scope.closeFailure=true; assertFalse(review.canReleaseResolved());
+        scope.closeFailure=false; scope.closed=true; assertTrue(review.canReleaseResolved());
     }
 }

@@ -4,7 +4,7 @@ import junit.framework.TestCase;
 
 public final class DeviceApprovalReviewLifetimeTest extends TestCase {
     private static final class Original implements DeviceApprovalReview.Original {
-        int cancellations;
+        int cancellations; boolean closed;
         public String peer() { return "peer"; }
         public String account() { return "account"; }
         public String network() { return "network"; }
@@ -14,6 +14,7 @@ public final class DeviceApprovalReviewLifetimeTest extends TestCase {
         public void confirmOnce() { }
         public void reject() { }
         public void cancel() { cancellations++; }
+        public boolean canReleaseResolved() { return closed; }
     }
     public void testConfirmedOriginalRetainedAcrossBackgroundUntilExactResolution() {
         DeviceApprovalReviewLifetime lifetime = new DeviceApprovalReviewLifetime();
@@ -22,7 +23,9 @@ public final class DeviceApprovalReviewLifetimeTest extends TestCase {
         assertTrue(lifetime.retained()); lifetime.revoke(); assertEquals(1,original.cancellations);
         try { lifetime.hold(new Original()); fail(); } catch (IllegalStateException expected) { }
         try { lifetime.releaseResolved(new Original()); fail(); } catch (IllegalStateException expected) { }
-        assertTrue(lifetime.retained()); lifetime.releaseResolved(original); assertFalse(lifetime.retained());
+        try { lifetime.releaseResolved(original); fail(); } catch (IllegalStateException expected) { }
+        assertTrue(lifetime.retained()); original.closed=true;
+        lifetime.releaseResolved(original); assertFalse(lifetime.retained());
     }
     public void testUnavailableNeverAssumedResolved() {
         DeviceApprovalReviewLifetime lifetime = new DeviceApprovalReviewLifetime();

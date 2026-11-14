@@ -18,7 +18,9 @@ final class DeviceApprovalReviewLifetime {
     void revoke() { if (original != null) original.cancel(); }
     boolean retained() { return original != null; }
     void releaseResolved(DeviceApprovalReview.Original expected) {
-        if (original == null || original != expected) throw new IllegalStateException("Different original device review");
+        if (original == null || original != expected || !original.canReleaseResolved()) {
+            throw new IllegalStateException("Original device review cleanup not confirmed");
+        }
         original = null;
     }
 }

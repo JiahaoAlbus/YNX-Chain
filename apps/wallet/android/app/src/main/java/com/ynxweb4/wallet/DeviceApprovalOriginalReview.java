@@ -10,6 +10,8 @@ final class DeviceApprovalOriginalReview implements DeviceApprovalReview.Origina
         boolean current(); // peer, original request, selected account, revision, policy, foreground
         void confirmed(DeviceApprovalOriginalReview review); // nonblocking; schedules the same native actor
         void rejected(DeviceApprovalOriginalReview review);
+        // Same original actor must establish actual physical close and no SDK debt.
+        default boolean physicallyClosed() { return false; }
     }
     interface SnapshotReader { byte[][] read(String operation, byte[] binding); }
     enum Decision { UNDECIDED, APPROVED, REJECTED, REVOKED, UNKNOWN }
@@ -65,6 +67,11 @@ final class DeviceApprovalOriginalReview implements DeviceApprovalReview.Origina
     /** Lock, background, account/peer change, or request retirement revokes this decision. */
     synchronized void revoke() { if (decision != Decision.UNKNOWN) decision = Decision.REVOKED; }
     @Override public void cancel() { revoke(); }
+
+    @Override public synchronized boolean canReleaseResolved() {
+        try { return scope.physicallyClosed(); }
+        catch (RuntimeException error) { return false; }
+    }
 
     /** Only the same native actor may call this after its own INSERTED claim ACK. */
     synchronized void acknowledgeInsertedClaim() {
