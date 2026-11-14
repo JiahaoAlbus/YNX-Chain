@@ -281,6 +281,9 @@ private struct SellerOrderDetail:View {
     var body:some View{SellerPage("shop_order_details",desktop:desktop){
         if let order=current {
             SellerLedger{VStack(alignment:.leading,spacing:16){Text(verbatim:order.ID).font(.caption.monospaced()).textSelection(.enabled);SellerState(status:order.Status);Text(buyerOrderTotal(order.paymentOrder,locale:locale) ?? String(localized:"unavailable")).shopFont(28,.bold);HStack{Text("seller_payment_evidence").shopFont(13).foregroundStyle(ShopTheme.secondary);Spacer();SellerPaymentState(order:order)};SellerValue(title:"seller_fulfillment",value:order.Shipment?.Status ?? String(localized:"unavailable"));if !order.RefundStatus.isEmpty{SellerState(status:order.RefundStatus)}}.padding(20)}
+            Button("seller_read_original_order"){seller.readOriginalOrder(order)}
+                .buttonStyle(ShopButtonStyle(kind:.secondary))
+                .disabled(!seller.signedIn || seller.busy)
             SellerTargetRecovery(target:order.ID)
             if desktop{HStack(alignment:.top,spacing:24){terms(order).frame(maxWidth:.infinity);buyer(order).frame(width:320)}}else{terms(order);buyer(order)}
             SellerLedger{VStack(alignment:.leading,spacing:16){Text("seller_fulfillment").shopFont(17,.semibold);if let shipment=order.Shipment{SellerValue(title:"seller_carrier",value:shipment.Carrier);SellerValue(title:"seller_tracking",value:shipment.TrackingNumber);SellerState(status:shipment.Status)};Button("seller_ship"){onAction(.ship(order.ID))}.buttonStyle(ShopButtonStyle()).disabled(!seller.can("fulfillment.write") || order.Status != "paid" || (sellerIsNativePayment(order) && (sellerPaymentNeedsReview(order) || order.paymentDisplayState=="native_refunded")) || seller.busy || seller.hasPending(order.ID));ShopNotice(title:"seller_fulfillment_boundary")}.padding(20)}
@@ -844,7 +847,6 @@ private struct SellerNativePaymentRecord:View {
     }.padding(20)}}
     @ViewBuilder private var readActions:some View {
         Button("seller_review_original_terms"){seller.reviewOriginalTerms(order)}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(!seller.canReviewOriginalTerms(order) || seller.busy)
-        Button("seller_read_original_order"){seller.readOriginalOrder(order)}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(!seller.signedIn || seller.busy)
     }
 }
 
