@@ -53,6 +53,8 @@ jobs:
         run: node --test test/wallet-native-pay-late-review-close.test.mjs test/wallet-native-pay-product.test.mjs test/wallet-native-pay-product-startup.test.mjs
       - name: WalletConnect disconnect race
         run: node --test test/walletconnect-disconnect-race.test.mjs
+      - name: Asset refresh scope and failure recovery
+        run: node --test test/asset-refresh-race.test.mjs
       # Ethers and its locked dependencies are already tracked in this normal
       # source image and materialized by checkout. No install or scripts run.
       - name: Original source proof readback and Main canonical identity controls
