@@ -74,13 +74,14 @@ def position(node):
 def tap(pos):
     adb("shell", "input", "tap", *pos)
 
-def search(value, field, button):
-    tap(field)
+def search(value):
+    tap(position(find(snapshot(), "Search products and categories")))
     adb("shell", "input", "keyevent", "KEYCODE_MOVE_END")
     adb("shell", "input", "keyevent", *(["KEYCODE_DEL"] * 20))
     adb("shell", "input", "text", value)
     adb("shell", "input", "keyevent", "KEYCODE_BACK")
-    tap(button)
+    time.sleep(0.3)
+    tap(position(find(snapshot(), "Search")))
 
 def require(nodes, label):
     try:
@@ -96,15 +97,13 @@ try:
         print("Initial catalog request absent; UI:", [(n.get("text"), n.get("content-desc")) for n in snapshot()], flush=True)
         raise AssertionError("initial catalog request did not reach fixture")
     nodes = snapshot()
-    field = position(find(nodes, "Search products and categories"))
-    button = position(find(nodes, "Search"))
     cart = position(find(nodes, "Cart"))
 
-    search("oldone", field, button)
+    search("oldone")
     if not started["oldone"].wait(5):
         print("Search request absent; UI:", [(n.get("text"), n.get("content-desc"), n.get("bounds")) for n in snapshot()], flush=True)
         raise AssertionError("old search did not reach fixture")
-    search("fresh", field, button)
+    search("fresh")
     assert fresh_sent.wait(5), "fresh response was not sent"
     require(snapshot(), "FRESH PRODUCT")
     release["oldone"].set()
@@ -115,7 +114,7 @@ try:
     require(nodes, "FRESH PRODUCT")
     assert not any(n.get("text") == "STALE PRODUCT" for n in nodes)
 
-    search("oldtwo", field, button)
+    search("oldtwo")
     assert started["oldtwo"].wait(5), "second old search did not reach fixture"
     tap(cart)
     before = snapshot()
