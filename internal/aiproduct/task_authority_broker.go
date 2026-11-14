@@ -197,7 +197,7 @@ func (b *originalTaskAuthorityBroker) dispatch(ctx context.Context, e *originalR
 	if effectErr != nil || retainErr != nil || locatorErr != nil {
 		return taskReadReceipt{}, errors.Join(effectErr, retainErr, locatorErr)
 	}
-	return b.accept(ctx, e, call, selected, result)
+	return b.accept(ctx, e.runtime.current, e.store, call, selected, result)
 }
 
 func (b *originalTaskAuthorityBroker) reconcile(ctx context.Context, e *originalRuntimeToolEffects, call taskEffectCall, ref string) (taskReadReceipt, error) {
@@ -245,10 +245,10 @@ func (b *originalTaskAuthorityBroker) reconcile(ctx context.Context, e *original
 	if result.OriginalOperation != material.Call.OriginalOperation {
 		return taskReadReceipt{}, errToolConflict
 	}
-	return b.accept(ctx, e, call, selected, result)
+	return b.accept(ctx, e.runtime.queryCurrent, e.store, call, selected, result)
 }
 
-func (b *originalTaskAuthorityBroker) accept(ctx context.Context, e *originalRuntimeToolEffects, call taskEffectCall, selected OriginalShopOrderCall, result originalclient.TaskAuthorityResult) (taskReadReceipt, error) {
+func (b *originalTaskAuthorityBroker) accept(ctx context.Context, current func(context.Context) error, store *Store, call taskEffectCall, selected OriginalShopOrderCall, result originalclient.TaskAuthorityResult) (taskReadReceipt, error) {
 	if result.State != "COMMITTED" || !originalBrokerOperation(result.OriginalOperation) || result.Resource == nil {
 		return taskReadReceipt{}, errTaskEffectUnresolved
 	}
@@ -280,5 +280,5 @@ func (b *originalTaskAuthorityBroker) accept(ctx context.Context, e *originalRun
 		return taskReadReceipt{}, err
 	}
 	decoded := OriginalShopOrderDecodedResult{OriginalOperationID: resource.OperationID, RemoteRef: resource.RemoteRef, ResultJSON: bytes.Clone(view.Projection), SourceBytes: resource.SourceBytes, Source: resource.Source, AuthScope: policy.FenceScope(resource.AuthScope)}
-	return acceptOriginalShopDecodedResult(ctx, e.runtime.queryCurrent, e.store, call, selected, response, decoded, resource.OperationID)
+	return acceptOriginalShopDecodedResult(ctx, current, store, call, selected, response, decoded, resource.OperationID)
 }

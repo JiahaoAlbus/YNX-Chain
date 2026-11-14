@@ -25,6 +25,7 @@ type p08BrokerClientFixture struct {
 	result                          originalclient.TaskAuthorityResult
 	effectErr, queryErr, currentErr error
 	news, queries                   []originalclient.TaskAuthorityCall
+	afterEffect                     func()
 }
 
 func (c *p08BrokerClientFixture) Current(ctx context.Context) error {
@@ -48,6 +49,9 @@ func (c *p08BrokerClientFixture) AuthorizeAtEffect(_ context.Context, call origi
 		c.t.Fatal("NEW lost exact E21/E3, input or original Grant ref")
 	}
 	c.news = append(c.news, call)
+	if c.afterEffect != nil {
+		c.afterEffect()
+	}
 	return c.result, c.effectErr
 }
 func (c *p08BrokerClientFixture) QueryOriginalEffect(_ context.Context, call originalclient.TaskAuthorityCall) (originalclient.TaskAuthorityResult, error) {
@@ -309,6 +313,54 @@ func TestP08AuthorityBrokerUnknownModelCheckpointRecovery(t *testing.T) {
 	result, err := f.server.runTaskModel(ctx, f.session, f.task.ID, r)
 	if err != nil || result.Status != "COMPLETED" || result.Content != "Actual PUBLIC HTTP provider answer for the verified order." || len(c.news) != 1 || len(c.queries) != 1 || c.queries[0].OriginalOperation != complete.OriginalOperation || a.resolveCalls != resolves || f.providerRequests.Load() != 2 || p08BrokerStored(f).ToolStep.EffectFirstCause != first {
 		t.Fatalf("original checkpoint/query/model recovery: %+v %v NEW=%d query=%d", result, err, len(c.news), len(c.queries))
+	}
+}
+
+func TestP08AuthorityBrokerModelRevocationBeforeShopCommit(t *testing.T) {
+	f, a, c := newP08BrokerFixture(t, false)
+	ctx := context.Background()
+	r := taskRunRequest{RunID: "PUBLIC-shop-revoke-before-commit", TaskRevision: f.task.Revision, Generation: f.task.Generation, Prompt: "Read the selected order.", AuthorizationRef: "PUBLIC-original-proof-ref", ToolIDs: []string{shopOrderToolID}}
+	pending, err := f.server.runTaskModel(ctx, f.session, f.task.ID, r)
+	if err != nil || pending.Status != "NEEDS_APPROVAL" || len(pending.Steps) != 1 {
+		t.Fatalf("proposal: %+v %v", pending, err)
+	}
+	f.step, _ = f.store.Action(f.session.Account, pending.Steps[0])
+	f.approve(t)
+	complete := p08BrokerResult(t, f)
+	c.result = complete
+	c.afterEffect = func() { a.currentErr = errors.New("PUBLIC effect authority revoked before local commit") }
+	r.Resume, r.Prompt = true, ""
+	unknown, err := f.server.runTaskModel(ctx, f.session, f.task.ID, r)
+	step := p08BrokerStored(f)
+	if !errors.Is(err, a.currentErr) || unknown.Status != "UNKNOWN" || unknown.Content != "" ||
+		step.Status != "UNKNOWN" || step.ToolStep.ResultCipher != "" || step.ToolStep.ResultWireCipher != "" ||
+		step.ToolStep.AuthorityOperationID != complete.OriginalOperation || step.ToolStep.RemoteRef != complete.Resource.RemoteRef ||
+		len(c.news) != 1 || len(c.queries) != 0 || f.providerRequests.Load() != 1 {
+		t.Fatalf("revoked effect crossed the result boundary: run=%q step=%q NEW=%d QUERY=%d provider=%d err=%v",
+			unknown.Status, step.Status, len(c.news), len(c.queries), f.providerRequests.Load(), err)
+	}
+
+	// Keep the effect authority revoked during explicit historical recovery.
+	a.f.prepared.owners = &originalTaskRuntimeOwners{}
+	a.f.prepared.recoveryOnly = a.currentErr
+	p08BrokerRestart(t, f)
+	resolves := a.resolveCalls
+	receipt, err := f.server.reconcileStep(ctx, f.session, f.task.ID, f.step.ID, r.AuthorizationRef)
+	if err != nil || receipt.State != "COMMITTED" || receipt.AuthorityOperationID != complete.OriginalOperation ||
+		len(c.news) != 1 || len(c.queries) != 1 || c.queries[0].OriginalOperation != complete.OriginalOperation ||
+		!bytes.Equal(c.queries[0].RawInput, c.news[0].RawInput) || a.resolveCalls != resolves || f.providerRequests.Load() != 1 {
+		t.Fatalf("query-only recovery: state=%q NEW=%d QUERY=%d provider=%d err=%v",
+			receipt.State, len(c.news), len(c.queries), f.providerRequests.Load(), err)
+	}
+
+	// A new model disclosure still needs current effect/disclosure authority.
+	a.currentErr, f.prepared.recoveryOnly = nil, nil
+	p08BrokerRestart(t, f)
+	result, err := f.server.runTaskModel(ctx, f.session, f.task.ID, r)
+	if err != nil || result.Status != "COMPLETED" || result.Content != "Actual PUBLIC HTTP provider answer for the verified order." ||
+		len(c.news) != 1 || len(c.queries) != 1 || f.providerRequests.Load() != 2 {
+		t.Fatalf("model continuation: status=%q NEW=%d QUERY=%d provider=%d err=%v",
+			result.Status, len(c.news), len(c.queries), f.providerRequests.Load(), err)
 	}
 }
 

@@ -107,9 +107,6 @@ func acceptOriginalShopDecodedResult(ctx context.Context, current func(context.C
 	if err := captureShopRemoteRef(store, selected, decoded.RemoteRef); err != nil {
 		return taskReadReceipt{}, err
 	}
-	if err := current(ctx); err != nil {
-		return taskReadReceipt{}, err
-	}
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	task, taskErr := store.ownedTaskLocked(call.Account, selected.Binding.Task.ID)
@@ -130,6 +127,9 @@ func acceptOriginalShopDecodedResult(ctx context.Context, current func(context.C
 	if record.Status == "COMPLETED" {
 		if binding.ResultBinding != bindTaskBytes(decoded.ResultJSON) {
 			return taskReadReceipt{}, errToolConflict
+		}
+		if err := current(ctx); err != nil {
+			return taskReadReceipt{}, err
 		}
 		return store.taskReadReceiptLocked(record)
 	}
@@ -154,6 +154,11 @@ func acceptOriginalShopDecodedResult(ctx context.Context, current func(context.C
 	binding.ResultContentType = response.ContentType
 	binding.ResultAuthScope = string(decoded.AuthScope)
 	record.Status, record.ToolStep = "COMPLETED", &binding
+	// Check the authority for this action after waiting for the Store and
+	// preparing the ciphertext. Only the local save remains after this check.
+	if err := current(ctx); err != nil {
+		return taskReadReceipt{}, err
+	}
 	if err := store.saveToolEffectLocked(record, "shop_verified_original_result_committed"); err != nil {
 		return taskReadReceipt{}, err
 	}
