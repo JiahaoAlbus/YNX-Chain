@@ -283,6 +283,24 @@ class TransportControls(unittest.TestCase):
         self.assertNotIn('replyReceivedMonotonicNs',report['records'][0])
         self.assertFalse(report['automaticRetry'])
 
+    def test_original_receiver_rejects_duplicate_and_nonfinite_reply_before_sign(self):
+        for malformed in (b'{"version":"YNX-PQ-LAB-PUBLIC-OWNER-REPLY/v1","code":"REJECTED","code":"OWNER_PREPARED"}\n',
+                          b'{"version":"YNX-PQ-LAB-PUBLIC-OWNER-REPLY/v1","value":NaN}\n'):
+            with self.subTest(malformed=malformed), tempfile.TemporaryDirectory() as tmp:
+                RealSession=m.session_class(d.SenderSession,n,d.lab)
+                s=RealSession.__new__(RealSession)
+                s.__dict__.update(session(lambda:None).__dict__)
+                s.offset=0;s.partial=b'';s.path=Path(tmp)/'original-process.log';s.path.write_bytes(malformed)
+                original=Path(tmp)/'original-prepare-owner-reply.json'
+                checkpoint=unittest.mock.Mock()
+                with self.assertRaises(RuntimeError):
+                    s.exchange(command(),None,threading.Event(),prepare_command=checkpoint,
+                               prepare_owner_path=original)
+                self.assertEqual(original.read_bytes(),malformed)
+                self.assertTrue(s.poisoned)
+                checkpoint.assert_not_called()
+                self.assertEqual(len(s.proc.stdin.getvalue().splitlines()),1)
+
     def test_real_truncated_reply_preserves_bytes_and_refuses_recovery_on_poisoned_stream(self):
         RealSession=m.session_class(d.SenderSession,n,d.lab)
         s=RealSession.__new__(RealSession)

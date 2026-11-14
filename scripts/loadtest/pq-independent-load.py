@@ -46,6 +46,7 @@ held_first_trial_source=module('held_first100_source','pq-held-first100-source.p
 held_input_footprint=module('original_held_input_footprint','pq-held-input-footprint.py')
 request_observation_readback=module('original_request_observation_readback','pq-live-request-observation-readback.py')
 owner_failure_readback=module('original_owner_failure_readback','pq-public-owner-failure-readback.py')
+owner_parent_readback=module('original_owner_parent_readback','pq-public-owner-parent-readback.py')
 
 
 def owner_failure_detail(reply, operation):
@@ -243,7 +244,7 @@ class SenderSession:
                 line,self.partial=self.partial.split(b"\n",1)
                 if path is not None:
                     with open(path,"xb") as output:output.write(line+b"\n");output.flush();os.fsync(output.fileno())
-                reply=json.loads(line);lab.require(reply["version"]==version,"original sender reply version differs")
+                reply=owner_parent_readback.strict(line);lab.require(reply["version"]==version,"original sender reply version differs")
                 return (reply, line+b"\n") if include_original else reply
             if chunk:
                 # Drain bytes already written, even if the child has exited.
