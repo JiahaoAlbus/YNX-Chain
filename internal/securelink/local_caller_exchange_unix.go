@@ -32,6 +32,7 @@ type originalLocalCallerExchangeState struct {
 	conn                      *os.File
 	socketFD                  int
 	peer                      *originalLocalCallerPeer
+	shopV4Borrow              *originalShopV4Borrow
 	changed                   chan struct{}
 	callbackDone              chan struct{}
 	stopCallback              func() bool
@@ -96,21 +97,11 @@ func (c *LocalCallerClient) CallOriginalShopGETV4Owned(ctx context.Context, path
 	return c.callOriginalOwned(ctx, http.MethodGet, path, "", nil, expected, nil, &proof)
 }
 
-// The private native adapter must hold its exact V4 proof borrow while it
-// checks Current here and until the returned exchange has physically closed.
-// Current must be bounded, worker-safe, and perform no I/O or actor/N-API work.
-func (c *LocalCallerClient) callOriginalShopGETV4Fenced(ctx context.Context, path string, proof ProductSessionProofV4DATA, expected LocalCallerExpectedProcess, current func(context.Context) error) (*OriginalLocalCallerExchange, LocalCallerResponse, error) {
-	if current == nil {
-		return nil, LocalCallerResponse{}, ErrDenied
-	}
-	return c.callOriginalOwnedWithFence(ctx, http.MethodGet, path, "", nil, expected, nil, &proof, current)
-}
-
 func (c *LocalCallerClient) callOriginalOwned(ctx context.Context, method, path, contentType string, body []byte, expected LocalCallerExpectedProcess, proof *ProductSessionProofV2DATA, proofV4 *ProductSessionProofV4DATA) (*OriginalLocalCallerExchange, LocalCallerResponse, error) {
-	return c.callOriginalOwnedWithFence(ctx, method, path, contentType, body, expected, proof, proofV4, nil)
+	return c.callOriginalOwnedWithBorrow(ctx, method, path, contentType, body, expected, proof, proofV4, nil)
 }
 
-func (c *LocalCallerClient) callOriginalOwnedWithFence(ctx context.Context, method, path, contentType string, body []byte, expected LocalCallerExpectedProcess, proof *ProductSessionProofV2DATA, proofV4 *ProductSessionProofV4DATA, beforeWrite func(context.Context) error) (exchange *OriginalLocalCallerExchange, out LocalCallerResponse, err error) {
+func (c *LocalCallerClient) callOriginalOwnedWithBorrow(ctx context.Context, method, path, contentType string, body []byte, expected LocalCallerExpectedProcess, proof *ProductSessionProofV2DATA, proofV4 *ProductSessionProofV4DATA, borrow *originalShopV4Borrow) (exchange *OriginalLocalCallerExchange, out LocalCallerResponse, err error) {
 	s := &originalLocalCallerExchangeState{ownerPID: os.Getpid(), client: c, changed: make(chan struct{}), active: 1, socketFD: -1}
 	exchange = &OriginalLocalCallerExchange{state: s}
 	originalLocalCallerExchangeCustody.Lock()
@@ -142,8 +133,25 @@ func (c *LocalCallerClient) callOriginalOwnedWithFence(ctx context.Context, meth
 	if full {
 		return exchange, out, ErrBounds
 	}
-	if c == nil || ctx == nil || strings.ContainsAny(contentType, "\r\n\x00") || (beforeWrite != nil && proofV4 == nil) {
+	if borrow != nil {
+		if !borrow.selected.CompareAndSwap(false, true) {
+			return exchange, out, ErrDenied
+		}
+		s.shopV4Borrow = borrow
+	}
+	if c == nil || ctx == nil || strings.ContainsAny(contentType, "\r\n\x00") {
 		return exchange, out, ErrDenied
+	}
+	if borrow != nil {
+		if err := ctx.Err(); err != nil {
+			return exchange, out, err
+		}
+		var original ProductSessionProofV4DATA
+		path, original, err = borrow.worker.copyOriginalShopV4Proof()
+		if err != nil {
+			return exchange, out, err
+		}
+		proofV4 = &original
 	}
 	var proofValue string
 	if proof != nil && proofV4 != nil {
@@ -274,13 +282,13 @@ func (c *LocalCallerClient) callOriginalOwnedWithFence(ctx context.Context, meth
 	if e = s.ctx.Err(); e != nil {
 		return exchange, out, e
 	}
-	if beforeWrite != nil {
-		if e = beforeWrite(s.ctx); e != nil {
+	if borrow != nil {
+		if e = borrow.worker.currentOriginalShopV4NoIO(); e != nil {
 			return exchange, out, e
 		}
 	}
 	s.mu.Lock()
-	if beforeWrite != nil {
+	if borrow != nil {
 		if e = s.ctx.Err(); e != nil {
 			s.mu.Unlock()
 			return exchange, out, e
@@ -318,6 +326,12 @@ func (c *LocalCallerClient) callOriginalOwnedWithFence(ctx context.Context, meth
 	}
 	if e = s.ctx.Err(); err == nil && e != nil {
 		err = e
+	}
+	if err == nil && borrow != nil {
+		err = borrow.worker.currentOriginalShopV4NoIO()
+		if err == nil {
+			err = s.ctx.Err()
+		}
 	}
 	return exchange, out, err
 }
@@ -373,12 +387,17 @@ func (s *originalLocalCallerExchangeState) current(ctx context.Context) error {
 	}
 	s.active++
 	terminal := s.bodyComplete
+	borrow := s.shopV4Borrow
 	s.mu.Unlock()
 	defer func() { s.mu.Lock(); s.active--; s.notifyLocked(); s.mu.Unlock() }()
 	if err := s.ctx.Err(); err != nil {
 		return s.remember(err)
 	}
-	if err := s.observe(ctx, terminal); err != nil {
+	err := s.observe(ctx, terminal)
+	if err == nil && borrow != nil {
+		err = borrow.worker.currentOriginalShopV4NoIO()
+	}
+	if err != nil {
 		s.remember(err)
 		_ = s.retire()
 		return err
@@ -393,6 +412,9 @@ func (s *originalLocalCallerExchangeState) current(ctx context.Context) error {
 	}
 	if s.retired || s.ctx.Err() != nil {
 		return ErrDenied
+	}
+	if borrow != nil {
+		return ctx.Err()
 	}
 	return nil
 }
@@ -515,9 +537,9 @@ func (s *originalLocalCallerExchangeState) close() error {
 	s.closed = socketDone && !s.cleanupUnknown
 	s.closing = false
 	s.notifyLocked()
-	closed := s.closed
+	forget := s.closed && s.shopV4Borrow == nil
 	s.mu.Unlock()
-	if closed {
+	if forget {
 		originalLocalCallerExchangeCustody.Lock()
 		delete(originalLocalCallerExchangeCustody.owners, s)
 		originalLocalCallerExchangeCustody.Unlock()

@@ -135,6 +135,28 @@ func TestOriginalLocalCallerShopProofV4OwnedWire(t *testing.T) {
 	}
 }
 
+type publicShopV4ProofWorker struct {
+	proof   ProductSessionProofV4DATA
+	copyErr error
+	current func() error
+}
+
+func (p *publicShopV4ProofWorker) copyOriginalShopV4Proof() (string, ProductSessionProofV4DATA, error) {
+	return publicShopProofPath, p.proof, p.copyErr
+}
+
+func (p *publicShopV4ProofWorker) currentOriginalShopV4NoIO() error { return p.current() }
+
+func publicTakeClosedShopV4Borrow(t *testing.T, x *OriginalLocalCallerExchange, want *originalShopV4Borrow) {
+	t.Helper()
+	if got, err := x.takeClosedOriginalShopV4Borrow(); got != want || err != nil {
+		t.Fatalf("physical close did not return original borrow: same=%t err=%v", got == want, err)
+	}
+	if got, err := x.takeClosedOriginalShopV4Borrow(); got != nil || !errors.Is(err, ErrDenied) {
+		t.Fatalf("original borrow returned more than once: hasBorrow=%t err=%v", got != nil, err)
+	}
+}
+
 func TestOriginalLocalCallerShopProofV4OwnedPrewriteCurrent(t *testing.T) {
 	expected := publicOriginalLocalCallerExpected(t)
 	proof := ProductSessionProofV4DATA{HeaderValue: "Aa"}
@@ -172,16 +194,19 @@ func TestOriginalLocalCallerShopProofV4OwnedPrewriteCurrent(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			calls := 0
-			x, response, err := client.callOriginalShopGETV4Fenced(ctx, publicShopProofPath, proof, expected, func(context.Context) error {
+			worker := &publicShopV4ProofWorker{proof: proof, current: func() error {
 				calls++
 				if test.want == context.Canceled {
 					cancel()
 					return nil
 				}
 				return test.want
-			})
+			}}
+			borrow := &originalShopV4Borrow{worker: worker}
+			x, response, err := client.callOriginalShopGETV4Fenced(ctx, expected, borrow)
 			if x != nil {
 				publicOwnedExchangeClose(t, x)
+				publicTakeClosedShopV4Borrow(t, x, borrow)
 			}
 			var dispatch *DispatchError
 			if x == nil || calls != 1 || !errors.As(err, &dispatch) || !errors.Is(err, test.want) || dispatch.DispatchPossible ||
@@ -206,15 +231,160 @@ func TestOriginalLocalCallerShopProofV4OwnedPrewriteCurrent(t *testing.T) {
 			}
 			_, _ = w.Write([]byte("PUBLIC"))
 		})
-		x, response, err := p.client.callOriginalShopGETV4Fenced(context.Background(), publicShopProofPath, proof, expected, func(context.Context) error {
+		worker := &publicShopV4ProofWorker{proof: proof, current: func() error {
 			calls.Add(1)
 			return nil
-		})
+		}}
+		borrow := &originalShopV4Borrow{worker: worker}
+		x, response, err := p.client.callOriginalShopGETV4Fenced(context.Background(), expected, borrow)
 		if x != nil {
-			defer publicOwnedExchangeClose(t, x)
+			t.Cleanup(func() {
+				publicOwnedExchangeClose(t, x)
+				publicTakeClosedShopV4Borrow(t, x, borrow)
+			})
 		}
-		if err != nil || x == nil || calls.Load() != 1 || !x.Lifetime().DispatchPossible || !response.BodyComplete || string(response.Body) != "PUBLIC" {
+		if err != nil || x == nil || calls.Load() != 2 || !x.Lifetime().DispatchPossible || !response.BodyComplete || string(response.Body) != "PUBLIC" {
 			t.Fatalf("approved Current did not preserve the one original exchange: %v %+v", err, response)
+		}
+	})
+}
+
+func TestOriginalLocalCallerShopProofV4BorrowLifecycle(t *testing.T) {
+	expected := publicOriginalLocalCallerExpected(t)
+	proof := ProductSessionProofV4DATA{HeaderValue: "Aa"}
+	t.Run("late-revocation-and-one-transfer", func(t *testing.T) {
+		var requests atomic.Int32
+		p := newPublicShopV4Server(t, func(w http.ResponseWriter, r *http.Request) {
+			requests.Add(1)
+			if r.Header.Get(ProductSessionProofV4Header) != proof.HeaderValue {
+				t.Error("peer did not receive exact held proof")
+			}
+			_, _ = io.WriteString(w, "PUBLIC response")
+		})
+		currentCalls := 0
+		borrow := &originalShopV4Borrow{worker: &publicShopV4ProofWorker{proof: proof, current: func() error {
+			currentCalls++
+			if currentCalls == 2 {
+				return ErrRevoked
+			}
+			return nil
+		}}}
+		x, out, err := p.client.callOriginalShopGETV4Fenced(t.Context(), expected, borrow)
+		if x != nil {
+			t.Cleanup(func() {
+				publicOwnedExchangeClose(t, x)
+				publicTakeClosedShopV4Borrow(t, x, borrow)
+			})
+		}
+		var dispatch *DispatchError
+		if x == nil || !errors.As(err, &dispatch) || !errors.Is(err, ErrRevoked) || !dispatch.DispatchPossible ||
+			!out.BodyComplete || string(out.Body) != "PUBLIC response" || dispatch.PartialResponseBytes != int64(len(out.Body)) ||
+			requests.Load() != 1 || currentCalls != 2 || !errors.Is(x.FirstCause(), ErrRevoked) {
+			t.Fatalf("post-response revocation lost retained DATA or first cause: %v %+v", err, out)
+		}
+		if got, err := x.takeClosedOriginalShopV4Borrow(); got != nil || !errors.Is(err, ErrLocalCallerDraining) {
+			t.Fatal("borrow escaped before actual close", err)
+		}
+		replay, replayData, replayErr := p.client.callOriginalShopGETV4Fenced(t.Context(), expected, borrow)
+		if replay != nil {
+			publicOwnedExchangeClose(t, replay)
+			if got, err := replay.takeClosedOriginalShopV4Borrow(); got != nil || !errors.Is(err, ErrDenied) {
+				t.Error("rejected attempt captured original borrow", err)
+			}
+		}
+		if !errors.Is(replayErr, ErrDenied) || replayData.PacketPresent || requests.Load() != 1 || currentCalls != 2 {
+			t.Fatal("borrow replay performed original work", replayErr)
+		}
+	})
+	t.Run("copy-failure-retains-partial", func(t *testing.T) {
+		borrow := &originalShopV4Borrow{worker: &publicShopV4ProofWorker{copyErr: ErrRevoked, current: func() error {
+			t.Error("failed proof copy reached Current")
+			return nil
+		}}}
+		p := newPublicShopV4Server(t, func(http.ResponseWriter, *http.Request) {
+			t.Error("failed proof copy dispatched HTTP")
+		})
+		x, out, err := p.client.callOriginalShopGETV4Fenced(t.Context(), expected, borrow)
+		if x == nil || out.PacketPresent || !errors.Is(err, ErrRevoked) || x.Lifetime().DispatchPossible {
+			t.Fatalf("failed copy lost owner or dispatched: %v %+v", err, out)
+		}
+		publicOwnedExchangeClose(t, x)
+		publicTakeClosedShopV4Borrow(t, x, borrow)
+	})
+	t.Run("current-worker-must-drain", func(t *testing.T) {
+		var currentCalls atomic.Int32
+		entered, resume := make(chan struct{}), make(chan struct{})
+		p := newPublicShopV4Server(t, func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = io.WriteString(w, "PUBLIC")
+		})
+		borrow := &originalShopV4Borrow{worker: &publicShopV4ProofWorker{proof: proof, current: func() error {
+			if currentCalls.Add(1) == 3 {
+				close(entered)
+				<-resume
+			}
+			return nil
+		}}}
+		x, _, err := p.client.callOriginalShopGETV4Fenced(t.Context(), expected, borrow)
+		if x != nil {
+			t.Cleanup(func() {
+				publicOwnedExchangeClose(t, x)
+				publicTakeClosedShopV4Borrow(t, x, borrow)
+			})
+		}
+		if x == nil || err != nil {
+			t.Fatal("original exchange failed", err)
+		}
+		done := make(chan error, 1)
+		go func() { done <- x.Current(t.Context()) }()
+		defer close(resume)
+		select {
+		case <-entered:
+		case err := <-done:
+			t.Fatal("Current missed the retained worker", err)
+		case <-time.After(2 * time.Second):
+			t.Fatal("retained worker did not start")
+		}
+		_ = x.Retire()
+		canceled, cancel := context.WithCancel(context.Background())
+		cancel()
+		if err := x.Join(canceled); !errors.Is(err, context.Canceled) {
+			t.Fatal("Join treated active Current as finished", err)
+		}
+		if err := x.Close(); !errors.Is(err, ErrLocalCallerDraining) {
+			t.Fatal("Close treated active Current as finished", err)
+		}
+		if got, err := x.takeClosedOriginalShopV4Borrow(); got != nil || !errors.Is(err, ErrLocalCallerDraining) {
+			t.Fatal("active Current lost its original borrow", err)
+		}
+	})
+	t.Run("unknown-never-returns-borrow", func(t *testing.T) {
+		p := newPublicShopV4Server(t, func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = io.WriteString(w, "PUBLIC")
+		})
+		borrow := &originalShopV4Borrow{worker: &publicShopV4ProofWorker{proof: proof, current: func() error { return nil }}}
+		x, _, err := p.client.callOriginalShopGETV4Fenced(t.Context(), expected, borrow)
+		if x == nil || err != nil {
+			t.Fatal("original exchange failed", err)
+		}
+		// PUBLIC fault. Only the owner may close the exact descriptor in normal use.
+		if err := x.state.conn.Close(); err != nil {
+			t.Fatal(err)
+		}
+		_ = x.Retire()
+		_ = x.Join(t.Context())
+		for range 2 {
+			if err := x.Close(); !errors.Is(err, ErrOriginalLocalCallerCloseUnknown) {
+				t.Fatal("lost original physical close ambiguity", err)
+			}
+			if got, err := x.takeClosedOriginalShopV4Borrow(); got != nil || !errors.Is(err, ErrOriginalLocalCallerCloseUnknown) {
+				t.Fatal("ambiguous close returned original borrow", err)
+			}
+		}
+		originalLocalCallerExchangeCustody.Lock()
+		_, retained := originalLocalCallerExchangeCustody.owners[x.state]
+		originalLocalCallerExchangeCustody.Unlock()
+		if !retained || x.state.shopV4Borrow != borrow {
+			t.Fatal("original borrow custody was dropped after unknown close")
 		}
 	})
 }
