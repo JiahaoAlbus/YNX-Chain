@@ -67,4 +67,15 @@ class OriginalDependencies(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError,'sibling dependency receipt'):
             d.materialize(self.source,self.build,self.base/'SOURCE-NATIVE-DEPENDENCIES.json')
 
+    def test_fixed_held_proof_source_is_admitted_by_the_native_dependency_reader(self):
+        pin_spec = importlib.util.spec_from_file_location('held_source_pin', Path(__file__).with_name('pq-held-first100-source.py'))
+        pin = importlib.util.module_from_spec(pin_spec)
+        pin_spec.loader.exec_module(pin)
+        git = {'HEAD': pin.SOURCE.encode(), 'HEAD^{tree}': pin.TREE.encode(), '--untracked-files=all': b''}
+        with mock.patch.object(d, 'git', side_effect=lambda _source, *args: git[args[-1]]):
+            self.assertEqual(d.source_identity(self.source), (pin.SOURCE, pin.TREE))
+            git['HEAD^{tree}'] = b'0' * 40
+            with self.assertRaisesRegex(RuntimeError, 'exact clean'):
+                d.source_identity(self.source)
+
 if __name__=='__main__':unittest.main(verbosity=2)
