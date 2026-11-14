@@ -39,6 +39,33 @@ class HeldReadbackTests(unittest.TestCase):
         self.assertEqual(pressure['stages']['finalize']['returnedOrRaised'], 4)
         self.assertFalse(pressure['chainSaturationProven'])
 
+    def test_parent_timing_binds_first_failure_to_original_owner_and_clock(self):
+        def attempt(owner, returned):
+            return dict(ownerIndex=owner, operationId='a'*64, operation='sign', code='UNKNOWN',
+                        requestedMonotonicNs=110, streamAcquiredMonotonicNs=120,
+                        commandRequestedMonotonicNs=140, replyReceivedMonotonicNs=150,
+                        returnedMonotonicNs=returned)
+
+        transport = dict(schema='YNX-PERF-PUBLIC-OWNER-TRANSPORT/v1', clock='parent_monotonic_ns',
+                         attempted=3, retained=3, omitted=0, recordLimit=2048, records=[
+                             attempt(5, 160), attempt(6, 160), attempt(5, 180)],
+                         automaticRetry=False, authorityGranted=False)
+        receipt = dict(normalPublicOwnerTransport=transport)
+        first = dict(index=1, id='first', atNs=65)
+        load = dict(originMonotonicNs='100', firstOperationalFailure=first, rows=[
+            dict(index=1, id='first', ownerIndex=5, operationId='a'*64, submittedNs=None,
+                 includedNs=None, finalNs=None)])
+        timing = reader.public_owner_timing(receipt, load)
+        failure = timing['firstOperationalFailure']
+        self.assertEqual(len(failure['returnedAttempts']), 1)
+        self.assertEqual(failure['returnedAttempts'][0]['stagesNs']['commandToReply'], 10)
+        self.assertFalse(failure['submittedObserved'])
+        self.assertFalse(failure['qualifiedObserved'])
+        self.assertNotIn('confirm', timing['groups'])
+        self.assertIsNone(reader.public_owner_timing({}, load))
+        with self.assertRaisesRegex(RuntimeError, 'outside the cohort'):
+            reader.public_owner_timing(receipt, dict(load, firstOperationalFailure=dict(first, id='other')))
+
     def test_actions_metadata_binds_attempt_job_and_archive_digest(self):
         branch = 'codex/ynx-pq-current75-baseline-20261101'
         run = dict(id=1, event='workflow_dispatch', run_attempt=1, head_sha=self.controller,

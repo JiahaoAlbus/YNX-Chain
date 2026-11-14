@@ -125,6 +125,7 @@ def compare_business(before, after):
                     counts=cohort['originalCohort']['counts'], latencies=cohort['originalCohort']['latencies'],
                     terminalCounts=cohort['terminalCounts'], backlogGrowing=cohort['backlogGrowing'],
                     pipelinePressure=cohort['pipelinePressure'],
+                    publicOwnerTiming=report.get('publicOwnerTiming'),
                     businessBlockCommitStages=report['businessBlockCommitStages'],
                     businessStageCostsByNode=report.get('businessStageCostsByNode'))
 
@@ -133,6 +134,32 @@ def compare_business(before, after):
                 sameReportedConditions=not differences and not hardware_differences,
                 identicalPhysicalHostProven=False, canonicalInputEqualityProven=False,
                 throughputGainAttributed=False, sustainedTPSQualified=False)
+
+
+def public_owner_timing(receipt, load):
+    """Join observed signer and confirmation spans to the original business failure."""
+    if receipt.get('normalPublicOwnerTransport') is None:
+        return None
+    transport = prior.public_transport(receipt)
+    first = load.get('firstOperationalFailure')
+    matched = None
+    if first is not None:
+        row = next((row for row in load['rows'] if (row['index'], row['id']) ==
+                    (first['index'], first['id'])), None)
+        require(row is not None, 'original operational failure is outside the cohort')
+        origin = int(load['originMonotonicNs'])
+        matched = [record for record in transport['records']
+                   if record['originalRecord']['operation'] in ('sign', 'confirm')
+                   and record['originalRecord']['ownerIndex'] == row['ownerIndex']
+                   and record['originalRecord']['operationId'] == row['operationId']
+                   and record['originalRecord']['returnedMonotonicNs'] <= origin + first['atNs']]
+        matched = dict(index=row['index'], originalFailure=first, returnedAttempts=matched,
+                       submittedObserved=row['submittedNs'] is not None,
+                       includedObserved=row['includedNs'] is not None,
+                       qualifiedObserved=row['finalNs'] is not None)
+    return dict(attempted=transport['attempted'], omitted=transport['omitted'],
+                groups=transport['groups'], receiptProjectionSHA256=transport['receiptProjectionSHA256'],
+                firstOperationalFailure=matched, stagesAdded=False)
 
 
 def verify_ready_boundary(receipt, configuration, read, manifest, prefix):
@@ -358,6 +385,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
                 readinessResources=readiness_resources(receipt),
                 peakRSSBytes=receipt.get('peakRSSBytes'), peakRSSSample=receipt.get('peakRSSSample'),
                 peakNewBytes=receipt.get('peakNewBytes'), originalFourNodeInclusion=observed,
+                publicOwnerTiming=public_owner_timing(receipt, load) if load is not None else None,
                 originalSuccessorAvailability=successor,
                 finalizeByNode=finalize_by_node, originalCommitCopies=commits, commitStages=stages.commit_stages(dict(originalCommitCopies=commits)),
                 finalizeCommitCheckpoints=checkpoints,
