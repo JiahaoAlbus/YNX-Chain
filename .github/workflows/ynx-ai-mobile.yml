@@ -2,6 +2,15 @@ name: YNX AI mobile release evidence
 
 on:
   workflow_dispatch:
+    inputs:
+      artifact_run:
+        description: 'Existing AI Android preview run ID for installed-only recheck'
+        required: false
+        type: string
+      artifact_name:
+        description: 'Exact Android preview artifact name from that run'
+        required: false
+        type: string
   push:
     branches: [codex/ecosystem-ai]
     paths:
@@ -14,9 +23,11 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   ios-simulator:
+    if: ${{ inputs.artifact_run == '' || inputs.artifact_run == null }}
     runs-on: macos-15
     timeout-minutes: 45
     defaults:
@@ -84,6 +95,7 @@ jobs:
           if-no-files-found: error
 
   android-preview:
+    if: ${{ inputs.artifact_run == '' || inputs.artifact_run == null }}
     runs-on: ubuntu-latest
     timeout-minutes: 50
     defaults:
@@ -151,7 +163,7 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666"' | sudo tee /etc/udev/rules.d/99-ynx-kvm.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-          test -r /dev/kvm && test -w /dev/kvm
+          if test -e /dev/kvm; then test -r /dev/kvm && test -w /dev/kvm; else echo 'KVM unavailable; emulator will use software acceleration'; fi
       - name: Exercise installed task entry without an account
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -159,3 +171,50 @@ jobs:
           arch: x86_64
           disable-animations: true
           script: python3 apps/ai/mobile/scripts/installed-task-smoke.py apps/ai/mobile/android/app/build/outputs/apk/release/app-release.apk
+
+  android-installed-recheck:
+    if: ${{ inputs.artifact_run != '' && inputs.artifact_run != null }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: ${{ runner.temp }}/ynx-ai-preview
+          run-id: ${{ inputs.artifact_run }}
+          github-token: ${{ github.token }}
+      - name: Verify original APK hash
+        shell: bash
+        run: |
+          mapfile -t apks < <(find "$RUNNER_TEMP/ynx-ai-preview" -type f -name app-release.apk)
+          mapfile -t hashes < <(find "$RUNNER_TEMP/ynx-ai-preview" -type f -name app-release.sha256)
+          test "${#apks[@]}" -eq 1 && test "${#hashes[@]}" -eq 1
+          expected=$(awk '{print $1}' "${hashes[0]}")
+          actual=$(sha256sum "${apks[0]}" | awk '{print $1}')
+          test "$actual" = "$expected"
+          echo "YNX_APK_PATH=${apks[0]}" >> "$GITHUB_ENV"
+          echo "APK_SHA256=$actual"
+      - name: Prepare emulator acceleration if available
+        run: |
+          if test -e /dev/kvm; then
+            echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666"' | sudo tee /etc/udev/rules.d/99-ynx-kvm.rules
+            sudo udevadm control --reload-rules
+            sudo udevadm trigger --name-match=kvm
+          else
+            echo 'KVM unavailable; emulator will use software acceleration'
+          fi
+      - name: Exercise original installed task entry without an account
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          script: python3 apps/ai/mobile/scripts/installed-task-smoke.py "$YNX_APK_PATH"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ynx-ai-android-task-ui-${{ github.run_id }}
+          path: ${{ runner.temp }}/ynx-ai-task-ui-last.xml
+          if-no-files-found: warn
