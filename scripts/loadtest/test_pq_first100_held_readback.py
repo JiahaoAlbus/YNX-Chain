@@ -316,6 +316,11 @@ class HeldReadbackTests(unittest.TestCase):
         cohort = dict(configuredDemand=500, submittedWithinWindow=1, submissionAttemptWindowTPS=0.2,
                       originalCohort=dict(counts=counts, latencies=latencies), terminalCounts=dict(unknown=1),
                       backlogGrowing=True, pipelinePressure=None)
+        cohort['observedLatencySamples'] = dict(
+            submitToInclusionObserved=dict(observed=1, missingOrCensored=499, minNs=100,
+                                           retainedSampleP95Ns=None, observations=[dict(index=0, elapsedNs=100)]),
+            submitToQualifiedReceiptObserved=dict(observed=0, missingOrCensored=500, minNs=None))
+        cohort['stages'] = dict(live_capture=dict(reached=1, observed=0))
         before = dict(status='OBSERVED', archiveOriginIndependentlyVerified=True, actionsOrigin=dict(run=1),
                       archiveSHA256='a'*64, controller=self.controller, source=dict(commit='b'*40),
                       tools=dict(commit='c'*40), hardware=hardware, toolchain='go1.26.11',
@@ -329,6 +334,10 @@ class HeldReadbackTests(unittest.TestCase):
         self.assertFalse(same['sustainedTPSQualified'])
         self.assertEqual(same['before']['counts'], counts)
         self.assertEqual(same['before']['latencies'], latencies)
+        self.assertEqual(same['before']['observedLatencySamples'], dict(
+            submitToInclusionObserved=dict(observed=1, missingOrCensored=499, minNs=100, retainedSampleP95Ns=None),
+            submitToQualifiedReceiptObserved=dict(observed=0, missingOrCensored=500, minNs=None)))
+        self.assertEqual(same['before']['stages'], cohort['stages'])
         self.assertEqual(same['before']['firstCause'], 'original reply missing')
 
         changed = dict(after, hardware=dict(hardware, cpuModels=['Intel']), conditions=None)

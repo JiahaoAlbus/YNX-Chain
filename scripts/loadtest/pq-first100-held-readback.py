@@ -141,6 +141,10 @@ def compare_business(before, after):
     def arm(report):
         cohort = report['fullCohort']
         inclusion = report.get('originalFourNodeInclusion', {}).get('records', [])
+        observed_latencies = {
+            name: {key: value for key, value in summary.items() if key != 'observations'}
+            for name, summary in cohort.get('observedLatencySamples', {}).items()
+        }
         return dict(origin=report['actionsOrigin'], source=report['source'], tools=report['tools'],
                     controller=report['controller'], archiveSHA256=report['archiveSHA256'],
                     firstCause=report['firstCause'], peakRSSBytes=report['peakRSSBytes'],
@@ -150,6 +154,7 @@ def compare_business(before, after):
                     submittedWithinWindow=cohort['submittedWithinWindow'],
                     submissionAttemptWindowTPS=cohort['submissionAttemptWindowTPS'],
                     counts=cohort['originalCohort']['counts'], latencies=cohort['originalCohort']['latencies'],
+                    observedLatencySamples=observed_latencies, stages=cohort.get('stages'),
                     fourNodeObservationTimings=[dict(index=row['index'],
                         submitToObservationNs=row.get('submitToFourNodeRepliesObservedNs'),
                         observationToLedgerEventNs=row.get('observationToLedgerEventNs')) for row in inclusion],
