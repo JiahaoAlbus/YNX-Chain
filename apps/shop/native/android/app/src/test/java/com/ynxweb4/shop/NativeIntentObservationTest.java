@@ -31,6 +31,11 @@ public class NativeIntentObservationTest {
  @Test public void actualJointOriginalPartialRefundReadback()throws Exception{
   JSONObject actual=new JSONObject(new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(System.getenv("YNX_SHOP_NATIVE_RECEIPT_FIXTURE"))),java.nio.charset.StandardCharsets.UTF_8));
   NativeIntentObservation.validatePayment(actual);
+  JSONObject pending=new JSONObject(actual.toString());
+  pending.getJSONObject("NativePayment").put("ReconciliationRequired",true);
+  NativeIntentObservation.validatePayment(pending);
+  assertTrue(NativeIntentObservation.pendingHistory(pending.getJSONObject("NativePayment")));
+
   assertEquals("30",actual.getJSONObject("NativePayment").getString("RefundedAtoms"));
   assertEquals("70",actual.getJSONObject("NativePayment").getString("NetPaidAtoms"));
   for(String key:new String[]{"InvoiceID","NetPaidAtoms","PaidAtoms","TermsHash"}){

@@ -263,11 +263,11 @@ public final class MainActivity extends Activity {
                 card.addView(text(getString(R.string.native_net_atoms)+": "+payment.getString("NetPaidAtoms"),12,false));
             }
         }
-        if(state.equals("shipped"))card.addView(action(getString(R.string.confirm_delivery),()->reviewOrderAction(order,"delivered",R.string.confirm_delivery)));
-        if(state.equals("delivered")){card.addView(action(getString(R.string.write_review),()->reviewOrderAction(order,"reviewed",R.string.write_review)));}
-        if(List.of("delivered","reviewed").contains(state))card.addView(action(getString(R.string.return_request),()->reviewOrderAction(order,"return_requested",R.string.return_request)));
-        if(List.of("paid","shipped","delivered","reviewed","return_requested","return_approved","refund_requested").contains(state))card.addView(action(getString(R.string.dispute),()->reviewOrderAction(order,"disputed",R.string.dispute)));
-        if(List.of("paid","return_requested","return_approved").contains(state))card.addView(action(getString(R.string.refund_request),()->reviewOrderAction(order,"refund_requested",R.string.refund_request)));
+        if(!historyPending && state.equals("shipped"))card.addView(action(getString(R.string.confirm_delivery),()->reviewOrderAction(order,"delivered",R.string.confirm_delivery)));
+        if(!historyPending && state.equals("delivered")){card.addView(action(getString(R.string.write_review),()->reviewOrderAction(order,"reviewed",R.string.write_review)));}
+        if(!historyPending && List.of("delivered","reviewed").contains(state))card.addView(action(getString(R.string.return_request),()->reviewOrderAction(order,"return_requested",R.string.return_request)));
+        if(!historyPending && List.of("paid","shipped","delivered","reviewed","return_requested","return_approved","refund_requested").contains(state))card.addView(action(getString(R.string.dispute),()->reviewOrderAction(order,"disputed",R.string.dispute)));
+        if(!historyPending && List.of("paid","return_requested","return_approved").contains(state))card.addView(action(getString(R.string.refund_request),()->reviewOrderAction(order,"refund_requested",R.string.refund_request)));
         card.addView(action(getString(R.string.ai_compare),()->runAI("support_draft","owned_order","Owned order "+order.optString("ID")+" status "+state,10)));
         LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);params.setMargins(0,dp(8),0,dp(8));card.setLayoutParams(params);return card;
     }

@@ -22,7 +22,7 @@ final class NativeIntentObservation {
   if(!order.optString("PayIntentID").matches("npi_[a-f0-9]{48}"))throw new SecurityException("Original Native intent required");
   JSONObject p=order.getJSONObject("NativePayment");
   java.math.BigInteger principal=atoms(p.getString("PrincipalAtoms")),paid=atoms(p.getString("PaidAtoms")),refunded=atoms(p.getString("RefundedAtoms")),net=atoms(p.getString("NetPaidAtoms"));
-  if(p.getBoolean("ReconciliationRequired")||!p.getString("InvoiceID").equals(order.getString("InvoiceID"))||p.getString("SessionID").isEmpty()||!p.getString("TermsHash").matches("[a-f0-9]{64}")||!p.getString("SettlementNativeHash").matches("0x[a-f0-9]{64}")||principal.signum()<=0||!paid.equals(principal)||refunded.compareTo(paid)>0||!net.equals(paid.subtract(refunded)))throw new SecurityException("Original Native payment differs");
+  if(!p.getString("InvoiceID").equals(order.getString("InvoiceID"))||p.getString("SessionID").isEmpty()||!p.getString("TermsHash").matches("[a-f0-9]{64}")||!p.getString("SettlementNativeHash").matches("0x[a-f0-9]{64}")||principal.signum()<=0||!paid.equals(principal)||refunded.compareTo(paid)>0||!net.equals(paid.subtract(refunded)))throw new SecurityException("Original Native payment differs");
   org.json.JSONArray receipts=p.getJSONArray("Receipts");int settlements=0;
   for(int i=0;i<receipts.length();i++){
    JSONObject r=receipts.getJSONObject(i);
