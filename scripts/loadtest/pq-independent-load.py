@@ -703,7 +703,15 @@ class NormalBackend:
                                    native_wire_hash=normal.comet_hash(tx["nativeHash"]))
             started = time.monotonic_ns()
             projection_path = self.w.work / "public" / f"{prefix}-live-session-{operation}-reply.json"
-            transaction["retain_public_reply"] = lambda projection: lab.write_new(projection_path, projection)
+            projection_write_ns = None
+
+            def retain_projection(projection):
+                nonlocal projection_write_ns
+                write_started = time.monotonic_ns()
+                lab.write_new(projection_path, projection)
+                projection_write_ns = time.monotonic_ns() - write_started
+
+            transaction["retain_public_reply"] = retain_projection
             if operation == "result":
                 original_path = self.w.work / "public" / f"{prefix}-live-result.log"
                 transaction["retain_original"] = lambda raw: proof_readback.write_new(original_path, raw)
@@ -718,6 +726,7 @@ class NormalBackend:
             lab.write_new(self.w.work / "public" / f"{prefix}-live-session-{operation}.json",
                           dict(node=lane["node"], policySHA256=lane["pin"], sequence=sequence,
                                parentElapsedNs=returned-started, calleeElapsedNs=reply["calleeElapsedNs"],
+                               replyProjectionWriteNs=projection_write_ns,
                                timings=timings, intervalsOverlap=True))
             return reply.get("result")
         args = ["live-materials", operation, "--synthetic", "--policy", str(lane["policy"]),

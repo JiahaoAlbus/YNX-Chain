@@ -154,6 +154,9 @@ class Transport(unittest.TestCase):
                 projection = json.loads((work/'public'/f'load-00000-live-session-{operation}-reply.json').read_bytes())
                 self.assertEqual(projection['originalReplySHA256'], hashlib.sha256(original).hexdigest())
                 self.assertFalse(projection['pathsAndPayloadsIncluded'])
+                timing = json.loads((work/'public'/f'load-00000-live-session-{operation}.json').read_bytes())
+                self.assertLessEqual(0, timing['replyProjectionWriteNs'])
+                self.assertLessEqual(timing['replyProjectionWriteNs'], timing['parentElapsedNs'])
             self.assertEqual((work/'public/load-00000-live-result.log').read_bytes(), originals[-1])
 
     def test_original_result_retention_failure_poisoned_without_replay(self):
