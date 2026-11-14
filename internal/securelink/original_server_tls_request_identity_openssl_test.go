@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -38,6 +39,133 @@ func TestOriginalServerTLSOriginalRequestIdentity(t *testing.T) {
 	fixture := newTLSFixture(t)
 	t.Run("wrapper_close", func(t *testing.T) { testOriginalServerTLSOriginalRequestIdentity(t, fixture, false) })
 	t.Run("native_close", func(t *testing.T) { testOriginalServerTLSOriginalRequestIdentity(t, fixture, true) })
+	t.Run("cloud_finite_get", func(t *testing.T) { testOriginalCloudFiniteGETRequestTransport(t, fixture) })
+}
+
+func testOriginalCloudFiniteGETRequestTransport(t *testing.T, fixture tlsFixture) {
+	t.Helper()
+	owner, borrow, _ := publicOriginalServerTLS(t, fixture)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	const prefix = "/api/v1/ide/deployments/"
+	const path = prefix + "PUBLIC_original_operation_0001"
+	const proof = "PUBLIC_proof"
+	type observation struct {
+		request         *http.Request
+		cloud, original OriginalFiniteGETRequestTransport
+		cloudErr        error
+		originalErr     error
+		cloneErr        error
+		overBoundErr    error
+		mutatedPathErr  error
+		mutatedHostErr  error
+	}
+	observed := make(chan observation, 1)
+	server := &http.Server{ReadHeaderTimeout: time.Second, Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cloud, cloudErr := owner.OriginalCloudFiniteGETRequestTransport(r)
+		original, originalErr := owner.OriginalFiniteGETRequestTransport(r)
+		_, cloneErr := owner.OriginalCloudFiniteGETRequestTransport(r.Clone(r.Context()))
+		var overBoundErr error
+		if r.RequestURI == path {
+			r.Header.Set("X-Public-Fixture", strings.Repeat("a", MaxProductSessionProofV4RequestHeaderBytes))
+			_, overBoundErr = owner.OriginalCloudFiniteGETRequestTransport(r)
+			r.Header.Del("X-Public-Fixture")
+		}
+		var mutatedPathErr, mutatedHostErr error
+		if r.RequestURI == "/PUBLIC-first" || r.RequestURI == path {
+			oldURL, oldTarget := r.URL, r.RequestURI
+			mutatedURL := *oldURL
+			mutatedURL.Path = path + "/logs"
+			r.URL, r.RequestURI = &mutatedURL, mutatedURL.Path
+			_, mutatedPathErr = owner.OriginalCloudFiniteGETRequestTransport(r)
+			r.URL, r.RequestURI = oldURL, oldTarget
+		}
+		if r.RequestURI == path {
+			oldHost := r.Host
+			r.Host = "other.ynx.test"
+			_, mutatedHostErr = owner.OriginalCloudFiniteGETRequestTransport(r)
+			r.Host = oldHost
+		}
+		observed <- observation{r, cloud, original, cloudErr, originalErr, cloneErr, overBoundErr, mutatedPathErr, mutatedHostErr}
+		w.WriteHeader(http.StatusNoContent)
+	})}
+	serveDone := make(chan error, 1)
+	go func() { serveDone <- owner.Serve(server) }()
+	t.Cleanup(func() {
+		owner.Retire()
+		cleanup, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		if err := waitOriginalRequestIdentityTest(t, cleanup, serveDone); !errors.Is(err, http.ErrServerClosed) {
+			t.Error(err)
+		}
+		if err := owner.Join(cleanup); err != nil {
+			t.Error(err)
+		} else if err = owner.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+	client := dialNative(t, fixture, borrow.listener.Addr().String())
+	deadline, _ := ctx.Deadline()
+	if err := client.SetDeadline(deadline); err != nil {
+		t.Fatal(err)
+	}
+	exporter, err := client.ExportKeyingMaterial("EXPORTER-Channel-Binding", nil, 32)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reader := bufio.NewReader(client)
+	call := func(method, target, extra, body string) observation {
+		t.Helper()
+		wire := method + " " + target + " HTTP/1.1\r\nHost: adapter.ynx.test\r\n" +
+			ProductSessionProofV4Header + ": " + proof + "\r\n" + extra + "\r\n" + body
+		if _, err := io.WriteString(client, wire); err != nil {
+			t.Fatal(err)
+		}
+		response, err := http.ReadResponse(reader, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := response.Body.Close(); err != nil || response.StatusCode != http.StatusNoContent || response.Close {
+			t.Fatalf("actual PUBLIC response: status=%d close=%t err=%v", response.StatusCode, response.Close, err)
+		}
+		return waitOriginalRequestIdentityTest(t, ctx, observed)
+	}
+	for _, suffix := range []string{"", "/logs", "/runtime", "/usage", "/usage/records", "/billing/2024-02-29", "/billing/2024-02-29/native-intent"} {
+		got := call(http.MethodGet, path+suffix, "", "")
+		if got.cloudErr != nil || got.originalErr != nil || got.cloud != got.original ||
+			got.cloud.ChannelSHA256 != sha256.Sum256(exporter) || got.cloud.ProofSHA256 != sha256.Sum256([]byte(proof)) ||
+			!errors.Is(got.cloneErr, ErrDenied) || suffix == "" && (!errors.Is(got.overBoundErr, ErrDenied) ||
+			!errors.Is(got.mutatedPathErr, ErrDenied) || !errors.Is(got.mutatedHostErr, ErrDenied)) {
+			t.Fatalf("fixed Cloud route %q did not retain the exact live evidence: %+v", suffix, got)
+		}
+		waitOriginalRequestIdentityTest(t, ctx, got.request.Context().Done())
+		if evidence, err := owner.OriginalCloudFiniteGETRequestTransport(got.request); err == nil || evidence != (OriginalFiniteGETRequestTransport{}) {
+			t.Fatalf("finished Cloud request remained available: %v", err)
+		}
+	}
+	for _, tc := range []struct {
+		name, method, target, header, body string
+		genericStillAvailable              bool
+	}{
+		{"foreign", http.MethodGet, "/PUBLIC-first", "", "", true},
+		{"query", http.MethodGet, path + "?", "", "", true},
+		{"encoded path", http.MethodGet, path + "/%6cogs", "", "", true},
+		{"absolute target", http.MethodGet, "https://adapter.ynx.test" + path, "", "", true},
+		{"short operation", http.MethodGet, prefix + "short", "", "", true},
+		{"long operation", http.MethodGet, prefix + strings.Repeat("a", 129), "", "", true},
+		{"invalid day", http.MethodGet, path + "/billing/2023-02-29", "", "", true},
+		{"foreign suffix", http.MethodGet, path + "/usage/other", "", "", true},
+		{"duplicate proof", http.MethodGet, path, "x-ynx-product-session-proof-v4: PUBLIC_second\r\n", "", false},
+		{"mixed proof", http.MethodGet, path, "X-YNX-Product-Session-Proof-V2: PUBLIC_second\r\n", "", false},
+		{"body", http.MethodGet, path, "Content-Length: 1\r\n", "x", false},
+		{"POST", http.MethodPost, path, "Content-Length: 0\r\n", "", false},
+	} {
+		got := call(tc.method, tc.target, tc.header, tc.body)
+		if !errors.Is(got.cloudErr, ErrDenied) || got.cloud != (OriginalFiniteGETRequestTransport{}) ||
+			(got.originalErr == nil) != tc.genericStillAvailable || tc.name == "foreign" && !errors.Is(got.mutatedPathErr, ErrDenied) {
+			t.Fatalf("%s changed fixed or generic transport evidence: %+v", tc.name, got)
+		}
+	}
 }
 
 func testOriginalServerTLSOriginalRequestIdentity(t *testing.T, fixture tlsFixture, closeFromNative bool) {

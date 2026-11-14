@@ -292,6 +292,7 @@ type originalServerTLSRequest struct {
 	conn                      *originalServerTLSConn
 	method, host, target, url string
 	finiteGETProof            [sha256.Size]byte
+	cloudFiniteGET            bool
 	active                    bool // guarded by state.mu
 }
 
@@ -311,6 +312,25 @@ func (o *OriginalServerTLS) OriginalFiniteGETRequestTransport(r *http.Request) (
 	var transport OriginalFiniteGETRequestTransport
 	_, err := o.observeOriginalRequest(r, false, &transport)
 	return transport, err
+}
+
+// OriginalCloudFiniteGETRequestTransport restricts the original live TLS
+// observation to the seven Cloud Finite GET V4 request shapes. The returned
+// transport DATA leaves the receipt, receiver and Source checks with their
+// original owners.
+func (o *OriginalServerTLS) OriginalCloudFiniteGETRequestTransport(r *http.Request) (OriginalFiniteGETRequestTransport, error) {
+	binding, err := o.originalRequestBinding(r)
+	if err != nil || !binding.cloudFiniteGET || !originalCloudFiniteGETRequest(r) {
+		return OriginalFiniteGETRequestTransport{}, ErrDenied
+	}
+	transport, err := o.OriginalFiniteGETRequestTransport(r)
+	if err != nil {
+		return OriginalFiniteGETRequestTransport{}, err
+	}
+	if !binding.matchesRoute(r) || !originalCloudFiniteGETRequest(r) {
+		return OriginalFiniteGETRequestTransport{}, ErrDenied
+	}
+	return transport, nil
 }
 
 func originalFiniteGETProofDigest(r *http.Request) (digest [sha256.Size]byte) {
@@ -568,6 +588,7 @@ func (o *OriginalServerTLS) Serve(server *http.Server) error {
 			s.mu.Unlock()
 		}()
 		b.finiteGETProof = originalFiniteGETProofDigest(r)
+		b.cloudFiniteGET = b.finiteGETProof != ([sha256.Size]byte{}) && originalCloudFiniteGETRequest(r)
 		r = r.WithContext(context.WithValue(r.Context(), originalServerTLSRequestKey{}, b))
 		b.ctx = r.Context()
 		b.request = r
