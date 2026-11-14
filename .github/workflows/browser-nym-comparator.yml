@@ -1,0 +1,27 @@
+name: Browser Nym comparator fixtures
+
+on:
+  push:
+    paths:
+      - 'apps/browser/privacy-routing/nym/qa-glue/**'
+      - '.github/workflows/browser-nym-comparator.yml'
+  pull_request:
+    paths:
+      - 'apps/browser/privacy-routing/nym/qa-glue/**'
+      - '.github/workflows/browser-nym-comparator.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  local-fixture:
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Exercise local SOCKS and browser fixture
+        shell: bash
+        run: |
+          root="$(mktemp -d "$(cd "$RUNNER_TEMP" && pwd -P)/ynx-nym-fixture.XXXXXX")"
+          NYM_CHROME_TEST_ROOT="$root" node --test apps/browser/privacy-routing/nym/qa-glue/test_nym_chrome_search_comparator.mjs

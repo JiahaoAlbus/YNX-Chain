@@ -411,6 +411,9 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
         if isPrivate { if privateStore == nil { privateStore = .nonPersistent() }; configuration.websiteDataStore = privateStore! }
         else { configuration.websiteDataStore = .default() }
         configuration.preferences.isElementFullscreenEnabled = true
+        return makeWebView(configuration: configuration)
+    }
+    private func makeWebView(configuration: WKWebViewConfiguration) -> WKWebView {
         let view = WKWebView(frame: .zero, configuration: configuration)
         view.navigationDelegate = self; view.uiDelegate = self; view.allowsBackForwardNavigationGestures = true; view.translatesAutoresizingMaskIntoConstraints = false
         documentURLObservers[ObjectIdentifier(view)] = view.observe(\.url, options: [.new]) { [weak self] view, _ in
@@ -433,10 +436,15 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
     }
     private func openTab(url: URL, isPrivate: Bool) {
         guard BrowserOmnibox.isNavigable(url) else { return }
-        let id = UUID(); let view = makeWebView(isPrivate: isPrivate)
+        let view = makeWebView(isPrivate: isPrivate)
+        attachTab(view, pendingURL: url, isPrivate: isPrivate)
+        view.load(URLRequest(url: url))
+    }
+    private func attachTab(_ view: WKWebView, pendingURL url: URL, isPrivate: Bool) {
+        let id = UUID()
         documentGenerations[id] = 0; pendingTargets[id] = url; webViews[id] = view
         tabs.append(TabRecord(id: id, url: url.absoluteString, title: url.host ?? "New Tab", isPrivate: isPrivate, crashed: false))
-        persistTabs(); activate(id); view.load(URLRequest(url: url))
+        persistTabs(); activate(id)
     }
     private func openHomeTab(isPrivate: Bool) {
         let id = UUID(); homeTabIDs.insert(id); documentGenerations[id] = 0
@@ -919,10 +927,14 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
         if activeID == id { renderActivePage(); refreshChrome() }
     }
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
-        guard navigationAction.targetFrame == nil, let url = navigationAction.request.url,
-              BrowserOmnibox.isNavigable(url), let i = index(for: webView) else { return nil }
-        openTab(url: url, isPrivate: tabs[i].isPrivate)
-        return nil
+        guard !closedWindow, !terminatingApp, navigationAction.targetFrame == nil,
+              let url = navigationAction.request.url, BrowserOmnibox.isNavigable(url),
+              let i = index(for: webView),
+              configuration.websiteDataStore === webView.configuration.websiteDataStore else { return nil }
+        let view = makeWebView(configuration: configuration)
+        attachTab(view, pendingURL: url, isPrivate: tabs[i].isPrivate)
+        // WebKit loads the original navigation, including form method and body.
+        return view
     }
     private func reviewWalletURL(_ url: URL) { let components = URLComponents(url: url, resolvingAgainstBaseURL: false); let fields = Dictionary(uniqueKeysWithValues: (components?.queryItems ?? []).map { ($0.name, $0.value ?? "") }); let detail = ["Requester: \(fields["requestingProduct"] ?? activeWebView()?.url?.host ?? "unavailable")", "Callback: \(fields["callback"] ?? "must be reviewed in Wallet")", "Scopes: \(fields["scopes"] ?? "must be reviewed in Wallet")", "Recipient: \(fields["recipient"] ?? "not supplied")", "YNXT amount: \(fields["amount"] ?? "not supplied")", "Fee: \(fields["fee"] ?? "not supplied")", "Contract data: \(fields["data"] ?? "not supplied")", "Network: ynx_6423-1", "Expiry: \(fields["expiresAt"] ?? "must be reviewed in Wallet")"].joined(separator: "\n"); showBoundary(title: "Wallet signing review", message: "\(detail)\n\nContinue only after YNX Wallet verifies exact bindings. This browser never signs or reports a completed transaction.") }
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
