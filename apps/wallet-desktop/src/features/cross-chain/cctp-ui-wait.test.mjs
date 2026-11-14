@@ -418,3 +418,65 @@ test('independent original observations survive account switches and resolve one
     assert.deepEqual(writeCalls(h), []);
   } finally { h.ui.dispose(); }
 });
+
+test('original observation on opening Cross restores UNKNOWN before allowing a quote, even after closing the dialog', async () => {
+  const h = fixture();
+  try {
+    const pending = persistedOriginal(observedOriginal(h, 'local-cancelled-before-broadcast'));
+    h.result.confirm = pending;
+    h.result.history = [pending, unrelatedRecord(h, 'completed')];
+    h.result.check = pending;
+    await h.reachReview();
+    await h.click('Confirm and send this transaction');
+    h.ui.invalidate();
+    const history = h.hold('history');
+    const opened = h.ui.open();
+    assertFenced(h.root);
+    await history.entered;
+    history.resolve(ok(h.result.history));
+    await opened;
+    assert.ok(h.root.textContent.includes(HASH), 'Select the original unresolved transfer from current history');
+    await h.click('Check original transfer');
+    await h.select('completed');
+    assertFenced(h.root);
+    await h.select('burn-pending');
+    const included = clone(pending);
+    included.state = 'attestation-pending';
+    included.operations[0].state = 'included';
+    h.result.check = included;
+    await h.click('Check original transfer');
+    await h.select('completed');
+    assert.ok(hasButton(h.root, 'Review route and fees'));
+    assert.deepEqual(h.calls.filter(call => call.method === 'check').map(call => call.input), [ID, ID]);
+    assert.equal(writeCalls(h).filter(call => call.method === 'confirm').length, 1);
+  } finally { h.ui.dispose(); }
+});
+
+test('original observation on opening Cross holds writes on failed or retired history and the normal restore can recover', async () => {
+  const h = fixture();
+  try {
+    const old = h.hold('history');
+    const opened = h.ui.open();
+    await old.entered;
+    h.ui.invalidate();
+    await opened;
+    h.overrides.history = async () => ({ok:false,error:{message:'History temporarily unavailable'}});
+    await h.ui.open();
+    assertFenced(h.root);
+    assert.ok(h.root.textContent.includes('History temporarily unavailable'));
+    old.resolve(ok([h.pending]));
+    await flush();
+    assert.ok(!h.root.textContent.includes(HASH));
+    const review = clone(h.ready);
+    review.state = 'burn-ready';
+    review.operations = [
+      {id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', step: 'approve', state: 'included', hash: HASH},
+      {id: REVIEW_ID, step: 'burn', state: 'review', hash: null},
+    ];
+    h.overrides.history = async () => ok([review]);
+    await h.click('Restore transfer history');
+    await h.select('burn-ready');
+    assert.ok(hasButton(h.root, 'Discard current review'));
+    assert.deepEqual(writeCalls(h), []);
+  } finally { h.ui.dispose(); }
+});

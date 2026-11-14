@@ -40,8 +40,28 @@ export function mountCctpUI({root,api,locale='en'}){
   const preflightText=locale.startsWith('zh')?{check:'检查路线可用性',stop:'停止路线检查',cancelled:'已停止本次路线检查。',unknown:'尚未核实两条链的身份与 genesis pin。',verified:'链身份与 genesis pin 已核实',unverified:'尚未核实',source:'源链 Ethereum Sepolia',destination:'目标链 Base Sepolia',scope:'此结果仅表示网络身份检查；报价、批准和到账均须单独核实。'}:{check:'Check route availability',stop:'Stop route check',cancelled:'Route check cancelled.',unknown:'Chain identities and genesis pins have not been checked.',verified:'Chain identity and genesis pin verified',unverified:'Unverified',source:'Source Ethereum Sepolia',destination:'Destination Base Sepolia',scope:'This checks network identity only. Fees, approval and arrival need separate verification.'};
   const preflightIssue=code=>{const zh=locale.startsWith('zh');if(code==='CCTP_NETWORK_REQUIRED')return zh?'请先在钱包网络设置中保存这条链及其已核实的 genesis pin。':'Save this chain and its verified genesis pin in Wallet network settings.';if(code==='CCTP_NETWORK_AMBIGUOUS')return zh?'这条链有多个网络配置，请先核对配置。':'Multiple saved networks match this chain; review the network configuration.';if(code==='CCTP_NETWORK_INVALID')return zh?'已保存的网络配置未通过校验，请核对原配置。':'The saved network configuration could not be validated.';if(code==='MULTICHAIN_NETWORK_MISMATCH'||code==='CCTP_NETWORK_MISMATCH')return zh?'RPC 返回的链身份与已保存的 pin 不匹配。':'The RPC identity does not match the saved chain and genesis pin.';if(code==='MULTICHAIN_RPC_TIMEOUT'||code==='CCTP_PREFLIGHT_TIMEOUT')return zh?'网络身份查询超时，本次仍为未核实。':'The network identity query timed out; this result remains unverified.';return zh?'RPC 暂时无法提供可核验的链身份与 genesis。':'The RPC could not provide verifiable chain identity and genesis.'};
   let disposed=false,generation=0,busy=null,recovery=null,quote=null,record=null,review=null,preflight=null;
+  let opened = false, historyRequired = false;
   const originalObservations = new Map();
-  const needsRecovery = () => recovery !== null || originalObservations.size > 0;
+  const needsRecovery = () => historyRequired || recovery !== null || originalObservations.size > 0;
+  const operationNetwork = (value, step) => step === 'mint' ? value.binding?.destinationNetwork : value.binding?.sourceNetwork;
+  const txHash = value => typeof value === 'string' && /^0x[0-9a-f]{64}$/.test(value);
+  const retainOriginal = (intentId, original) => {
+    const previous = originalObservations.get(intentId);
+    if (!previous || (previous.hash === null && txHash(original.hash) &&
+        previous.operationId === original.operationId && previous.step === original.step &&
+        previous.account === original.account && JSON.stringify(previous.network) === JSON.stringify(original.network))) {
+      originalObservations.set(intentId, original);
+    }
+  };
+  const retainPending = value => {
+    if (['completed', 'failed', 'cancelled'].includes(value.state)) return;
+    const operation = value.operations?.findLast(op => op.state !== 'cancelled');
+    if (!operation || !['dispatching', 'unknown', 'submitted'].includes(operation.state)) return;
+    const network = operationNetwork(value, operation.step);
+    const account = value.binding?.account;
+    if (!account || !network) return;
+    retainOriginal(value.id, {operationId: operation.id, step: operation.step, account, network, hash: operation.hash});
+  };
   const el=(tag,value)=>{const node=doc.createElement(tag);if(value!==undefined)node.textContent=value;return node};
   const title=el('h2',text.title),route=el('p',text.route+' · '+text.asset),notice=el('p',text.notice),form=el('div'),status=el('p'),details=el('dl'),actions=el('div'),history=el('div'),availability=el('section');
   status.setAttribute('role','status');status.setAttribute('aria-live','polite');
@@ -72,18 +92,22 @@ export function mountCctpUI({root,api,locale='en'}){
     if (method === 'check') {
       const observation = result.originalObservation;
       if (observation?.view === 'query-only') {
-        if (!originalObservations.has(result.id)) originalObservations.set(result.id, observation);
+        retainOriginal(result.id, observation);
         return;
       }
       const original = originalObservations.get(result.id);
       if (original) {
         const operation = result.operations?.find(op => op.id === original.operationId && op.step === original.step);
-        const network = original.step === 'mint' ? result.binding?.destinationNetwork : result.binding?.sourceNetwork;
+        const network = operationNetwork(result, original.step);
         if (result.binding?.account !== original.account || JSON.stringify(network) !== JSON.stringify(original.network) ||
             !operation || !['included', 'reverted'].includes(operation.state) ||
-            !/^0x[0-9a-f]{64}$/.test(operation.hash) || (original.hash !== null && operation.hash !== original.hash)) return;
+            !txHash(operation.hash) || (original.hash !== null && operation.hash !== original.hash)) {
+          retainPending(result);
+          return;
+        }
         originalObservations.delete(result.id);
       }
+      retainPending(result);
       if (recovery?.intentId === result.id) recovery = null;
       return;
     }
@@ -109,6 +133,39 @@ export function mountCctpUI({root,api,locale='en'}){
     if(!result||result.routeId!=='cctp-v2-sepolia-base-sepolia-usdc'||!['canSign','approved','canRetry','targetReceived'].every(key=>result[key]===false)||![['source',11155111],['destination',84532]].every(([side,chain])=>result[side]?.chainId===chain&&['verified','unverified'].includes(result[side]?.status))||result.available!==(result.source.status==='verified'&&result.destination.status==='verified'))throw new Error(text.error);
     preflight=result;status.textContent=needsRecovery()?recovering:'';render();return result.available===true;
   };
+  const selectHistory = item => {
+    record = item;
+    review = null;
+    quote = null;
+    preflight = null;
+    status.textContent = needsRecovery() ? recovering : transferMessage(item);
+  };
+  const restoreHistory = async (ticket, selectOriginal = false) => {
+    const records = await invoke('history');
+    if (disposed || ticket !== generation) return;
+    if (!Array.isArray(records)) throw new Error(text.error);
+    for (const item of records) retainPending(item);
+    recovered('history', records);
+    historyRequired = false;
+    history.replaceChildren();
+    for (const item of [...records].reverse()) {
+      const entry = el('button', `${item.state} · ${item.binding.recipient} · ${usdc(item.binding.amountUnits)} USDC`);
+      entry.type = 'button';
+      entry.addEventListener('click', () => {
+        if (busy || disposed || !Array.from(history.children).includes(entry)) return;
+        generation++;
+        selectHistory(item);
+        render();
+      });
+      history.append(entry);
+    }
+    status.textContent = needsRecovery() ? recovering : '';
+    if (selectOriginal) {
+      const pending = records.filter(item => originalObservations.has(item.id));
+      const original = records.find(item => item.id === recovery?.intentId) ?? (pending.length === 1 ? pending[0] : null);
+      if (original) selectHistory(original);
+    }
+  };
   function render(){
     if(disposed)return;details.replaceChildren();actions.replaceChildren();availability.replaceChildren();
     availability.append(el('h3',preflightText.check));
@@ -133,7 +190,7 @@ export function mountCctpUI({root,api,locale='en'}){
       const original=review;review=null;
       record={...record,state:original.step==='approve'?'approval-pending':original.step==='burn'?'burn-pending':'mint-pending',operations:[...(record.operations??[]).filter(o=>o.id!==original.id),{id:original.id,step:original.step,state:'unknown',hash:null}]};
       render();
-      const result=await invoke('confirm',{id:record.id,reviewId:original.id});if(disposed||ticket!==generation)return;record=result;status.textContent=text.waiting})}
+      const result=await invoke('confirm',{id:record.id,reviewId:original.id});if(disposed||ticket!==generation)return;retainPending(result);record=result;status.textContent=text.waiting})}
     if(!needsRecovery()&&(!record||['completed','failed','cancelled'].includes(record.state)))button(text.quote,async ticket=>{quote=null;if(!await runPreflight(ticket))return;const input=Object.fromEntries(Object.entries(fields).map(([k,v])=>[k,v.value.trim()]));const result=await invoke('quote',{routeId:'cctp-v2-sepolia-base-sepolia-usdc',asset:'USDC',...input});if(disposed||ticket!==generation)return;quote=result;record=null;review=null;status.textContent=''});
     if(!needsRecovery()&&quote&&!record)button(text.start,async ticket=>{const result=await invoke('start',quote.quoteId);if(disposed||ticket!==generation)return;record=result;quote=null;status.textContent=''});
     if(record&&(!['completed','cancelled'].includes(record.state)||recovery?.intentId===record.id||originalObservations.has(record.id))){
@@ -142,8 +199,17 @@ export function mountCctpUI({root,api,locale='en'}){
       const active=(record.operations??[]).filter(o=>o.state!=='cancelled'),current=active.at(-1),prior=active.slice(0,-1);
       if(!needsRecovery()&&['ready','burn-ready','mint-ready'].includes(record.state)&&(!current||current.state==='review'&&current.hash===null)&&prior.every(o=>o.state==='included'))button(prior.length?discard:text.cancel,async ticket=>{review=null;preflight=null;render();const result=await invoke('cancel',record.id);if(disposed||ticket!==generation)return;record=result.record;status.textContent=result.cancelled?(result.reason==='review-only'?discarded:text.cancelled):text.waiting});
     }
-    button(text.history,async ticket=>{const records=await invoke('history');if(disposed||ticket!==generation)return;recovered('history',records);history.replaceChildren();for(const item of [...records].reverse()){const b=el('button',`${item.state} · ${item.binding.recipient} · ${usdc(item.binding.amountUnits)} USDC`);b.type='button';b.addEventListener('click',()=>{if(busy)return;generation++;record=item;review=null;quote=null;preflight=null;status.textContent=needsRecovery()?recovering:transferMessage(record);render()});history.append(b)}status.textContent=needsRecovery()?recovering:''},true);
+    button(text.history, ticket => restoreHistory(ticket, historyRequired), true);
   }
   render();
-  return {invalidate(){generation++;retain(busy?.request);busy?.stop?.();busy=null;quote=null;review=null;record=null;preflight=null;history.replaceChildren();status.textContent=needsRecovery()?recovering:'';render()},dispose(){disposed=true;generation++;busy?.stop?.();busy=null;root.replaceChildren()}};
+  return {
+    open() {
+      if (disposed || busy) return;
+      opened = true;
+      historyRequired = true;
+      return work(ticket => restoreHistory(ticket, true), true);
+    },
+    invalidate(){generation++;if(opened)historyRequired=true;retain(busy?.request);busy?.stop?.();busy=null;quote=null;review=null;record=null;preflight=null;history.replaceChildren();status.textContent=needsRecovery()?recovering:'';render()},
+    dispose(){disposed=true;generation++;busy?.stop?.();busy=null;root.replaceChildren()},
+  };
 }

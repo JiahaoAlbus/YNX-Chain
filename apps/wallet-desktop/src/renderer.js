@@ -442,6 +442,7 @@ const mnemonicBackupButton=document.createElement('button');mnemonicBackupButton
 document.querySelector('#backup-section').insertAdjacentElement('beforebegin',mnemonicBackupButton);
 mnemonicBackupButton.addEventListener('click',()=>mnemonicUI.openBackup());
 function renderAccount(payload) {
+  cctpUI?.invalidate();
   accountStatusObserved=true;
   clearAssetBalance();
   clearTransactionResolution();
@@ -476,7 +477,6 @@ function renderAccount(payload) {
   const previousAccount = activeAccount;
   activeAccount = status?.account ?? null;
   multichainUI?.render();
-  if(typeof cctpUI!=='undefined')cctpUI?.invalidate();
   if(typeof transferAttemptUI!=="undefined")void transferAttemptUI.refresh();
   if (previousAccount !== activeAccount) {
     document.querySelector("#transfer-to").value = "";
@@ -1380,7 +1380,19 @@ const cctpDialog=document.createElement('dialog'),cctpRoot=document.createElemen
 cctpDialog.setAttribute('aria-label','Cross-chain test transfer / 测试资产跨链');cctpClose.type='button';cctpClose.textContent='Close / 关闭';cctpOpen.type='button';cctpOpen.textContent='Cross-chain test transfer / 测试资产跨链';
 cctpDialog.append(cctpClose,cctpRoot);document.body.append(cctpDialog);document.querySelector('#open-multichain').parentElement.append(cctpOpen);
 cctpUI=mountCctpUI({root:cctpRoot,api:window.ynxWallet.crossChain,locale:document.documentElement.lang||'en'});
-cctpOpen.addEventListener('click',()=>cctpDialog.showModal());cctpClose.addEventListener('click',()=>{cctpUI.invalidate();cctpDialog.close();});cctpDialog.addEventListener('cancel',()=>cctpUI.invalidate());
+cctpOpen.addEventListener('click', () => {
+  if (cctpDialog.open) return;
+  cctpDialog.showModal();
+  void cctpUI.open();
+});
+cctpClose.addEventListener('click', () => {
+  cctpUI.invalidate();
+  cctpDialog.close();
+});
+cctpDialog.addEventListener('cancel', () => cctpUI.invalidate());
+cctpDialog.addEventListener('close', () => {
+  if (!cctpDialog.open) cctpUI.invalidate();
+});
 window.addEventListener('blur',()=>cctpUI.invalidate());window.ynxWallet.onCrossChainContextChanged?.(()=>cctpUI.invalidate());
 const ideIdentityDialog=document.createElement('dialog'),ideIdentityRoot=document.createElement('section'),ideIdentityClose=document.createElement('button'),ideIdentityOpen=document.createElement('button');
 ideIdentityDialog.setAttribute('aria-label','IDE 身份请求 / IDE identity request');ideIdentityClose.type='button';ideIdentityClose.textContent='关闭视图 / Close view';ideIdentityOpen.type='button';ideIdentityOpen.textContent='IDE 身份请求 / IDE identity request';
