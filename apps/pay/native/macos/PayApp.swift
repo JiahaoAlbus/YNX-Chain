@@ -80,7 +80,11 @@ enum PayBridge {
                     sourceReady = value["available"] as? Bool == true
                     status = sourceReady ? "Original Wallet / Source connected" : "Original Wallet / Source unavailable"
                 }
-                if let raw = value["code"] as? String { status = raw }
+                if let raw = value["code"] as? String {
+                    status = raw == "NATIVE_PAY_NORMAL_MAIN_SOURCE_NOT_SUPPLIED"
+                        ? "Pay connection unavailable. Open YNX Wallet and use Pay there."
+                        : raw
+                }
             }
             busy = false
         }
