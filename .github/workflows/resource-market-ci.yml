@@ -281,6 +281,11 @@ on:
       - 'packages/wallet-auth/native/source-parent/**'
   workflow_dispatch:
     inputs:
+      proof_closure_435829_controller_sha:
+        description: Evidence-only original435829 diagnostic; exact controller SHA, empty candidate_sha and all window flags false
+        required: false
+        default: ''
+        type: string
       candidate_sha:
         description: Exact candidate commit for the isolated PQ branch only
         required: false
@@ -6287,3 +6292,80 @@ jobs:
             ${{ env.YNX_PAIR_CI_CASE }}/go.stderr.log
           if-no-files-found: warn
           retention-days: 7
+
+  proof-closure-435829-evidence:
+    # Explicit historical DATA diagnosis only. No push route or business window.
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration' && inputs.proof_closure_435829_controller_sha == github.sha && inputs.candidate_sha == '' && !inputs.paired_n1 && !inputs.consensus_e2e && !inputs.consensus_e2e_retained_history && !inputs.consensus_remote_e2e_retained_history && !inputs.consensus_fresh_paired_business && !inputs.remote_signer_process
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    concurrency:
+      group: ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade
+      cancel-in-progress: false
+    env:
+      GOMAXPROCS: '2'
+      GOMEMLIMIT: '1536MiB'
+      GOGC: '50'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: local
+      GOPROXY: https://proxy.golang.org
+      GOSUMDB: sum.golang.org
+    steps:
+      - name: Checkout exact diagnostic controller
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          path: controller
+          persist-credentials: false
+      - name: Checkout fixed original verifier source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 763b7f8f422f38f39e747a4f7f6cfb6405a0b96d
+          path: original-source
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+      - name: Select original Go toolchain without post cache save
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.26.11'
+          cache: false
+      - name: Verify diagnostic-only controls and original source identity
+        run: |
+          set -euo pipefail
+          test "$(git -C controller rev-parse HEAD)" = '${{ github.sha }}'
+          test "$(git -C original-source rev-parse HEAD)" = '763b7f8f422f38f39e747a4f7f6cfb6405a0b96d'
+          test "$(git -C original-source rev-parse HEAD^{tree})" = 'f083502be012d84b3cd50e383c3bf2a922d8c2dd'
+          test "$(git -C original-source rev-parse 5a49f5c91452604dffb910df736702b3b9df2562:third_party/cometbft)" = '08747364c24c065bf2b13527c210625d7ec95fba'
+          python3 controller/scripts/fixtures/proof-closure-435829/test_controls.py
+      - name: Diagnose only the two original PUBLIC proof closures
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 controller/scripts/fixtures/proof-closure-435829/run.py             --source-root "$GITHUB_WORKSPACE/original-source"             --case "$RUNNER_TEMP/proof-closure-435829-diagnostic"
+      - name: Preserve original failure or offline diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: proof-closure-435829-offline-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/RESOURCE-ADMISSION.json
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/evidence/ARTIFACTS.json
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/evidence/JOB.json
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/PREPARED.json
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/SOURCE-LEDGER.json
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/SOURCE-SELECTION-NORMAL.json
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/LINUX-PUBLIC-RESTORE.json
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/OBSERVATION-OVERLAY.json
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/OBSERVATION-DELTA.json
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/BASELINE-BINARY.json
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/results/*.stdout
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/results/*.stderr
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/results/*.result.json
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/profile-*/CPU.pprof
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/profile-*/NORMAL-CLI-RESULT.json
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/profile-*/PROFILE-RESULT.json
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/STAGES-*.json
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/DIAGNOSTIC-RESULT.json
