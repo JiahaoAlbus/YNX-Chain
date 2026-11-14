@@ -46,6 +46,8 @@ export declare class ProductSessionGatewayNodeHost {
   authenticateOriginalDeveloperHTTPRequest(input:OriginalDeveloperHTTPRequest):Promise<OriginalDeveloperHTTPCredential>;
   authenticateOriginalDeveloperHTTPRequestV4(input:OriginalDeveloperHTTPRequest&Readonly<{expected:import('./product-session-device-v4.js').ProductSessionDeviceCurrentExpectedV4}>):Promise<OriginalDeveloperHTTPCredential>;
   revalidateOriginalDeveloperHTTPRequestV4(input:OriginalDeveloperHTTPRequest&Readonly<{expected:import('./product-session-device-v4.js').ProductSessionDeviceCurrentExpectedV4}>):Promise<OriginalDeveloperHTTPCredential>;
+  /** Separate Social Source/principal capability; no developer permission reuse. */
+  assertOriginalSocialDeviceDirectoryPrincipalDeliveryV4(result:import('./original-social-device-directory-principal-dispatch-private.js').OriginalSocialDirectoryRootResponse):void;
   currentExistingDeveloperPrincipalV5(input:OriginalDeveloperHTTPBinaryRequestV5):Promise<OriginalDeveloperHTTPPrincipalDATAV5>;
   recheckExistingDeveloperPrincipalV5(input:OriginalDeveloperHTTPBinaryRequestV5):Promise<OriginalDeveloperHTTPPrincipalDATAV5>;
   currentExistingDeveloperPrincipal(input:OriginalDeveloperHTTPRequest):Promise<OriginalDeveloperHTTPPrincipalDATA>;
