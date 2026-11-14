@@ -64,8 +64,12 @@ func TestP06RelocatedCometIsolatedHealth(t *testing.T) {
 		t.Fatal("provider module directory must be empty")
 	}
 	_, node, fixture := consensus.OpenP06OriginalBootstrapNodeFixture(t)
-	node.OnStop()
-	_ = node.ProxyApp().Stop()
+	if err := node.Start(); err != nil {
+		t.Fatal("fixture node start", err)
+	}
+	if err := node.Stop(); err != nil {
+		t.Fatal("fixture node stop", err)
+	}
 	fixture.ReleaseLeases()
 	dir := t.TempDir()
 	tool := os.Getenv("P06_QA_OPENSSL_TOOL")
@@ -188,5 +192,10 @@ func TestP06RelocatedCometIsolatedHealth(t *testing.T) {
 		b, _ := os.ReadFile(log.Name())
 		t.Fatalf("isolated shutdown failed: %v %s", err, b)
 	}
+	if conn, dialErr := net.DialTimeout("tcp", address, time.Second); dialErr == nil {
+		_ = conn.Close()
+		t.Fatal("original fixture loopback listener remained open", address)
+	}
+	t.Logf("same synthetic loopback listener released: %s", address)
 	t.Log("relocated process: synthetic private GET /health=200 and clean stop; no Source or payment assertion")
 }
