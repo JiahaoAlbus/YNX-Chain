@@ -551,6 +551,12 @@ extension AppleNativeAuthority {func openInvoice(_ url:URL,expected:ShopSession)
         return true
     }
 
+    func synchronizeProtectedBuyerOrder(_ order: Order, beforeDispatch: @escaping () throws -> Void) async throws -> Bool {
+        guard try await observeProtectedOriginalOrder(order, beforeDispatch: beforeDispatch) else { return false }
+        try await confirmOriginalPayment(order, beforeDispatch: beforeDispatch)
+        return true
+    }
+
     func readBoundBuyerOrder(_ original: Order, account: String, beforeDispatch: @escaping () throws -> Void) async throws -> Order {
         try AppleBuyerReceipt.validate(original, account: account)
         let response = try await raw("orders/\(original.orderID)", method: "GET", json: [:], beforeDispatch: beforeDispatch)

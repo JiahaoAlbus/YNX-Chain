@@ -263,7 +263,7 @@ import SwiftUI
         do {
             let check=try api.capture()
             let fence:()throws->Void={try check();guard self.originalOrderRevision==revision,self.originalOrderLink==link else{throw ShopError.contextChanged}}
-            if try await api.observeProtectedOriginalOrder(order, beforeDispatch: fence) {
+            if try await api.synchronizeProtectedBuyerOrder(order, beforeDispatch: fence) {
                 let result = try await api.readBoundBuyerOrder(order, account: link.account, beforeDispatch: fence)
                 try fence()
                 linkedOriginalOrder = result
@@ -331,7 +331,7 @@ import SwiftUI
             let at=operationRevision;mutationBusy=true
             Task{defer{if at==operationRevision{mutationBusy=false;refreshOrderRecoveries()}}
                 do {
-                    if try await api.observeProtectedOriginalOrder(order, beforeDispatch: check) {
+                    if try await api.synchronizeProtectedBuyerOrder(order, beforeDispatch: check) {
                         // Invalidate earlier list reads. A newer refresh may
                         // supersede this targeted read while it is in flight.
                         ordersRefreshRevision += 1

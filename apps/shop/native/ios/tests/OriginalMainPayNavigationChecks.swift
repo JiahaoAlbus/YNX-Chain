@@ -69,7 +69,7 @@ import Foundation
       return ownedChild
   })
   do {
-      _ = try await api.observeProtectedOriginalOrder(originalOrder) {
+      _ = try await api.synchronizeProtectedBuyerOrder(originalOrder) {
           if revoked { throw ShopError.contextChanged }
       }
       throw NSError(domain: "withdrawn selection invoked Main", code: 1)
@@ -85,12 +85,25 @@ import Foundation
           "bill": ["sourceOrder": order, "merchant": boundMerchant, "invoiceId": invoice],
           "queryOnly": true, "approvalRequired": false, "canRetry": false, "clientIndependentFinality": false
       ]])
-      let reopened = APIClient(authority: authority, acquireOriginalOrder: { _, _, _, _ in child })
+      let config = URLSessionConfiguration.ephemeral
+      config.protocolClasses = [OriginalOrderSyncHTTP.self]
+      let session = URLSession(configuration: config)
+      defer { session.invalidateAndCancel(); OriginalOrderSyncHTTP.respond = nil }
+      var requests: [String] = []
+      OriginalOrderSyncHTTP.respond = { request in
+          try check(child.calls == ["status", "invoke", "close"], "Shop synchronizes after the Main child closes")
+          requests.append((request.httpMethod ?? "") + " " + (request.url?.path ?? ""))
+          return try JSONEncoder().encode(originalOrder)
+      }
+      let reopened = APIClient(session: session, authority: authority, acquireOriginalOrder: { _, _, _, _ in child })
       do {
-          let result = try await reopened.observeProtectedOriginalOrder(originalOrder) {}
+          let result = try await reopened.synchronizeProtectedBuyerOrder(originalOrder) {}
           try check(result && invoice == "invoice_original", "reopened order accepts the original invoice")
+          _ = try await reopened.readBoundBuyerOrder(originalOrder, account: account) {}
+          try check(requests == ["POST /api/orders/\(order)/confirm-payment", "GET /api/orders/\(order)"],
+                    "reopened order imports the original receipt before reading the same order")
       } catch ShopError.security {
-          try check(invoice == "invoice_replaced", "reopened order rejects a replacement invoice")
+          try check(invoice == "invoice_replaced" && requests.isEmpty, "replacement invoice never reaches the Shop receipt importer")
       }
       try check(child.calls == ["status", "invoke", "close"], "invoice query drains one original child")
   }
@@ -110,8 +123,31 @@ import Foundation
     func handleReturn(_ url: URL) async throws { throw ShopError.unavailable }
     func disconnect() throws { throw ShopError.unavailable }
     func proof(method: String, path: String, body: String, expected: ShopSession) async throws -> [String: Any] {
-        throw ShopError.unavailable
+        guard expected == current else { throw ShopError.contextChanged }
+        return ["body": body, "identityHeader": String(repeating: "i", count: 43),
+                "actionHeader": String(repeating: "a", count: 43)]
     }
+}
+
+private final class OriginalOrderSyncHTTP: URLProtocol, @unchecked Sendable {
+    @MainActor static var respond: ((URLRequest) throws -> Data)?
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func startLoading() {
+        Task { @MainActor in
+            do {
+                guard let respond = Self.respond, let url = request.url else { throw ShopError.unavailable }
+                let data = try respond(request)
+                client?.urlProtocol(self, didReceive: HTTPURLResponse(url: url, statusCode: 200,
+                    httpVersion: nil, headerFields: nil)!, cacheStoragePolicy: .notAllowed)
+                client?.urlProtocol(self, didLoad: data)
+                client?.urlProtocolDidFinishLoading(self)
+            } catch {
+                client?.urlProtocol(self, didFailWithError: error)
+            }
+        }
+    }
+    override func stopLoading() {}
 }
 
 @MainActor private final class OriginalOrderQueryChild: AppleOriginalMainPayChild {
