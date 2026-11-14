@@ -17,7 +17,7 @@ import expo.modules.ExpoReactHostFactory
 class MainApplication : Application(), ReactApplication {
   // Only the verified in-process DEVICE actor can supply an Original review.
   // There is no Binder or JavaScript entry point for creating one.
-  internal val deviceApprovalReviews = DeviceApprovalReviewCoordinator()
+  internal val deviceApprovalReviews = DeviceApprovalReviewCoordinator(this)
 
   @Suppress("DEPRECATION")
   override fun onTrimMemory(level: Int) {
