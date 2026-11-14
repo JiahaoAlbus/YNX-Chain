@@ -328,6 +328,95 @@ func (c *PQLabLiveMaterialsControl) captureCommitted(ctx context.Context, actual
 	return raw, nil
 }
 
+// Only the two original typed Commit crossings permit another paired read.
+// This remains inside one request and its existing capture deadline, before
+// validation, proof construction or any capture output. A completed encoding
+// freezes the exact engine/App pair; no later failure retries this helper.
+// The sole production caller supplies the original c.view.LoadState method.
+func (c *PQLabLiveMaterialsControl) captureCheckpoint(ctx context.Context, loadActual func() (sm.State, error)) (sm.State, []byte, error) {
+	const attempts = 3
+	if ctx == nil || c == nil || c.in == nil || c.app == nil || loadActual == nil {
+		return sm.State{}, nil, errors.New("original live checkpoint capture input required")
+	}
+	p, a := c.in.plan, c.in.activation
+	var firstCrossing error
+	fail := func(cause error) (sm.State, []byte, error) {
+		return sm.State{}, nil, errors.Join(firstCrossing, cause)
+	}
+	// A joined IO/close/other failure is not a transient Commit crossing.
+	// Original callers return the engine sentinel or one wrapped App sentinel;
+	// bounded single-error wrapping is accepted without parsing error text.
+	crossing := func(cause error) bool {
+		for depth := 0; cause != nil && depth < 8; depth++ {
+			if cause == node.ErrProofSourceCheckpointCrossing || cause == errProofHostCheckpointCrossing {
+				return true
+			}
+			if _, joined := cause.(interface{ Unwrap() []error }); joined {
+				return false
+			}
+			cause = errors.Unwrap(cause)
+		}
+		return false
+	}
+	var prior sm.State
+	firstHeight, known := int64(0), false
+	for attempt := 1; attempt <= attempts; attempt++ {
+		if err := ctx.Err(); err != nil {
+			return fail(err)
+		}
+		actual, err := loadActual()
+		if err == nil {
+			if err = ctx.Err(); err != nil {
+				return fail(err)
+			}
+			if actual.ChainID != p.ChainID || actual.InitialHeight != p.InitialHeight || actual.LastBlockHeight <= a.ActivationHeight || actual.LastBlockHeight-a.RegistryHeight > 4096 {
+				return fail(errors.New("bounded original activated engine checkpoint required"))
+			}
+			if known {
+				if actual.LastBlockHeight < prior.LastBlockHeight || actual.LastBlockHeight-firstHeight > 1 {
+					return fail(errors.New("live checkpoint recapture moved outside one original Commit boundary"))
+				}
+				if actual.LastBlockHeight == prior.LastBlockHeight && (!bytes.Equal(actual.AppHash, prior.AppHash) || !actual.LastBlockID.Equals(prior.LastBlockID)) {
+					return fail(errors.New("live checkpoint recapture conflicts at the same height"))
+				}
+			} else {
+				firstHeight, known = actual.LastBlockHeight, true
+			}
+			prior = actual
+			prior.AppHash = bytes.Clone(actual.AppHash)
+			prior.LastBlockID.Hash = bytes.Clone(actual.LastBlockID.Hash)
+			prior.LastBlockID.PartSetHeader.Hash = bytes.Clone(actual.LastBlockID.PartSetHeader.Hash)
+			var raw []byte
+			raw, err = c.captureCommitted(ctx, actual)
+			if err == nil {
+				return actual, raw, nil
+			}
+			// The App sentinel proves App == actual+1. After one observed
+			// forward step, it would require crossing a SECOND boundary.
+			if errors.Is(err, errProofHostCheckpointCrossing) && actual.LastBlockHeight > firstHeight {
+				return fail(err)
+			}
+		}
+		if !crossing(err) {
+			return fail(err)
+		}
+		if firstCrossing == nil {
+			firstCrossing = err
+		}
+		if attempt == attempts {
+			return fail(err)
+		}
+		timer := time.NewTimer(5 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return fail(ctx.Err())
+		case <-timer.C:
+		}
+	}
+	return fail(errors.New("original live checkpoint crossing budget exhausted"))
+}
+
 func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMaterialsRequest, envelope []byte, kind string, wire []byte, output string, now time.Time) (out PQLabLiveMaterialsResult, err error) {
 	defer func() {
 		if recover() != nil {
@@ -339,14 +428,7 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 		return out, err
 	}
 	p, a := c.in.plan, c.in.activation
-	actual, err := c.view.LoadState()
-	if err != nil {
-		return out, err
-	}
-	if actual.ChainID != p.ChainID || actual.InitialHeight != p.InitialHeight || actual.LastBlockHeight <= a.ActivationHeight || actual.LastBlockHeight-a.RegistryHeight > 4096 {
-		return out, errors.New("bounded original activated engine checkpoint required")
-	}
-	stateRaw, err := c.captureCommitted(ctx, actual)
+	actual, stateRaw, err := c.captureCheckpoint(ctx, c.view.LoadState)
 	if err != nil {
 		return out, err
 	}
