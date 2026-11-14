@@ -13,6 +13,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import signal
 import stat
@@ -656,6 +657,20 @@ class NormalBackend:
                 args.append('--observe-stages')
         return self.call(f"{prefix}-live-{suffix}", args)
 
+    def retain_live_proof_failure(self, output, case, lane, sequence):
+        raw = proof_readback.read_original(output / 'failure.json', limit=4096)
+        failure = proof_readback.strict(raw)
+        lab.require(type(failure) is dict
+                    and set(failure) == {'Version', 'PolicySHA256', 'Outcome', 'FirstCauseSHA256', 'Sequence'}
+                    and failure['Version'] == 'YNX-PQ-LAB-LIVE-MATERIALS-FAILURE/v1'
+                    and failure['PolicySHA256'] == lane['pin']
+                    and failure['Outcome'] == 'unknown'
+                    and type(failure['Sequence']) is int and failure['Sequence'] == sequence
+                    and type(failure['FirstCauseSHA256']) is str
+                    and re.fullmatch('[0-9a-f]{64}', failure['FirstCauseSHA256']),
+                    'original proof failure record differs')
+        proof_readback.write_new(case / 'original-live-proof-failure.json', raw)
+
     def live_proof(self,row,tx,path,case,notify,stop):
         notify(dict(kind="normal_stage",stage="proof_queue"))
         lane=None
@@ -671,7 +686,12 @@ class NormalBackend:
             output=lane["policy"].parent/("operation-%06d"%seq);until=time.monotonic()+self.c.proof_timeout
             notify(dict(kind="normal_stage",stage="live_capture"))
             while not (output/"result.json").exists() and not stop.is_set() and time.monotonic()<until:
-                lab.require(not (output/"failure.json").exists(),"normal live proof operation is UNKNOWN")
+                if (output/'failure.json').exists():
+                    try:
+                        self.retain_live_proof_failure(output, case, lane, seq)
+                    except (OSError, RuntimeError, ValueError) as error:
+                        raise RuntimeError('normal live proof operation is UNKNOWN; original failure record unavailable') from error
+                    raise RuntimeError('normal live proof operation is UNKNOWN')
                 stop.wait(.02)
             lab.require((output/"result.json").exists(),"normal original live proof result not supplied before bounded cutoff")
             notify(dict(kind="normal_stage",stage="live_read"))

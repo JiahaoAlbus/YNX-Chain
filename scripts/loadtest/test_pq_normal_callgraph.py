@@ -13,6 +13,24 @@ spec=importlib.util.spec_from_file_location('normal_callgraph',Path(__file__).wi
 driver=importlib.util.module_from_spec(spec);spec.loader.exec_module(driver)
 
 class NormalCallgraphControls(unittest.TestCase):
+    def test_live_proof_retains_only_matching_original_failure_bytes(self):
+        backend=object.__new__(driver.NormalBackend)
+        with tempfile.TemporaryDirectory() as temp:
+            case=Path(temp).resolve()
+            source=case/'failure.json'
+            value=dict(Version='YNX-PQ-LAB-LIVE-MATERIALS-FAILURE/v1', PolicySHA256='a'*64,
+                       Outcome='unknown', FirstCauseSHA256='b'*64, Sequence=1)
+            for invalid in (dict(value,Sequence=True),dict(value,Sequence=2),dict(value,PrivatePath='/private')):
+                source.write_text(json.dumps(invalid))
+                with self.assertRaisesRegex(RuntimeError,'original proof failure record differs'):
+                    backend.retain_live_proof_failure(case,case,dict(pin='a'*64),1)
+            raw=(json.dumps(value)+'\n').encode()
+            source.write_bytes(raw)
+            backend.retain_live_proof_failure(case,case,dict(pin='a'*64),1)
+            self.assertEqual((case/'original-live-proof-failure.json').read_bytes(),raw)
+            with self.assertRaises(FileExistsError):
+                backend.retain_live_proof_failure(case,case,dict(pin='a'*64),1)
+
     def test_checkpoint_cache_cannot_reuse_replaced_same_size_and_mtime_state(self):
         b = object.__new__(driver.NormalBackend)
         b.checkpoint_lock = threading.Lock()
