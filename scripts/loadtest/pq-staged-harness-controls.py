@@ -12,7 +12,7 @@ GROUPS=[
  ('test_pq_preload_initialization.py',None,8),
  ('test_pq_observed_throughput.py',None,5),
  ('test_pq_rpc_measurements.py',None,5),
- ('test_pq_normal_callgraph.py',None,16),
+ ('test_pq_normal_callgraph.py',None,17),
  ('test_pq_preparation_startup_timings.py',None,8),
  ('test_pq_node_startup_measurements.py',None,11),
  ('test_pq_normal_leg_trace.py',None,6),

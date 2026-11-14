@@ -3,6 +3,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import queue
 import tempfile
 import threading
 import time
@@ -14,6 +15,22 @@ spec=importlib.util.spec_from_file_location('normal_callgraph',Path(__file__).wi
 driver=importlib.util.module_from_spec(spec);spec.loader.exec_module(driver)
 
 class NormalCallgraphControls(unittest.TestCase):
+    def test_retired_proof_lanes_release_waiters_without_reissuing_requests(self):
+        backend = object.__new__(driver.NormalBackend)
+        backend.queue = queue.Queue()
+        backend.live_lane_lock = threading.Lock()
+        backend.live_lanes_remaining = 2
+        for node in range(2):
+            backend.queue.put(dict(node=node, sequence=0, retired=False))
+        backend.live_materials_command = mock.Mock(side_effect=RuntimeError('original proof refused'))
+        stop = threading.Event()
+        for index in range(3):
+            reason = 'original proof refused' if index < 2 else 'all original live proof lanes retired'
+            with self.assertRaisesRegex(RuntimeError, reason):
+                backend.live_proof(dict(index=index), {}, None, None, lambda _: None, stop)
+        self.assertEqual(backend.live_lanes_remaining, 0)
+        self.assertEqual([call.args[0]['node'] for call in backend.live_materials_command.call_args_list], [0, 1])
+
     def test_ack_requires_explicit_uint32_checktx_code_and_never_reposts(self):
         for code in (None, False, "0", 0, 3):
             with self.subTest(code=code), tempfile.TemporaryDirectory() as temp:

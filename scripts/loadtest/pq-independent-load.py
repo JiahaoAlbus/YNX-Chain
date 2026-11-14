@@ -385,6 +385,8 @@ class NormalBackend:
         else:
             lab.require(ceremony.mode=="online" and (transactions is None or transactions==[]),"online workload must not substitute a pre-signed corpus")
         self.queue=__import__('queue').Queue()
+        self.live_lane_lock=threading.Lock()
+        self.live_lanes_remaining=len(ceremony.live)
         for lane in ceremony.live:self.queue.put(lane)
         if ceremony.mode=="online" and open_persistent:
             for owner in owners:self.sessions[owner["ownerIndex"]]=SenderSession(ceremony,owner["ownerIndex"])
@@ -807,13 +809,18 @@ class NormalBackend:
             stop.wait(min(.02, max(0, until - time.monotonic())))
         raise RuntimeError('normal original live proof result not supplied before bounded cutoff')
 
+    def take_live_lane(self, stop):
+        while not stop.is_set():
+            with self.live_lane_lock:
+                lab.require(self.live_lanes_remaining > 0,
+                            "all original live proof lanes retired; preserve submitted original UNKNOWN")
+            try:return self.queue.get(timeout=.02)
+            except __import__('queue').Empty:pass
+        raise RuntimeError("live proof lane not supplied before cutoff")
+
     def live_proof(self,row,tx,path,case,notify,stop):
         notify(dict(kind="normal_stage",stage="proof_queue"))
-        lane=None
-        while not stop.is_set():
-            try:lane=self.queue.get(timeout=.02);break
-            except __import__('queue').Empty:pass
-        lab.require(lane is not None,"live proof lane not supplied before cutoff")
+        lane=self.take_live_lane(stop)
         try:
             lab.require(not lane["retired"],"normal original live lane retired")
             lane["sequence"]+=1;seq=lane["sequence"];prefix="load-%05d"%row["index"]
@@ -839,7 +846,11 @@ class NormalBackend:
             normal.require_verified(verified,tx)
             return result,verified,public_closure
         except BaseException:
-            lane["retired"]=True;raise
+            with self.live_lane_lock:
+                if not lane["retired"]:
+                    lane["retired"]=True
+                    self.live_lanes_remaining-=1
+            raise
         finally:
             if not lane["retired"]:self.queue.put(lane)
     def publish(self,row,account,notify,stop):
