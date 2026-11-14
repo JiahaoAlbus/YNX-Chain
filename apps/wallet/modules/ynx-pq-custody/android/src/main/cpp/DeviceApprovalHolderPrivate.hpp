@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DeviceApprovalJournalBridge.hpp"
+#include "DeviceApprovalDecisionBridge.hpp"
 #include <AndroidV4AccountApprovalPlanPrivate.h>
 #include <thread>
 
@@ -31,13 +32,14 @@ protected:
 // are borrowed for one synchronous coordinator call on that actor.
 struct ynx_original_wallet_v4_account_approval_v1 final {
     ynx_original_wallet_v4_account_approval_v1(
-        JNIEnv* env, jobject journal, jstring operation, jbyteArray binding,
+        JNIEnv* env, jobject journal, jobject decision, jstring operation, jbyteArray binding,
         ynx::wallet::device_approval::OriginalReview& original)
-        : env(env), journal(env, journal, operation, binding),
+        : env(env), journal(env, journal, operation, binding), decision(env, decision, operation, binding),
           actor(std::this_thread::get_id()), review(original) {}
 
     JNIEnv* const env;
     ynx::wallet::device_approval::JournalBridge journal;
+    ynx::wallet::device_approval::DecisionBridge decision;
     const std::thread::id actor;
     ynx::wallet::device_approval::OriginalReview& review;
     ynx_original_wallet_v4_account_key_loan_v1* loan = nullptr;

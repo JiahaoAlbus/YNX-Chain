@@ -16,7 +16,8 @@ bool sameActor(const Holder* holder) {
 }
 
 Failure current(Holder* holder) {
-    return sameActor(holder) ? holder->review.current() : unavailable;
+    if (!sameActor(holder) || (holder->claimSelected && !holder->decision.current())) return unavailable;
+    return holder->review.current();
 }
 }
 
@@ -55,6 +56,9 @@ extern "C" void ynx_wallet_v4_account_approval_claim_backup_once_v1(Holder* hold
         *failure = unavailable;
         return;
     }
+    // A persisted claim alone is not a claim ACK. A lost Java acknowledgement
+    // retires this attempt; it must not be reselected or signed.
+    if (!holder->decision.acknowledgeInsertedClaim()) return;
     *failure = current(holder);
     if (failed(*failure)) return;
     *failure = holder->review.claimBackup(holder->loan, *encrypted, *credential);
