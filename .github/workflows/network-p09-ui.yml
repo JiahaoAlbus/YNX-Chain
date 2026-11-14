@@ -1,0 +1,26 @@
+name: Network P09 UI focused checks
+
+on:
+  push:
+    branches: [codex/network-p09-ui-20261114]
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    if: github.repository == 'JiahaoAlbus/YNX-Chain' && github.ref == 'refs/heads/codex/network-p09-ui-20261114'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Check receipt refresh and participation history
+        working-directory: apps/network/web
+        run: |
+          node --test --test-name-pattern='an unavailable proof can be retried|the active proof history refresh' app.test.mjs
+          node --test --test-name-pattern='a changed participation history snapshot|a failed participation history continuation' native-ui.test.mjs
