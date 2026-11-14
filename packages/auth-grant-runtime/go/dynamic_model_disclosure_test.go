@@ -105,6 +105,14 @@ func TestDynamicOriginalModelDisclosure(t *testing.T) {
 	if e = r.CheckTaskModelDisclosure(ctx, q2); !errors.Is(e, ErrCurrent) || reader.last.closes != 1 {
 		t.Fatalf("close failure: %v", e)
 	}
+	t.Run("revoked_permit_never_reads_original", func(t *testing.T) {
+		reader.mode = "revoked-permit"
+		defer func() { reader.mode = "" }()
+		if e := r.CheckTaskModelDisclosure(ctx, q2); !errors.Is(e, ErrCurrent) ||
+			reader.last.reads != 0 || reader.last.closes != 1 {
+			t.Fatalf("revoked permit: err=%v reads=%d closes=%d", e, reader.last.reads, reader.last.closes)
+		}
+	})
 	t.Run("cancellation_during_acquire_forbids_read", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
@@ -119,7 +127,7 @@ func TestDynamicOriginalModelDisclosure(t *testing.T) {
 		reader.mode, reader.cancel = "cancel-current", func() { _ = r.Retire() }
 		if e := r.CheckTaskModelDisclosure(ctx, q2); !errors.Is(e, ErrRetired) ||
 			reader.last.reads != 1 || reader.last.closes != 1 {
-			t.Fatalf("read after revoked current: err=%v reads=%d closes=%d", e, reader.last.reads, reader.last.closes)
+			t.Fatalf("reread after revoked current: err=%v reads=%d closes=%d", e, reader.last.reads, reader.last.closes)
 		}
 	})
 }
@@ -158,10 +166,10 @@ func (r *publicDisclosureReader) ReadOriginalPermit(_ context.Context, k origina
 }
 
 type publicDisclosurePermit struct {
-	key           originalModelDisclosureKey
-	raw, mode     string
-	reads, closes int
-	cancel        func()
+	key                     originalModelDisclosureKey
+	raw, mode               string
+	reads, closes, currents int
+	cancel                  func()
 }
 
 func (p *publicDisclosurePermit) ReadOriginal(_ context.Context, k originalModelDisclosureKey) (string, error) {
@@ -175,7 +183,11 @@ func (p *publicDisclosurePermit) ReadOriginal(_ context.Context, k originalModel
 	return p.raw, nil
 }
 func (p *publicDisclosurePermit) Current(context.Context) error {
-	if p.mode == "cancel-current" {
+	p.currents++
+	if p.mode == "revoked-permit" {
+		return ErrCurrent
+	}
+	if p.mode == "cancel-current" && p.currents == 2 {
 		p.cancel()
 	}
 	return nil

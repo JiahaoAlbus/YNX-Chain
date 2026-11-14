@@ -299,6 +299,14 @@ func (r *Runtime) CheckTaskModelDisclosure(ctx context.Context, q ModelDisclosur
 		if e = r.Current(ctx); e != nil {
 			return e
 		}
+		// Original Source current is independent from the permit's own
+		// revocation. Do not read its original bytes until both are current.
+		if e = dynamic.Current(ctx); e != nil {
+			return e
+		}
+		if e = r.Current(ctx); e != nil {
+			return e
+		}
 		raw, e = dynamic.ReadOriginal(ctx, key)
 		if e != nil {
 			return e
