@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import tempfile
 import threading
+import time
 from types import SimpleNamespace
 import unittest
 from unittest import mock
@@ -20,16 +21,24 @@ class NormalCallgraphControls(unittest.TestCase):
             source=case/'failure.json'
             value=dict(Version='YNX-PQ-LAB-LIVE-MATERIALS-FAILURE/v1', PolicySHA256='a'*64,
                        Outcome='unknown', FirstCauseSHA256='b'*64, Sequence=1)
+            stop=threading.Event()
+            def retain():
+                backend.retain_live_proof_failure(case,case,dict(pin='a'*64),1,stop,time.monotonic()+1)
             for invalid in (dict(value,Sequence=True),dict(value,Sequence=2),dict(value,PrivatePath='/private')):
                 source.write_text(json.dumps(invalid))
                 with self.assertRaisesRegex(RuntimeError,'original proof failure record differs'):
-                    backend.retain_live_proof_failure(case,case,dict(pin='a'*64),1)
+                    retain()
             raw=(json.dumps(value)+'\n').encode()
-            source.write_bytes(raw)
-            backend.retain_live_proof_failure(case,case,dict(pin='a'*64),1)
+            source.write_bytes(b'')
+            def complete_write(_):
+                source.write_bytes(raw)
+                return False
+            with mock.patch.object(stop,'wait',side_effect=complete_write) as wait:
+                retain()
+            wait.assert_called_once()
             self.assertEqual((case/'original-live-proof-failure.json').read_bytes(),raw)
             with self.assertRaises(FileExistsError):
-                backend.retain_live_proof_failure(case,case,dict(pin='a'*64),1)
+                retain()
 
     def test_checkpoint_cache_cannot_reuse_replaced_same_size_and_mtime_state(self):
         b = object.__new__(driver.NormalBackend)

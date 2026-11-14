@@ -665,9 +665,21 @@ class NormalBackend:
                 args.append('--observe-stages')
         return self.call(f"{prefix}-live-{suffix}", args)
 
-    def retain_live_proof_failure(self, output, case, lane, sequence):
-        raw = proof_readback.read_original(output / 'failure.json', limit=4096)
-        failure = proof_readback.strict(raw)
+    def retain_live_proof_failure(self, output, case, lane, sequence, stop, until):
+        # The producer opens the final path before writing the JSON record.
+        # Only reread this same output, within the existing proof deadline.
+        deadline = min(until, time.monotonic() + .1)
+        while True:
+            try:
+                raw = proof_readback.read_original(output / 'failure.json', limit=4096, allow_empty=True)
+                failure = proof_readback.strict(raw)
+                break
+            except (RuntimeError, ValueError) as error:
+                if not isinstance(error, json.JSONDecodeError) and str(error) != 'original public input changed during read':
+                    raise
+                remaining = deadline - time.monotonic()
+                if remaining <= 0 or stop.wait(min(.01, remaining)):
+                    raise
         lab.require(type(failure) is dict
                     and set(failure) == {'Version', 'PolicySHA256', 'Outcome', 'FirstCauseSHA256', 'Sequence'}
                     and failure['Version'] == 'YNX-PQ-LAB-LIVE-MATERIALS-FAILURE/v1'
@@ -696,7 +708,7 @@ class NormalBackend:
             while not (output/"result.json").exists() and not stop.is_set() and time.monotonic()<until:
                 if (output/'failure.json').exists():
                     try:
-                        self.retain_live_proof_failure(output, case, lane, seq)
+                        self.retain_live_proof_failure(output, case, lane, seq, stop, until)
                     except (OSError, RuntimeError, ValueError) as error:
                         raise RuntimeError('normal live proof operation is UNKNOWN; original failure record unavailable') from error
                     raise RuntimeError('normal live proof operation is UNKNOWN')
