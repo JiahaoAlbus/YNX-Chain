@@ -44,6 +44,11 @@ class OriginalAdapterControls(unittest.TestCase):
         self.events = []
         self.work = self.root/'pq-independent-load-control1'
         self.Window = original.lab.Window
+        # Each case is an independent coordinator control. A failed lifecycle
+        # deliberately leaves its module's lease held rather than authorizing
+        # another arm; do not carry that controlled coordinator into other tests.
+        lease = mock.patch.object(bridge, '_WINDOW_LEASE', threading.Lock())
+        lease.start(); self.addCleanup(lease.stop)
 
     def adapter(self, run, *, source_commit=None):
         record = copy.deepcopy(self.record)
@@ -264,7 +269,8 @@ class OriginalAdapterControls(unittest.TestCase):
             'live-handle': lambda r, w: setattr(w.children[0]['process'], 'poll', lambda: None),
         }
         for name, change in changes.items():
-            with self.subTest(name=name), tempfile.TemporaryDirectory(dir=self.root) as directory:
+            with self.subTest(name=name), tempfile.TemporaryDirectory(dir=self.root) as directory, \
+                    mock.patch.object(bridge, '_WINDOW_LEASE', threading.Lock()):
                 old_root, old_work = self.root, self.work
                 self.root = Path(directory); self.work = self.root/'pq-independent-load-control1'
                 adapter = self.adapter(lambda args: self.completed_control(args, change=change))
@@ -319,6 +325,43 @@ class OriginalAdapterControls(unittest.TestCase):
                 adapter.execute(self.register)
             adapter.retire()
         self.assertIs(original.lab.Window, self.Window)
+
+    def test_other_adapter_cannot_enter_between_driver_failure_and_retirement(self):
+        error = ValueError('CONTROL failed driver before original cleanup')
+        def run(args):
+            self.fresh(); original.lab.Window(Path(args.source), self.work)
+            raise error
+        first = self.adapter(run)
+        second_run = mock.Mock()
+        second = self.adapter(second_run)
+        with self.window_controls():
+            with self.assertRaises(ValueError): first.execute(self.register)
+            with self.assertRaisesRegex(RuntimeError, 'bridge is active'):
+                second.execute(self.register)
+            second_run.assert_not_called()
+            with self.assertRaisesRegex(RuntimeError, 'receipt missing'):
+                first.retire()
+            with self.assertRaisesRegex(RuntimeError, 'bridge is active'):
+                second.execute(self.register)
+            second_run.assert_not_called()
+        self.assertEqual(first.stop_results, [True])
+
+    def test_lease_released_only_after_original_receipt_and_full_retirement(self):
+        first = self.adapter(lambda args: self.completed_control(args))
+        error = ValueError('CONTROL second driver starts only after first retired')
+        second_run = mock.Mock(side_effect=error)
+        second = self.adapter(second_run)
+        with self.window_controls():
+            first.execute(self.register)
+            with self.assertRaisesRegex(RuntimeError, 'bridge is active'):
+                second.execute(self.register)
+            second_run.assert_not_called()
+            first.retire()
+            with self.assertRaises(ValueError) as raised:
+                second.execute(self.register)
+            self.assertIs(raised.exception, error)
+            self.assertEqual(second.retire(), [])
+        self.assertEqual(second_run.call_count, 1)
 
     def pair_case(self, defect=None):
         """Full original producer + bridge + Window, synthetic PUBLIC contents."""

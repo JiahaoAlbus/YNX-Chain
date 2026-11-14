@@ -17,6 +17,8 @@ original driver's business exception handler. An exception is re-raised unchange
 and no original constructor, cache/key creation or child launch follows it.
 Retirement checks the original on-disk receipt AND original Popen objects, worker
 and observer evidence. It never repairs a failed receipt or resumes an UNKNOWN.
+The Window lease spans execute AND retirement. Missing receipts or unresolved
+cleanup keep that coordinator fenced; returning from driver.run is insufficient.
 The tests use explicit low-cost lifecycle/source controls, not chain evidence.
 """
 import copy
@@ -76,6 +78,7 @@ class OriginalDriverAdapter:
         self.registration_error = None
         self.stop_results, self.stop_errors = [], []
         self.threads_before = set()
+        self._lease = None
         self._validate_options()
 
     def _validate_options(self):
@@ -113,6 +116,7 @@ class OriginalDriverAdapter:
                 'one qualified, admitted original execution required')
         self._validate_options()
         require(_WINDOW_LEASE.acquire(blocking=False), 'another original Window bridge is active')
+        self._lease = _WINDOW_LEASE
         self.used = True  # A failed registration/constructor is never retried.
         self.threads_before = set(threading.enumerate())
         original, owner = self._window, self
@@ -160,13 +164,18 @@ class OriginalDriverAdapter:
                 require(len(calls) == 1 and self.registration_error is None,
                         'original driver did not propagate Window registration failure')
                 return self.result
-            except BaseException as error:
-                self.execution_error = error
-                raise
             finally:
                 self.driver.lab.Window = original
-        finally:
-            _WINDOW_LEASE.release()
+        except BaseException as error:
+            self.execution_error = error
+            raise
+        # Release only in retire(), after original cleanup evidence is checked.
+        # Even a successful driver return may have an alive worker or observer.
+
+    def _release_lease(self):
+        if self._lease is not None:
+            self._lease.release()
+            self._lease = None
 
     def retire(self):
         require(self.used, 'original execution never entered')
@@ -175,6 +184,7 @@ class OriginalDriverAdapter:
             require(self.execution_error is not None, 'original Window missing without failure')
             # Registration failed before construction: no owned work to stop.
             # Never mark this arm retired/qualified for subsequent admission.
+            self._release_lease()
             return []
         window = self.window
         if not self.stop_results or self.stop_results[-1] is not True:
@@ -193,4 +203,5 @@ class OriginalDriverAdapter:
         producer.retired(receipt, children, self.threads_before)
         require(self.registration_error is None, 'original registration failure blocks successor')
         self.retired = True
+        self._release_lease()
         return children
