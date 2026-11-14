@@ -1449,7 +1449,7 @@ func (s *PQLabSender) SignMeasured(r PQLabSenderRequest, checkpoint *PQLabSender
 	if err = pqLabWriteExclusiveMeasured(filepath.Join(directory, "transaction.abci"), envelope, metrics); err != nil {
 		return out, errors.Join(ErrPQLabSenderUnknown, err)
 	}
-	if err = checkpoint.current(); err != nil {
+	if err = pqLabPostPersistenceCheckpointRead(checkpoint, metrics); err != nil {
 		return out, errors.Join(ErrPQLabSenderUnknown, err)
 	}
 	out = pqLabSenderResult(r, checkpoint.state.Height, checkpoint.state.AppHash, kind, wire, envelope)
@@ -1461,6 +1461,35 @@ func (s *PQLabSender) SignMeasured(r PQLabSenderRequest, checkpoint *PQLabSender
 		return PQLabSenderResult{}, errors.Join(ErrPQLabSenderUnknown, err)
 	}
 	return out, nil
+}
+
+// This fixed, opt-in stage distinguishes a refused current read AFTER the
+// original request/intent/wire/envelope barriers. It is diagnostic DATA only:
+// UNKNOWN, the original cause, retained files and recovery rules are unchanged.
+// Measure into a temporary recorder so successful reads emit no rejection and
+// shared metrics never need a rollback/delete. No error text selects a key.
+func pqLabPostPersistenceCheckpointRead(checkpoint *PQLabSenderCheckpoint, metrics *PQLabMetrics) error {
+	if metrics == nil {
+		return checkpoint.current() // No new clock when timings are disabled.
+	}
+	const stage = "checkpoint.postPersistenceReadRejected"
+	var measured PQLabMetrics
+	finish := pqLabMeasure(&measured, stage)
+	err := checkpoint.current()
+	finish()
+	if err != nil {
+		value := measured.Snapshot().Stages[stage]
+		metrics.mu.Lock()
+		if metrics.stages == nil {
+			metrics.stages = make(map[string]PQLabStageTiming)
+		}
+		prior := metrics.stages[stage]
+		prior.Calls += value.Calls
+		prior.ElapsedNS += value.ElapsedNS
+		metrics.stages[stage] = prior
+		metrics.mu.Unlock()
+	}
+	return err
 }
 
 // Confirm requires the full normal H/H+1 proof under independent trust. A
