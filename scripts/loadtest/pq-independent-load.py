@@ -765,16 +765,35 @@ class NormalBackend:
         for row in load['rows']:
             index = row['index']
             request = public / f'load-{index:05d}-live-session-request.json'
-            if not request.exists():
-                continue
             case = public / 'load-operations' / f'{index:05d}'
+            attempt = case / 'live-proof-attempt.json'
+            if not request.exists() and not attempt.exists():
+                continue
             retained = case / 'original-live-proof-failure.json'
             try:
-                frame = proof_readback.strict(proof_readback.read_original(request, limit=64 << 10))
+                frame = proof_readback.strict(proof_readback.read_original(
+                    attempt if attempt.exists() else request, limit=64 << 10))
                 lane = lanes[frame['node']]
                 sequence = frame['sequence']
+                request_digest = None
                 lab.require(frame['policySHA256'] == lane['pin'] and type(sequence) is int
                             and 1 <= sequence <= self.c.operations, 'original proof request binding differs')
+                if attempt.exists():
+                    lab.require(frame['operationId'] == row['operationId'] and frame['transactionSHA256'] == row['hash']
+                                and frame['nativeWireHash'] == row['nativeHash'], 'original proof attempt differs')
+                    original_request = lane['policy'].parent / f'request-{sequence:06d}.json'
+                    if not original_request.exists():
+                        lab.require(not request.exists(), 'acknowledged original proof request missing')
+                        records.append(dict(index=index, status='REQUEST_NOT_SUPPLIED'))
+                        continue
+                    raw_request = proof_readback.read_original(original_request, limit=16 << 10)
+                    original = proof_readback.strict(raw_request)
+                    lab.require(original['version'] == 'YNX-PQ-LAB-LIVE-MATERIALS-REQUEST/v1'
+                                and original['sequence'] == str(sequence)
+                                and all(original[key] == frame[key] for key in
+                                        ('policySHA256', 'transactionSHA256', 'nativeWireHash')),
+                                'original persisted proof request differs')
+                    request_digest = hashlib.sha256(raw_request).hexdigest()
                 output = lane['policy'].parent / f'operation-{sequence:06d}'
                 lab.require(not output.exists() or (output.is_dir() and output.resolve() == output),
                             'original stopped proof output directory differs')
@@ -789,6 +808,8 @@ class NormalBackend:
                                       else 'file' if stat.S_ISREG(mode) else 'unexpected')
                 context = dict(index=index, node=lane['node'], sequence=sequence,
                                stoppedOutputEntries=progress)
+                if request_digest is not None:
+                    context['originalRequestSHA256'] = request_digest
                 original = output / 'failure.json'
                 if not original.exists():
                     records.append(dict(context, status='FAILURE_NOT_SUPPLIED'))
@@ -842,6 +863,11 @@ class NormalBackend:
             lab.require(not lane["retired"],"normal original live lane retired")
             lane["sequence"]+=1;seq=lane["sequence"];prefix="load-%05d"%row["index"]
             notify(dict(kind="normal_stage",stage="live_publish"))
+            if "session" in lane:
+                lab.write_new(case / 'live-proof-attempt.json',
+                              dict(node=lane['node'], sequence=seq, policySHA256=lane['pin'],
+                                   operationId=row['operationId'], transactionSHA256=normal.comet_hash(tx['abciHash']),
+                                   nativeWireHash=normal.comet_hash(tx['nativeHash'])))
             self.live_materials_command(lane, "request", prefix, seq, stop, path=path, tx=tx)
             output=lane["policy"].parent/("operation-%06d"%seq);until=time.monotonic()+self.c.proof_timeout
             notify(dict(kind="normal_stage",stage="live_capture"))

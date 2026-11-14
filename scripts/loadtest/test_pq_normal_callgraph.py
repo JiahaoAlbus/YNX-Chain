@@ -220,6 +220,27 @@ class NormalCallgraphControls(unittest.TestCase):
             self.assertEqual(backend.retain_stopped_live_proof_failures(load)['records'][0]['status'],
                              'ORIGINAL_FAILURE_UNAVAILABLE')
             self.assertEqual(load['rows'][0]['status'], 'unknown')
+            # The producer persisted a request but its ACK never arrived.
+            frame.unlink()
+            row = load['rows'][0]
+            row.update(operationId='c'*64, hash='d'*64, nativeHash='e'*64)
+            attempt = dict(node=2, sequence=1, policySHA256=lane['pin'], operationId=row['operationId'],
+                           transactionSHA256=row['hash'], nativeWireHash=row['nativeHash'])
+            (case/'live-proof-attempt.json').write_text(json.dumps(attempt))
+            self.assertEqual(backend.retain_stopped_live_proof_failures(load)['records'][0]['status'],
+                             'REQUEST_NOT_SUPPLIED')
+            persisted = output.parent/'request-000001.json'
+            payload = dict(version='YNX-PQ-LAB-LIVE-MATERIALS-REQUEST/v1', sequence='1',
+                           policySHA256=lane['pin'], transactionSHA256=row['hash'], nativeWireHash=row['nativeHash'])
+            persisted.write_text(json.dumps(dict(payload, transactionSHA256='f'*64)))
+            self.assertEqual(backend.retain_stopped_live_proof_failures(load)['records'][0]['status'],
+                             'ORIGINAL_FAILURE_UNAVAILABLE')
+            persisted.write_text(json.dumps(payload))
+            original.write_bytes(raw)
+            (case/'original-live-proof-failure.json').unlink()
+            record = backend.retain_stopped_live_proof_failures(load)['records'][0]
+            self.assertEqual(record['status'], 'RETAINED_AFTER_STOP')
+            self.assertEqual(record['originalRequestSHA256'], driver.lab.guard.digest(persisted))
 
     def test_live_capture_prioritizes_original_failure_over_result(self):
         backend = object.__new__(driver.NormalBackend)

@@ -150,20 +150,34 @@ def stopped_proof_failures(receipt, load, files, prefix):
     require(load is not None and receipt['cleanupComplete'] is True
             and evidence['altersLoadResult'] is False, 'original stopped proof boundary differs')
     requests = {}
+    attempts = {}
     for path, raw in files.items():
-        match = re.fullmatch(r'load-([0-9]{5})-live-session-request\.json', path.removeprefix(prefix))
-        if path.startswith(prefix) and match:
+        if not path.startswith(prefix):
+            continue
+        relative = path.removeprefix(prefix)
+        match = re.fullmatch(r'load-([0-9]{5})-live-session-request\.json', relative)
+        if match:
             requests[int(match[1])] = strict(raw)
+        match = re.fullmatch(r'load-operations/([0-9]{5})/live-proof-attempt\.json', relative)
+        if match:
+            attempts[int(match[1])] = strict(raw)
     cohort = {row['index']: row for row in load['rows']}
     rows = evidence['records']
-    require(type(rows) is list and len(rows) == len(requests)
+    expected = requests.keys() | attempts.keys()
+    require(type(rows) is list and len(rows) == len(expected)
             and all(type(row['index']) is int for row in rows)
-            and {row['index'] for row in rows} == requests.keys() <= cohort.keys(),
+            and {row['index'] for row in rows} == expected <= cohort.keys(),
             'original stopped proof request coverage differs')
     output = []
     for record in rows:
         index, status = record['index'], record['status']
-        request = requests[index]
+        request = attempts[index] if index in attempts else requests[index]
+        if index in attempts:
+            require(all(request[key] == cohort[index][field] for key,field in
+                        (('operationId', 'operationId'), ('transactionSHA256', 'hash'), ('nativeWireHash', 'nativeHash')))
+                    and (index not in requests or all(request[key] == requests[index][key]
+                         for key in ('node', 'sequence', 'policySHA256'))),
+                    'original stopped proof attempt differs')
         require(type(request['node']) is int and 0 <= request['node'] < 4
                 and type(request['sequence']) is int and 1 <= request['sequence'] <= load['configuredDemand']
                 and re.fullmatch(r'[0-9a-f]{64}', request['policySHA256']),
@@ -177,6 +191,9 @@ def stopped_proof_failures(receipt, load, files, prefix):
                     and all(kind in ('directory', 'file', 'unexpected') for kind in progress.values())
                     and record['node'] == request['node'] and record['sequence'] == request['sequence'],
                     'original stopped proof output inventory differs')
+        if index in attempts and status in ('RETAINED_AFTER_STOP', 'ALREADY_RETAINED', 'FAILURE_NOT_SUPPLIED'):
+            require(re.fullmatch(r'[0-9a-f]{64}', record.get('originalRequestSHA256', '')),
+                    'original persisted proof request digest missing')
         if status in ('ALREADY_RETAINED', 'RETAINED_AFTER_STOP'):
             path = f'load-operations/{index:05d}/original-live-proof-failure.json'
             require(record['path'] == path and record['node'] == request['node']
@@ -192,7 +209,8 @@ def stopped_proof_failures(receipt, load, files, prefix):
                     and re.fullmatch(r'[0-9a-f]{64}', data['FirstCauseSHA256']),
                     'original stopped proof failure payload differs')
         else:
-            require(status in ('FAILURE_NOT_SUPPLIED', 'ORIGINAL_FAILURE_UNAVAILABLE'),
+            require(status in ('FAILURE_NOT_SUPPLIED', 'ORIGINAL_FAILURE_UNAVAILABLE')
+                    or (status == 'REQUEST_NOT_SUPPLIED' and index in attempts and index not in requests),
                     'original stopped proof status differs')
         output.append(dict(record, originalFailure=data, originalCohortStatus=cohort[index]['status']))
     return dict(records=output, altersLoadResult=False)
