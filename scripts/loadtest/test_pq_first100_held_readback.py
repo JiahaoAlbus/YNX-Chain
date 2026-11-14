@@ -25,6 +25,38 @@ def sha(raw):
 class HeldReadbackTests(unittest.TestCase):
     controller = 'e' * 40
 
+    def test_original_verifier_boundaries_keep_censored_and_reject_mismatch(self):
+        load = dict(originMonotonicNs='1000', observationCutoffNs=100,
+                    rows=[dict(index=0, stageTimes=[('live_capture', 10), ('live_read', 40)]),
+                          dict(index=1, stageTimes=[('live_capture', 20)])])
+        timing = dict(schema='YNX-PERF-PARENT-HELPER-BOUNDARIES/v1', clock='parent_monotonic_ns',
+                      omittedCompleted=0, records=[
+                          dict(name='load-00000-normal-verifier', requestedMonotonicNs=1050,
+                               slotAcquiredMonotonicNs=1052, launchRequestedMonotonicNs=1053,
+                               launchReturnedMonotonicNs=1060, cleanupFinishedMonotonicNs=1120,
+                               returnedMonotonicNs=1121, errorType='RuntimeError'),
+                          dict(name='load-00001-normal-verifier', requestedMonotonicNs=1080,
+                               returnedMonotonicNs=1102, errorType='RuntimeError')])
+        receipt = dict(normalHelperLifecycle=dict(parentTiming=timing))
+        report = reader.verifier_lifecycle(receipt, load)
+        self.assertEqual(report['records'][0]['slotWaitNs'], 2)
+        self.assertEqual(report['records'][0]['launchReturnedToCleanupNs'], 60)
+        self.assertIsNone(report['records'][0]['launchReturnedToWaitNs'])
+        self.assertIsNone(report['records'][1]['slotWaitNs'])
+        self.assertEqual(report['records'][1]['requestToReturnNs'], 22)
+        self.assertFalse(report['finalityInferred'])
+        self.assertIsNone(reader.verifier_lifecycle({}, load))
+        with self.assertRaisesRegex(RuntimeError, 'origin differs'):
+            reader.verifier_lifecycle(receipt, dict(load, originMonotonicNs='01000'))
+        invalid = copy.deepcopy(receipt)
+        invalid['normalHelperLifecycle']['parentTiming']['records'][0]['launchReturnedMonotonicNs'] = 1051
+        with self.assertRaisesRegex(RuntimeError, 'boundary order differs'):
+            reader.verifier_lifecycle(invalid, load)
+        invalid = copy.deepcopy(receipt)
+        invalid['normalHelperLifecycle']['parentTiming']['records'][1]['name'] = 'load-00000-normal-verifier'
+        with self.assertRaisesRegex(RuntimeError, 'operation differs'):
+            reader.verifier_lifecycle(invalid, load)
+
     def test_qualified_closure_binds_verified_materials_and_binary(self):
         prefix, base = 'public/', 'load-operations/00000/'
         name = base + 'original-public-proof-manifest.json'

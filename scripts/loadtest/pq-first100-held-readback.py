@@ -197,6 +197,63 @@ def proof_capture_progress(load):
                 finalityInferred=False)
 
 
+def verifier_lifecycle(receipt, load):
+    """Project original parent boundaries; never infer child computation or confirmation."""
+    lifecycle = receipt.get('normalHelperLifecycle')
+    if lifecycle is None or load is None:
+        return None
+    timing = lifecycle.get('parentTiming')
+    if timing is None:
+        return None
+    require(timing.get('schema') == 'YNX-PERF-PARENT-HELPER-BOUNDARIES/v1'
+            and timing.get('clock') == 'parent_monotonic_ns', 'original helper clock differs')
+    records = timing.get('records')
+    origin = load.get('originMonotonicNs')
+    cutoff = load.get('observationCutoffNs')
+    require(type(origin) is str and re.fullmatch(r'(?:0|[1-9][0-9]{0,19})', origin),
+            'original verifier origin differs')
+    origin = int(origin)
+    require(type(records) is list and len(records) <= 2048
+            and type(cutoff) is int and cutoff >= 0,
+            'original verifier timing bounds differ')
+    rows = {row['index']: row for row in load['rows']}
+    result = []
+    seen = set()
+    keys = ('requestedMonotonicNs', 'slotAcquiredMonotonicNs', 'launchRequestedMonotonicNs',
+            'launchReturnedMonotonicNs', 'waitReturnedMonotonicNs', 'cleanupFinishedMonotonicNs',
+            'returnedMonotonicNs')
+    for record in records:
+        name = record.get('name')
+        match = re.fullmatch(r'load-(\d{5})-normal-verifier', name) if type(name) is str else None
+        if match is None:
+            continue
+        index = int(match.group(1))
+        require(index in rows and index not in seen, 'original verifier operation differs')
+        seen.add(index)
+        values = [record.get(key) for key in keys]
+        require(type(values[0]) is int and type(values[-1]) is int
+                and all(value is None or (type(value) is int and value >= origin) for value in values),
+                'original verifier boundary differs')
+        present = [value for value in values if value is not None]
+        require(present == sorted(present), 'original verifier boundary order differs')
+        points = dict(rows[index]['stageTimes'])
+        def elapsed(start, end):
+            return None if start is None or end is None else end - start
+        result.append(dict(index=index, parentOffsetsNs={key: None if value is None else value-origin
+                                                        for key, value in zip(keys, values)},
+                           captureOffsetNs=points.get('live_capture'), readOffsetNs=points.get('live_read'),
+                           slotWaitNs=elapsed(values[0], values[1]),
+                           launchParentNs=elapsed(values[2], values[3]),
+                           launchReturnedToWaitNs=elapsed(values[3], values[4]),
+                           launchReturnedToCleanupNs=elapsed(values[3], values[5]),
+                           requestToReturnNs=elapsed(values[0], values[6]),
+                           errorType=record.get('errorType')))
+    return dict(clock='parent_monotonic_ns', observationCutoffNs=cutoff, records=result,
+                omittedCompleted=timing.get('omittedCompleted'), finalityInferred=False,
+                meaning='Parent observed boundaries only; child execution and cleanup may overlap; '
+                        'missing or terminated verifier boundaries are not successful confirmation.')
+
+
 def proof_publication(load, files, prefix, *, tail_seconds):
     """Join archived publication replies to the original operation and parent clock."""
     if load is None:
@@ -851,6 +908,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
                 stoppedLiveProofFailures=stopped_proof_failures(receipt, load, files, prefix),
                 proofPublication=proof_publication(load, files, prefix, tail_seconds=request['tailSeconds']),
                 proofCaptureProgress=proof_capture_progress(load) if load is not None else None,
+                originalVerifierLifecycle=verifier_lifecycle(receipt, load),
                 originalSuccessorAvailability=successor,
                 finalizeByNode=finalize_by_node, originalCommitCopies=commits, commitStages=stages.commit_stages(dict(originalCommitCopies=commits)),
                 finalizeCommitCheckpoints=checkpoints,
