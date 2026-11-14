@@ -83,11 +83,16 @@ jobs:
           node-version: '24'
       - name: Check Pay GUI lifecycle and stale return
         run: |
-          xcrun swiftc -frontend -parse apps/pay/native/macos/PayReconnectState.swift apps/pay/native/macos/PayStatusMessage.swift apps/pay/native/macos/PayApp.swift
+          xcrun swiftc -frontend -parse apps/pay/native/macos/PayReconnectState.swift apps/pay/native/macos/PayStatusMessage.swift apps/pay/native/macos/PayInvoiceReferenceStore.swift apps/pay/native/macos/PayApp.swift
           xcrun swiftc apps/pay/native/macos/PayReconnectState.swift apps/pay/native/macos/PayReconnectStateTests.swift -o "$RUNNER_TEMP/pay-reconnect-state-test"
           "$RUNNER_TEMP/pay-reconnect-state-test"
           xcrun swiftc apps/pay/native/macos/PayStatusMessage.swift apps/pay/native/macos/PayStatusMessageTests.swift -o "$RUNNER_TEMP/pay-status-message-test"
           "$RUNNER_TEMP/pay-status-message-test"
+          xcrun swiftc apps/pay/native/macos/PayInvoiceReferenceStore.swift apps/pay/native/macos/PayInvoiceReferenceStoreTests.swift -o "$RUNNER_TEMP/pay-invoice-reference-test"
+          "$RUNNER_TEMP/pay-invoice-reference-test"
+          p06_suite="ynx.pay.test.$(uuidgen)"
+          "$RUNNER_TEMP/pay-invoice-reference-test" write "$p06_suite"
+          "$RUNNER_TEMP/pay-invoice-reference-test" verify "$p06_suite"
       - name: Plan and build unconnected local QA app
         run: |
           test "$(uname -m)" = arm64

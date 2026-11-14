@@ -8,7 +8,7 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),args=
 const generation=args.includes('--r6')?'r6':'r5',moduleRoot=generation==='r6'?path.join(root,'r6'):root;
 if(args.includes('--plan')){
  if(args.some(a=>!['--plan','--r6','--mac-app'].includes(a)))throw Error('Plan only accepts --r6 and --mac-app.');
- const names=[...runtimeModules[generation].map(name=>path.join(moduleRoot,name)),path.join(root,'README.md'),path.join(root,'scripts/build-qa.mjs'),path.join(root,'scripts/package-integrity.mjs'),...(macApp?[path.join(root,'macos/PayApp.swift'),path.join(root,'macos/PayReconnectState.swift'),path.join(root,'macos/PayStatusMessage.swift'),path.join(root,'scripts/install-mac-qa.mjs')]:[])];
+ const names=[...runtimeModules[generation].map(name=>path.join(moduleRoot,name)),path.join(root,'README.md'),path.join(root,'scripts/build-qa.mjs'),path.join(root,'scripts/package-integrity.mjs'),...(macApp?[path.join(root,'macos/PayApp.swift'),path.join(root,'macos/PayReconnectState.swift'),path.join(root,'macos/PayStatusMessage.swift'),path.join(root,'macos/PayInvoiceReferenceStore.swift'),path.join(root,'scripts/install-mac-qa.mjs')]:[])];
  const inputs=[];for(const file of names){const stat=await fs.lstat(file);if(!stat.isFile()||stat.isSymbolicLink())throw Error('QA plan input must be a regular file.');const raw=await fs.readFile(file);inputs.push({path:path.relative(root,file),bytes:raw.length,sha256:createHash('sha256').update(raw).digest('hex')});}
  const node=await fs.realpath(process.execPath),nodeRaw=await fs.readFile(node);
  console.log(JSON.stringify({version:'ynx.pay.qa-build-plan/v1',head:execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim(),generation,macApp,inputs,node:{path:node,sha256:createHash('sha256').update(nodeRaw).digest('hex')},mainBridge:'NOT_SUPPLIED',authority:false,willWrite:false,installed:false},null,2));process.exit(0);
@@ -69,6 +69,7 @@ if(macApp){
  await fs.copyFile(path.join(root,'macos/PayApp.swift'),path.join(resources,'PayApp.swift'));
  await fs.copyFile(path.join(root,'macos/PayReconnectState.swift'),path.join(resources,'PayReconnectState.swift'));
  await fs.copyFile(path.join(root,'macos/PayStatusMessage.swift'),path.join(resources,'PayStatusMessage.swift'));
+ await fs.copyFile(path.join(root,'macos/PayInvoiceReferenceStore.swift'),path.join(resources,'PayInvoiceReferenceStore.swift'));
  await fs.writeFile(path.join(contents,'Info.plist'),`<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>CFBundleExecutable</key><string>YNXPay</string><key>CFBundleIdentifier</key><string>com.ynx.pay.localqa</string><key>CFBundleName</key><string>YNX Pay QA</string><key>CFBundleDisplayName</key><string>YNX Pay QA</string><key>CFBundleShortVersionString</key><string>0.1.0</string><key>CFBundleVersion</key><string>1</string><key>LSMinimumSystemVersion</key><string>13.0</string><key>NSHighResolutionCapable</key><true/><key>NSPrincipalClass</key><string>NSApplication</string></dict></plist>`);
  const osTemp=execFileSync('/usr/bin/getconf',['DARWIN_USER_TEMP_DIR'],{encoding:'utf8'}).trim();
  if(!/^\/(?:private\/)?var\/folders\//.test(osTemp))throw Error('Original OS Swift driver temporary directory unavailable.');
@@ -77,7 +78,7 @@ if(macApp){
   const sdk=execFileSync('/usr/bin/xcrun',['--show-sdk-path'],{encoding:'utf8'}).trim();
   // Root's bounded exception: only the standard Swift driver's transient
   // files use this owned OS directory; caches, output and logs stay external.
-  execFileSync('/usr/bin/xcrun',['swiftc','-parse-as-library','-swift-version','5','-target','arm64-apple-macos13.0','-sdk',sdk,'-O','-module-cache-path',process.env.SWIFT_MODULECACHE_PATH,'-framework','SwiftUI','-framework','AppKit',path.join(root,'macos/PayReconnectState.swift'),path.join(root,'macos/PayStatusMessage.swift'),path.join(root,'macos/PayApp.swift'),'-o',path.join(contents,'MacOS/YNXPay')],{env:{...process.env,TMPDIR:swiftTemp},stdio:'inherit'});
+  execFileSync('/usr/bin/xcrun',['swiftc','-parse-as-library','-swift-version','5','-target','arm64-apple-macos13.0','-sdk',sdk,'-O','-module-cache-path',process.env.SWIFT_MODULECACHE_PATH,'-framework','SwiftUI','-framework','AppKit',path.join(root,'macos/PayReconnectState.swift'),path.join(root,'macos/PayStatusMessage.swift'),path.join(root,'macos/PayInvoiceReferenceStore.swift'),path.join(root,'macos/PayApp.swift'),'-o',path.join(contents,'MacOS/YNXPay')],{env:{...process.env,TMPDIR:swiftTemp},stdio:'inherit'});
  }finally{await fs.rm(swiftTemp,{recursive:true,force:true});}
  await fs.copyFile(path.join(root,'scripts/install-mac-qa.mjs'),path.join(output,'install-mac-qa.mjs'));
  await fs.copyFile(path.join(root,'scripts/package-integrity.mjs'),path.join(output,'package-integrity.mjs'));

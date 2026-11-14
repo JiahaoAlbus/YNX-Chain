@@ -48,6 +48,7 @@ enum PayBridge {
     @Published var busy = false
     @Published var status = "Checking original Wallet / Source…"
     @Published var sourceReady = false
+    private let invoiceReference = PayInvoiceReferenceStore(defaults: .standard)
     private var lifecycle = PayReconnectState()
     func invalidate() { lifecycle.invalidate(); result = ""; sourceReady = false; status = "Reconnect Wallet, then read the original invoice again." }
     func becameActive() { if lifecycle.activate(busy: busy) { perform("status") } }
@@ -101,6 +102,22 @@ enum PayBridge {
             return
         }
     }
+    func rememberInvoice() {
+        do { try invoiceReference.save(invoice); status = "Original invoice reference saved on this device." }
+        catch PayInvoiceReferenceStore.Failure.retainedOriginal { status = "A different original invoice is saved. Check it or clear the saved reference first." }
+        catch { status = "The invoice reference is invalid or cannot be read. Check it before continuing." }
+    }
+    func restoreInvoice() {
+        do {
+            guard let original = try invoiceReference.read() else { status = "No original invoice reference is saved."; return }
+            invoice = original
+            status = "Original invoice restored. Enter its merchant and read it through the original Wallet session."
+        } catch { status = "The saved invoice reference cannot be read. Check it before clearing." }
+    }
+    func clearInvoiceReference() {
+        invoiceReference.clear()
+        status = "Saved invoice reference cleared. Original Wallet and merchant records remain unchanged."
+    }
 }
 
 struct PayHome: View {
@@ -128,6 +145,13 @@ struct PayHome: View {
                 Text("The client is running. Invoice access and reviews need the original Wallet and Source connection. Existing accounts, keys and unknown transactions remain in Wallet.")
                     .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
+            HStack {
+                TextField("Original invoice ID", text: $model.invoice)
+                Button("Remember ID") { model.rememberInvoice() }
+                Button("Restore ID") { model.restoreInvoice() }
+                Button("Clear saved ID") { model.clearInvoiceReference() }
+            }.disabled(model.busy)
+            Text("Only the invoice ID is stored locally; the original Wallet session is still required.").font(.caption).foregroundStyle(.secondary)
             TabView {
                 if PayBridge.supportsOriginalOrder {
                     ScrollView { Form {
