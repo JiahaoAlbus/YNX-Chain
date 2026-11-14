@@ -139,6 +139,16 @@ class HelperLifecycleControls(unittest.TestCase):
             self.assertGreaterEqual(row['returnedMonotonicNs'],row['requestedMonotonicNs'])
             for _ in range(3):b.helper_slots.release()
             with self.assertRaises(ValueError):b.helper_slots.release()
+    def test_stop_during_launch_resource_guard_never_starts_a_new_helper(self):
+        stop = threading.Event()
+        window = object.__new__(driver.lab.Window)
+        window.lock = threading.Lock()
+        window.sample = stop.set
+        with mock.patch.object(driver.lab.subprocess, 'Popen') as child:
+            with self.assertRaisesRegex(RuntimeError, 'cancelled before launch'):
+                window.launch('canceled-resource-guard', ['unused'], thread_safe=True, stop=stop)
+            child.assert_not_called()
+
     def test_real_wait_failure_reaps_child_preserves_firstcause_and_unknown(self):
         with tempfile.TemporaryDirectory() as temp:
             b=self.backend(Path(temp),True)

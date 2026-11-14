@@ -455,7 +455,7 @@ class NormalBackend:
             lab.require(not self.stop_event.is_set(),"normal helper cancelled before launch; preserve UNKNOWN")
             trace["launchRequestedMonotonicNs"]=time.monotonic_ns()
             try:
-                proc=self.w.launch(name,command,stdin_path=stdin,thread_safe=True)
+                proc=self.w.launch(name,command,stdin_path=stdin,thread_safe=True,stop=self.stop_event)
                 trace["launchReturnedMonotonicNs"]=time.monotonic_ns()
             except BaseException:
                 # Window may have registered the exact child before a later
