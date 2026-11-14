@@ -290,6 +290,33 @@ class NormalCallgraphControls(unittest.TestCase):
                 self.assertEqual(b.checkpoint(stop),dict(height=2,appHash='2'*64))
                 self.assertEqual([call.args[0] for call in read.call_args_list],paths+paths)
 
+    def test_checkpoint_keeps_stable_reads_when_one_replica_changes_during_sampling(self):
+        backend = object.__new__(driver.NormalBackend)
+        backend.checkpoint_lock = threading.Lock()
+        backend.checkpoint_points = {}
+        with tempfile.TemporaryDirectory() as temp:
+            paths = [Path(temp)/f'node-{i}.json' for i in range(4)]
+            backend.c = SimpleNamespace(plan=dict(nodes=[dict(statePath=str(p)) for p in paths]))
+            current = json.dumps(dict(height=2, appHash='a'*64, initialized=True))
+            for path in paths:
+                path.write_text(current)
+            paths[-1].write_text(json.dumps(dict(height=1, appHash='b'*64, initialized=True)))
+            original_read = driver.lab.guard.bounded
+            reads = []
+
+            def read(path, limit):
+                reads.append(path)
+                raw = original_read(path, limit)
+                if path == paths[-1] and len(reads) == 4:
+                    replacement = path.with_suffix('.new')
+                    replacement.write_text(current)
+                    replacement.replace(path)
+                return raw
+
+            with mock.patch.object(driver.lab.guard, 'bounded', side_effect=read):
+                self.assertEqual(backend.checkpoint(threading.Event()), dict(height=2, appHash='a'*64))
+            self.assertEqual(reads, paths + [paths[-1]])
+
     def test_all_four_original_engine_and_app_successors_required_before_publication(self):
         b=object.__new__(driver.NormalBackend);b.rpc_measurements=driver.rpc_measurements.RPCMeasurements();rounds=[];last_app=[]
         def rpc(address,method):

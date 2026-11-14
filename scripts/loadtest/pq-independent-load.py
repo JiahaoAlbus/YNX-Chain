@@ -522,8 +522,12 @@ class NormalBackend:
                         value=json.loads(lab.guard.bounded(path,128<<20))
                         cached=(identity,value["height"],value["appHash"],value["initialized"])
                     readings[path]=cached
-                if fingerprint==identities():
-                    self.checkpoint_points=readings
+                current=identities()
+                # A moving replica invalidates this four-node selection,
+                # but unchanged files need not be decoded again next round.
+                self.checkpoint_points={path:readings[path] for path,before,after in zip(paths,fingerprint,current)
+                                        if before==after}
+                if fingerprint==current and not stop.is_set():
                     points={(height,app) for _,height,app,_ in readings.values()}
                     if len(points)==1 and all(row[3] for row in readings.values()):
                         height,app=next(iter(points))
