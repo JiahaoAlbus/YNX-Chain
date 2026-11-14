@@ -52,6 +52,8 @@ def public_file(directory,reference):
     return path
 
 
+PREPARED_OWNER_SOURCE = '0b515124bda8ff7efaf3ec03456d69dee2c6ad18'
+
 def sender_command_data(operation,request,height=0,app_hash="",materials="",materials_sha="",proof=""):
     # Field order and explicit empty fields match the normal Go canonical JSONL.
     return dict(version="YNX-PQ-LAB-SENDER-COMMAND/v1",operation=operation,request=request,
