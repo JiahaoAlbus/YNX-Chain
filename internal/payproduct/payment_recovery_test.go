@@ -144,6 +144,9 @@ func TestPaymentOutcomeHTTPRequiresFreshOriginalPayerProof(t *testing.T) {
 	if _, err = s.SubmitRefundAuthorization(context.Background(), actor, refund.ID, auth, "original-http-refund-submit"); err == nil {
 		t.Fatal("lost refund acknowledgement reported success")
 	}
+	// The original payment-outcome reader must retain the same payment
+	// provider identity; only the refund submission used the loss fixture.
+	s.pay = p
 	cold, err := OpenStore(s.store.path, s.key)
 	if err != nil {
 		t.Fatal(err)
