@@ -167,6 +167,38 @@ class NormalCallgraphControls(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 retain()
 
+    def test_stopped_reader_retains_original_proof_failure_without_changing_cohort(self):
+        backend = object.__new__(driver.NormalBackend)
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            public = root/'public'
+            case = public/'load-operations'/'00000'
+            case.mkdir(parents=True)
+            output = root/'private-lane'/'operation-000001'
+            output.mkdir(parents=True)
+            lane = dict(node=2, pin='a'*64, policy=output.parent/'policy.json')
+            backend.w = SimpleNamespace(work=root)
+            backend.c = SimpleNamespace(live=[lane], operations=500)
+            frame = public/'load-00000-live-session-request.json'
+            frame.write_text(json.dumps(dict(node=2, policySHA256=lane['pin'], sequence=1)))
+            load = dict(rows=[dict(index=0, status='unknown'), dict(index=1, status='queued')])
+            self.assertEqual(backend.retain_stopped_live_proof_failures(load)['records'],
+                             [dict(index=0, status='FAILURE_NOT_SUPPLIED')])
+            original = output/'failure.json'
+            raw = json.dumps(dict(Version='YNX-PQ-LAB-LIVE-MATERIALS-FAILURE/v1', PolicySHA256=lane['pin'],
+                                  Outcome='unknown', FirstCauseSHA256='b'*64, Sequence=1)).encode()
+            original.write_bytes(raw)
+            report = backend.retain_stopped_live_proof_failures(load)
+            self.assertFalse(report['altersLoadResult'])
+            self.assertEqual(report['records'][0]['status'], 'RETAINED_AFTER_STOP')
+            self.assertEqual((public/report['records'][0]['path']).read_bytes(), raw)
+            self.assertEqual(backend.retain_stopped_live_proof_failures(load)['records'][0]['status'],
+                             'ALREADY_RETAINED')
+            original.write_bytes(b'{}')
+            self.assertEqual(backend.retain_stopped_live_proof_failures(load)['records'][0]['status'],
+                             'ORIGINAL_FAILURE_UNAVAILABLE')
+            self.assertEqual(load['rows'][0]['status'], 'unknown')
+
     def test_live_capture_prioritizes_original_failure_over_result(self):
         backend = object.__new__(driver.NormalBackend)
         with tempfile.TemporaryDirectory() as temp:

@@ -748,7 +748,48 @@ class NormalBackend:
                     and type(failure['FirstCauseSHA256']) is str
                     and re.fullmatch('[0-9a-f]{64}', failure['FirstCauseSHA256']),
                     'original proof failure record differs')
-        proof_readback.write_new(case / 'original-live-proof-failure.json', raw)
+        target = case / 'original-live-proof-failure.json'
+        proof_readback.write_new(target, raw)
+
+    def retain_stopped_live_proof_failures(self, load):
+        """Collect only original failure records after the owning nodes stop."""
+        public = self.w.work / 'public'
+        lanes = {lane['node']: lane for lane in self.c.live}
+        records = []
+        for row in load['rows']:
+            index = row['index']
+            request = public / f'load-{index:05d}-live-session-request.json'
+            if not request.exists():
+                continue
+            case = public / 'load-operations' / f'{index:05d}'
+            retained = case / 'original-live-proof-failure.json'
+            try:
+                frame = proof_readback.strict(proof_readback.read_original(request, limit=64 << 10))
+                lane = lanes[frame['node']]
+                sequence = frame['sequence']
+                lab.require(frame['policySHA256'] == lane['pin'] and type(sequence) is int
+                            and 1 <= sequence <= self.c.operations, 'original proof request binding differs')
+                output = lane['policy'].parent / f'operation-{sequence:06d}'
+                original = output / 'failure.json'
+                if not original.exists():
+                    records.append(dict(index=index, status='FAILURE_NOT_SUPPLIED'))
+                    continue
+                if not retained.exists():
+                    stopped = threading.Event()
+                    stopped.set()
+                    self.retain_live_proof_failure(output, case, lane, sequence, stopped, time.monotonic())
+                    status = 'RETAINED_AFTER_STOP'
+                else:
+                    lab.require(proof_readback.read_original(original, limit=4096)
+                                == proof_readback.read_original(retained, limit=4096),
+                                'retained proof failure differs from stopped original')
+                    status = 'ALREADY_RETAINED'
+                records.append(dict(index=index, node=lane['node'], sequence=sequence, status=status,
+                                    path=str(retained.relative_to(public)), sha256=lab.guard.digest(retained)))
+            except (OSError, KeyError, RuntimeError, ValueError) as error:
+                records.append(dict(index=index, status='ORIGINAL_FAILURE_UNAVAILABLE',
+                                    errorType=type(error).__name__))
+        return dict(records=records, altersLoadResult=False)
 
     def wait_live_capture(self, output, case, lane, sequence, stop, until):
         while not stop.is_set() and time.monotonic() < until:
@@ -1250,6 +1291,8 @@ def run(args):
             journal.close();result["journalSegments"]=[dict(path=str(p.relative_to(work/"public")),bytes=p.stat().st_size,sha256=lab.guard.digest(p)) for p in journal.paths]
         try:result["cleanupComplete"]=w.stop()
         except BaseException as error:result["cleanupComplete"]=False;result["cleanupError"]=str(error);result["directOwnedCleanupAfterFailure"]=getattr(w,"direct_cleanup_after_failure",[])
+        if backend is not None and result["cleanupComplete"] and "loadResult" in result:
+            result["stoppedLiveProofFailures"]=backend.retain_stopped_live_proof_failures(result["loadResult"])
         if ceremony is not None and ceremony.commit_observation_enabled:
             try:
                 observed=commit_readback.retain_after_stop(w,ceremony.commit_observation_descriptors,ceremony.plan["chainId"],ceremony.plan["originalGenesisHash"])
