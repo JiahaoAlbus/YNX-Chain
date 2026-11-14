@@ -137,6 +137,28 @@ def clean_processes(receipt):
     return identities
 
 
+def configuration_conditions(config, adapter):
+    """Separate only verified version-derived fields; retain their audit values."""
+    comparable = copy.deepcopy(config)
+    excluded = {}
+    for key in ('source', 'sourceTree', 'tools', 'toolsTree'):
+        excluded[key] = comparable.pop(key)
+    options = comparable.get('options', {})
+    if 'commit' in options:
+        require(options['commit'] == config['source'], 'configuration option source binding differs')
+        excluded['options.commit'] = options.pop('commit')
+    if 'source' in options:
+        require(options['source'] == 'source', 'original plan source placeholder differs')
+        excluded['options.source'] = options.pop('source')
+    if 'toolsRun' in comparable:
+        ci = adapter['toolsCI']
+        require(positive(ci['run']) == positive(config['toolsRun']) and positive(ci['job'])
+                and ci['source'] == config['tools'] and ci['conclusion'] == 'success',
+                'configuration tools CI binding differs')
+        excluded['toolsRun'] = comparable.pop('toolsRun')
+    return comparable, excluded
+
+
 def arm_read(raw, label, declaration, pair, expected):
     fields(declaration, 'arm source tools configurationSHA256 archive marker', 'arm declaration')
     fields(expected, 'source tools configurationSHA256', 'expected arm pins')
@@ -216,9 +238,10 @@ def arm_read(raw, label, declaration, pair, expected):
     report['businessStageCostsByNode'] = {str(i): costs.business_stage_costs(commits.get(str(i)),
         report['finalizeByNode'].get(str(i), {}).get('original'), heights) for i in range(4)}
     report.update(pairArm=label, originalMarker=marker, originalLoadResult=load,
-                  receiptSHA256=marker['receipt']['sha256'], sameRunnerArtifactOriginBound=True)
+                  receiptSHA256=marker['receipt']['sha256'], sameRunnerArtifactOriginBound=False)
     config = strict(files[plans[0]])['configuration']
-    comparable_config = {k: v for k, v in config.items() if k not in ('source', 'sourceTree', 'tools', 'toolsTree')}
+    comparable_config, excluded = configuration_conditions(config, strict(files[prefix+'FIRST100-HELD-CI.json']))
+    report.update(originalConfiguration=config, versionDerivedConfigurationExcluded=excluded)
     return dict(report=report, start=start, end=end, addresses=addresses, processes=processes,
                 workDirectoryName=marker['workDirectoryName'],
                 operationIDs=set(operations),
@@ -270,6 +293,8 @@ def inspect(manifest_raw, before_raw, after_raw, *, metadata, controller, manife
         x, y = ((v.get('filesystem') or {}).get(key) for v in (a, b))
         if x is None or x != y: hardware_differences.append('filesystem.' + key)
     if a.get('status') != 'OBSERVED' or b.get('status') != 'OBSERVED': hardware_differences.append('status')
+    for arm in arms:
+        arm['report']['sameRunnerArtifactOriginBound'] = True
     return copy.deepcopy(dict(schema=SCHEMA, status='PAIRED_ORIGINALS_BOUND', actionsOrigin=bound,
         manifestArchiveSHA256=manifest_sha256, pairID=pair['pairID'], clock=pair['clock'],
         before=left['report'], after=right['report'], configuredDemandPerArm=500,

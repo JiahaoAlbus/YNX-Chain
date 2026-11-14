@@ -67,11 +67,19 @@ class PairFixture:
                          driverSHA256='b'*64, resourceGuardSHA256='c'*64)
             config = dict(profile='first100-held-public-owner', nodeCount=4, pressureLevel=1,
                 source=source['commit'], sourceTree=source['tree'], tools=tools['commit'], toolsTree=tools['tree'],
-                go='go1.26.11', options=dict(held_ready_only=False))
+                go='go1.26.11', toolsRun=100+j,
+                options=dict(held_ready_only=False, source='source', commit=source['commit'],
+                    mode='online', rate=100, seconds=5, tail_seconds=30, accounts=500, per_account=1,
+                    initialize_before_load=True, initialization_only=False, staged_publication=True,
+                    sender_backend='public-owner', prior_result=None, prior_result_sha256=None,
+                    proof_timeout=30, first_trial_profile='held-first100', startup_timings=True,
+                    wire_observation=True, commit_observation=True, network_accounting=True,
+                    owned_storage_accounting=True, header_hop_capture=False, execute=False))
             config_pin = sha(encode(config))
             configuration = dict(configuration=config, configurationSHA256=config_pin, runtimePlanSHA256=None)
             files['pq-first100-held-plan.json'] = encode(configuration)
-            self.put(arm, 'FIRST100-HELD-CI.json', dict(configuration, controllerCommit=self.controller))
+            self.put(arm, 'FIRST100-HELD-CI.json', dict(configuration, controllerCommit=self.controller,
+                toolsCI=dict(run=100+j, job=200+j, source=tools['commit'], conclusion='success')))
             self.expected[arm] = dict(source=source['commit'], tools=tools['commit'], configurationSHA256=config_pin)
             self.pair['arms'].append(dict(arm=arm, source=source, tools=tools, configurationSHA256=config_pin))
             plan = scheduler.make_plan(str(j+1)*64, str(j+3)*64, 'online',
@@ -190,6 +198,7 @@ class SameRunnerPairReadbackTests(unittest.TestCase):
             self.assertIsNone(load['submitToQualifiedReceiptObserved']['p95Ms'])
             self.assertEqual(report['firstCause'], 'original fixture cutoff')
             self.assertFalse(report['archiveOriginIndependentlyVerified'])
+            self.assertTrue(report['sameRunnerArtifactOriginBound'])
             self.assertEqual(set(report['businessStageCostsByNode']), set(map(str, range(4))))
             for node in report['businessStageCostsByNode'].values():
                 fee = node['feeHistoryMaterialization']
@@ -197,6 +206,12 @@ class SameRunnerPairReadbackTests(unittest.TestCase):
                 self.assertIsNone(fee['timing']['retainedSampleP95Ns'])
                 self.assertIsNone(fee['records'][0]['materializedEventCount'])
                 self.assertIsNone(fee['copyOnlyElapsedNs'])
+
+    def test_local_arm_validation_does_not_claim_actions_artifact_binding(self):
+        fixture = PairFixture(); raws, _ = fixture.package()
+        arm = reader.arm_read(raws['before'], 'before', fixture.pair['arms'][0],
+                              fixture.pair, fixture.expected['before'])
+        self.assertFalse(arm['report']['sameRunnerArtifactOriginBound'])
 
     def test_wrong_actions_bindings_reject_before_any_arm_parser(self):
         fixture = PairFixture()
@@ -230,6 +245,24 @@ class SameRunnerPairReadbackTests(unittest.TestCase):
             fixture.pair['arms'][1][name].pop(key)
             with self.subTest(key=key), self.assertRaisesRegex(RuntimeError, 'business arm receipt'):
                 fixture.read()
+
+    def test_version_exclusions_are_bound_and_audited_without_hiding_conditions(self):
+        fixture = PairFixture()
+        report = fixture.read()
+        self.assertEqual(report['after']['versionDerivedConfigurationExcluded']['toolsRun'], 101)
+        self.assertEqual(report['after']['originalConfiguration']['options']['commit'], '2'*40)
+        for field in ('run', 'source', 'conclusion'):
+            fixture = PairFixture(); adapter = fixture.get('after', 'FIRST100-HELD-CI.json')
+            adapter['toolsCI'][field] = 9 if field == 'run' else 'wrong'
+            fixture.put('after', 'FIRST100-HELD-CI.json', adapter)
+            with self.subTest(field=field), self.assertRaisesRegex(RuntimeError, 'tools CI binding'):
+                fixture.read()
+        for key in ('rate', 'startup_timings', 'rssBytes', 'businessType'):
+            fixture = PairFixture(); config = fixture.get('after', 'FIRST100-HELD-CI.json')['configuration']
+            config['options'][key] = 'different'
+            comparable, excluded = reader.configuration_conditions(config, fixture.get('after', 'FIRST100-HELD-CI.json'))
+            self.assertEqual(comparable['options'][key], 'different')
+            self.assertNotIn('options.'+key, excluded)
 
     def test_arm_clock_order_boot_runner_and_coordinator_binding(self):
         changes = [lambda f: f.markers['after'].update(startedMonotonicNs=f.markers['before']['cleanupCompletedMonotonicNs']),
