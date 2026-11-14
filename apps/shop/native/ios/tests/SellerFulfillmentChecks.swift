@@ -79,7 +79,7 @@ final class FulfillmentHTTP:URLProtocol,@unchecked Sendable {
             case "/api/seller/stores":try! request.respond(["stores":[["ID":store,"Owner":account,"Name":"Original store","Description":"","Policy":"Original","TrustURL":"","SettlementAccount":account,"Status":"active"]],"access":[store:["role":"owner","permissions":permissions]]])
             case "/api/seller/products":try! request.respond(["products":[]])
             case "/api/seller/orders":try! request.respond(["orders":[first,second,nativeOrder]])
-            case "/api/seller/orders/order_native_terms":sent.append(path);pending.append(request)
+            case "/api/seller/orders/order_native_terms", "/api/seller/orders/order_first":sent.append(path);pending.append(request)
             case "/api/seller/stores/"+store+"/roles":try! request.respond(["roles":[account:"owner"],"revocations":[],"invitations":[]])
             case "/api/seller/audit":try! request.respond(["events":[]])
             case "/api/seller/settlements":try! request.respond(["settlements":[]])
@@ -102,6 +102,29 @@ final class FulfillmentHTTP:URLProtocol,@unchecked Sendable {
         func lookup(_ request:FulfillmentHTTP,_ record:SellerMutationJournal.Record,_ result:[String:Any])throws{let input=try JSONSerialization.jsonObject(with:request.body()) as! [String:Any];try check(input["OriginalBody"] as? String==String(data:record.body,encoding:.utf8),"lookup retains original exact body and key");try request.respond(["Actor":account,"Method":record.method,"Path":record.path,"IdempotencyKey":record.key,"Result":result])}
         model.connect();try await until{model.signedIn && !model.busy && model.orders.count==3}
         let native=model.orders.first(where:{$0.ID=="order_native_terms"})!
+        let ordinary=model.orders.first(where:{$0.ID=="order_first"})!
+        model.readOriginalOrder(ordinary)
+        let ordinaryRead=try await take("seller/orders/order_first")
+        try check(ordinaryRead.request.httpMethod=="GET","ordinary order without Native receipt uses protected original detail GET")
+        var refreshedFirst=first
+        refreshedFirst["LogisticsStatus"]="refreshed-original"
+        try ordinaryRead.respond(refreshedFirst)
+        try await until{!model.busy}
+        try check(model.orders.first(where:{$0.ID==ordinary.ID})?.LogisticsStatus=="refreshed-original",
+                  "ordinary original detail updates its own fulfillment status")
+        model.readOriginalOrder(model.orders.first(where:{$0.ID==ordinary.ID})!)
+        let staleOrdinary=try await take("seller/orders/order_first")
+        model.disconnect()
+        try staleOrdinary.respond(first)
+        try await until{!model.signedIn && !model.busy}
+        let noSessionCount=sent.count
+        model.readOriginalOrder(ordinary)
+        try check(sent.count==noSessionCount && model.orders.isEmpty,"missing session blocks original detail dispatch")
+        model.connect()
+        try await until{model.signedIn && !model.busy && model.orders.count==3}
+        try check(model.orders.first(where:{$0.ID==ordinary.ID})?.LogisticsStatus=="manual",
+                  "late old-session detail cannot overwrite newly authorized selection")
+
         try check(model.canReviewOriginalTerms(native),"finance permission exposes original native terms review")
         let beforeReview=storage
         model.reviewOriginalTerms(native);try await until{!model.busy}
