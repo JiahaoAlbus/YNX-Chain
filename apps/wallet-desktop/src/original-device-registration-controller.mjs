@@ -51,15 +51,19 @@ export async function closeOriginalDeviceRegistrationClient(port){
  r.closePass=(async()=>{try{
   const owner=r.client??r.partial;
   if(!r.abort.signal.aborted)r.abort.abort(Error('DEVICE_REGISTRATION_PHASE_FINISHED'));
-  if(owner){
-   // A Native acquisition partial is retained before interpretation. Respect
-   // its retire/join/close contract; a completed SDK client owns its own drain.
-   if(!r.client&&typeof owner.retire==='function'&&typeof owner.join==='function'){
-    owner.retire();await owner.join();
-   }
-   if(typeof owner.close!=='function')fail('DEVICE_REGISTRATION_PARTIAL_CLEANUP_REQUIRED');
-   await owner.close();
+  if(r.partialPresent&&!r.client){
+   // The Native partial ABI has no physical-release witness. Keep custody
+   // even after a void close; the completed SDK facade is a different ABI.
+   if(!owner||types.isProxy(owner)||typeof owner.retire!=='function'||typeof owner.join!=='function'||typeof owner.close!=='function')fail('DEVICE_REGISTRATION_PARTIAL_CLEANUP_REQUIRED');
+   let first,failed=false;const attempt=async fn=>{try{if(await fn()!==undefined)fail('DEVICE_REGISTRATION_PARTIAL_CLEANUP_PENDING');return true;}catch(e){if(!failed){failed=true;first=e;}return false;}};
+   await attempt(()=>owner.retire());
+   const joined=await attempt(()=>owner.join());
+   if(joined)await attempt(()=>owner.close());
+   if(failed)throw first;
+   fail('DEVICE_REGISTRATION_PARTIAL_RELEASE_UNCONFIRMED');
   }
+  if(owner){if(typeof owner.close!=='function')fail('DEVICE_REGISTRATION_PARTIAL_CLEANUP_REQUIRED');
+   if(await owner.close()!==undefined)fail('DEVICE_REGISTRATION_CLIENT_CLOSE_UNCONFIRMED');}
   r.clientClosed=true;
  }catch(e){r.cleanupPresent=true;r.cleanupCause=e;remember(r,e);throw e;}})();
  void r.closePass.catch(()=>{});return r.closePass;
@@ -231,7 +235,7 @@ export function createOriginalDeviceRegistrationController({vault,networkId,auth
   r.unsubscribe=vault.authorization.subscribe(s=>{if(s.locked||s.account!==security.account||s.revision!==security.revision)retire(r,Error('DEVICE_REGISTRATION_SELECTED_ACCOUNT_CHANGED'));});
   const pass=(async()=>{try{
    try{r.client=await openOriginalProductDeviceV4RegistrationClient();}
-   catch(e){r.partial=own(e,'partial');throw e;}
+   catch(e){r.partial=own(e,'partial');r.partialPresent=!!e&&!types.isProxy(e)&&Object.hasOwn(e,'partial');throw e;}
    current(r);r.view=r.client.readOriginalRegistrationReviewDATA(selection);current(r);
    const journal=authority.transactionSender?.submissions?.intentStore;if(!journal)fail('SESSION_ORIGINAL_STORE_REQUIRED');
    const saved=await journal.readSessionOriginal(security.account,r.view.requestDigest,()=>current(r));current(r);
@@ -285,7 +289,7 @@ export function createOriginalDeviceRegistrationController({vault,networkId,auth
   r.context=Object.freeze({signal:r.abort.signal});r.current=()=>current(r);r.port=Object.freeze(Object.create(null));ports.set(r.port,r);active=r;
   r.unsubscribe=vault.authorization.subscribe(s=>{if(s.locked||s.account!==security.account||s.revision!==security.revision)retire(r,Error('DEVICE_REGISTRATION_SELECTED_ACCOUNT_CHANGED'));});
   const work=(async()=>{try{
-   try{r.client=await openOriginalProductDeviceV4RegistrationClient();}catch(e){r.partial=own(e,'partial');throw e;}
+   try{r.client=await openOriginalProductDeviceV4RegistrationClient();}catch(e){r.partial=own(e,'partial');r.partialPresent=!!e&&!types.isProxy(e)&&Object.hasOwn(e,'partial');throw e;}
    current(r);
    // These originals come from prior protected storage, never from the fresh
    // Native view that is independently compared by this sole SDK call.

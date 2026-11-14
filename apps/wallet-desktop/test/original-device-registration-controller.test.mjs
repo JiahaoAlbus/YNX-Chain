@@ -9,9 +9,11 @@ import {FileTransactionIntentStore} from '../src/transaction-intent-store.mjs';
 import {PRODUCT_SESSION_REGISTRY} from '../src/wallet-auth-contract.mjs';
 import {configurePUBLICRegistration,createPUBLICSelection,createPUBLICRegistrationEvent} from './original-device-registration-public.fixture.mjs';
 const PUBLICFixture=new URL('./original-device-registration-public.fixture.mjs',import.meta.url).href;
+const sdkShim='data:text/javascript,'+encodeURIComponent(`import * as fixture from ${JSON.stringify(PUBLICFixture)}; export async function openOriginalProductDeviceV4RegistrationClient(...args){return globalThis.__deviceRegistrationOpen ? globalThis.__deviceRegistrationOpen(...args) : fixture.openOriginalProductDeviceV4RegistrationClient(...args);}`);
 const authorityURL=new URL('../src/desktop-wallet-authority.mjs',import.meta.url).href,controllerURL=new URL('../src/original-device-registration-controller.mjs',import.meta.url).href;
 registerHooks({resolve(specifier,context,next){
- if(context.parentURL===controllerURL&&(specifier==='electron'||specifier==='@ynx-chain/wallet-auth/original-product-device-v4-registration-client')||
+ if(context.parentURL===controllerURL&&specifier==='@ynx-chain/wallet-auth/original-product-device-v4-registration-client')return {url:sdkShim,shortCircuit:true};
+ if(context.parentURL===controllerURL&&specifier==='electron'||
    context.parentURL===authorityURL&&['@ynx-chain/wallet-auth/product-session-pq-v4-codec','@ynx-chain/wallet-auth/pq-wallet-key-backup'].includes(specifier))return {url:PUBLICFixture,shortCircuit:true};
  return next(specifier,context);
 }});
@@ -75,7 +77,40 @@ test('an absent account Source blocks only this effect before journal/key entry 
  assert.equal(f.counts.sign,0);assert.equal(f.counts.prepare,0);assert.equal(f.counts.submit,0);assert.equal(f.counts.clientClose,1);await assert.rejects(fs.readFile(f.filePath));
 });
 test('SDK acquisition partial is adopted and drained in retire/join/close order',async t=>{
- const f=await setup(t,'open-partial');await assert.rejects(f.prepare());assert.equal(f.counts.partialRetire,1);assert.equal(f.counts.partialJoin,1);assert.equal(f.counts.partialClose,1);assert.equal(f.counts.sign,0);
+ const f=await setup(t,'open-partial');await assert.rejects(f.prepare(),{code:'PUBLIC_ACQUIRE'});assert.equal(f.counts.partialRetire,1);assert.equal(f.counts.partialJoin,1);assert.equal(f.counts.partialClose,1);assert.equal(f.counts.sign,0);assert.equal(f.controller.readStatusDATA().cleanupUnresolved,true);await assert.rejects(f.controller.close(),{code:'DEVICE_REGISTRATION_PARTIAL_RELEASE_UNCONFIRMED'});
+});
+test('partial waits for retire and close once but lacks a physical release witness',async t=>{
+ const f=await setup(t),events=[];let releaseRetire,releaseClose;
+ const retireWait=new Promise(r=>{releaseRetire=r;}),closeWait=new Promise(r=>{releaseClose=r;});
+ const original=Object.assign(Error('PUBLIC acquisition failed'),{code:'PUBLIC_ACQUIRE',partial:{async retire(){events.push('retire');await retireWait;},join(){events.push('join');},async close(){events.push('close');await closeWait;}}});
+ globalThis.__deviceRegistrationOpen=async()=>{throw original;};t.after(()=>{delete globalThis.__deviceRegistrationOpen;});
+ const rejected=assert.rejects(f.prepare(),e=>e===original);await new Promise(r=>setImmediate(r));assert.deepEqual(events,['retire']);
+ const c1=f.controller.close(),c2=f.controller.close();releaseRetire();await new Promise(r=>setImmediate(r));assert.deepEqual(events,['retire','join','close']);
+ releaseClose();await rejected;await Promise.all([assert.rejects(c1,{code:'DEVICE_REGISTRATION_PARTIAL_RELEASE_UNCONFIRMED'}),assert.rejects(c2,{code:'DEVICE_REGISTRATION_PARTIAL_RELEASE_UNCONFIRMED'})]);
+ assert.equal(f.controller.readStatusDATA().firstCauseCode,'PUBLIC_ACQUIRE');assert.equal(f.controller.readStatusDATA().cleanupUnresolved,true);
+});
+test('async partial retire rejection preserves cleanup cause and original acquisition failure',async t=>{
+ const f=await setup(t),events=[],failure=false,original=Object.assign(Error('PUBLIC acquisition failed'),{code:'PUBLIC_ACQUIRE',partial:{async retire(){events.push('retire');throw failure;},join(){events.push('join');},close(){events.push('close');}}});
+ globalThis.__deviceRegistrationOpen=async()=>{throw original;};t.after(()=>{delete globalThis.__deviceRegistrationOpen;});
+ await assert.rejects(f.prepare(),e=>e===original);await assert.rejects(f.controller.close(),e=>e===failure);
+ assert.deepEqual(events,['retire','join','close']);assert.equal(f.controller.readStatusDATA().firstCauseCode,'PUBLIC_ACQUIRE');
+});
+test('partial join pending prevents close and preserves unresolved custody',async t=>{
+ const f=await setup(t),events=[],original=Object.assign(Error('PUBLIC acquisition failed'),{code:'PUBLIC_ACQUIRE',partial:{retire(){events.push('retire');},join(){events.push('join');return false;},close(){events.push('close');}}});
+ globalThis.__deviceRegistrationOpen=async()=>{throw original;};t.after(()=>{delete globalThis.__deviceRegistrationOpen;});
+ await assert.rejects(f.prepare(),e=>e===original);await assert.rejects(f.controller.close(),{code:'DEVICE_REGISTRATION_PARTIAL_CLEANUP_PENDING'});
+ assert.deepEqual(events,['retire','join']);assert.equal(f.controller.readStatusDATA().cleanupUnresolved,true);
+});
+test('partial close rejection is retained without repeat cleanup',async t=>{
+ const f=await setup(t),events=[],failure=Error('PUBLIC close failed'),original=Object.assign(Error('PUBLIC acquisition failed'),{code:'PUBLIC_ACQUIRE',partial:{retire(){events.push('retire');},join(){events.push('join');},close(){events.push('close');throw failure;}}});
+ globalThis.__deviceRegistrationOpen=async()=>{throw original;};t.after(()=>{delete globalThis.__deviceRegistrationOpen;});
+ await assert.rejects(f.prepare(),e=>e===original);await assert.rejects(f.controller.close(),e=>e===failure);await assert.rejects(f.controller.close(),e=>e===failure);
+ assert.deepEqual(events,['retire','join','close']);assert.equal(f.controller.readStatusDATA().firstCauseCode,'PUBLIC_ACQUIRE');
+});
+test('late SDK acquisition is closed once when controller is already closing',async t=>{
+ const f=await setup(t);let release,started;const entered=new Promise(r=>{started=r;}),wait=new Promise(r=>{release=r;}),calls=[];
+ globalThis.__deviceRegistrationOpen=async()=>{started();await wait;return {readOriginalRegistrationReviewDATA(){calls.push('review');},async close(){calls.push('close');}};};t.after(()=>{delete globalThis.__deviceRegistrationOpen;});
+ const rejected=assert.rejects(f.prepare());await entered;const closing=f.controller.close();release();await rejected;await closing;assert.deepEqual(calls,['close']);
 });
 test('lost whole-body ACK stops the real callee before SDK submit and cold outcome is query-only',async t=>{
  const f=await setup(t),replace=f.store.filePolicy.replace.bind(f.store.filePolicy);let lost=false;
