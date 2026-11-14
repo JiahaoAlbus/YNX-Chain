@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {mkdtemp, mkdir, chmod, writeFile, readFile, realpath} from 'node:fs/promises';
+import {mkdtemp, mkdir, chmod, copyFile, writeFile, readFile, realpath} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
@@ -24,6 +24,53 @@ const expected = [
   'actual-same-pid-exec-changed-image-with-live-socket',
 ];
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+
+test('private native process lease binds original received Unix data and control sockets', {timeout: 25000}, async t => {
+  assert.ok(['darwin', 'linux'].includes(process.platform), 'real Darwin/Linux kernel required');
+  const destination = process.env.YNX_LINK_RESOURCE_CURRENT_TEST_ARTIFACTS;
+  assert.ok(destination && path.isAbsolute(destination), 'absolute owned evidence root required');
+  await mkdir(destination, {recursive: true, mode: 0o700});
+  const owned = await mkdtemp(path.join(await realpath(destination), 's-'));
+  const socket = path.join(owned, 's');
+  assert.ok(Buffer.byteLength(socket) < 104, 'owned Unix socket path exceeds bound');
+  const leaves = ['resource_current_client_v1.h', 'private_client_v1.h', 'resource-current-peer.hpp',
+    'resource-current-peer.cpp', 'resource-current-peer.test.cpp', 'resource-current-native.test.mjs'];
+  const pin = async leaf => {
+    const bytes = await readFile(path.join(source, leaf));
+    return {leaf, bytes: bytes.length, sha256: sha(bytes)};
+  };
+  const inputs = await Promise.all(leaves.map(pin));
+  const record = async (name, value) => writeFile(path.join(owned, name), JSON.stringify(value, null, 2) + '\n', {flag: 'wx'});
+  const run = async (name, command, args, timeout) => {
+    const result = spawnSync(command, args, {cwd: repository, encoding: 'utf8', timeout, maxBuffer: 2 << 20});
+    for (const stream of ['stdout', 'stderr']) await writeFile(path.join(owned, `${name}.${stream}`), result[stream] ?? '', {flag: 'wx'});
+    await record(`${name}.json`, {command, args, status: result.status, signal: result.signal, error: result.error?.message ?? null});
+    assert.equal(result.status, 0, `${name} first cause; ${owned}: ${result.error?.message ?? result.stderr}`);
+    return result.stdout;
+  };
+  await record('SOURCE-BEFORE.json', inputs);
+  try {
+    const flags = process.platform === 'darwin' ? ['-lbsm'] :
+      (await run('pkg-config', 'pkg-config', ['--cflags', '--libs', 'openssl'], 5000)).trim().split(/\s+/);
+    assert.ok(flags.every(flag => /^[-A-Za-z0-9_./+=,:]+$/.test(flag)));
+    const binary = path.join(owned, 'peer-test');
+    const alternate = path.join(owned, 'peer-exec');
+    await run('compile', 'clang++', ['-std=c++17', '-Wall', '-Wextra', '-Werror', '-pedantic', '-DYNX_LINK_PUBLIC_PEER_CLOSE_TEST',
+      ...['resource-current-peer.cpp', 'resource-current-peer.test.cpp'].map(leaf => path.join(source, leaf)), ...flags, '-o', binary], 15000);
+    await copyFile(binary, alternate);
+    await chmod(alternate, 0o700);
+    const result = JSON.parse(await run('kernel-controls', binary, [socket, alternate], 12000));
+    assert.deepEqual(result, {kernel: true, independentChild: true, samePidExec: true, exactDataAndSCMControl: true,
+      childExit: 0, physicalClose: true, publicTemporaryCloseFault: true, transportOnly: true});
+    const image = await readFile(binary);
+    await record('RESULT.json', {...result, platform: process.platform, inputs, binary: {bytes: image.length, sha256: sha(image)}});
+  } finally {
+    const after = await Promise.all(leaves.map(pin));
+    await record('SOURCE-AFTER.json', after);
+    assert.deepEqual(after, inputs);
+  }
+  t.diagnostic('Original compiler and kernel evidence: ' + owned);
+});
 
 test('resource_current actual native Unix peer identity, immutable carrier and custody module', {timeout: 45000}, async t => {
   assert.ok(['darwin', 'linux'].includes(process.platform), 'real Darwin/Linux kernel required; no skip or simulated peer');
