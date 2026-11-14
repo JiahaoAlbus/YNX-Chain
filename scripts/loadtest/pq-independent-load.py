@@ -70,8 +70,8 @@ STAGED_SENDER_ARGUMENTS = () # CORE normal cache-bound-only fallback needs no ne
 # ABI support only. This is neither source qualification nor window permission.
 STARTUP_TIMING_ABI_SOURCES = frozenset({'eff586d429a3c18d52b7e91ed2b58c809fa6f15c','1b0ea548aca6b5260a9824d0edd3012d52e53521',first_trial_d24_source.SOURCE,first_trial_1695_source.SOURCE})
 HELD_TRIAL_PROFILE = 'held-first100'
-HELD_TRIAL_SOURCE = '9c222c8f7fa0501c0aa1dbd86e031c434b897ac8'
-HELD_TRIAL_TREE = '8bb878e0cd0fdb9cd9bb84a41f3b680d0defb932'
+HELD_TRIAL_SOURCE = 'c5fc3b2eeaa0c7a65d5f07c9bf54724400b9e43b'
+HELD_TRIAL_TREE = '0482f2165c8635afd3d3049776a0b88a84790d6f'
 STARTUP_TIMING_ABI_SOURCES = STARTUP_TIMING_ABI_SOURCES | {first_trial_7c25_source.SOURCE, HELD_TRIAL_SOURCE}
 PUBLIC_OWNER_ABI_SOURCE = '1695aafd351b3cac7860d3452c555a02498e8350' # ABI identity only; no source/semantic/window qualification.
 PUBLIC_OWNER_ABI_SOURCES = frozenset((PUBLIC_OWNER_ABI_SOURCE,first_trial_7c25_source.SOURCE,HELD_TRIAL_SOURCE))

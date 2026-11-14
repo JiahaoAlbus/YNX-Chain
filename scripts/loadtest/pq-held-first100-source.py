@@ -3,15 +3,16 @@ import json
 import os
 import urllib.request
 
-SOURCE = '9c222c8f7fa0501c0aa1dbd86e031c434b897ac8'
-TREE = '8bb878e0cd0fdb9cd9bb84a41f3b680d0defb932'
-RUN = 43557221619
-JOB = 132332686578
+SOURCE = 'c5fc3b2eeaa0c7a65d5f07c9bf54724400b9e43b'
+TREE = '0482f2165c8635afd3d3049776a0b88a84790d6f'
+RUN = 43562298552
+JOB = 132348435791
 REPOSITORY = 'JiahaoAlbus/YNX-Chain'
 BRANCH = 'codex/ynx-pq-perf-source-20261108'
 REQUIRED_STEPS = (
     'Check reachable vulnerabilities in the eight production runtime commands',
     'Verify Linux window controls without starting a node',
+    'Verify complete state bridge and sponsor continuity',
     'Qualify original Finalize phase observation tests',
     'Verify prepared signing and held proof sessions on original inputs',
     'Retain original held session public test evidence',
