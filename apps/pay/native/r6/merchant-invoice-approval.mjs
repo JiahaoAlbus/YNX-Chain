@@ -210,9 +210,12 @@ export function createNativePayActionApproval({main,pay,readInvoiceOriginals,rev
  const journal=main?.transactionSender?.submissions?.intentStore;
  if(typeof main?.requestPQTypedAction!=='function'||typeof main?.reject!=='function'||typeof journal?.readPQOriginals!=='function'||typeof journal?.unresolvedPreparation!=='function')fail('NATIVE_INVOICE_MAIN_SOURCE_UNAVAILABLE');
  const sdk=()=>import('@ynx-chain/wallet-auth/pq-native-action');
+ function assertNoUnconfirmedOriginal(bill){
+  if(bill?.status==='unknown'||bill?.refundStatus==='unknown'||Object.values(bill?.operations??{}).some(op=>op?.status==='unknown'||op?.status==='submitted'))fail('NATIVE_PAY_ORIGINAL_RECONCILE_REQUIRED');
+ }
  function assertOrderReviewBill(bill,originalOrder){
   assertNativeInvoiceOrderBillDATA(bill,originalOrder);
-  if(bill.status==='unknown'||bill.refundStatus==='unknown')fail('NATIVE_PAY_ORIGINAL_RECONCILE_REQUIRED');
+  assertNoUnconfirmedOriginal(bill);
  }
  async function selected(current){current();if(typeof main.vault?.status!=='function')fail('NATIVE_PAY_SELECTED_ACCOUNT_UNAVAILABLE');const status=await main.vault.status();current();if(!status.initialized||!/^0x[0-9a-f]{40}$/.test(status.account??''))fail('NATIVE_PAY_SELECTED_ACCOUNT_UNAVAILABLE');return status.account;}
  function bind(action,bill,kind,refund,originalOrder){
@@ -241,6 +244,7 @@ export function createNativePayActionApproval({main,pay,readInvoiceOriginals,rev
   if(typeof current!=='function')fail('NATIVE_INVOICE_CURRENT_SOURCE_REQUIRED');current();
   const bill=await pay.readInvoice(merchant,invoiceId,current);current();
   if(originalOrder)assertOrderReviewBill(bill,originalOrder);
+  else assertNoUnconfirmedOriginal(bill);
   const reviewed=kind==='invoice_settle'?await pay.reviewSettlement(merchant,invoiceId,current):await pay.reviewRefund(merchant,invoiceId,refund.refundId,refund.amountAtoms,current);current();
   const bytes=Buffer.from(reviewed.message,'base64'),{decodePQNativeAction,encodePQNativeAction}=await sdk();
   if(bytes.toString('base64')!==reviewed.message)fail('NATIVE_PAY_REVIEW_BINDING');
@@ -262,7 +266,7 @@ export function createNativePayActionApproval({main,pay,readInvoiceOriginals,rev
    const account=await selected(current),rows=await journal.readPQOriginals(account,current);current();
    const saved=rows.find(row=>row.kind==='pq-typed-action'&&row.hash===originalHash&&row.account===account);
    if(!saved)fail('NATIVE_INVOICE_ORIGINAL_MEMBER_REQUIRED');
-   if(originalOrder&&Object.hasOwn(bill.operations??{},saved.typed.memberHash))fail('NATIVE_PAY_ORIGINAL_RECONCILE_REQUIRED');
+   if(Object.hasOwn(bill.operations??{},saved.typed.memberHash))fail('NATIVE_PAY_ORIGINAL_RECONCILE_REQUIRED');
    const {encodePQNativeAction}=await sdk();bind(saved.typed.review.action,bill,kind,undefined,originalOrder);
    const {decodePQActionTransportData}=await import('@ynx-chain/wallet-auth/pq-action-transport');
    const envelope=Buffer.from(saved.wire,'base64url');if(envelope.toString('base64url')!==saved.wire||'0x'+digest(envelope)!==saved.hash)fail('NATIVE_INVOICE_ORIGINAL_MEMBER_BINDING');
