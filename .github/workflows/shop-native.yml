@@ -341,6 +341,13 @@ jobs:
           if [ "${{ needs.change-scope.outputs.receipt-test-delta }}" != "true" ]; then
             go build -mod=readonly -tags commerce_v2 -o "$RUNNER_TEMP/ynx-shopd" ./internal/commerce/cmd/shopd
           fi
+      - name: Build the task order startup with the original LINK TLS backend
+        if: contains(needs.change-scope.outputs.read-tests, 'TestShopTaskOrder') && needs.change-scope.outputs.source-only == 'true'
+        run: |
+          set -euo pipefail
+          pkg-config --exists openssl
+          go test -mod=readonly -race -tags 'commerce_v2 securelink_openssl' ./internal/commerce/cmd/shopd -run '^TestShopTaskOrderStartup' -count=1 -v
+          go build -mod=readonly -tags 'commerce_v2 securelink_openssl' -o "$RUNNER_TEMP/ynx-shopd-task-link" ./internal/commerce/cmd/shopd
       - name: Check original Native Pay notification receiver and affected durable receipt state
         if: needs.change-scope.outputs.notification-only == 'true' && needs.change-scope.outputs.notification-driver-only != 'true'
         run: |
