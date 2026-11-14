@@ -143,6 +143,7 @@ jobs:
           python3 -B scripts/loadtest/test_pq_7c25_semantic_readback.py -v
           python3 -B scripts/loadtest/test_pq_first100_stage_summary.py -v
           python3 -B scripts/loadtest/test_pq_first100_held_readback.py -v
+          python3 -B scripts/loadtest/pq-same-runner-controls.py
           python3 -B scripts/loadtest/test_pq_public_proof_readback.py -v
           python3 -B scripts/loadtest/test_pq_staged_independent_scheduler.py -v
           python3 -B scripts/loadtest/test_pq_finalize_observation.py -v
