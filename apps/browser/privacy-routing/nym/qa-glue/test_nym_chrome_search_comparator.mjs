@@ -13,15 +13,22 @@ test('SOCKS domain boundary rejects literal and local addresses', () => {
     assert.equal(publicHost(host), null);
 });
 
-test('same Chrome tab renders JS results and clicks through the original SOCKS test relay', { timeout: 30_000 }, async t => {
+async function searchFixture(t, { path, slowGreeting = false }) {
   const fixtureHost = 'search.fixture.invalid';
+  const organicHost = 'links.fixture.invalid';
   const requests = [];
   const web = httpServer((req, res) => {
-    requests.push(req.url);
-    if (req.url === '/find') res.end(`<!doctype html><script>
+    requests.push({ host: req.headers.host, path: req.url });
+    if (req.url === '/find' || req.url === '/accepted') {
+      res.writeHead(req.url === '/find' ? 200 : 202, { 'Content-Type': 'text/html' });
+      res.end(`<!doctype html><script src="http://${organicHost}/organic.js"></script>`);
+    } else if (req.url === '/organic.js') {
+      res.writeHead(200, { 'Content-Type': 'text/javascript' });
+      res.end(`
       setTimeout(() => { const a = document.createElement('a'); a.setAttribute('data-testid','result-title-a');
       a.href='/article'; a.textContent='Fixture organic result'; document.body.append(a); }, 30);
-    </script>`);
+      `);
+    }
     else if (req.url === '/article') res.end('<!doctype html><title>Fixture article</title>');
     else res.writeHead(404).end();
   });
@@ -46,7 +53,7 @@ test('same Chrome tab renders JS results and clicks through the original SOCKS t
       const length = message[4], host = message.subarray(5, 5+length).toString();
       const port = message.readUInt16BE(5+length);
       frames.push([host, port]);
-      if (host !== fixtureHost || port !== 80) { client.destroy(); return; }
+      if (![fixtureHost, organicHost].includes(host) || port !== 80) { client.destroy(); return; }
       client.off('data', parse);
       const target = connect({ host: '127.0.0.1', port: web.address().port });
       target.on('error', () => client.destroy());
@@ -60,7 +67,7 @@ test('same Chrome tab renders JS results and clicks through the original SOCKS t
           client.write(Buffer.from([5, 0, 0, 1, 127, 0, 0, 1, 0, 0]));
           target.write(message.subarray(7+length)); message = Buffer.alloc(0);
           client.pipe(target); target.pipe(client);
-        }, 4500);
+        }, slowGreeting && host === fixtureHost ? 4500 : 0);
       });
     };
     client.on('data', parse);
@@ -72,18 +79,39 @@ test('same Chrome tab renders JS results and clicks through the original SOCKS t
   const root = process.env.NYM_CHROME_TEST_ROOT;
   assert.ok(root?.startsWith('/Volumes/'), 'private external fixture root required');
   const profile = await mkdtemp(join(root, 'chrome-fixture-'));
-  const result = await runBrowserComparator({ profile, url: `http://${fixtureHost}/find`,
-    upstream: socks.address().port, absoluteMs: Date.now()+23_000, fixture: true });
+  const result = await runBrowserComparator({ profile, url: `http://${fixtureHost}${path}`,
+    upstream: socks.address().port, absoluteMs: Date.now()+23_000, fixture: true, fixtureOrganicHost: organicHost });
   assert.equal(result.firstFailure, null, JSON.stringify({ result, frames, requests }));
+  assert.deepEqual(result.browserExit, { code: 0, signal: null });
+  return { result, frames, requests, fixtureHost, organicHost };
+}
+
+test('Chrome loads an organic script on the other origin and clicks through the same SOCKS relay', { timeout: 30_000 }, async t => {
+  const { result, frames, requests, fixtureHost, organicHost } = await searchFixture(t, { path: '/find', slowGreeting: true });
   assert.equal(result.searchDocument?.status, 200);
+  assert.equal(result.searchOutcome, 'RENDERED_ORGANIC_RESULTS');
+  assert.deepEqual(result.organicService, { requestsAllowed: 1, responsesObserved: 1 });
   assert.equal(result.targetProxyHandshake, true);
   assert.equal(result.visibleOrganicLinks, 1);
   assert.equal(result.click?.complete, true);
   assert.equal(result.click.proxyHandshake, true);
-  assert.deepEqual(frames.map(([host]) => host), frames.map(() => fixtureHost));
-  assert.equal(requests.filter(path => path === '/find').length, 1);
-  assert.equal(requests.filter(path => path === '/article').length, 1);
-  assert.ok(result.browserExit);
+  assert.deepEqual(new Set(frames.map(([host]) => host)), new Set([fixtureHost, organicHost]));
+  assert.equal(requests.filter(({ host, path }) => host === fixtureHost && path === '/find').length, 1);
+  assert.equal(requests.filter(({ host, path }) => host === organicHost && path === '/organic.js').length, 1);
+  assert.equal(requests.filter(({ host, path }) => host === fixtureHost && path === '/article').length, 1);
+});
+
+test('Chrome stops on an HTTP 202 document without loading its organic script or clicking', { timeout: 30_000 }, async t => {
+  const { result, frames, requests, fixtureHost } = await searchFixture(t, { path: '/accepted' });
+  assert.equal(result.searchDocument?.status, 202);
+  assert.equal(result.searchOutcome, 'SITE_ACCEPTED_WITHOUT_RESULTS');
+  assert.equal(result.challenge, false);
+  assert.ok(['NOT_SAMPLED', 'NOT_OBSERVED_IN_SAMPLE'].includes(result.challengeObservation));
+  assert.deepEqual(result.organicService, { requestsAllowed: 0, responsesObserved: 0 });
+  assert.equal(result.visibleOrganicLinks, 0);
+  assert.equal(result.click, null);
+  assert.deepEqual(new Set(frames.map(([host]) => host)), new Set([fixtureHost]));
+  assert.deepEqual(requests, [{ host: fixtureHost, path: '/accepted' }]);
 });
 
 test('owned SOCKS relay closes forbidden domain without dialing upstream', async () => {

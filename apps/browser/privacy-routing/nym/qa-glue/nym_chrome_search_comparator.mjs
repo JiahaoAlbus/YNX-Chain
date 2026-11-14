@@ -8,6 +8,7 @@ import { pathToFileURL } from 'node:url';
 
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const QUERY = 'https://duckduckgo.com/?q=YNX%20browser';
+const ORGANIC_RESULTS_HOST = 'links.duckduckgo.com';
 const MAX_FRAME = 2 * 1024 * 1024;
 
 export function publicHost(value) {
@@ -146,6 +147,7 @@ class CDP {
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const isDDG = name => name === 'duckduckgo.com' || name.endsWith('.duckduckgo.com');
+const siteStop = new Map([[202, 'SITE_ACCEPTED_WITHOUT_RESULTS'], [403, 'SITE_ACCESS_DENIED'], [429, 'SITE_RATE_LIMITED']]);
 const errorName = error => error instanceof Error && /^[A-Z_]{3,64}$/.test(error.message)
   ? error.message : 'BROWSER_COMPARATOR_FAILED';
 
@@ -153,11 +155,11 @@ export const renderedShape = `(() => {
   const visible = element => element.getClientRects().length > 0 &&
     getComputedStyle(element).visibility !== 'hidden' && getComputedStyle(element).display !== 'none';
   const challenged = [...document.querySelectorAll('#challenge-form, #anomaly-modal, .anomaly-modal, iframe[src*="captcha"]')].some(visible);
-  if (challenged) return { challenge: true };
+  if (challenged) return { href: location.href, challenge: true };
   const matches = [...document.querySelectorAll('a[data-testid="result-title-a"], a.result__a')]
     .filter(link => link.href && link.textContent.trim() && visible(link)
       && !link.closest('[data-testid*="ad-"], [data-testid*="sponsored"], [data-layout="ad"]'));
-  return { complete: document.readyState === 'complete', count: matches.length, firstHref: matches[0]?.href ?? null };
+  return { href: location.href, count: matches.length, firstHref: matches[0]?.href ?? null };
 })()`;
 
 function clickTarget(raw, base) {
@@ -183,9 +185,14 @@ function chromeArgs(profile, port) {
     '--no-first-run', '--no-default-browser-check', '--disable-extensions', 'about:blank'];
 }
 
-export async function runBrowserComparator({ profile, url = QUERY, upstream, absoluteMs, fixture = false }) {
+export async function runBrowserComparator({ profile, url = QUERY, upstream, absoluteMs, fixture = false, fixtureOrganicHost }) {
+  if (fixtureOrganicHost !== undefined && (!fixture || !publicHost(fixtureOrganicHost)
+    || !fixtureOrganicHost.endsWith('.fixture.invalid'))) throw new Error('COMPARATOR_FIXTURE_HOST');
+  const organicHost = fixture ? fixtureOrganicHost : ORGANIC_RESULTS_HOST;
   const result = { renderer: 'ADMITTED_GOOGLE_CHROME', installedYNXOrWK: false,
     targetProxyHandshake: false, challenge: false, searchDocument: null,
+    challengeObservation: 'NOT_SAMPLED', searchOutcome: 'DOCUMENT_NOT_OBSERVED',
+    organicService: { requestsAllowed: 0, responsesObserved: 0 },
     visibleOrganicLinks: 0, click: null, browserExit: null, firstFailure: null };
   let child, exitPromise, relay, cdp;
   const main = new URL(url);
@@ -202,7 +209,7 @@ export async function runBrowserComparator({ profile, url = QUERY, upstream, abs
     if (interactionFailed) throw new Error('COMPARATOR_INTERCEPTION_FAILED');
   };
   const allowed = (host, port) => (port === 443 || (fixture && port === 80))
-    && (host === main.hostname || (!fixture && isDDG(host)) || host === allowedClickHost);
+    && (host === main.hostname || (!fixture && isDDG(host)) || host === organicHost || host === allowedClickHost);
   try {
     valid();
     relay = await makeRelay(upstream, allowed);
@@ -218,27 +225,42 @@ export async function runBrowserComparator({ profile, url = QUERY, upstream, abs
       if (method === 'Fetch.requestPaused') {
         requestsSeen++;
         let permit = false;
+        let organicRequest = false;
         try {
           const to = new URL(params.request.url);
           const port = Number(to.port || (to.protocol === 'https:' ? 443 : 80));
-          permit = (to.protocol === 'https:' || (fixture && to.protocol === 'http:'))
+          const stoppedBySite = phase === 'search' && siteStop.has(result.searchDocument?.status);
+          permit = !stoppedBySite && (to.protocol === 'https:' || (fixture && to.protocol === 'http:'))
             && ['GET', 'HEAD'].includes(params.request.method) && !to.username && !to.password
             && allowed(to.hostname, port)
             && (params.resourceType !== 'Document' || params.frameId === topFrame
               && (phase === 'search' ? to.href === main.href : to.href === candidateHref || to.hostname === allowedClickHost || isDDG(to.hostname)));
+          organicRequest = phase === 'search' && to.hostname === organicHost && params.frameId === topFrame
+            && params.resourceType !== 'Document';
+          if (organicRequest && result.searchDocument?.status !== 200) permit = false;
         } catch { }
-        if (permit) requestsAllowed++;
+        if (permit) {
+          requestsAllowed++;
+          if (organicRequest) result.organicService.requestsAllowed++;
+        }
         cdp.call(permit ? 'Fetch.continueRequest' : 'Fetch.failRequest',
           permit ? { requestId: params.requestId } : { requestId: params.requestId, errorReason: 'BlockedByClient' },
           pageSession).catch(() => { interactionFailed = true; });
       }
-      if (method === 'Network.responseReceived' && params.type === 'Document' && params.frameId === topFrame) {
+      if (method === 'Network.responseReceived' && params.frameId === topFrame) {
         const response = params.response;
         let name;
         try { name = new URL(response.url).hostname; } catch { return; }
+        if (params.type !== 'Document') {
+          if (phase === 'search' && name === organicHost) result.organicService.responsesObserved++;
+          return;
+        }
         const evidence = { status: response.status, tls: response.securityDetails?.protocol ?? null,
           hostnameAllowed: allowed(name, fixture ? 80 : 443) };
-        if (phase === 'search' && response.url === main.href) result.searchDocument = evidence;
+        if (phase === 'search' && response.url === main.href) {
+          result.searchDocument = evidence;
+          result.searchOutcome = siteStop.get(response.status) ?? 'RESULTS_NOT_OBSERVED';
+        }
         if (phase === 'click' && name === allowedClickHost) result.click = evidence;
       }
     });
@@ -267,11 +289,15 @@ export async function runBrowserComparator({ profile, url = QUERY, upstream, abs
     for (; Date.now() < searchEnd; await delay(150)) {
       valid();
       const state = await evaluate(renderedShape);
-      if (state?.challenge || [202, 403, 429].includes(result.searchDocument?.status)) {
-        result.challenge = state?.challenge === true;
-        break;
+      if (state?.href === main.href && result.searchDocument) {
+        result.challenge = state.challenge === true;
+        result.challengeObservation = result.challenge ? 'OBSERVED' : 'NOT_OBSERVED_IN_SAMPLE';
       }
-      if (!state?.count || result.searchDocument?.status !== 200 || (!fixture && !result.searchDocument.tls)) continue;
+      if (result.challenge) { result.searchOutcome = 'CAPTCHA_OBSERVED'; break; }
+      if (siteStop.has(result.searchDocument?.status)) break;
+      if (state?.href !== main.href || !state.count || result.searchDocument?.status !== 200
+        || (!fixture && !result.searchDocument.tls)) continue;
+      result.searchOutcome = 'RENDERED_ORGANIC_RESULTS';
       result.visibleOrganicLinks = state.count;
       candidateHref = state.firstHref;
       const target = fixture ? new URL(candidateHref, main) : clickTarget(candidateHref, main);
