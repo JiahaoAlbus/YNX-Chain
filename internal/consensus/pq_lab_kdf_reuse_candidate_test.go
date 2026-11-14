@@ -441,29 +441,85 @@ func TestExperimentalKDFReuseSealedCacheCannotReopen(t *testing.T) {
 }
 
 func TestExperimentalKDFCacheLockWaitIncludedInOpen(t *testing.T) {
-	plan, options, credential := publicOwnerSessionFixture(t)
 	cache := &pqLabExperimentalKDFCache{}
 	metrics := &PQLabMetrics{}
 	cache.mu.Lock()
-	launched := make(chan struct{})
+	waiting := make(chan struct{})
+	cache.onWait = func() { close(waiting) }
 	done := make(chan error, 1)
 	go func() {
-		close(launched)
-		sender, err := openPQLabSenderMeasured(filepath.Join(plan.RootDir, "workload"), options.WorkloadSHA256, 0, credential, metrics, cache)
-		if sender != nil {
-			err = errors.Join(err, sender.Close())
-		}
+		_, err := openPQLabSenderMeasured("relative-invalid", "", 0, make([]byte, 32), metrics, cache)
 		done <- err
 	}()
-	<-launched
+	<-waiting
 	time.Sleep(20 * time.Millisecond)
 	cache.mu.Unlock()
-	if err := <-done; err != nil {
-		t.Fatal(err)
+	if err := <-done; err == nil {
+		t.Fatal("invalid path unexpectedly accepted")
 	}
 	defer cache.seal()
 	stages := metrics.Snapshot().Stages
-	if stages["sender.pbkdf2_cache_lock_wait"].Calls != 1 || stages["sender.pbkdf2_cache_lock_wait"].ElapsedNS <= 0 || stages["sender.openTotal"].ElapsedNS < stages["sender.pbkdf2_cache_lock_wait"].ElapsedNS {
+	if stages["sender.pbkdf2_cache_lock_wait"].Calls != 1 || stages["sender.pbkdf2_cache_lock_wait"].ElapsedNS < 10_000_000 || stages["sender.openTotal"].ElapsedNS < stages["sender.pbkdf2_cache_lock_wait"].ElapsedNS || stages["sender.pbkdf2_600000"].Calls != 0 {
 		t.Fatal("cache lock wait omitted from total", stages)
+	}
+}
+
+func TestExperimentalKDFReusePrepareSourceFailureWipes(t *testing.T) {
+	_, options, credential := publicOwnerSessionFixture(t)
+	ctx := context.Background()
+	s, err := OpenPQLabPublicOwnerSession(ctx, options, credential, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	cache := &pqLabExperimentalKDFCache{}
+	s.experimentalKDFCache = cache
+	if err = s.PrepareOwner(ctx, 0, nil); err != nil {
+		t.Fatal(err)
+	}
+	key := cache.key
+	canceled, cancel := context.WithCancel(ctx)
+	cancel()
+	if err = s.PrepareSource(canceled, nil); err == nil || cache.key != nil {
+		t.Fatal("failed source preparation retained key")
+	}
+	for _, v := range key {
+		if v != 0 {
+			t.Fatal("failed source preparation did not clear key slice")
+		}
+	}
+}
+
+func TestExperimentalErrorClearWaitIncludedInTotals(t *testing.T) {
+	for _, which := range []string{"prepareSource", "signTotal"} {
+		t.Run(which, func(t *testing.T) {
+			cache := &pqLabExperimentalKDFCache{}
+			s := &PQLabPublicOwnerSession{experimentalKDFCache: cache}
+			metrics := &PQLabMetrics{}
+			waiting := make(chan struct{})
+			cache.onClear = func() { close(waiting) }
+			cache.mu.Lock()
+			done := make(chan error, 1)
+			go func() {
+				if which == "prepareSource" {
+					ctx, cancel := context.WithCancel(context.Background())
+					cancel()
+					done <- s.PrepareSource(ctx, metrics)
+				} else {
+					_, err := s.Sign(context.Background(), PQLabSenderRequest{}, 0, "", metrics)
+					done <- err
+				}
+			}()
+			<-waiting
+			time.Sleep(20 * time.Millisecond)
+			cache.mu.Unlock()
+			if err := <-done; err == nil {
+				t.Fatal("invalid request unexpectedly succeeded")
+			}
+			stage := metrics.Snapshot().Stages["publicOwner."+which]
+			if stage.Calls != 1 || stage.ElapsedNS < 10_000_000 {
+				t.Fatal("failure cleanup wait omitted from total", stage)
+			}
+		})
 	}
 }

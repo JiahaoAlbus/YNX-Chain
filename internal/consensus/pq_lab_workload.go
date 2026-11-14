@@ -905,6 +905,9 @@ func openPQLabSenderMeasured(directory, pin string, index int, credential []byte
 	defer pqLabMeasure(metrics, "sender.openTotal")()
 	if cache != nil {
 		endWait := pqLabMeasure(metrics, "sender.pbkdf2_cache_lock_wait")
+		if cache.onWait != nil {
+			cache.onWait()
+		}
 		cache.mu.Lock()
 		endWait()
 		defer cache.mu.Unlock()

@@ -198,8 +198,13 @@ func (s *PQLabPublicOwnerSession) Close() error {
 // command stream starts. It reads no sender key or current checkpoint, consumes
 // no owner command budget, and grants no signing eligibility. Close joins this
 // read just like an admitted command; cancellation/retirement never emits READY.
-func (s *PQLabPublicOwnerSession) PrepareSource(ctx context.Context, metrics *PQLabMetrics) error {
+func (s *PQLabPublicOwnerSession) PrepareSource(ctx context.Context, metrics *PQLabMetrics) (resultErr error) {
 	defer pqLabMeasure(metrics, "publicOwner.prepareSource")()
+	defer func() {
+		if resultErr != nil && s != nil && s.experimentalKDFCache != nil {
+			s.experimentalKDFCache.clear()
+		}
+	}()
 	if s == nil {
 		return errors.New("original public owner session required")
 	}
@@ -332,12 +337,12 @@ func (s *PQLabPublicOwnerSession) PrepareOwner(ctx context.Context, index int, m
 }
 
 func (s *PQLabPublicOwnerSession) Sign(ctx context.Context, request PQLabSenderRequest, height int64, appHash string, metrics *PQLabMetrics) (_ PQLabSenderResult, resultErr error) {
+	defer pqLabMeasure(metrics, "publicOwner.signTotal")()
 	defer func() {
 		if resultErr != nil && s != nil && s.experimentalKDFCache != nil {
 			s.experimentalKDFCache.clear()
 		}
 	}()
-	defer pqLabMeasure(metrics, "publicOwner.signTotal")()
 	if s == nil {
 		return PQLabSenderResult{}, errors.New("original public owner session required")
 	}

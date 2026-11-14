@@ -23,6 +23,8 @@ import (
 type pqLabExperimentalKDFCache struct {
 	mu               sync.Mutex
 	sealed           bool
+	onWait           func() // private deterministic timing-test seam; nil in normal code
+	onClear          func() // private deterministic timing-test seam; nil in normal code
 	key              []byte
 	salt             [32]byte
 	credentialDigest [32]byte
@@ -38,7 +40,14 @@ func (c *pqLabExperimentalKDFCache) clearLocked() {
 	clear(c.vaultDigest[:])
 	c.vaultIdentity = nil
 }
-func (c *pqLabExperimentalKDFCache) clear() { c.mu.Lock(); defer c.mu.Unlock(); c.clearLocked() }
+func (c *pqLabExperimentalKDFCache) clear() {
+	if c.onClear != nil {
+		c.onClear()
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.clearLocked()
+}
 func (c *pqLabExperimentalKDFCache) seal() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
