@@ -1,3 +1,5 @@
+import {NATIVE_AMOUNT_RANGE_KEY} from './native-amount-draft-ui.mjs';
+export {NATIVE_AMOUNT_RANGE_KEY};
 /** Display-only known native balance refusals. No wire or remote text changes. */
 export const TRANSFER_ERROR_KEYS=Object.freeze([
   'Insufficient YNXT for this amount. Add Testnet funds before sending.',
@@ -95,6 +97,19 @@ const policyFailureRows={
   ]
 };
 export const POLICY_FAILURE_COPY=Object.freeze(Object.fromEntries(Object.entries(policyFailureRows).map(([locale,values])=>[locale,Object.freeze(Object.fromEntries(POLICY_FAILURE_KEYS.map((key,index)=>[key,values[index]])))])));
+export const NATIVE_AMOUNT_RANGE_COPY=Object.freeze({en:NATIVE_AMOUNT_RANGE_KEY,...{
+  "zh-Hans": "最高转账金额为 9223372036854775806 YNXT；加上固定手续费 1 YNXT 后，总额不能超过 9223372036854775807 YNXT。",
+  "zh-Hant": "最高轉帳金額為 9223372036854775806 YNXT；加上固定手續費 1 YNXT 後，總額不能超過 9223372036854775807 YNXT。",
+  "ja": "送金額の上限は 9223372036854775806 YNXT です。固定手数料 1 YNXT を含む合計は 9223372036854775807 YNXT を超えられません。",
+  "ko": "최대 전송 금액은 9223372036854775806 YNXT입니다. 고정 수수료 1 YNXT를 포함한 총액은 9223372036854775807 YNXT를 초과할 수 없습니다.",
+  "es": "Importe máximo: 9223372036854775806 YNXT. El total, incluida la comisión fija de 1 YNXT, no puede superar 9223372036854775807 YNXT.",
+  "fr": "Montant maximal : 9223372036854775806 YNXT. Le total, incluant les frais fixes de 1 YNXT, ne peut pas dépasser 9223372036854775807 YNXT.",
+  "de": "Höchstbetrag: 9223372036854775806 YNXT. Die Summe einschließlich der festen Gebühr von 1 YNXT darf 9223372036854775807 YNXT nicht überschreiten.",
+  "pt": "Valor máximo: 9223372036854775806 YNXT. O total, incluindo a taxa fixa de 1 YNXT, não pode exceder 9223372036854775807 YNXT.",
+  "ru": "Максимальная сумма: 9223372036854775806 YNXT. Общая сумма с фиксированной комиссией 1 YNXT не может превышать 9223372036854775807 YNXT.",
+  "ar": "الحد الأقصى للمبلغ هو 9223372036854775806 YNXT. لا يمكن أن يتجاوز الإجمالي، بما في ذلك الرسوم الثابتة البالغة 1 YNXT، مقدار 9223372036854775807 YNXT.",
+  "id": "Jumlah maksimum: 9223372036854775806 YNXT. Total termasuk biaya tetap 1 YNXT tidak boleh melebihi 9223372036854775807 YNXT."
+}});
 export const POLICY_UNAVAILABLE_KEY='Unable to verify the current account transaction policy. Check the network and try again.';
 export const POLICY_UNAVAILABLE_COPY=Object.freeze({
  en:POLICY_UNAVAILABLE_KEY,

@@ -112,8 +112,8 @@ test("R15 PUBLIC ordinary address keeps its existing preparation path without re
 test('default Send refuses a legacy preparation response instead of opening classic confirmation',async()=>{
  const h=harness(),job=h.submit();h.preparations[0].resolve({ok:true,value:{id:'legacy',account:'account-a'}});await job;assert.equal(h.actions.length,0);assert.equal(h.approvalPresentations(),0);assert.equal(h.get('#transfer-review').open,false);assert.equal(h.get('#send-sheet').open,true);assert.match(h.get('#transfer-result').textContent,/PQ review unavailable/);
 });
-test('native amount draft rejects decimal/exponent/leading-zero inputs before parsing or original Main preparation',async()=>{for(const amount of ['1.2','1.25','1e3','01','0','-1','123456789012345678901']){const f=harness();f.get('#transfer-amount').value=amount;f.get('#transfer-to').value='ynx:PUBLIC';await f.get('#transfer-form').listeners.submit({preventDefault(){}});assert.equal(f.prepareInputs.length,0);assert.equal(f.parses.length,0);assert.equal(f.actions.length,0);assert.match(f.get('#transfer-result').textContent,/positive whole YNXT/);assert.equal(f.get('#transfer-amount').value,amount);}});
-test('native amount helper preserves accepted whole string precision; original SDK remains the range authority',()=>{for(const value of ['1','9007199254740993','18446744073709551615'])assert.equal(nativeAmountDraftIssue(value),null);assert.match(nativeAmountDraftIssue('0.00',true),/不会转换或舍入/);const html=readFileSync(new URL('../src/index.html',import.meta.url),'utf8');assert.match(html,/<input id="transfer-amount" inputmode="numeric" placeholder="1"/);assert(html.includes('native-amount-hint'));assert(!/<input id="transfer-amount"[^>]*0\.00/.test(html));});
+test('native amount draft rejects decimal/exponent/leading-zero inputs before parsing or original Main preparation',async()=>{for(const amount of ['1.2','1.25','1e3','01','0','-1']){const f=harness();f.get('#transfer-amount').value=amount;f.get('#transfer-to').value='ynx:PUBLIC';await f.get('#transfer-form').listeners.submit({preventDefault(){}});assert.equal(f.prepareInputs.length,0);assert.equal(f.parses.length,0);assert.equal(f.actions.length,0);assert.match(f.get('#transfer-result').textContent,/positive whole YNXT/);assert.equal(f.get('#transfer-amount').value,amount);}});
+test('native amount helper preserves accepted whole string precision; original SDK remains the range authority',()=>{for(const value of ['1','9007199254740993','9223372036854775806'])assert.equal(nativeAmountDraftIssue(value),null);assert.match(nativeAmountDraftIssue('0.00',true),/不会转换或舍入/);const html=readFileSync(new URL('../src/index.html',import.meta.url),'utf8');assert.match(html,/<input id="transfer-amount" inputmode="numeric" placeholder="1"/);assert(html.includes('native-amount-hint'));assert(!/<input id="transfer-amount"[^>]*0\.00/.test(html));});
 
 test('actual invalid Send amount stays unchanged while its warning follows all twelve languages',async()=>{
  const f=harness(),doc=f.context.document;doc.documentElement={};doc.querySelectorAll=()=>[];
@@ -122,4 +122,20 @@ test('actual invalid Send amount stays unchanged while its warning follows all t
  draft.value='1.25';f.get('#transfer-to').value='ynx:PUBLIC';await f.submit();
  assert.equal(output.textContent,WALLET_COPY.en[NATIVE_AMOUNT_DRAFT_KEY]);
  for(const language of WALLET_LOCALES){locale.select(language);assert.equal(output.textContent,WALLET_COPY[language][NATIVE_AMOUNT_DRAFT_KEY]);assert.equal(draft.value,'1.25');assert.equal(f.parses.length,0);assert.equal(f.prepareInputs.length,0);assert.equal(f.actions.length,0);if(language!=='en')assert.notEqual(output.textContent,NATIVE_AMOUNT_DRAFT_KEY);}
+});
+test('normal native Send reports exact signed-ledger amount plus fixed fee boundary',async()=>{
+ const {normalizeWalletPQTransferInput}=await import('../src/wallet-pq-transfer-input.mjs');
+ const max='9223372036854775806',over='9223372036854775807';
+ assert.equal(nativeAmountDraftIssue(max),null);assert.equal(normalizeWalletPQTransferInput({to:'0x'+'22'.repeat(20),amount:max}).amount,max);
+ for(const amount of [over,'10000000000000000000','99999999999999999999','123456789012345678901']){
+  assert.match(nativeAmountDraftIssue(amount),/maximum.*9223372036854775806.*fee.*1/i);
+  assert.throws(()=>normalizeWalletPQTransferInput({to:'0x'+'22'.repeat(20),amount}));
+  const f=harness();f.get('#transfer-amount').value=amount;await f.submit();assert.equal(f.get('#transfer-amount').value,amount);assert.equal(f.prepareInputs.length,0);assert.equal(f.actions.length,0);assert.match(f.get('#transfer-result').textContent,/maximum.*9223372036854775806.*fee.*1/i);
+ }
+});
+test('native amount range warning switches locale while retaining the exact entered integer',async()=>{
+ const {NATIVE_AMOUNT_RANGE_KEY}=await import('../src/native-amount-draft-ui.mjs');const f=harness(),doc=f.context.document;doc.documentElement={};doc.querySelectorAll=()=>[];
+ const output=f.get('#transfer-result');output.ownerDocument=doc;output.isConnected=true;const locale=initWalletLocale({document:doc}),draft=f.get('#transfer-amount');f.context.setWalletCopy=setWalletCopy;
+ draft.value='18446744073709551615';await f.submit();
+ for(const language of WALLET_LOCALES){locale.select(language);assert.equal(output.textContent,WALLET_COPY[language][NATIVE_AMOUNT_RANGE_KEY]);assert.equal(draft.value,'18446744073709551615');assert.equal(f.prepareInputs.length,0);assert.equal(f.actions.length,0);if(language!=='en')assert.notEqual(output.textContent,NATIVE_AMOUNT_RANGE_KEY);}
 });
