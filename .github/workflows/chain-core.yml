@@ -127,8 +127,8 @@ jobs:
           trap 'rmdir "$PAY_ENGINE_SOCKET_ROOT"' EXIT
           tags='pay_pq pay_cloud pay_auth_source pay_engine_host_fixture pay_securelink securelink_openssl'
           go test -mod=readonly -modfile=pay-qa.mod -p 1 -tags "$tags" ./internal/payproduct/nativehost ./cmd/ynx-comet -run '^Test(ReadOperatorConfigStrictAndDoesNotExposeKeys|PayWrongNetworkNormalNodeStartAndShutdown|PayOperatorUsesOriginalNodeAndRejectsWrongNetwork)$' -count=1
-          go test -mod=readonly -modfile=pay-qa.mod -p 1 -tags "$tags" ./internal/consensus -run '^TestPayCoreAttachmentRetainsBorrowedEngineUntilDrained$' -count=1
           go build -mod=readonly -modfile=pay-qa.mod -p 1 -tags "$tags" -o "$RUNNER_TEMP/ynx-comet-pay-qa" ./cmd/ynx-comet
+          PAY_QA_COMET_BINARY="$RUNNER_TEMP/ynx-comet-pay-qa" go test -mod=readonly -modfile=pay-qa.mod -p 1 -tags "$tags" ./internal/consensus -run '^TestPayCoreAttachmentRetainsBorrowedEngineUntilDrained$' -count=1 -v
           PAY_QA_COMET_BINARY="$RUNNER_TEMP/ynx-comet-pay-qa" go test -mod=readonly -modfile=pay-qa.mod -p 1 -tags "$tags" ./cmd/ynx-comet -run '^TestPayQANormalBinaryWrongNetwork$' -count=1
 
   contract-tooling-scope:

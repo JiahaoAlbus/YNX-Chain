@@ -32,7 +32,7 @@ import (
 )
 
 func TestPayCoreAttachmentRetainsBorrowedEngineUntilDrained(t *testing.T) {
-	app, node := consensus.OpenP06OriginalBootstrapNodeFixture(t)
+	app, node, fixture := consensus.OpenP06OriginalBootstrapNodeFixture(t)
 	dir := t.TempDir()
 	run := func(args ...string) {
 		t.Helper()
@@ -312,6 +312,87 @@ func TestPayCoreAttachmentRetainsBorrowedEngineUntilDrained(t *testing.T) {
 	}
 	if !cold.CoreReleased() || cold.Err() != first {
 		t.Fatal("node stop lost release or first failure", cold.Err())
+	}
+	if binary := os.Getenv("PAY_QA_COMET_BINARY"); binary != "" {
+		if !filepath.IsAbs(binary) {
+			t.Fatal("normal QA binary must have an absolute path")
+		}
+		fixture.ReleaseLeases()
+		reservation, e = net.Listen("tcp", "127.0.0.1:0")
+		if e != nil {
+			t.Fatal(e)
+		}
+		operator.Endpoint.ListenAddress = reservation.Addr().String()
+		_ = reservation.Close()
+		operator.ExpectedChainID = fixture.ChainID
+		operator.Private.SocketPath = filepath.Join(socketDir, "process.sock")
+		operatorWire, e = json.Marshal(operator)
+		if e != nil {
+			t.Fatal(e)
+		}
+		if e = os.WriteFile(operatorPath, operatorWire, 0600); e != nil {
+			t.Fatal(e)
+		}
+		logFile, e := os.Create(filepath.Join(dir, "normal-process.log"))
+		if e != nil {
+			t.Fatal(e)
+		}
+		defer logFile.Close()
+		processCtx, processCancel := context.WithTimeout(context.Background(), 45*time.Second)
+		defer processCancel()
+		command := exec.CommandContext(processCtx, binary, "start", "--home", fixture.Home,
+			"--migration-state", fixture.MigrationPath, "--abci-state", fixture.StatePath,
+			"--consensus-genesis-sha256", fixture.Pins.CometGenesisSHA256,
+			"--original-genesis-hash", fixture.Pins.OriginalGenesisHash,
+			"--bound-migration-state-hash", fixture.Pins.MigrationStateHash,
+			"--pay-operator-config", operatorPath)
+		command.Stdout, command.Stderr = logFile, logFile
+		if e = command.Start(); e != nil {
+			t.Fatal(e)
+		}
+		defer func() {
+			if command.ProcessState == nil {
+				_ = command.Process.Kill()
+				_ = command.Wait()
+			}
+		}()
+		local, e = securelink.NewLocalCallerClient(securelink.LocalCallerClientConfig{SocketPath: operator.Private.SocketPath, Service: operator.Private.Service, PeerUID: uint32(os.Getuid()), PeerPID: command.Process.Pid, Routes: routesPrivate, Timeout: time.Second, MaxResponseBytes: 1 << 16})
+		if e != nil {
+			t.Fatal(e)
+		}
+		ready := false
+		for deadline := time.Now().Add(25 * time.Second); time.Now().Before(deadline); time.Sleep(100 * time.Millisecond) {
+			cloudResponse, e = local.Call(processCtx, "GET", "/health", "", nil)
+			if e == nil && cloudResponse.StatusCode == 200 {
+				ready = true
+				break
+			}
+		}
+		if !ready {
+			_ = command.Process.Kill()
+			_ = command.Wait()
+			wire, _ := os.ReadFile(logFile.Name())
+			t.Fatalf("normal process private entry unavailable: %s", wire)
+		}
+		payResponse, e = local.Call(processCtx, "GET", "/v5/pay/invoices/no/no", "", nil)
+		if e != nil || payResponse.StatusCode != 503 || !bytes.Contains(payResponse.Body, []byte("NATIVE_PAY_AUTHORITY_UNAVAILABLE")) {
+			t.Fatal("normal process did not preserve unavailable Pay Source", payResponse.StatusCode, e)
+		}
+		if e = command.Process.Signal(os.Interrupt); e != nil {
+			t.Fatal(e)
+		}
+		if e = command.Wait(); e != nil {
+			wire, _ := os.ReadFile(logFile.Name())
+			t.Fatalf("normal process did not drain: %v %s", e, wire)
+		}
+		wire, e := os.ReadFile(logFile.Name())
+		if e != nil {
+			t.Fatal(e)
+		}
+		if !bytes.Contains(wire, []byte("pay_product_source_unavailable")) {
+			t.Fatalf("normal process missing Source status: %s", wire)
+		}
+		t.Log("normal executable private Cloud 200, unavailable Pay 503, clean shutdown")
 	}
 	// No signed Member broadcast, independent trusted anchor or H/H+1 proof claim.
 }

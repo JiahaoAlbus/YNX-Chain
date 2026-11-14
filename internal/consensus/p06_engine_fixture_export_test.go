@@ -5,6 +5,8 @@ package consensus
 import (
 	"bytes"
 	"crypto/ed25519"
+	"encoding/json"
+	cfg "github.com/cometbft/cometbft/config"
 	cmted "github.com/cometbft/cometbft/crypto/ed25519"
 	"github.com/cometbft/cometbft/libs/log"
 	"github.com/cometbft/cometbft/mempool"
@@ -14,12 +16,20 @@ import (
 	proto "github.com/cometbft/cometbft/proto/tendermint/types"
 	sm "github.com/cometbft/cometbft/state"
 	types "github.com/cometbft/cometbft/types"
+	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 )
 
-func OpenP06OriginalBootstrapNodeFixture(t *testing.T) (*Application, *node.Node) {
+type P06OriginalProcessFixture struct {
+	Home, StatePath, MigrationPath, ChainID string
+	Pins                                    ConsensusBootstrapPins
+	ReleaseLeases                           func()
+}
+
+func OpenP06OriginalBootstrapNodeFixture(t *testing.T) (*Application, *node.Node, P06OriginalProcessFixture) {
 	t.Helper()
 	f := newValidatorRegistryFixture(t)
 	c := bootstrapNodeConfig(t, f.raw)
@@ -29,12 +39,13 @@ func OpenP06OriginalBootstrapNodeFixture(t *testing.T) (*Application, *node.Node
 	if e != nil {
 		t.Fatal(e)
 	}
-	t.Cleanup(func() { _ = lease.Close() })
 	pvLease, e := AcquireApplicationStateWriterLease(c.PrivValidatorStateFile())
 	if e != nil {
 		t.Fatal(e)
 	}
-	t.Cleanup(func() { _ = pvLease.Close() })
+	var releaseOnce sync.Once
+	release := func() { releaseOnce.Do(func() { _ = pvLease.Close(); _ = lease.Close() }) }
+	t.Cleanup(release)
 	key := cmted.PrivKey(bytes.Clone(f.legacy[string(f.bootstrap.record.Members[0].Address)]))
 	pv := privval.NewFilePV(key, c.PrivValidatorKeyFile(), c.PrivValidatorStateFile())
 	pv.Save()
@@ -43,6 +54,18 @@ func OpenP06OriginalBootstrapNodeFixture(t *testing.T) (*Application, *node.Node
 		t.Fatal(e)
 	}
 	nodeKey := &p2p.NodeKey{PrivKey: cmted.GenPrivKey()}
+	if e = nodeKey.SaveAs(c.NodeKeyFile()); e != nil {
+		t.Fatal(e)
+	}
+	migrationPath := filepath.Join(c.RootDir, "migration.json")
+	migrationWire, e := json.Marshal(f.migration)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if e = os.WriteFile(migrationPath, migrationWire, 0600); e != nil {
+		t.Fatal(e)
+	}
+	cfg.WriteConfigFile(filepath.Join(c.RootDir, "config", "config.toml"), c)
 	n, e := NewBootstrapConsensusNode(c, app, pv, nodeKey, log.NewNopLogger())
 	if e != nil {
 		t.Fatal(e)
@@ -121,5 +144,5 @@ func OpenP06OriginalBootstrapNodeFixture(t *testing.T) (*Application, *node.Node
 	if err != nil {
 		t.Fatal(err)
 	}
-	return cold, n
+	return cold, n, P06OriginalProcessFixture{Home: c.RootDir, StatePath: statePath, MigrationPath: migrationPath, ChainID: f.doc.ChainID, Pins: f.pins, ReleaseLeases: release}
 }
