@@ -5264,6 +5264,48 @@ class ChainLabSplitCIControls(unittest.TestCase):
 
 
 class EnrollmentVerifierProductionCIControls(unittest.TestCase):
+    def test_original_synthetic_enrollment_receipt_keeps_original_events_for_success_and_failure(self):
+        import hashlib, os, subprocess, sys, tempfile
+        root = Path(__file__).resolve().parents[2]
+        raw = (root / '.github/workflows/chain-core.yml').read_text()
+        self.assertIn("python3 -B scripts/verify/pq-enrollment-original-ci-receipt.py \"$YNX_LAB_RC\"", raw)
+        self.assertIn('ynx-enrollment-original-events-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}', raw)
+        test = 'TestPQLabEnrollmentOriginalCLIConfirmAndRestart'
+        package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
+        for outcome, rc in (('pass', 0), ('fail', 1)):
+            with tempfile.TemporaryDirectory(prefix='ynx-enrollment-receipt-') as directory:
+                source = Path(directory) / 'pq-lab-core-tests.jsonl'
+                events = [dict(Package=package, Test=test, Action='run'),
+                          dict(Package=package, Test=test, Action='output', Output='synthetic trusted=1 latest=2 wall=3 catchup=4\n'),
+                          dict(Package=package, Test=test, Action='output', Output='private-output-must-not-be-retained'),
+                          dict(Package=package, Test=test, Action=outcome)]
+                original = ''.join(json.dumps(e) + '\n' for e in events).encode()
+                source.write_bytes(original)
+                env = dict(os.environ, RUNNER_TEMP=directory, GITHUB_SHA='a'*40, GITHUB_RUN_ID='123', GITHUB_RUN_ATTEMPT='1')
+                subprocess.run([sys.executable, '-B', str(root / 'scripts/verify/pq-enrollment-original-ci-receipt.py'), str(rc)], env=env, check=True)
+                target = Path(directory) / 'ynx-enrollment-original-ci'
+                kept = (target / 'events.jsonl').read_bytes()
+                meta = json.loads((target / 'identity.json').read_text())
+                self.assertEqual([json.loads(line) for line in kept.splitlines()], [events[0], events[1], events[3]])
+                self.assertEqual(meta['inputSHA256'], hashlib.sha256(original).hexdigest())
+                self.assertEqual(meta['eventsSHA256'], hashlib.sha256(kept).hexdigest())
+                self.assertEqual((meta['sourceCommit'], meta['runId'], meta['runAttempt'], meta['originalStepExit']), ('a'*40, '123', '1', rc))
+                self.assertFalse(meta['publicActivation'])
+
+    def test_synthetic_receipt_trap_preserves_original_failed_step(self):
+        import os, subprocess, sys, tempfile
+        root = Path(__file__).resolve().parents[2]
+        raw = (root / '.github/workflows/chain-core.yml').read_text()
+        line = next(line for line in raw.splitlines() if line.strip().startswith("trap 'YNX_LAB_RC=$?; python3 -B scripts/verify/pq-enrollment-original-ci-receipt.py"))
+        for status in (0, 7):
+            with tempfile.TemporaryDirectory(prefix='ynx-enrollment-trap-') as directory:
+                (Path(directory) / 'pq-lab-core-tests.jsonl').write_text('')
+                env = dict(os.environ, PATH=str(Path(sys.executable).parent) + os.pathsep + os.environ['PATH'], RUNNER_TEMP=directory, GITHUB_SHA='a'*40, GITHUB_RUN_ID='123', GITHUB_RUN_ATTEMPT='1')
+                result = subprocess.run(['/bin/bash', '-e', '-c', line.strip() + '\nexit ' + str(status)], cwd=root, env=env, capture_output=True, text=True)
+                self.assertEqual(result.returncode, status, result.stderr)
+                meta = json.loads((Path(directory) / 'ynx-enrollment-original-ci/identity.json').read_text())
+                self.assertEqual(meta['originalStepExit'], status)
+
     def test_portable_originals_are_required_without_relabeling_fixture_skips(self):
         import runpy
         root = Path(__file__).resolve().parents[2]

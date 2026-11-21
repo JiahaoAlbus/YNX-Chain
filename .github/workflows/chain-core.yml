@@ -33,6 +33,7 @@ on:
       - "scripts/verify/streambft-candidate-check.sh"
       - "scripts/verify/wire-live-matching-source-ci.py"
       - "scripts/verify/test_wire_live_matching_source_ci.py"
+      - "scripts/verify/pq-enrollment-original-ci-receipt.py"
       - "scripts/ops/test_validate_pq_observer_ci.py"
       - "third_party/cometbft/node/**"
       - "third_party/cometbft/rpc/core/**"
@@ -67,6 +68,7 @@ on:
       - "scripts/verify/streambft-candidate-check.sh"
       - "scripts/verify/wire-live-matching-source-ci.py"
       - "scripts/verify/test_wire_live_matching_source_ci.py"
+      - "scripts/verify/pq-enrollment-original-ci-receipt.py"
       - "scripts/ops/test_validate_pq_observer_ci.py"
       - "third_party/cometbft/node/**"
       - "third_party/cometbft/rpc/core/**"
@@ -314,6 +316,7 @@ jobs:
       - name: Exercise the original readback CLI and complete logical denominators
         run: node --test scripts/loadtest/same-control-readback.test.mjs
       - name: Verify normal PQ lab producers and the original proof caller
+        id: enrollmentlab
         env:
           YNX_PQ_LAB_PROOF_FIXTURE_OUT: ${{ runner.temp }}/pq-lab-source-proof
           YNX_PQ_LAB_STOPPED_FIXTURE_ROOT: ${{ runner.temp }}/pq-lab-stopped-stores
@@ -325,6 +328,7 @@ jobs:
           test ! -e "$YNX_PQ_LAB_PROOF_FIXTURE_OUT"
           test ! -e "$YNX_PQ_LAB_STOPPED_FIXTURE_ROOT"
           test ! -e "$YNX_PQ_LAB_LIVE_FIXTURE_ROOT"
+          trap 'YNX_LAB_RC=$?; python3 -B scripts/verify/pq-enrollment-original-ci-receipt.py "$YNX_LAB_RC" || YNX_LAB_RC=1; exit "$YNX_LAB_RC"' EXIT
           # Preserve the same full lab union in four bounded processes.
           # Producers write their original fixture roots before the command consumer.
           if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLab' -skip '^(TestPQLabLiveMaterials|TestPQLabDistributed|TestPQLabFinalizeTrace|TestPQLabExport|TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload))' ./internal/consensus > "$RUNNER_TEMP/pq-lab-core-tests.jsonl"; then
@@ -389,6 +393,15 @@ jobs:
                   raise RuntimeError('original enrollment recovery or child did not execute and pass: ' + name)
           print('YNX_PQ_LAB_CALLEES_EXECUTED ' + json.dumps(dict(commit=os.environ['GITHUB_SHA'], requiredPassed=required, nodeProcessesStarted=0, publicActivation=False), sort_keys=True))
           PY
+
+      - name: Retain original synthetic enrollment test events
+        if: ${{ !cancelled() && (steps.enrollmentlab.outcome == 'success' || steps.enrollmentlab.outcome == 'failure') }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-enrollment-original-events-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ynx-enrollment-original-ci
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Verify the default-off normal node wire observation adapter
         env:
