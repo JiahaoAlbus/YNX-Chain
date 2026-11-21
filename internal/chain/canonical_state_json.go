@@ -2,6 +2,8 @@ package chain
 
 import (
 	"bufio"
+	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,6 +20,37 @@ func (s ConsensusMigrationState) WriteCanonicalJSON(w io.Writer) error {
 		return err
 	}
 	return writeCanonicalStateJSON(w, s, true)
+}
+
+// MatchesCanonicalJSON reports only whether the current source serializes to
+// the supplied complete canonical digest and byte count. It does not validate
+// a state, issue an authorization, or make caller-provided digests trustworthy.
+// Callers must independently validate and retain the trusted digest and keep
+// the source immutable while calling. Encoding errors are returned to the caller.
+func (s ConsensusMigrationState) MatchesCanonicalJSON(digest [sha256.Size]byte, count int) (bool, error) {
+	if count <= 0 {
+		return false, nil
+	}
+	h := sha256.New()
+	w := &canonicalDigestCounter{hash: h}
+	if err := writeCanonicalStateJSON(w, s, true); err != nil {
+		return false, err
+	}
+	return w.count == count && bytes.Equal(h.Sum(nil), digest[:]), nil
+}
+
+type canonicalDigestCounter struct {
+	hash  io.Writer
+	count int
+}
+
+func (w *canonicalDigestCounter) Write(p []byte) (int, error) {
+	if len(p) > int(^uint(0)>>1)-w.count {
+		return 0, fmt.Errorf("canonical byte count overflow")
+	}
+	n, err := w.hash.Write(p)
+	w.count += n
+	return n, err
 }
 
 // writeCanonicalStateJSON preserves encoding/json's existing field order,

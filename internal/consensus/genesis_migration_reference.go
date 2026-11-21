@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"hash"
+	"reflect"
 	"strconv"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
@@ -111,6 +112,40 @@ func validateBootstrapMigrationAppStateColdOwned(raw []byte, source chain.Consen
 	}
 	var version string
 	if json.Unmarshal(discriminator.Version, &version) == nil {
+		// The constructor has already run all migration and validator checks on
+		// this source and hashed its entire original canonical stream. Compare the
+		// current full original stream, not the detached normalized value, to that
+		// private witness. Any mismatch or encoding error takes the exact original
+		// path so invalid input and first-cause behavior remain unchanged.
+		decodedRef, err := decodeCometMigrationReference(raw)
+		if err != nil {
+			return nil, nil, err
+		}
+		// Canonical JSON is not injective over Go values: encoding/json can
+		// normalize invalid UTF-8 and omit nil or empty containers. The sealed
+		// owner is a deep detached snapshot. Reuse is allowed only when every
+		// current typed source value equals that snapshot as well as its complete
+		// original canonical stream; normalization differences take the original
+		// validation path. As on the original path, the caller must keep source
+		// immutable for the entire constructor invocation.
+		matches := false
+		if owner.bootstrapSourceExact && reflect.DeepEqual(source, owner.migration) {
+			var compareErr error
+			matches, compareErr = source.MatchesCanonicalJSON(owner.canonicalHash, owner.canonicalBytes)
+			if compareErr != nil {
+				matches = false
+			}
+		}
+		if matches {
+			if owner.canonicalBytes > maxCometMigrationBytes {
+				return nil, nil, errors.New("complete migration exceeds the existing input bound")
+			}
+			if decodedRef != newCometMigrationReferenceDigest(source, owner.canonicalHash, owner.canonicalBytes) {
+				return nil, nil, errors.New("genesis migration reference differs from the complete independently supplied migration")
+			}
+			normalized, err := json.Marshal(decodedRef)
+			return normalized, &decodedRef, err
+		}
 		normalized, ref, err := validateBootstrapMigrationAppState(raw, source)
 		if err != nil {
 			return nil, nil, err

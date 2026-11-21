@@ -6,6 +6,7 @@ import (
 	"errors"
 	"hash"
 	"io"
+	"reflect"
 	"sync/atomic"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
@@ -30,15 +31,18 @@ type validatedMigration struct {
 	// Private constructor identity: never serialized or recoverable from hashes.
 	validatedSelf          *validatedMigration
 	bootstrapKeysValidated *validatedMigration
-	migration              chain.ConsensusMigrationState
-	bootstrap              *ConsensusBootstrap
-	canonicalHash          [32]byte
-	canonicalBytes         int
-	initialCertificates    *ynxbatch.CertificateCache
-	initialScope           []byte
-	historyCertificates    *chain.PQCertificateCache
-	historyPages           *migrationHistoryPages // derived once from this immutable import
-	registryMath           *ynxconsensusauth.RegistrationMathCache
+	// Sealed only by the full cold constructor after original typed validation
+	// and detachment. A false value forbids any canonical-math fast path.
+	bootstrapSourceExact bool
+	migration            chain.ConsensusMigrationState
+	bootstrap            *ConsensusBootstrap
+	canonicalHash        [32]byte
+	canonicalBytes       int
+	initialCertificates  *ynxbatch.CertificateCache
+	initialScope         []byte
+	historyCertificates  *chain.PQCertificateCache
+	historyPages         *migrationHistoryPages // derived once from this immutable import
+	registryMath         *ynxconsensusauth.RegistrationMathCache
 }
 
 // Counts actual complete validations at this ownership boundary, not dynamic
@@ -88,7 +92,7 @@ func newValidatedMigrationWithConsensusValidatorKeys(migration chain.ConsensusMi
 	if err := binding.matches(detached, canonicalHash, stream.count); err != nil {
 		return nil, err
 	}
-	witness := &validatedMigration{migration: detached, canonicalHash: canonicalHash, canonicalBytes: stream.count}
+	witness := &validatedMigration{migration: detached, canonicalHash: canonicalHash, canonicalBytes: stream.count, bootstrapSourceExact: reflect.DeepEqual(migration, detached)}
 	if err := witness.initializeMath(); err != nil {
 		return nil, err
 	}
