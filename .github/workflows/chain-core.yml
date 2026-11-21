@@ -99,7 +99,7 @@ jobs:
                       'test_pq_durable_load_accounting.py': 26, 'test_pq_resource_first_cause.py': 6,
                       'test_resource_guard_sampling.py': 11, 'test_pq_enrollment_original_bindings.py': 13,
                       'test_pq_enrollment_normal_callee.py': 16, 'test_pq_enrollment_original_pair.py': 12,
-                      'test_pq_durable_enrollment_reservation.py': 13}
+                      'test_pq_durable_enrollment_reservation.py': 13, 'test_pq_enrollment_original_command.py': 14}
           hook.GROUPS = [entry for entry in hook.GROUPS if entry[0] in required]
           assert {name: count for name, _, count in hook.GROUPS} == required, 'original exact control selection differs'
           output = io.StringIO()
@@ -112,7 +112,7 @@ jobs:
               raw = output.getvalue().encode()
               (destination / 'original-controls.log').write_bytes(raw)
               value = dict(sourceCommit=os.environ['GITHUB_SHA'], runID=os.environ['GITHUB_RUN_ID'],
-                           platform=sys.platform, declaredCases=required, declaredTotal=137,
+                           platform=sys.platform, declaredCases=required, declaredTotal=151,
                            allDeclaredActuallyPassedWithoutSkip=passed, logSHA256=hashlib.sha256(raw).hexdigest(),
                            controlCalleeAndResourceInputs=True, nodeStarted=False, businessLoadExecuted=False,
                            realChainFinalityProven=False, physicalRSSLimitQualified=False,

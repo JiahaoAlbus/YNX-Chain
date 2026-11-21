@@ -28,9 +28,9 @@ ROLES=('funding','migration')
 
 def encoded(value):return b.accounting.d.encoded(value,2*b.EXPECTED_LIMIT+(64<<10)).encode()
 def same(a,z):return encoded(a)==encoded(z)
-def report(status=None):
+def report(status=None,source=SOURCE):
     value=b.unknown_report(status)
-    value.update(schema=SCHEMA,sourceCommit=SOURCE,operationIdentity='UNKNOWN',
+    value.update(schema=SCHEMA,sourceCommit=source,requestABICommit=contract.SOURCE,operationIdentity='UNKNOWN',
         originalPairByteBindingsObserved=False,originalLedgerReadOnly=False,
         originalPairReservationObserved=False,
         targetMigrationLedgerObserved=False,normalProducerInvoked=False,
@@ -54,11 +54,11 @@ def inspect_pair(*,binding,parent_directory,request_raw,workload_raw,context_raw
     require(enabled is True,'original pair inspection is explicitly opt-in')
     b.closed(binding,('schema','sourceCommit','requestSHA256','workloadSHA256','contextSHA256','expectedSHA256','files'),
              'closed original pair binding required')
-    require(binding['schema']==SCHEMA and binding['sourceCommit']==SOURCE,'exact original pair producer source required')
+    require(binding['schema']==SCHEMA and contract.inspected_source(binding['sourceCommit']),'exact original pair producer source required')
     statuses=('reserved','signed','submitted','included','qualified','failed','unknown')
     if funding_row is not None:
         require(type(funding_row) is dict and funding_row.get('status') in statuses,'original bounded funding status required')
-    out=report(funding_row['status'] if funding_row is not None else None)
+    out=report(funding_row['status'] if funding_row is not None else None,binding['sourceCommit'])
     inputs={'request':request_raw,'workload':workload_raw,'context':context_raw}
     missing=[key for key,raw in inputs.items() if raw is None]
     if expected_raws is None:missing.append('bothCompleteExpected')
@@ -205,7 +205,8 @@ def audit_durable_pair(run_raw,run_sha256,*,source_tools,plan_raw,accounting_raw
                         private_database=private_database)
     if observed['privateOriginalStatus']!='READ_ONLY_ORIGINAL_ACCOUNTING_OBSERVED':
         out=report();out['missingEvidence']=observed['missingEvidence'] or ['privateDatabase'];return out
-    require(source_tools['source']['commit']==SOURCE,'original pair source differs from driver')
+    require(source_tools['source']['commit']==original['binding']['sourceCommit']
+            and contract.inspected_source(source_tools['source']['commit']),'original pair source differs from driver')
     receipt=a.strict(accounting_raw);plan=a.strict(plan_raw,a.d.MAX_PLAN_BYTES)['plan']
     require(plan['workloadSHA256']==original['binding']['workloadSHA256'],'original pair workload differs from driver')
     value=a.d.make_plan(plan['networkPlanSHA256'],plan['workloadSHA256'],plan['mode'],plan['accounts'],
@@ -216,7 +217,7 @@ def audit_durable_pair(run_raw,run_sha256,*,source_tools,plan_raw,accounting_raw
     try:
         row=ledger.row(index)
         if row['status'] in ('not_released','queued') and row['ownerIndex'] is None and row['operationId'] is None:
-            out=report(row['status']);out['missingEvidence']=['originalClaimedFundingRow'];out['originalLedgerReadOnly']=True
+            out=report(row['status'],source_tools['source']['commit']);out['missingEvidence']=['originalClaimedFundingRow'];out['originalLedgerReadOnly']=True
             out['originalPins']['database']=dict(receipt['database'])
             cause=observed['firstCause'];out['originalFirstCauseSHA256']=None if cause is None else b.sha(cause.encode())
             return out
@@ -227,7 +228,9 @@ def audit_durable_pair(run_raw,run_sha256,*,source_tools,plan_raw,accounting_raw
         if out['originalPairByteBindingsObserved']:
             reservation=ledger.read_enrollment_pair(index,original['binding']['requestSHA256'])
             if reservation.get('privateOriginalOnly') is True:
-                require(reservation['requestRaw']==original['request_raw'],'original reserved pair request differs from outbox')
+                require(reservation['requestRaw']==original['request_raw']
+                        and reservation['sourceCommit']==original['binding']['sourceCommit'],
+                        'original reserved pair request/source differs from outbox')
                 out['originalPairReservationObserved']=True
                 out['originalPins']['pairReservation']=dict(requestSHA256=reservation['requestSHA256'],
                     sourceCommit=reservation['sourceCommit'],reservationStartedNs=reservation['reservationStartedNs'],

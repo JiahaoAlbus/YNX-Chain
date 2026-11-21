@@ -370,7 +370,7 @@ class DurableLedger:
         require(enabled is True,'original enrollment reservation is explicitly opt-in')
         started=time.monotonic_ns()
         with self._transaction():
-            require(source==enrollment.SOURCE and enrollment.digest(request_sha256)
+            require(enrollment.inspected_source(source) and enrollment.digest(request_sha256)
                     and type(request_raw) is bytes and enrollment.sha(request_raw)==request_sha256,
                     'original enrollment source/request pin differs')
             r=enrollment.request(request_raw)
@@ -445,7 +445,7 @@ class DurableLedger:
         row=self.db.execute('SELECT source,request_sha256,request_raw,reservation_ns,confirmation_ns,funding_confirmation,'
                             'migration_confirmation FROM enrollment_pairs WHERE funding_idx=?',(index,)).fetchone()
         if row is None:return dict(status='UNKNOWN',missingEvidence=['originalPairReservation'])
-        require(row[0]==enrollment.SOURCE and row[1]==request_sha256 and enrollment.sha(row[2])==request_sha256,
+        require(enrollment.inspected_source(row[0]) and row[1]==request_sha256 and enrollment.sha(row[2])==request_sha256,
                 'original pair request/source changed')
         r=enrollment.request(row[2]);ids=dict(self.db.execute('SELECT role,operation_id FROM enrollment_ids WHERE funding_idx=?',(index,)))
         require(ids=={role:r[role+'OperationId'] for role in ('funding','migration')},'original pair operation reservation incomplete')
