@@ -938,18 +938,21 @@ class NormalBackend:
             return
         try:
             if process.stdin is not None and not process.stdin.closed:
-                try:
-                    process.stdin.close()
-                except (OSError, ValueError):
-                    pass
+                if getattr(self,'guarded_shutdown',False):
+                    lab.require(callable(getattr(process.stdin,'cut_once',None)), 'original proof stdin guard missing; cleanup debt')
+                    cut=process.stdin.cut_once(timeout=.05)
+                    lab.require(cut.get('cleanupDebt') is False, 'original proof stdin cut UNKNOWN; cleanup debt')
+                else:
+                    try:process.stdin.close()
+                    except (OSError, ValueError):pass
             try:
                 process.wait(timeout=.25)
             except subprocess.TimeoutExpired:
-                process.terminate()
+                lab.signal_original_child(process,signal.SIGTERM,group=False)
                 try:
                     process.wait(timeout=1)
                 except subprocess.TimeoutExpired:
-                    process.kill()
+                    lab.signal_original_child(process,signal.SIGKILL,group=False)
                     process.wait(timeout=1)
             self.w.retire_log(process)
         except (OSError, RuntimeError, ValueError, subprocess.TimeoutExpired) as error:
@@ -1032,20 +1035,68 @@ class NormalBackend:
         self.finalize(self.observe(self.publish(row,account,notify,stop),notify,stop),notify,stop)
     def stop(self):
         self.stop_event.set();self.w.stopping=True
-        with self.w.lock:children=list(self.w.children)
+        self.w.closed_for_launch=True
+        if not self.w.lock.acquire(timeout=1):
+            raise RuntimeError('original backend cleanup lock did not retire; preserve cleanup debt')
+        try:children=list(self.w.children)
+        finally:self.w.lock.release()
         for child in children:
             if child["name"].startswith("load-") and child["process"].poll() is None:
-                try:os.killpg(child["process"].pid,signal.SIGTERM)
+                try:lab.signal_original_child(child["process"],signal.SIGTERM)
                 except ProcessLookupError:pass
         # Terminate before closing buffered stdin so a stalled child cannot
         # hold a writer/close lock past the bounded cleanup boundary.
-        senders = [session.proc for session in self.sessions.values()]
-        proof_sessions = [child["process"] for child in children
-                          if child["name"].startswith("load-live-session-")]
-        for process in [*senders, *proof_sessions]:
-            if process.stdin is not None and not process.stdin.closed:
+        stream_debt=[]
+        for session in self.sessions.values():
+            process=session.proc
+            if getattr(session,'poison_retirement',False):
+                # The original process has already been signalled above. Never
+                # race an active writer's dup2/close or wait without a bound.
+                if not session.lock.acquire(timeout=.05):
+                    session.stopStreamLockDeferred=True
+                    stream_debt.append('original owner stream still leased')
+                    continue
+                try:
+                    if session.poisoned:
+                        report=session.retire_poison_once()
+                        if report.get('stdinRetirement',{}).get('cleanupDebt') is True or report.get('stdinCloseErrorType'):
+                            stream_debt.append('original poisoned owner stdin remains UNKNOWN')
+                    elif process.stdin is not None and not process.stdin.closed:
+                        if callable(getattr(process.stdin,'cut_once',None)):
+                            session.stopStreamRetirement=process.stdin.cut_once(timeout=.05)
+                            if session.stopStreamRetirement.get('cleanupDebt') is not False:
+                                stream_debt.append('original owner stdin remains UNKNOWN')
+                        else:
+                            # Experimental owner sessions must never fall back
+                            # to an unguarded potentially blocking close.
+                            session.stopStreamRetirement=dict(status='UNKNOWN',cleanupDebt=True,reason='original stdin guard missing')
+                            stream_debt.append('original owner stdin guard missing')
+                finally:session.lock.release()
+            elif process.stdin is not None and not process.stdin.closed:
                 try:process.stdin.close()
                 except (OSError,ValueError):pass
+        proof_sessions = [child["process"] for child in children
+                          if child["name"].startswith("load-live-session-")]
+        for process in proof_sessions:
+            if process.stdin is not None and not process.stdin.closed:
+                if getattr(self,'guarded_shutdown',False):
+                    if not callable(getattr(process.stdin,'cut_once',None)):
+                        stream_debt.append('original proof stdin guard missing')
+                    else:
+                        cut=process.stdin.cut_once(timeout=.05)
+                        if cut.get('cleanupDebt') is not False:stream_debt.append('original proof stdin remains UNKNOWN')
+                else:
+                    try:process.stdin.close()
+                    except (OSError,ValueError):pass
+        if stream_debt:
+            raise RuntimeError('; '.join(stream_debt)+'; preserve cleanup debt')
+
+
+def stop_backend_preserving_cause(backend,result):
+    try:backend.stop()
+    except BaseException as error:
+        result['backendStopError']=dict(errorType=type(error).__name__,reason=str(error),cleanupDebt=True)
+        result['firstCause']=result['firstCause'] or str(error)
 
 
 def attach_live_reader(ceremony, live_module):
@@ -1151,7 +1202,8 @@ def prepare_live_materials_session(backend, lane, check):
         str(ceremony.bins / "ynx-consensus-pq-lab"), "live-materials-session",
         "--synthetic", "--policy", str(lane["policy"]), "--policy-sha256", lane["pin"],
         "--ready", "--timings",
-    ], stdin_pipe=True, thread_safe=True, private_log=True)
+    ], stdin_pipe=True, thread_safe=True, private_log=True,
+       **({'original_pidfd':True} if getattr(backend,'guarded_shutdown',False) else {}))
     lane["originalProcess"] = stream.proc
     deadline = time.monotonic() + ceremony.proof_timeout
     # READY and requests stay in the private stream. The normal portable
@@ -1406,7 +1458,7 @@ def run(args):
     finally:
         stop.set()
         if backend is not None:
-            backend.stop()
+            stop_backend_preserving_cause(backend,result)
             if getattr(backend, "pool_ready", None) is not None:
                 # A later lane can fail before the whole pool returns. Keep
                 # the successful earlier READY frames and their elapsed times.
@@ -1443,6 +1495,27 @@ def run(args):
             journal.close();result["journalSegments"]=[dict(path=str(p.relative_to(work/"public")),bytes=p.stat().st_size,sha256=lab.guard.digest(p)) for p in journal.paths]
         try:result["cleanupComplete"]=w.stop()
         except BaseException as error:result["cleanupComplete"]=False;result["cleanupError"]=str(error);result["directOwnedCleanupAfterFailure"]=getattr(w,"direct_cleanup_after_failure",[])
+        if backend is not None:
+            identities=[]
+            for session in backend.sessions.values():
+                if getattr(session,'poison_retirement',False):
+                    identities.append(session.retire_identity_after_window())
+            if getattr(backend,'guarded_shutdown',False):
+                for child in w.children:
+                    process=child['process']
+                    if child['name'].startswith('load-live-session-'):
+                        handle=vars(process).get('_ynx_original_pidfd')
+                        if handle is None or process.poll() is None or process.stdin is None or not process.stdin.closed:
+                            identities.append(dict(status='ORIGINAL_PROOF_CLEANUP_DEBT',closed=False))
+                        else:
+                            try:handle.close();identities.append(dict(status='ORIGINAL_PROOF_IDENTITY_CLOSED_AFTER_REAP',closed=True))
+                            except BaseException as error:identities.append(dict(status='ORIGINAL_PROOF_IDENTITY_CLOSE_FAILED',closed=False,errorType=type(error).__name__))
+            if identities:
+                result['experimentalOwnerPidfdCleanup']=identities
+                if any(not item['closed'] for item in identities):
+                    result['cleanupComplete']=False
+                    result['firstCause']=result['firstCause'] or 'original experimental owner identity cleanup incomplete'
+                if hasattr(backend,'public_owner_report'):result['normalPublicOwnerTransport']=backend.public_owner_report()
         if backend is not None and result["cleanupComplete"] and "loadResult" in result:
             result["stoppedLiveProofFailures"]=backend.retain_stopped_live_proof_failures(result["loadResult"])
         if ceremony is not None and ceremony.commit_observation_enabled:

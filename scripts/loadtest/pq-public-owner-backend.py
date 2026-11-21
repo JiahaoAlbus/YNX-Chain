@@ -4,7 +4,7 @@ import time
 
 def backend_class(Base, Session, normal, lab):
     class PublicOwnerBackend(Base):
-        def __init__(self,ceremony,owners,stop,*,prepare_source=False,prepare_live_session=None):
+        def __init__(self,ceremony,owners,stop,*,prepare_source=False,prepare_live_session=None,guarded_shutdown=False):
             lab.require(ceremony.mode=='online','public owner session requires original online workload')
             indices=sorted(v['ownerIndex'] for v in owners)
             lab.require(len(set(indices))==len(indices),'original initialized owners must be distinct')
@@ -12,6 +12,9 @@ def backend_class(Base, Session, normal, lab):
             # Four validators, one shared public owner process, parent and
             # original three proof helpers fit the unchanged owned PID cap.
             lab.require(6+self.helper_limit<=lab.guard.CAPS['ownedProcesses'],'unchanged original PID cap exceeded')
+            lab.require(type(guarded_shutdown) is bool and (not guarded_shutdown or prepare_source),
+                        'guarded shutdown requires the original prepared public session')
+            self.guarded_shutdown = guarded_shutdown
             self.prepare_source = prepare_source
             self.prepare_live_session = prepare_live_session
             lane_count = len(ceremony.live) if prepare_live_session is not None else 0
@@ -22,7 +25,7 @@ def backend_class(Base, Session, normal, lab):
             lab.require(self.maximum_pids <= lab.guard.CAPS['ownedProcesses'],
                         'original PID cap cannot accommodate the live proof sessions')
             self.public_session = (
-                Session(ceremony, indices, prepare_source=True)
+                Session(ceremony, indices, prepare_source=True, **({'poison_retirement':True} if guarded_shutdown else {}))
                 if prepare_source else Session(ceremony, indices)
             )
             # Exactly one process in the existing session registry. Reuse the

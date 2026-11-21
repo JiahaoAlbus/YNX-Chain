@@ -342,6 +342,19 @@ class ProcessEvidence:
         self.index[key]=len(self.records);self.records.append(row)
 
 
+
+def signal_original_child(process, signum, *, group=True):
+    """Use an attached original pidfd when supplied; never downgrade it."""
+    identity=vars(process).get('_ynx_original_pidfd')
+    if identity is not None:
+        identity.send(signum)
+    elif vars(process).get('_ynx_original_pidfd_required',False):
+        raise RuntimeError('original owner pidfd missing; no numeric signal fallback')
+    elif group:
+        os.killpg(process.pid,signum)
+    else:
+        process.send_signal(signum)
+
 class Window:
     def __init__(self, source, work, additional_storage=()):
         self.lock = threading.RLock()
@@ -361,6 +374,7 @@ class Window:
         self.logs = []
         self.closed_log_identity = {}
         self.stopping = False
+        self.closed_for_launch = False # Terminal Window.stop fence, distinct from bootstrap halt.
         self.env = {k: v for k, v in os.environ.items() if not k.startswith(("CMT_", "YNX_", "GOFLAGS"))}
         self.env.update(GOMAXPROCS="2", GOMEMLIMIT="1024MiB", GOGC="75",
                         GOTOOLCHAIN="local", GOCACHE=str(work / ".private/cache"),
@@ -398,8 +412,16 @@ class Window:
                     row['maxNs']=ns if row['maxNs'] is None else max(row['maxNs'],ns)
 
     def sample_stage_report(self):
-        with self.lock:
-            values={name:dict(row) for name,row in self.sample_stage_totals.items()}
+        # Diagnostics must not indefinitely prevent retaining the original
+        # failure receipt. No values are fabricated if the owner is blocked.
+        if not self.lock.acquire(timeout=1):
+            return dict(schema='YNX-PERF-ORIGINAL-RESOURCE-GUARD-STAGES/v1',
+                status='UNKNOWN',clock='parent_monotonic_ns',stages={},intervalsOverlap=True,
+                guardChecksPreserved=True,byteAccountingChanged=False,cadenceChanged=False,
+                firstStorageSampleGuaranteed=True,pidOrRSSCached=False,
+                reason='original resource guard lock unavailable; stages not observed')
+        try:values={name:dict(row) for name,row in self.sample_stage_totals.items()}
+        finally:self.lock.release()
         for row in values.values():
             if not row['timedCalls']:row['totalNs']=None
         return dict(schema='YNX-PERF-ORIGINAL-RESOURCE-GUARD-STAGES/v1',
@@ -467,13 +489,17 @@ class Window:
         if len(self.samples) < 1800 and (not self.samples or time.monotonic() - self.samples[-1]["at"] >= 1):
             self.samples.append(dict(at=time.monotonic(), rssBytes=rss, newBytes=size, processes=len(ids)))
 
-    def launch(self, name, command, persistent=False, pass_fds=(), stdin_path=None, stdin_pipe=False, thread_safe=False, *, private_log=False, stop=None):
+    def launch(self, name, command, persistent=False, pass_fds=(), stdin_path=None, stdin_pipe=False, thread_safe=False, *, private_log=False, stop=None, original_pidfd=False):
         with self.lock:
-            return self._launch(name, command, persistent, pass_fds, stdin_path, stdin_pipe, thread_safe, private_log, stop)
+            return self._launch(name, command, persistent, pass_fds, stdin_path, stdin_pipe, thread_safe, private_log, stop, original_pidfd)
 
-    def _launch(self, name, command, persistent, pass_fds, stdin_path, stdin_pipe, thread_safe, private_log, stop=None):
+    def _launch(self, name, command, persistent, pass_fds, stdin_path, stdin_pipe, thread_safe, private_log, stop=None, original_pidfd=False):
+        require(not getattr(self,'closed_for_launch',False), 'original Window has already entered terminal stop')
         require(not (stdin_pipe and stdin_path is not None), "one original stdin transport required")
+        require(type(original_pidfd) is bool and (not original_pidfd or (thread_safe and stdin_pipe)),
+                'original pidfd only for one thread-safe owned stdin stream')
         self.sample()
+        require(not getattr(self,'closed_for_launch',False), 'original Window has already entered terminal stop')
         require(stop is None or not stop.is_set(), "normal helper cancelled before launch; preserve UNKNOWN")
         log = open(self.work / (".private" if private_log else "public") / (name + ".log"),
                    "xb", buffering=0)
@@ -496,12 +522,28 @@ class Window:
             if source_input is not None:
                 source_input.close()
         row = dict(name=name, process=proc, persistent=persistent, command=list(command), startedNs=time.monotonic_ns())
-        self.children.append(row)
+        if not original_pidfd:self.children.append(row) # Original default ordering.
+        else:proc._ynx_original_pidfd_required=True
         try:
-            row["startTicks"] = guard.parse_stat(guard.bounded(Path("/proc") / str(proc.pid) / "stat"), proc.pid)["startTicks"]
-            self.known[proc.pid] = row["startTicks"]
-        except FileNotFoundError:
-            row["startTicks"] = None
+            try:
+                row["startTicks"] = guard.parse_stat(guard.bounded(Path("/proc") / str(proc.pid) / "stat"), proc.pid)["startTicks"]
+                self.known[proc.pid] = row["startTicks"]
+            except FileNotFoundError:
+                row["startTicks"] = None
+            if original_pidfd:
+                # Wrap before publishing the process: every subsequent stdin
+                # write/flush shares the exact same retirement lock.
+                stream_spec=importlib.util.spec_from_file_location('original_guarded_stdin',Path(__file__).with_name('pq-guarded-original-stdin.py'))
+                stream_module=importlib.util.module_from_spec(stream_spec);stream_spec.loader.exec_module(stream_module)
+                proc.stdin=stream_module.GuardedOriginalStdin(proc.stdin)
+                # Before publishing this child the observer cannot poll/reap it.
+                spec=importlib.util.spec_from_file_location('original_owner_pidfd',Path(__file__).with_name('pq-experimental-owner-pidfd.py'))
+                identity=importlib.util.module_from_spec(spec);spec.loader.exec_module(identity)
+                proc._ynx_original_pidfd=identity.OriginalOwnerPidfd(proc)
+        except BaseException:
+            if original_pidfd:self.children.append(row) # Preserve explicit debt; never numeric fallback.
+            raise
+        if original_pidfd:self.children.append(row)
         return proc
 
     def wait(self, proc, allow_failure=False):
@@ -573,6 +615,21 @@ class Window:
         return len(rows)
 
     def stop(self):
+        # Publish a permanent launch fence before waiting for the lock. A
+        # stalled launch must not hold the scheduler past the cleanup boundary.
+        # Never reap or signal an unpublished child on lock timeout: retain
+        # explicit UNKNOWN/cleanup debt for the original owner to reconcile.
+        self.closed_for_launch=True
+        started=time.monotonic()
+        if not self.lock.acquire(timeout=1):
+            raise RuntimeError('original Window cleanup lock did not retire; preserve cleanup debt')
+        try:
+            self.terminal_stop_started=started
+            return self._stop_locked()
+        finally:
+            self.lock.release()
+
+    def _stop_locked(self):
         try:
             return self._stop()
         except BaseException:
@@ -586,9 +643,9 @@ class Window:
             for child in self.children:
                 proc=child["process"]
                 if proc.poll() is None:
-                    try:os.killpg(proc.pid,signal.SIGTERM)
+                    try:signal_original_child(proc,signal.SIGTERM)
                     except ProcessLookupError:pass
-                    except OSError as error:errors.setdefault(proc.pid,[]).append(dict(operation="signal",errorType=type(error).__name__,errno=error.errno))
+                    except (OSError,RuntimeError) as error:errors.setdefault(proc.pid,[]).append(dict(operation="signal",errorType=type(error).__name__,errno=getattr(error,'errno',None)))
             for child in self.children:
                 proc=child["process"]
                 try:
@@ -596,7 +653,7 @@ class Window:
                     except subprocess.TimeoutExpired:
                         # Still the original unreaped direct child, not a
                         # numeric /proc candidate. No foreign PID is selected.
-                        proc.kill();proc.wait(timeout=1)
+                        signal_original_child(proc,signal.SIGKILL,group=False);proc.wait(timeout=1)
                 except Exception as error:
                     errors.setdefault(proc.pid,[]).append(dict(operation="wait",errorType=type(error).__name__))
                 self.direct_cleanup_after_failure.append(dict(name=child["name"],pid=proc.pid,startTicks=child.get("startTicks"),rawReturnCode=proc.returncode,exited=proc.returncode is not None,**(dict(errors=errors[proc.pid]) if proc.pid in errors else {})))
@@ -608,7 +665,8 @@ class Window:
 
     def _stop(self):
         self.stopping = True
-        started = time.monotonic()
+        started = getattr(self, 'terminal_stop_started', None)
+        if started is None: started = time.monotonic()
         rows, _ = guard.proc_inventory()
         for pid in guard.owned_set(rows, os.getpid(), known=self.known):
             self.known[pid] = rows[pid]["startTicks"]
@@ -619,7 +677,7 @@ class Window:
             if c["process"].poll() is None:
                 if re.fullmatch(r"(?:bootstrap|pq)-node-[0-3]", c["name"]):
                     normal_nodes[c["process"].pid] = c["startTicks"]
-                try: os.killpg(c["process"].pid, signal.SIGTERM)
+                try: signal_original_child(c["process"], signal.SIGTERM)
                 except ProcessLookupError: pass
         while time.monotonic() - started < CAPS["cleanupSeconds"]:
             rows, _ = guard.proc_inventory()
@@ -639,14 +697,16 @@ class Window:
                     try:
                         current = guard.parse_stat(guard.bounded(Path("/proc") / str(pid) / "stat"), pid)
                         if current["startTicks"] == expected["startTicks"]:
-                            os.kill(pid, signal.SIGKILL)
+                            owner=next((c["process"] for c in self.children if c["process"].pid==pid and (vars(c["process"]).get('_ynx_original_pidfd') is not None or vars(c["process"]).get('_ynx_original_pidfd_required',False))),None)
+                            if owner is not None:signal_original_child(owner,signal.SIGKILL,group=False)
+                            else:os.kill(pid, signal.SIGKILL)
                     except ProcessLookupError: pass
                     except FileNotFoundError: pass
             for c in self.children: c["process"].poll()
             time.sleep(.1)
         for c in self.children:
             if c["process"].poll() is None:
-                c["process"].kill()
+                signal_original_child(c["process"],signal.SIGKILL,group=False)
             c["process"].wait(timeout=1)
         for _, log in self.logs: log.close()
         # Reap only our own adopted children, never another runner task.
