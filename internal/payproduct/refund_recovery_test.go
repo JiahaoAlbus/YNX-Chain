@@ -28,6 +28,56 @@ func (p *refundLostPay) CreateAuthorizedRefund(_ context.Context, input Authoriz
 	return chain.RefundRecord{}, errors.New("remote accepted; response lost")
 }
 
+func TestRefundSubmissionRequiresOriginalMerchantInvoice(t *testing.T) {
+	for _, change := range []string{"missing", "wrong-id", "wrong-merchant"} {
+		t.Run(change, func(t *testing.T) {
+			s, m, invoice, v := settlementClaimFixture(t)
+			if _, err := s.acceptSettlement(invoice, m, v); err != nil {
+				t.Fatal(err)
+			}
+			request, err := s.CreateRefundRequest(WalletSession{Account: v.Payer}, invoice.ID, 30, "original refund", "original-refund-request")
+			if err != nil {
+				t.Fatal(err)
+			}
+			actor := MerchantPrincipal{Merchant: m, Account: m.PayoutAddress, Role: "finance"}
+			auth := signedRefundAuthorization(s.now(), request, invoice, actor, secp256k1.PrivKeyFromBytes(bytes32(5)), "0x"+strings.Repeat("c", 64))
+			p := &fakeAuthorizedRefundPay{fakePay: s.pay.(*fakePay)}
+			s.pay = p
+			if err := s.store.Update(func(data *Snapshot) error {
+				switch change {
+				case "missing":
+					delete(data.Invoices, invoice.ID)
+				case "wrong-id":
+					changed := data.Invoices[invoice.ID]
+					changed.ID = "another-invoice"
+					data.Invoices[invoice.ID] = changed
+				case "wrong-merchant":
+					changed := data.Invoices[invoice.ID]
+					changed.MerchantID = "another-merchant"
+					data.Invoices[invoice.ID] = changed
+				}
+				return nil
+			}); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := s.SubmitRefundAuthorization(context.Background(), actor, request.ID, auth, "original-refund-submit"); err == nil || err.Error() != "original refund invoice requires recovery" {
+				t.Fatalf("original invoice mismatch not refused: %v", err)
+			}
+			if p.createCalls != 0 {
+				t.Fatal("refund submitted without its original merchant invoice")
+			}
+			if err := s.store.View(func(data Snapshot) error {
+				if data.Refunds[request.ID].Status != "requested" {
+					t.Fatal("original refund state changed")
+				}
+				return nil
+			}); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
 func TestRefundUnknownColdStoreCannotBeReleasedOrResent(t *testing.T) {
 	s, m, invoice, v := settlementClaimFixture(t)
 	if _, err := s.acceptSettlement(invoice, m, v); err != nil {

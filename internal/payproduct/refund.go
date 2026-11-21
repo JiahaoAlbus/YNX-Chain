@@ -96,7 +96,10 @@ func (s *Service) SubmitRefundAuthorization(ctx context.Context, actor MerchantP
 		if !found || request.MerchantID != actor.Merchant.ID {
 			return errors.New("refund request not found")
 		}
-		invoice = data.Invoices[request.InvoiceID]
+		invoice, found = data.Invoices[request.InvoiceID]
+		if !found || invoice.ID != request.InvoiceID || invoice.MerchantID != request.MerchantID {
+			return errors.New("original refund invoice requires recovery")
+		}
 		if request.Status == "refunded" {
 			return nil
 		}
