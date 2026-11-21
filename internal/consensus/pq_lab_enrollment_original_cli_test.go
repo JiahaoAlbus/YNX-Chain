@@ -7,10 +7,12 @@ import (
 	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -30,36 +32,82 @@ import (
 // Normal generated original plan/custody plus a real four-validator synthetic
 // BlockExecutor/BlockStore, not a started node, a public chain or real funds.
 func TestPQLabEnrollmentOriginalCLIConfirmAndRestart(t *testing.T) {
-	root := filepath.Join(pqLabWorkloadTemp(t), "original-lab")
-	source, err := NewPQLabWorkloadSource(PQLabWorkloadOptions{Owners: 1, Transfers: 4, BatchSize: 1, Online: true})
-	if err != nil {
-		t.Fatal(err)
+	root, sourceCommit, retain := privateEnrollmentFixtureRoot(t)
+	perf := os.Getenv("YNX_PQ_ENROLLMENT_PRIVATE_FIXTURE_MODE") == "synthetic-perf-handshake"
+	var source *PQLabWorkloadSource
+	var err error
+	if !perf {
+		source, err = NewPQLabWorkloadSource(PQLabWorkloadOptions{Owners: 1, Transfers: 4, BatchSize: 1, Online: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer source.Destroy()
+		if _, err = GeneratePQLabNetwork(source.Migration, PQLabNetworkOptions{RootDir: root, BaseP2P: 31656, BaseRPC: 31757}); err != nil {
+			t.Fatal(err)
+		}
 	}
-	defer source.Destroy()
-	plan, err := GeneratePQLabNetwork(source.Migration, PQLabNetworkOptions{RootDir: root, BaseP2P: 31656, BaseRPC: 31757})
-	if err != nil {
-		t.Fatal(err)
-	}
-	planRaw, err := os.ReadFile(filepath.Join(root, "network-plan.json"))
+	planRaw, err := pqLabRead(filepath.Join(root, "network-plan.json"), 1<<20)
 	if err != nil {
 		t.Fatal(err)
 	}
 	planPin := pqLabSHA(planRaw)
-	_, migration, bootstrap, err := loadPQLab(root, planPin)
+	if perf && os.Getenv("YNX_PQ_ENROLLMENT_PLAN_SHA256") != planPin {
+		t.Fatal("independent original plan pin differs")
+	}
+	plan, migration, bootstrap, err := loadPQLab(root, planPin)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(bootstrap.record.Members) != 4 {
 		t.Fatal("fixture did not use four original validators")
 	}
-	if _, err = source.WriteCorpus(filepath.Join(root, "workload"), migration); err != nil {
-		t.Fatal(err)
+	if !perf {
+		if _, err = source.WriteCorpus(filepath.Join(root, "workload"), migration); err != nil {
+			t.Fatal(err)
+		}
 	}
-	manifestRaw, err := os.ReadFile(filepath.Join(root, "workload", "PUBLIC-WORKLOAD.json"))
+	manifestRaw, err := pqLabRead(filepath.Join(root, "workload", "PUBLIC-WORKLOAD.json"), 8<<20)
 	if err != nil {
 		t.Fatal(err)
 	}
 	workloadPin := pqLabSHA(manifestRaw)
+	ownerIndex := 0
+	var manifest PQLabWorkloadManifest
+	binary := ""
+	cliSourceBinding := ""
+	var cliIdentity os.FileInfo
+	if perf {
+		if os.Getenv("YNX_PQ_ENROLLMENT_WORKLOAD_SHA256") != workloadPin || pqLabDecode(manifestRaw, &manifest) != nil || !manifest.SyntheticOnly || manifest.Mode != "online" || len(manifest.Owners) < 5 || manifest.Owners[4].Index != 4 || manifest.Owners[4].InitialNonce != "1" {
+			t.Fatal("independently pinned original owner4 online workload required")
+		}
+		capacity, e := strconv.Atoi(manifest.Owners[4].MemberCapacity)
+		if e != nil || capacity < 100 {
+			t.Fatal("original owner4 capacity 100 required")
+		}
+		ownerIndex = 4
+		marker, e := json.Marshal(struct {
+			Version        string `json:"version"`
+			SourceCommit   string `json:"sourceCommit"`
+			Root           string `json:"root"`
+			PlanSHA256     string `json:"planSHA256"`
+			WorkloadSHA256 string `json:"workloadSHA256"`
+			Outcome        string `json:"outcome"`
+		}{"YNX-PQ-SYNTHETIC-ENROLLMENT-ATTEMPT/v1", sourceCommit, root, planPin, workloadPin, "UNKNOWN"})
+		if e != nil {
+			t.Fatal(e)
+		}
+		if e = pqLabWrite(filepath.Join(root, "SYNTHETIC-ENROLLMENT-ATTEMPT.json"), marker); e != nil {
+			t.Fatal("original attempt marker already exists or was not durable; never retry", e)
+		}
+		if e = copySyntheticCLIFromFD(root, os.Getenv("YNX_PQ_ENROLLMENT_CLI_FD"), os.Getenv("YNX_PQ_ENROLLMENT_CLI_SHA256"), &cliIdentity, nil); e != nil {
+			t.Fatal("original synthetic CLI copy failed; preserve attempt without signing", e)
+		}
+		binary = filepath.Join(root, "synthetic-ynx-consensus-pq-lab")
+		if e = verifySyntheticCLIPath(root, os.Getenv("YNX_PQ_ENROLLMENT_CLI_SHA256"), cliIdentity); e != nil {
+			t.Fatal("original synthetic CLI verification failed; preserve attempt without signing", e)
+		}
+		cliSourceBinding = verifyPrivateEnrollmentFixtureBinary(t, binary, sourceCommit)
+	}
 	genesis, err := os.ReadFile(plan.GenesisFile)
 	if err != nil {
 		t.Fatal(err)
@@ -138,12 +186,21 @@ func TestPQLabEnrollmentOriginalCLIConfirmAndRestart(t *testing.T) {
 		h.apply(t, nil)
 	}
 	credentialPath := filepath.Join(root, "workload", "private-senders", "recovery.raw")
-	credential, err := os.ReadFile(credentialPath)
+	var credential []byte
+	var credentialFD *os.File
+	if perf {
+		credential, credentialFD, err = enrollmentSyntheticCredential(os.Getenv("YNX_PQ_ENROLLMENT_CREDENTIAL_FD"), credentialPath)
+	} else {
+		credential, err = os.ReadFile(credentialPath)
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
+	if credentialFD != nil {
+		defer credentialFD.Close()
+	}
 	defer clear(credential)
-	sender, err := OpenPQLabSender(filepath.Join(root, "workload"), workloadPin, 0, credential)
+	sender, err := OpenPQLabSender(filepath.Join(root, "workload"), workloadPin, ownerIndex, credential)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,7 +213,29 @@ func TestPQLabEnrollmentOriginalCLIConfirmAndRestart(t *testing.T) {
 	}
 	defer target.Destroy()
 	checkpoint := pqLabSenderTestCheckpoint(t, app, migration)
-	request := PQLabEnrollmentRequest{Version: "YNX-PQ-LAB-ENROLLMENT-REQUEST/v1", FundingOperationID: strings.Repeat("a", 64), MigrationOperationID: strings.Repeat("b", 64), OwnerIndex: 0, FundingNonce: 2, TargetOwner: owner, FundingAmount: 3, ActivationHeight: uint64(checkpoint.state.Height + 8), PKA: pub.PKA, PKB: pub.PKB}
+	request := PQLabEnrollmentRequest{Version: "YNX-PQ-LAB-ENROLLMENT-REQUEST/v1", FundingOperationID: strings.Repeat("a", 64), MigrationOperationID: strings.Repeat("b", 64), OwnerIndex: ownerIndex, FundingNonce: 2, TargetOwner: owner, FundingAmount: 3, ActivationHeight: uint64(checkpoint.state.Height + 8), PKA: pub.PKA, PKB: pub.PKB}
+	if perf {
+		request.FundingOperationID = ""
+		request.MigrationOperationID = ""
+		conn, e := enrollmentReserveSocket(os.Getenv("YNX_PQ_ENROLLMENT_RESERVATION_FD"))
+		if e != nil {
+			t.Fatal("original reservation socket unavailable", e)
+		}
+		ready := enrollmentReserveReady{Version: "YNX-PQ-ENROLLMENT-RESERVE-READY/v1", SourceCommit: sourceCommit, Root: root, PlanPath: filepath.Join(root, "network-plan.json"), PlanSHA256: planPin, WorkloadPath: filepath.Join(root, "workload", "PUBLIC-WORKLOAD.json"), WorkloadSHA256: workloadPin, OwnerIndex: ownerIndex, OwnerAddress: manifest.Owners[ownerIndex].Owner, NextNonce: "2"}
+		var ack enrollmentReserveAck
+		e = enrollmentReserveBeforeSign(conn, ready, &request, &ack)
+		closeErr := conn.Close()
+		if e != nil || closeErr != nil {
+			t.Fatal("original reservation failed; marker retained, never retry", errors.Join(e, closeErr))
+		}
+		ackRaw, e := json.Marshal(ack)
+		if e != nil {
+			t.Fatal(e)
+		}
+		if e = pqLabWrite(filepath.Join(root, "SYNTHETIC-ENROLLMENT-PEER-ACK.json"), ackRaw); e != nil {
+			t.Fatal("ACK retention failed; never sign or retry", e)
+		}
+	}
 	signed, err := sender.SignPQLabEnrollmentOriginals(request, checkpoint, classic, target)
 	if err != nil {
 		t.Fatal(err)
@@ -271,23 +350,39 @@ func TestPQLabEnrollmentOriginalCLIConfirmAndRestart(t *testing.T) {
 		MigrationProofFile       string                 `json:"migrationProofFile"`
 	}
 	cmd := command{Version: "YNX-PQ-LAB-ENROLLMENT-COMMAND/v1", Operation: "confirm", Request: request, RequestSHA256: pqLabSHA(requestRaw), FundingMaterialsFile: fm, FundingMaterialsSHA256: fmPin, FundingProofFile: fp, MigrationMaterialsFile: mm, MigrationMaterialsSHA256: mmPin, MigrationProofFile: mp}
-	binary := filepath.Join(pqLabWorkloadTemp(t), "ynx-consensus-pq-lab")
-	build := exec.Command("go", "build", "-o", binary, "../../cmd/ynx-consensus-pq-lab")
-	if output, e := build.CombinedOutput(); e != nil {
-		t.Fatalf("normal CLI build: %v: %s", e, output)
+	if !perf {
+		binary = filepath.Join(pqLabWorkloadTemp(t), "ynx-consensus-pq-lab")
+		if retain {
+			binary = filepath.Join(root, "synthetic-ynx-consensus-pq-lab")
+		}
+		build := exec.Command("go", "build", "-buildvcs=true", "-o", binary, "../../cmd/ynx-consensus-pq-lab")
+		if output, e := build.CombinedOutput(); e != nil {
+			t.Fatalf("normal CLI build: %v: %s", e, output)
+		}
+		if retain {
+			cliSourceBinding = verifyPrivateEnrollmentFixtureBinary(t, binary, sourceCommit)
+		}
 	}
 	invoke := func(c command) []byte {
 		t.Helper()
+		if perf {
+			if e := verifySyntheticCLIPath(root, os.Getenv("YNX_PQ_ENROLLMENT_CLI_SHA256"), cliIdentity); e != nil {
+				t.Fatal("original synthetic CLI changed; original operation remains UNKNOWN", e)
+			}
+		}
 		raw, e := json.Marshal(c)
 		if e != nil {
 			t.Fatal(e)
 		}
-		fd, e := os.Open(credentialPath)
-		if e != nil {
-			t.Fatal(e)
+		fd := credentialFD
+		if !perf {
+			fd, e = os.Open(credentialPath)
+			if e != nil {
+				t.Fatal(e)
+			}
+			defer fd.Close()
 		}
-		defer fd.Close()
-		p := exec.Command(binary, "enrollment-original", "--synthetic", "--root", root, "--plan-sha256", planPin, "--workload-sha256", workloadPin, "--owner", "0", "--credential-fd", "3")
+		p := exec.Command(binary, "enrollment-original", "--synthetic", "--root", root, "--plan-sha256", planPin, "--workload-sha256", workloadPin, "--owner", strconv.Itoa(ownerIndex), "--credential-fd", "3")
 		p.ExtraFiles = []*os.File{fd}
 		p.Stdin = bytes.NewReader(raw)
 		var stdout, stderr bytes.Buffer
@@ -309,6 +404,7 @@ func TestPQLabEnrollmentOriginalCLIConfirmAndRestart(t *testing.T) {
 		}
 		time.Sleep(delay)
 	}
+	confirmCommand := cmd
 	responseRaw := invoke(cmd)
 	var response struct {
 		Code                 string                      `json:"code"`
@@ -361,5 +457,8 @@ func TestPQLabEnrollmentOriginalCLIConfirmAndRestart(t *testing.T) {
 	}
 	if !bytes.Equal(fundConfirmed, read(filepath.Join(fundDir, "CONFIRMED.json"))) || !bytes.Equal(migrationConfirmed, read(filepath.Join(migrationDir, "CONFIRMED.json"))) {
 		t.Fatal("cold recovery changed original confirmation bytes")
+	}
+	if retain {
+		retainPrivateEnrollmentFixture(t, root, binary, sourceCommit, cliSourceBinding, planPin, workloadPin, trustedHeader.Time.Add(materials.TrustingPeriod), requestRaw, confirmCommand, cmd, responseRaw, recovery)
 	}
 }

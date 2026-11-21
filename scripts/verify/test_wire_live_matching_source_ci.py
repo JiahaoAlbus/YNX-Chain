@@ -525,7 +525,7 @@ class WireLiveSourceControls(unittest.TestCase):
         scope_start = scope.index('git diff --name-only "$BEFORE" "$AFTER" -- \\\n            go.mod go.sum')
         scope_end = scope.index(' > "$RUNNER_TEMP/client-observation-changes.txt"', scope_start)
         client_paths = scope[scope_start:scope_end]
-        for path in ('scripts/verify/pq-clock-ab-ci.sh', 'scripts/verify/pq-enrollment-original-ci-receipt.py', '.github/workflows/resource-market-ci.yml'):
+        for path in ('scripts/verify/pq-clock-ab-ci.sh', 'scripts/verify/pq-enrollment-original-ci-receipt.py', 'scripts/verify/qualify_pq_private_synthetic_ci.py', '.github/workflows/resource-market-ci.yml'):
             self.assertEqual(client_paths.count(path), 1)
         for event in ('push', 'pull_request'):
             block = re.split(r'(?m)^  [A-Za-z_]+:', workflow.split('  ' + event + ':\n', 1)[1], 1)[0]
@@ -546,6 +546,7 @@ class WireLiveSourceControls(unittest.TestCase):
                         "Exercise the original readback CLI and complete logical denominators",
                         "Verify normal PQ lab producers and the original proof caller",
                         "Retain original synthetic enrollment test events",
+                        "Verify private synthetic enrollment safety controls",
                         "Verify the default-off normal node wire observation adapter"]
         optional_steps = ["Verify strict source availability and separated Go stream controls",
                           "Acquire only the immutable optional supplier object",
@@ -560,6 +561,12 @@ class WireLiveSourceControls(unittest.TestCase):
                      'name: ynx-enrollment-original-events-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}',
                      'path: ${{ runner.temp }}/ynx-enrollment-original-ci', 'if-no-files-found: error'):
             self.assertEqual(receipt.count(line), 1)
+        private = client.split('      - name: Verify private synthetic enrollment safety controls\n', 1)[1].split('      - name:', 1)[0]
+        for line in ("YNX_PQ_ENROLLMENT_PRIVATE_FIXTURE_MODE: ''", "YNX_PQ_ENROLLMENT_PRIVATE_FIXTURE_ROOT: ''",
+                     "-run '^(TestSyntheticEnrollmentCLIBinaryFDControls|TestSyntheticEnrollmentReservationFrameRefusals|TestPrivateEnrollmentFixturePathRefusals|TestPrivateEnrollmentBuildIdentityMissingAndConflicting)$'",
+                     'python3 -B scripts/verify/qualify_pq_private_synthetic_ci.py "$RUNNER_TEMP/ynx-private-synthetic-safety-tests.jsonl"'):
+            self.assertEqual(private.count(line), 1)
+        self.assertNotIn('upload-artifact', private)
         self.assertEqual(optional.count("        run: python3 -B scripts/verify/wire-live-matching-source-ci.py\n"), 1)
         self.assertEqual(optional.count("        run: python3 -B scripts/verify/test_wire_live_matching_source_ci.py\n"), 1)
         self.assertNotIn("go test", optional)
@@ -600,7 +607,13 @@ class WireLiveSourceControls(unittest.TestCase):
             self.assertIn(before, client)
             with self.assertRaises(AssertionError):
                 self.assert_optional_partition(workflow.replace(client, client.replace(before, after, 1), 1))
-        for path in ('scripts/verify/pq-clock-ab-ci.sh', 'scripts/verify/pq-enrollment-original-ci-receipt.py', '.github/workflows/resource-market-ci.yml'):
+        for before, after in (("YNX_PQ_ENROLLMENT_PRIVATE_FIXTURE_MODE: ''", "YNX_PQ_ENROLLMENT_PRIVATE_FIXTURE_MODE: active"),
+                              ('python3 -B scripts/verify/qualify_pq_private_synthetic_ci.py "$RUNNER_TEMP/ynx-private-synthetic-safety-tests.jsonl"', 'true')):
+            private_start = client.index('      - name: Verify private synthetic enrollment safety controls\n')
+            mutated = client[:private_start] + client[private_start:].replace(before, after, 1)
+            with self.assertRaises(AssertionError):
+                self.assert_optional_partition(workflow.replace(client, mutated, 1))
+        for path in ('scripts/verify/pq-clock-ab-ci.sh', 'scripts/verify/pq-enrollment-original-ci-receipt.py', 'scripts/verify/qualify_pq_private_synthetic_ci.py', '.github/workflows/resource-market-ci.yml'):
             scope = workflow_job(workflow, 'contract-tooling-scope')
             with self.assertRaises(AssertionError):
                 self.assert_optional_partition(workflow.replace(scope, scope.replace(path, 'missing-original-dependency', 1), 1))

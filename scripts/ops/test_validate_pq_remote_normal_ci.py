@@ -1562,6 +1562,10 @@ def assert_state_math_required_workflow_contract(step):
             step.count(terminal) != 2 or step.count("            exit 1\n") != 9 or
             "          required = []" in step or "          for name in required:\n" not in step):
         raise AssertionError("state40 must run once with exact unique PASS events and retained failures")
+    for value in ("YNX_PQ_ENROLLMENT_PRIVATE_FIXTURE_MODE: ''", "YNX_PQ_ENROLLMENT_PRIVATE_FIXTURE_ROOT: ''",
+                  "runpy.run_path('scripts/verify/qualify_pq_private_synthetic_ci.py')['qualify'](events)"):
+        if step.count(value) != 1:
+            raise AssertionError('private synthetic safety tests must run without retaining private fixture')
     chain_command = "          if ! go test -json -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor|TestPQHistoryMathCache|TestCombinedDetachedValidatorKeys)' ./internal/chain > \"$RUNNER_TEMP/ynx-native-history-chain-tests.jsonl\"; then\n"
     if step.count(chain_command) != 1:
         raise AssertionError("complete original chain selector must include the three combined validator cases")
@@ -2550,7 +2554,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
         push = raw.split('  push:\n', 1)[1].split('  pull_request:\n', 1)[0]
         pr = raw.split('  pull_request:\n', 1)[1].split('  workflow_dispatch:', 1)[0]
         for section in (push, pr):
-            for name in ('pq-clock-ab-ci.sh', 'pq-enrollment-command-ci.sh', 'qualify_pq_portable_ci.py'):
+            for name in ('pq-clock-ab-ci.sh', 'pq-enrollment-command-ci.sh', 'qualify_pq_portable_ci.py', 'qualify_pq_private_synthetic_ci.py'):
                 self.assertEqual(section.count("      - 'scripts/verify/" + name + "'\n"), 1)
 
 
@@ -4286,6 +4290,32 @@ class RetainedClientPublisherWorkflowControls(unittest.TestCase):
 
 class CompleteStatePartitionControls(unittest.TestCase):
     """Only source/JSONL controls; never synthesize a successful Go receipt."""
+
+    def test_private_synthetic_tests_are_required_and_closed_without_private_output(self):
+        import runpy
+        root, _, step, scope = self.workflow_parts()
+        guard = runpy.run_path(str(root / 'scripts/verify/qualify_pq_private_synthetic_ci.py'))
+        package = guard['PACKAGE']
+        names = guard['REQUIRED']
+        self.assertEqual(len(names), 4)
+        rows = [dict(Package=package, Action='start')]
+        for name in names:
+            self.assertEqual([g[0] for g in scope['state_partitions'] if (not g[1] or re.search(g[1], name)) and (not g[2] or not re.search(g[2], name))], ['state'])
+            rows += [dict(Package=package, Test=test, Action=action) for test, action in ((name, 'run'), (name+'/child', 'run'), (name+'/child', 'pass'), (name, 'pass'))]
+        rows.append(dict(Package=package, Action='pass'))
+        self.assertEqual(guard['qualify'](rows, one_package=True), list(names))
+        bad = [rows[1:], rows[:-1], rows + [rows[1]],
+               [dict(row, Package='foreign') if i == 1 else row for i, row in enumerate(rows)],
+               [dict(row, Action='skip') if i == 2 else row for i, row in enumerate(rows)],
+               rows[:4] + rows[5:] + [rows[4]],
+               rows[:4] + [dict(Package=package, Test=names[0]+'/absent/grandchild', Action=a) for a in ('run', 'pass')] + rows[4:]]
+        for changed in bad:
+            with self.assertRaises(RuntimeError):
+                guard['qualify'](changed, one_package=True)
+        assert_state_math_required_workflow_contract(step)
+        for value in ("YNX_PQ_ENROLLMENT_PRIVATE_FIXTURE_MODE: ''", "YNX_PQ_ENROLLMENT_PRIVATE_FIXTURE_ROOT: ''", "runpy.run_path('scripts/verify/qualify_pq_private_synthetic_ci.py')['qualify'](events)"):
+            with self.assertRaises(AssertionError):
+                assert_state_math_required_workflow_contract(step.replace(value, 'missing-private-control', 1))
 
     def test_live_materials_are_a_separate_required_original_partition(self):
         _, _, step, scope = self.workflow_parts()

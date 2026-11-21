@@ -7,6 +7,7 @@ on:
       - 'codex/ynx-pq-public-upgrade'
       - 'codex/ynx-pq-perf-integration'
     paths:
+      - 'scripts/verify/qualify_pq_private_synthetic_ci.py'
       - 'scripts/verify/pq-clock-ab-ci.sh'
       - 'scripts/verify/pq-enrollment-command-ci.sh'
       - 'scripts/verify/qualify_pq_portable_ci.py'
@@ -204,6 +205,7 @@ on:
       - 'packages/wallet-auth/native/source-parent/**'
   pull_request:
     paths:
+      - 'scripts/verify/qualify_pq_private_synthetic_ci.py'
       - 'scripts/verify/pq-clock-ab-ci.sh'
       - 'scripts/verify/pq-enrollment-command-ci.sh'
       - 'scripts/verify/qualify_pq_portable_ci.py'
@@ -2511,6 +2513,8 @@ jobs:
           YNX_PQ_LIGHT_PROOF_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-consensus-light-proof-public.json
           YNX_PQ_TRANSACTION_PROOF_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-consensus-transaction-proof-public.json
           YNX_PQ_MIGRATION_PROOF_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-migration-transaction-proof-public.json
+          YNX_PQ_ENROLLMENT_PRIVATE_FIXTURE_MODE: ''
+          YNX_PQ_ENROLLMENT_PRIVATE_FIXTURE_ROOT: ''
         run: |
           if ! go test -json -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor|TestPQHistoryMathCache|TestCombinedDetachedValidatorKeys)' ./internal/chain > "$RUNNER_TEMP/ynx-native-history-chain-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-native-history-chain-tests.jsonl"
@@ -2586,6 +2590,8 @@ jobs:
           import json, os
           from pathlib import Path
           events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-initial-cache-state-tests.jsonl').read_text().splitlines()]
+          import runpy
+          runpy.run_path('scripts/verify/qualify_pq_private_synthetic_ci.py')['qualify'](events)
           state_partitions = [('state', '', '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$|TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)'), ('proof-wallet', '^(TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)', ''), ('production', '^TestProduction', ''), ('lab', '^TestPQLab', '^TestPQLab(Distributed|FinalizeTrace|LiveMaterials|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)'), ('lab-network', '^TestPQLab(Distributed|FinalizeTrace)', ''), ('lab-live', '^TestPQLabLiveMaterials', '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$'), ('lab-caller', '^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)', ''), ('large-lab', '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$', '')]
           state_opt_in_skips = ['TestFeeHistoryCost', 'TestABCITransferPerformance', 'TestCommitStorageMatchedPerformance', 'TestPQCheckpointAccessTwoUIDOriginalStateLayouts', 'TestPQCheckpointAccessUIDHelper', 'TestPQNetworkFourValidatorSignedBusinessConsumerAndIndependentFinality', 'TestPQNetworkFourValidatorOriginalStateTransitionAndRestart', 'TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming', 'TestPQNetworkFourValidatorRemoteSignerOriginalStateTransitionAndRestart', 'TestPQRemoteSignerNormalProcessColdRecoveryAndUnknown']
           def qualify_state_partitions(events):

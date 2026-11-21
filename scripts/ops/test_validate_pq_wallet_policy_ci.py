@@ -215,6 +215,9 @@ class WalletPolicyCIControls(unittest.TestCase):
         if kind == "reader":
             recovery = "TestPQLabEnrollmentOriginalCLIConfirmAndRestart"
             events += [dict(Action=action, Package=package, Test=recovery) for action in ("run", "pass")]
+            private = ("TestSyntheticEnrollmentCLIBinaryFDControls", "TestSyntheticEnrollmentReservationFrameRefusals",
+                       "TestPrivateEnrollmentFixturePathRefusals", "TestPrivateEnrollmentBuildIdentityMissingAndConflicting")
+            events += [dict(Action=action, Package=package, Test=name) for name in private for action in ("run", "pass")]
             packages *= 5  # Five disjoint bounded processes, each original case once.
         if kind == "cli":
             proof_package = MODULE + "cmd/ynx-consensus-proof-verify"

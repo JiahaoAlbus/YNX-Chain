@@ -7,6 +7,7 @@ on:
       - codex/ynx-pq-perf-integration
       - codex/v5-link-native-ci
     paths:
+      - "scripts/verify/qualify_pq_private_synthetic_ci.py"
       - ".github/workflows/chain-core.yml"
       - ".github/workflows/resource-market-ci.yml"
       - "Makefile"
@@ -44,6 +45,7 @@ on:
       - main
       - codex/ynx-pq-perf-integration
     paths:
+      - "scripts/verify/qualify_pq_private_synthetic_ci.py"
       - ".github/workflows/chain-core.yml"
       - ".github/workflows/resource-market-ci.yml"
       - "Makefile"
@@ -163,6 +165,7 @@ jobs:
             scripts/loadtest/same-control-readback.mjs scripts/loadtest/same-control-readback.test.mjs \
             scripts/verify/wire-live-matching-source-ci.py scripts/verify/test_wire_live_matching_source_ci.py \
             scripts/verify/pq-clock-ab-ci.sh scripts/verify/pq-enrollment-original-ci-receipt.py \
+            scripts/verify/qualify_pq_private_synthetic_ci.py \
             scripts/ops/test_validate_pq_observer_ci.py \
             .github/workflows/chain-core.yml .github/workflows/resource-market-ci.yml > "$RUNNER_TEMP/client-observation-changes.txt"
           if [[ -s "$RUNNER_TEMP/client-observation-changes.txt" ]]; then
@@ -326,6 +329,8 @@ jobs:
           YNX_PQ_LAB_PROOF_FIXTURE_OUT: ${{ runner.temp }}/pq-lab-source-proof
           YNX_PQ_LAB_STOPPED_FIXTURE_ROOT: ${{ runner.temp }}/pq-lab-stopped-stores
           YNX_PQ_LAB_LIVE_FIXTURE_ROOT: ${{ runner.temp }}/pq-lab-live-source
+          YNX_PQ_ENROLLMENT_PRIVATE_FIXTURE_MODE: ''
+          YNX_PQ_ENROLLMENT_PRIVATE_FIXTURE_ROOT: ''
           GOMEMLIMIT: 1536MiB
         run: |
           set -euo pipefail
@@ -407,6 +412,18 @@ jobs:
           path: ${{ runner.temp }}/ynx-enrollment-original-ci
           if-no-files-found: error
           retention-days: 7
+
+      - name: Verify private synthetic enrollment safety controls
+        env:
+          YNX_PQ_ENROLLMENT_PRIVATE_FIXTURE_MODE: ''
+          YNX_PQ_ENROLLMENT_PRIVATE_FIXTURE_ROOT: ''
+        run: |
+          set -euo pipefail
+          if ! go test -json -p 1 -count=1 -timeout=90s -run '^(TestSyntheticEnrollmentCLIBinaryFDControls|TestSyntheticEnrollmentReservationFrameRefusals|TestPrivateEnrollmentFixturePathRefusals|TestPrivateEnrollmentBuildIdentityMissingAndConflicting)$' ./internal/consensus > "$RUNNER_TEMP/ynx-private-synthetic-safety-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-private-synthetic-safety-tests.jsonl"
+            exit 1
+          fi
+          python3 -B scripts/verify/qualify_pq_private_synthetic_ci.py "$RUNNER_TEMP/ynx-private-synthetic-safety-tests.jsonl"
 
       - name: Verify the default-off normal node wire observation adapter
         env:
