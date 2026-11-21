@@ -322,6 +322,8 @@ test('protected Shop order resolves its original intent by GET before reviews an
   'order-terms-review':{},
   'order-pay-review':{},
   'order-refund-review':{refundId:'refund-original',amountAtoms:'30'},
+  'order-receipt':{nativeHash:'0x'+'6'.repeat(64)},
+  'order-reconcile':{},
   'order-broadcast-review':{kind:'invoice_settle',originalHash:'0x'+'8'.repeat(64)},
   'order-reconcile-operation':{nativeHash:'0x'+'6'.repeat(64)}
  };
@@ -347,6 +349,16 @@ test('protected Shop order resolves its original intent by GET before reviews an
  assert.equal(result.reference.intentId,intentId);
  assert.deepEqual(result.recoveryActions,[protectedRead]);
  assert.deepEqual(f.calls.map(call=>call.path),[undefined,`/v5/pay/invoice-intents/${intentId}`,`/v5/pay/invoices/${merchant}/${terms.invoiceId}`]);
+});
+
+test('protected holder reads original receipt and refund reconciliation through the retained intent',async()=>{
+ for(const action of ['order-receipt','order-reconcile']){
+  let reads=0;const read=async(selected,current)=>{current();reads++;assert.equal(selected.sourceOrder,ref.sourceOrder);assert.equal(selected.invoiceId,terms.invoiceId);return action==='order-receipt'?receipt():reconciliation();};
+  const f=boot({extra:{readOriginalArchiveReceipt:read,readOriginalArchiveReconciliation:read}});
+  const result=await f.entry.invokeOriginalOrderResult({action,...ref,...(action==='order-receipt'?{nativeHash}:{})},intentId,()=>{});
+  assert.equal(result.ok,true,JSON.stringify(result));assert.equal(result.queryOnly,true);assert.equal(reads,1);
+  assert.deepEqual(f.calls.map(call=>call.path),[undefined,`/v5/pay/invoice-intents/${intentId}`]);
+ }
 });
 
 test('protected operation and current stay out of renderer input and a revoked host discards the read',async()=>{

@@ -6,7 +6,7 @@ const shapes={invoice:['merchant','invoiceId'],intent:['intentId'],'create-inten
 Object.assign(shapes,{'order-invoice':['productId','sourceOrder'],'order-terms-review':['productId','sourceOrder'],'order-pay-review':['productId','sourceOrder'],
  'order-refund-review':['productId','sourceOrder','refundId','amountAtoms'],'order-receipt':['productId','sourceOrder','nativeHash'],'order-reconcile':['productId','sourceOrder'],
  'order-broadcast-review':['productId','sourceOrder','kind','originalHash'],'order-reconcile-operation':['productId','sourceOrder','nativeHash']});
-const protectedOrderActions=new Set(['order-invoice','order-terms-review','order-pay-review','order-refund-review','order-broadcast-review','order-reconcile-operation']);
+const protectedOrderActions=new Set(['order-invoice','order-terms-review','order-pay-review','order-refund-review','order-receipt','order-reconcile','order-broadcast-review','order-reconcile-operation']);
 // Bookkeeping only. Main remains the sole review/cleanup owner. Completion is
 // notified by that same Main after its real approval/rejection has settled;
 // neither deleting this entry nor observing an absent id is a payment result.
