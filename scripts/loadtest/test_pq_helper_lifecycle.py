@@ -144,6 +144,7 @@ class HelperLifecycleControls(unittest.TestCase):
             backend = self.backend(Path(temp))
             command = [sys.executable, '-I', '-c', 'import sys; sys.stdin.buffer.read()']
             process = subprocess.Popen(command, stdin=subprocess.PIPE)
+            driver.lab.bind_process_lifecycle(process)
             self.addCleanup(process.wait)
             self.addCleanup(lambda: process.kill() if process.poll() is None else None)
             lane = dict(node=0, sequence=0, retired=False, originalProcess=process)
@@ -164,6 +165,7 @@ class HelperLifecycleControls(unittest.TestCase):
             backend = self.backend(Path(temp))
             process = subprocess.Popen([sys.executable, '-I', '-c', 'import time; time.sleep(60)'],
                                        stdin=subprocess.PIPE)
+            driver.lab.bind_process_lifecycle(process)
             self.addCleanup(process.wait)
             self.addCleanup(lambda: process.kill() if process.poll() is None else None)
             lane = dict(node=0, retired=False, originalProcess=process)
