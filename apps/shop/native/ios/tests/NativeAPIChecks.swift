@@ -69,6 +69,18 @@ final class StubProtocol:URLProtocol,@unchecked Sendable {
         StubProtocol.handler={request in projectionCalls+=1;precondition(request.request.httpMethod=="POST" && request.request.url?.path=="/api/orders/ord_original/projection");request.respond(200,"{\"orderId\":\"ord_original\",\"snapshot\":\"\(snapshot)\",\"fields\":[\"currency\",\"status\",\"totalYNXT\"],\"data\":{\"currency\":\"YNXT\",\"status\":\"payment_pending\",\"totalYNXT\":\"10\"}}")}
         let selection=try await api.selectOriginalOrder("ord_original",expected:selectedSession)
         try check(selection.orderId=="ord_original" && selection.snapshot==snapshot && selection.fields==["currency","status","totalYNXT"] && projectionCalls==1,"actual Native API selects exact original order and snapshot")
+        StubProtocol.handler={request in
+            let body=try! JSONSerialization.jsonObject(with:request.request.httpBody!) as! [String:Any]
+            precondition(body["snapshot"] as? String==snapshot && body["fields"] as? [String]==["currency","status","totalYNXT"])
+            request.respond(200,"{\"orderId\":\"ord_original\",\"snapshot\":\"\(snapshot)\",\"fields\":[\"currency\",\"status\",\"totalYNXT\"],\"data\":{\"currency\":\"YNXT\",\"status\":\"payment_pending\",\"totalYNXT\":\"10\"}}")
+        }
+        let confirmed=try await api.confirmOriginalOrderSelection(selection,expected:selectedSession)
+        let confirmedData=try JSONSerialization.jsonObject(with:confirmed) as! [String:Any]
+        try check(Set(confirmedData.keys)==Set(["orderId","fields","snapshot"]) && confirmedData["orderId"] as? String=="ord_original" && confirmedData["snapshot"] as? String==snapshot,"confirmed selection contains only original task input DATA")
+        StubProtocol.handler={request in request.respond(409)}
+        do{_ = try await api.confirmOriginalOrderSelection(selection,expected:selectedSession);throw NSError(domain:"changed snapshot accepted",code:1)}catch ShopError.invalidResponse{print("PASS changed order snapshot cannot become task input")}
+        let changedSelection=AppleShopOrderSelection(orderId:selection.orderId,fields:["status"],snapshot:selection.snapshot)
+        do{_ = try await api.confirmOriginalOrderSelection(changedSelection,expected:selectedSession);throw NSError(domain:"changed selection",code:1)}catch ShopError.security{print("PASS changed field selection is refused")}
         StubProtocol.handler={request in request.respond(200,"{\"orderId\":\"foreign\",\"snapshot\":\"\(snapshot)\",\"fields\":[\"currency\",\"status\",\"totalYNXT\"],\"data\":{\"currency\":\"YNXT\",\"status\":\"payment_pending\",\"totalYNXT\":\"10\"}}")}
         do{_ = try await api.selectOriginalOrder("ord_original",expected:selectedSession);throw NSError(domain:"foreign projection",code:1)}catch ShopError.security{print("PASS foreign order cannot become selection")}
         StubProtocol.handler={request in authority.current=ShopSession.parse(try! metadata(other));request.respond(200,"{\"orderId\":\"ord_original\",\"snapshot\":\"\(snapshot)\",\"fields\":[\"currency\",\"status\",\"totalYNXT\"],\"data\":{\"currency\":\"YNXT\",\"status\":\"payment_pending\",\"totalYNXT\":\"10\"}}")}

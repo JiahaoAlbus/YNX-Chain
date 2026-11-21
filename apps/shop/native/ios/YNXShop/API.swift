@@ -549,13 +549,26 @@ struct AppleShopOrderSelection: Encodable {
     }
     var currentSession:ShopSession?{authority?.current}
     func selectOriginalOrder(_ orderID:String, expected:ShopSession)async throws->AppleShopOrderSelection {
+        try await readOriginalOrderSelection(orderID,expected:expected,snapshot:"")
+    }
+    // Recheck the same full-order snapshot under the same Native session before
+    // producing tool input. The protected task receiver must still authorize
+    // the later operation and check this snapshot independently.
+    func confirmOriginalOrderSelection(_ selection:AppleShopOrderSelection, expected:ShopSession)async throws->Data {
+        guard selection.fields == ["currency","status","totalYNXT"],NativeWire.matches(selection.snapshot,"^[0-9a-f]{128}$") else{throw ShopError.security}
+        let current=try await readOriginalOrderSelection(selection.orderId,expected:expected,snapshot:selection.snapshot)
+        guard current.snapshot==selection.snapshot,current.fields==selection.fields else{throw ShopError.contextChanged}
+        return try CanonicalJSON.data(["orderId":current.orderId,"fields":current.fields,"snapshot":current.snapshot])
+    }
+    private func readOriginalOrderSelection(_ orderID:String,expected:ShopSession,snapshot requestedSnapshot:String)async throws->AppleShopOrderSelection {
         let check=try capture()
-        guard currentSession==expected,NativeWire.matches(orderID,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$") else{throw ShopError.security}
+        guard currentSession==expected,NativeWire.matches(orderID,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),requestedSnapshot.isEmpty || NativeWire.matches(requestedSnapshot,"^[0-9a-f]{128}$") else{throw ShopError.security}
         let fields=["currency","status","totalYNXT"]
-        let reply=try await raw("orders/"+orderID+"/projection",json:["fields":fields,"snapshot":""])
+        let reply=try await raw("orders/"+orderID+"/projection",json:["fields":fields,"snapshot":requestedSnapshot])
         try check()
         guard currentSession==expected,reply.count==4,reply["orderId"] as? String==orderID,
               let snapshot=reply["snapshot"] as? String,NativeWire.matches(snapshot,"^[0-9a-f]{128}$"),
+              requestedSnapshot.isEmpty || requestedSnapshot==snapshot,
               let returned=reply["fields"] as? [String],returned==fields,
               let data=reply["data"] as? [String:Any],Set(data.keys)==Set(fields),
               let currency=data["currency"] as? String,!currency.isEmpty,
