@@ -226,23 +226,48 @@ class EnrollmentPairControls(unittest.TestCase):
         helper.setUp();self.addCleanup(helper.doCleanups)
         root,window,monitor,stop,_,_=helper.case(count=1);a=controls.a
         owners=[dict(ownerIndex=4,address='UNIT-SPONSOR',nextNonce=2,capacity=100)]
+        # Functional original-byte join, not a disk-speed/cutoff test. The
+        # backend stops after one original UNKNOWN; allow bounded external FULL
+        # fsync to reach that operation without moving any production clock.
         plan=a.staged.configure_durable(a.d.make_plan('a'*64,sha(raw(self.workload)),'online',owners,100,
-            1_000_000_000,1_000_000_000,enabled=True),enabled=True)
+            1_000_000_000,5_000_000_000,enabled=True),enabled=True)
+        # Prepare the existing UNIT outbox before starting the control window.
+        # Use the original reducer's deterministic ID, not a second ID formula.
+        # No native signing happens here; real SQLite reservation remains inside
+        # the parent pipeline before its controlled publication callback.
+        reference=a.d.original.Ledger(dict(plan,rows=list(plan['rows'])),lambda event:None)
+        reference.release(0);control_row,_=reference.reserve(1)
+        self.request['fundingOperationId']=control_row['operationId'];self.row['operationId']=control_row['operationId'];self.update()
         original=self
         class OriginalUnknown:
             def publish(self,row,account,notify,cancel):
-                original.request['fundingOperationId']=row['operationId'];original.row['operationId']=row['operationId'];original.update()
+                original.assertEqual(original.request['fundingOperationId'],row['operationId'])
                 notify(dict(kind='signed',hash=original.row['hash'],nativeHash=original.row['nativeHash']))
                 notify(dict(kind='submitted'));notify(dict(kind='ack'));return row
             def observe(self,row,notify,cancel):notify(dict(kind='included'));return row
             def finalize(self,row,notify,cancel):cancel.set();raise RuntimeError('UNIT enrollment confirmation UNKNOWN')
             def stop(self):pass
         accounting=a.DriverAccounting(window,monitor,stop,plan)
-        outcome=controls.driver.run_load_window(plan,a.StopOnce(OriginalUnknown()),mock.Mock(),monitor,stop,durable_accounting=accounting)
+        factory=a.staged.original.open_durable_ledger
+        def reserve_pair_before_publish(*args,**kwargs):
+            ledger=factory(*args,**kwargs);reserve=ledger.reserve
+            def prepared(now):
+                claimed=reserve(now)
+                if claimed is None:return None
+                row,account=claimed;self.assertEqual(row['operationId'],self.request['fundingOperationId'])
+                request=raw(self.request)
+                ledger.prepare_enrollment_pair(row['index'],request,sha(request),m.SOURCE,now,enabled=True)
+                return row,account
+            ledger.reserve=prepared;return ledger
+        with mock.patch.object(a.staged.original,'open_durable_ledger',side_effect=reserve_pair_before_publish):
+            outcome=controls.driver.run_load_window(plan,a.StopOnce(OriginalUnknown()),mock.Mock(),monitor,stop,durable_accounting=accounting)
+        self.assertIsNone(outcome['firstCause'])
+        self.assertEqual(outcome['firstOperationalFailure']['error'],'UNIT enrollment confirmation UNKNOWN')
+        self.assertEqual(outcome['submitted'],1)
         tools=dict(source=dict(commit=m.SOURCE,tree='2'*40,forkTree='3'*40),
             tools=dict(commit='4'*40,tree='5'*40,driverSHA256='6'*64,resourceGuardSHA256='7'*64))
         plan_raw=raw(a.public_plan(plan));run=dict(schema=a.RUN_SCHEMA,source=tools['source'],toolIdentity=tools['tools'],
-            configuredDemand=100,mode='online',requestedOfferedTPS=100,loadConditions=controls.driver.load_conditions(helper.args()),
+            configuredDemand=100,mode='online',requestedOfferedTPS=100,loadConditions=controls.driver.load_conditions(helper.args(tail_seconds=5)),
             loadExecuted=True,loadResult=outcome,firstCause=outcome['firstCause'],planSHA256=sha(plan_raw))
         controls.driver.retain_durable_accounting(accounting,root,run)
         sidecar=(root/'public/durable-accounting.json').read_bytes();run_raw=raw(run)
@@ -250,10 +275,20 @@ class EnrollmentPairControls(unittest.TestCase):
         args.update(source_tools=tools,plan_raw=plan_raw,accounting_raw=sidecar,private_database=accounting.path,index=0)
         before=accounting.path.read_bytes();out=m.audit_durable_pair(run_raw,sha(run_raw),**args)
         self.assertTrue(out['originalLedgerReadOnly'] and out['originalPairByteBindingsObserved'])
+        self.assertTrue(out['originalPairReservationObserved'])
         self.assertEqual(out['originalStatus'],'unknown');self.assertFalse(out['nonceReleased']);self.assertEqual(before,accounting.path.read_bytes())
         self.assertGreaterEqual(a.readback(json.loads(sidecar),plan_raw,private_database=accounting.path)['pendingOriginalCount'],1)
         args['private_database']=None;missing=m.audit_durable_pair(run_raw,sha(run_raw),**args)
         self.assertEqual(missing['status'],'UNKNOWN');self.assertFalse(missing['originalPairByteBindingsObserved'])
+        args['private_database']=accounting.path;args['request_raw']=None
+        missing=m.audit_durable_pair(run_raw,sha(run_raw),**args)
+        self.assertEqual(missing['status'],'UNKNOWN');self.assertIn('request',missing['missingEvidence'])
+        self.assertTrue(missing['originalLedgerReadOnly']);self.assertFalse(missing['originalPairReservationObserved'])
+        args['request_raw']=raw(self.request);args['index']=99
+        unclaimed=m.audit_durable_pair(run_raw,sha(run_raw),**args)
+        self.assertEqual(unclaimed['missingEvidence'],['originalClaimedFundingRow'])
+        self.assertTrue(unclaimed['originalLedgerReadOnly']);self.assertFalse(unclaimed['nonceReleased'])
+        self.assertEqual(before,accounting.path.read_bytes())
 
 
 if __name__=='__main__':unittest.main()

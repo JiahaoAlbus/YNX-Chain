@@ -13,6 +13,7 @@ GROUPS=[
  ('test_pq_enrollment_original_bindings.py',None,13),
  ('test_pq_enrollment_normal_callee.py',None,16),
  ('test_pq_enrollment_original_pair.py',None,12),
+ ('test_pq_durable_enrollment_reservation.py',None,13),
  ('test_pq_first_trial_source.py',None,8),
  ('test_pq_d24_source_readback.py',None,12),
  ('test_pq_preload_initialization.py',None,8),

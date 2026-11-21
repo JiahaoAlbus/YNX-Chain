@@ -37,7 +37,11 @@ class DurableDriverControls(unittest.TestCase):
             first_trial_profile='own1b',commit=driver.STAGED_CALLEE_SOURCE,execute=False,source='/UNUSED-CONTROL',
             wire_observation=False,network_accounting=False,header_hop_capture=False,commit_observation=False)
         values.update(changes);return SimpleNamespace(**values)
-    def case(self,*,count=3,tail_ns=150_000_000,initial_error=None):
+    # These are completion/ABI controls with real FULL fsync, not a disk-speed
+    # qualification. Keep the normal one-second tail so external storage does
+    # not prevent reaching the behavior under test. Cutoff controls use their
+    # own explicit clocks and remain unchanged.
+    def case(self,*,count=3,tail_ns=1_000_000_000,initial_error=None):
         self.count+=1;root=self.root/str(self.count);root.mkdir(mode=0o700)
         lab=guard_controls.lab
         window=guard_controls.ResourceGuardSamplingControls().window(root)
@@ -52,7 +56,7 @@ class DurableDriverControls(unittest.TestCase):
         raw=a.d.make_plan('a'*64,'b'*64,'online',owners,1000,count*1_000_000,tail_ns,enabled=True)
         plan=a.staged.configure_durable(raw,enabled=True)
         return root,window,monitor,stop,raw,plan
-    def execute(self,backend=None,*,count=3,tail_ns=150_000_000):
+    def execute(self,backend=None,*,count=3,tail_ns=1_000_000_000):
         root,w,monitor,stop,raw,plan=self.case(count=count,tail_ns=tail_ns)
         accounting=a.DriverAccounting(w,monitor,stop,plan)
         backend=controls.StructuralBackend() if backend is None else backend
@@ -403,7 +407,7 @@ class DurableDriverControls(unittest.TestCase):
             def publish(self,row,account,notify,stop):
                 self.calls['publish'].append(dict(row));raise BadMessage()
             def stop(self):self.stop_calls+=1;raise BadMessage()
-        result,accounting,once,backend,_=self.execute(Broken(),tail_ns=25_000_000)
+        result,accounting,once,backend,_=self.execute(Broken())
         self.assertEqual(len(backend.calls['publish']),1);self.assertEqual(backend.stop_calls,1)
         self.assertIn('BadMessage',result['firstCause']);self.assertTrue(result['pipeline']['cleanupDebt'])
         self.assertEqual(result['qualified'],0)
@@ -414,7 +418,7 @@ class DurableDriverControls(unittest.TestCase):
     def test_strict_reader_rejects_forged_counts_metrics_pins_and_authority(self):
         _,accounting,_,_,_=self.execute(count=1);receipt,raw=self.receipt(accounting)
         changes=[lambda v:v.update(extra=True),lambda v:v.update(schema='YNX-PQ-INDEPENDENT-NORMAL-RUN/v1'),lambda v:v.update(pressureAuthorized=True),
-            lambda v:v['counts'].update(qualified=0),lambda v:v['counts'].update(submitted=True),
+            lambda v:v['counts'].update(qualified=1-v['counts']['qualified']),lambda v:v['counts'].update(submitted=True),
             lambda v:v['intervals']['submitToInclusionObserved'].update(denominator=True),
             lambda v:v['intervals']['submitToInclusionObserved'].update(p95Ms=float('nan')),
             lambda v:v['database'].update(planSHA256='0'*64),lambda v:v['resourceScope'].update(parentAndDescendantRSS=1)]

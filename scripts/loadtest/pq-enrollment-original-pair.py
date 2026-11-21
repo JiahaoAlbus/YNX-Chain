@@ -15,9 +15,11 @@ import stat
 spec=importlib.util.spec_from_file_location('enrollment_pair_callee',Path(__file__).with_name('pq-enrollment-normal-callee.py'))
 c=importlib.util.module_from_spec(spec);spec.loader.exec_module(c)
 b=c.b;require=b.require
+spec=importlib.util.spec_from_file_location('enrollment_pair_request',Path(__file__).with_name('pq-enrollment-request-contract.py'))
+contract=importlib.util.module_from_spec(spec);spec.loader.exec_module(contract)
 SCHEMA='YNX-PERF-ENROLLMENT-ORIGINAL-PAIR/v1'
 # Inspection identity only: not a binary/CI qualification or a production gate.
-SOURCE='0a3a44f80159df800eeec8b54d200d982c5af762'
+SOURCE=contract.SOURCE
 FILES={'request.json':16<<10,'INTENT.json':2<<20,'RESULT.json':2<<20,
        'transaction.wire':8<<20,'transaction.abci':8<<20}
 TOTAL_LIMIT=96<<20
@@ -30,26 +32,13 @@ def report(status=None):
     value=b.unknown_report(status)
     value.update(schema=SCHEMA,sourceCommit=SOURCE,operationIdentity='UNKNOWN',
         originalPairByteBindingsObserved=False,originalLedgerReadOnly=False,
+        originalPairReservationObserved=False,
         targetMigrationLedgerObserved=False,normalProducerInvoked=False,
         normalProducerAvailable=False,sourceDeploymentQualified=False)
     return value
 
 
-def request(raw):
-    value=b.accounting.strict(raw,16<<10)
-    b.closed(value,('version','fundingOperationId','migrationOperationId','ownerIndex','fundingNonce',
-                    'targetOwner','fundingAmount','activationHeight','pka','pkb'),'closed original pair request required')
-    require(value['version']=='YNX-PQ-LAB-ENROLLMENT-REQUEST/v1'
-            and b.hex_pin(value['fundingOperationId']) and b.hex_pin(value['migrationOperationId'])
-            and value['fundingOperationId']!=value['migrationOperationId']
-            and type(value['ownerIndex']) is int and 0<=value['ownerIndex']<1000,
-            'distinct original pair operations and sponsor required')
-    require(2<=b.decimal(value['fundingNonce']) and 3<=b.decimal(value['fundingAmount'])<(1<<63)-1
-            and 0<b.decimal(value['activationHeight'])<1<<63
-            and type(value['targetOwner']) is str and 0<len(value['targetOwner'])<=128
-            and len(b.b64(value['pka'],2592))==2592 and len(b.b64(value['pkb'],64))==64,
-            'bounded original pair request fields required')
-    return value
+request=contract.request
 
 
 def record(raw):
@@ -225,10 +214,25 @@ def audit_durable_pair(run_raw,run_sha256,*,source_tools,plan_raw,accounting_raw
     require(a.pin(path,a.DB_LIMIT)==pin,'same stopped original pair DB required')
     ledger=a.d.open_readonly(path,value,receipt['database']['planSHA256'],max_db_bytes=a.DB_LIMIT)
     try:
-        row=ledger.row(index);owners=[o for o in plan['accounts'] if o['ownerIndex']==row['ownerIndex']]
+        row=ledger.row(index)
+        if row['status'] in ('not_released','queued') and row['ownerIndex'] is None and row['operationId'] is None:
+            out=report(row['status']);out['missingEvidence']=['originalClaimedFundingRow'];out['originalLedgerReadOnly']=True
+            out['originalPins']['database']=dict(receipt['database'])
+            cause=observed['firstCause'];out['originalFirstCauseSHA256']=None if cause is None else b.sha(cause.encode())
+            return out
+        owners=[o for o in plan['accounts'] if o['ownerIndex']==row['ownerIndex']]
         require(len(owners)==1,'original sponsor row owner missing')
         out=inspect_pair(funding_row=row,sponsor_account=owners[0],**original)
         out['originalLedgerReadOnly']=True;out['originalPins']['database']=dict(receipt['database'])
+        if out['originalPairByteBindingsObserved']:
+            reservation=ledger.read_enrollment_pair(index,original['binding']['requestSHA256'])
+            if reservation.get('privateOriginalOnly') is True:
+                require(reservation['requestRaw']==original['request_raw'],'original reserved pair request differs from outbox')
+                out['originalPairReservationObserved']=True
+                out['originalPins']['pairReservation']=dict(requestSHA256=reservation['requestSHA256'],
+                    sourceCommit=reservation['sourceCommit'],reservationStartedNs=reservation['reservationStartedNs'],
+                    durabilityReturnObserved=False)
+            else:out['missingEvidence'].append('originalPairReservation')
         cause=observed['firstCause'];out['originalFirstCauseSHA256']=None if cause is None else b.sha(cause.encode())
         return out
     finally:

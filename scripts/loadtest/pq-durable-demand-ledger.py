@@ -16,10 +16,13 @@ from pathlib import Path
 import shutil
 import sqlite3
 import stat
+import time
 from types import SimpleNamespace
 
 spec=importlib.util.spec_from_file_location('durable_original_scheduler',Path(__file__).with_name('pq-independent-scheduler.py'))
 original=importlib.util.module_from_spec(spec);spec.loader.exec_module(original)
+spec=importlib.util.spec_from_file_location('durable_enrollment_contract',Path(__file__).with_name('pq-enrollment-request-contract.py'))
+enrollment=importlib.util.module_from_spec(spec);spec.loader.exec_module(enrollment)
 require=original.require
 SCHEMA='YNX-PQ-DURABLE-DEMAND/v1'
 MAX_DEMAND=600000
@@ -129,7 +132,7 @@ class DurableLedger:
         require(info.st_uid==os.getuid() and info.st_mode&0o077==0,'private owner-only durable directory required')
         self.plan=freeze_plan(plan);plan=self.plan
         self.emit=emit;self.check_resources=check_resources;self.max_db_bytes=max_db_bytes
-        self.failed=None;self.read_only=False;self.closed=False
+        self.failed=None;self.read_only=False;self.closed=False;self.enrollment_pairs=False
         self.check_resources();self._space()
         fd=os.open(self.path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
         try:before=os.fstat(fd);os.fsync(fd)
@@ -307,12 +310,16 @@ class DurableLedger:
                 accounts={account['ownerIndex']:account},free=collections.deque([account['ownerIndex']]),waiting=collections.deque([index]),emit=events.append)
             result=original.Ledger.reserve(reducer,now)
             require(result is not None and len(events)==1,'original reserve did not produce one claim')
+            if self.enrollment_pairs:
+                require(self.db.execute('SELECT 1 FROM enrollment_ids WHERE operation_id=?',(row['operationId'],)).fetchone() is None,
+                        'new claim collides with an original enrollment operation; preserve pending')
             self._save_row(row);self._save_account(account,value[1]);self._set('claimed',index+1);self._record(events[0])
         self._publish(events[0]) # Successful return is after FULL durable commit.
         return result
 
     def event(self,event):
         require(type(event) is dict and type(event.get('index')) is int,'original event required')
+        rejected=None
         with self._transaction():
             row=self.row(event['index'])
             require(row['ownerIndex'] is not None,'unclaimed demand cannot have an outcome')
@@ -326,6 +333,15 @@ class DurableLedger:
                 # seal. Receipt accounting is frozen even if a later consumer
                 # presents an earlier timestamp; preserve it for reconciliation.
                 return
+            if self.enrollment_pairs and event.get('kind')=='qualified' and self.db.execute(
+                    'SELECT 1 FROM enrollment_pairs WHERE funding_idx=?',(row['index'],)).fetchone():
+                # A single transaction result cannot retire the pair. Even two
+                # stored caller frames are not authenticated normal confirmation.
+                # The real producer/confirmation process contract is still absent.
+                self._record(dict(kind='enrollment_qualified_rejected',index=row['index'],id=row['id'],
+                                  atNs=event['atNs'],original=event))
+                rejected='normal authenticated dual-confirmation callee unavailable; preserve original pair'
+                event=dict(kind='unknown',index=row['index'],id=row['id'],atNs=event['atNs'],error=rejected)
             value=self.db.execute('SELECT data,free_turn FROM owners WHERE owner=?',(row['ownerIndex'],)).fetchone()
             account=json.loads(value[0]);published=[]
             reducer=SimpleNamespace(plan=self.plan,rows=_OneRow(row,self.plan['configuredDemand']),
@@ -338,7 +354,112 @@ class DurableLedger:
             self._save_row(row);self._save_account(account,turn);self._record(event)
             if reducer.terminal_count:self._set('terminalCount',self.terminal_count+1)
             if event['kind']=='qualified':self._set('qualifiedCount',int(self._meta('qualifiedCount'))+1)
+        if rejected:
+            self.failed=self.failed or rejected
         self._publish(event)
+        if rejected:
+            raise RuntimeError(rejected)
+
+    def prepare_enrollment_pair(self,index,request_raw,request_sha256,source,now,*,enabled=False):
+        """Atomically bind supplied IDs/request BEFORE any normal producer call.
+
+        This creates no operation ID and invokes no signer. A return proves only
+        the local FULL commit and directory barrier, never permission to sign.
+        Every failed attempt blocks the live ledger; reopen remains read-only.
+        """
+        require(enabled is True,'original enrollment reservation is explicitly opt-in')
+        started=time.monotonic_ns()
+        with self._transaction():
+            require(source==enrollment.SOURCE and enrollment.digest(request_sha256)
+                    and type(request_raw) is bytes and enrollment.sha(request_raw)==request_sha256,
+                    'original enrollment source/request pin differs')
+            r=enrollment.request(request_raw)
+            require(self._meta('sealed')=='false' and self._meta('cutoffBoundary')=='false',
+                    'original enrollment cannot start at or after cutoff')
+            require(type(index) is int and type(now) is int and 0<=now<1<<63,'original enrollment index/clock required')
+            row=self.row(index)
+            require(row['status']=='reserved' and row['signedNs'] is None and row['submittedNs'] is None
+                    and row['operationId']==r['fundingOperationId'] and row['ownerIndex']==r['ownerIndex']
+                    and row['nonce']==enrollment.number(r['fundingNonce']) and now>=row['claimedNs'],
+                    'original funding reservation differs or signing already started')
+            account=json.loads(self.db.execute('SELECT data FROM owners WHERE owner=?',(row['ownerIndex'],)).fetchone()[0])
+            require(account['pending']==index and not account['quarantined'] and r['targetOwner']!=account['address'],
+                    'original sponsor pending or distinct target differs')
+            require(self.db.execute('SELECT 1 FROM rows WHERE operation_id=?',(r['migrationOperationId'],)).fetchone() is None,
+                    'original migration ID collides with an existing transaction')
+            # DDL is part of this transaction and occurs only on explicit opt-in.
+            self.db.execute('CREATE TABLE IF NOT EXISTS enrollment_pairs(funding_idx INTEGER PRIMARY KEY,source TEXT NOT NULL,'
+                'request_sha256 TEXT UNIQUE NOT NULL,request_raw BLOB NOT NULL,reservation_ns INTEGER NOT NULL,'
+                'confirmation_ns INTEGER,funding_confirmation BLOB,migration_confirmation BLOB)')
+            self.db.execute('CREATE TABLE IF NOT EXISTS enrollment_ids(operation_id TEXT PRIMARY KEY,funding_idx INTEGER NOT NULL,'
+                'role TEXT NOT NULL,UNIQUE(funding_idx,role))')
+            self.enrollment_pairs=True
+            self.db.execute('INSERT INTO enrollment_pairs(funding_idx,source,request_sha256,request_raw,reservation_ns) VALUES(?,?,?,?,?)',
+                            (index,source,request_sha256,request_raw,now))
+            for role in ('funding','migration'):
+                self.db.execute('INSERT INTO enrollment_ids VALUES(?,?,?)',(r[role+'OperationId'],index,role))
+            self._record(dict(kind='enrollment_pair_reserved',index=index,id=row['id'],atNs=now,
+                              requestSHA256=request_sha256,sourceCommit=source,
+                              clockPhase='reservation-start; durable return not stored'))
+        return dict(schema=enrollment.SCHEMA,status='LOCAL_RESERVATION_RETAINED',requestSHA256=request_sha256,
+                    sourceCommit=source,normalProducerInvoked=False,signingAuthorized=False,nonceReleased=False,
+                    reservationStartedNs=now,durabilityElapsedNs=time.monotonic_ns()-started,
+                    operationIdentity='UNKNOWN',currentEligibility='UNKNOWN',automaticRetry=False)
+
+    def observe_enrollment_confirmations(self,index,request_sha256,confirmations,now,*,enabled=False):
+        """Retain BOTH original caller-pinned frames atomically, without trusting them.
+
+        Frames may be invalid HMACs/proofs. Storage is NOT confirmation; the
+        absent normal callee keeps every pair qualification fail-closed.
+        """
+        require(enabled is True,'original confirmation observation is explicitly opt-in')
+        with self._transaction():
+            require(self.enrollment_pairs and type(index) is int and type(confirmations) is dict
+                    and set(confirmations)=={'funding','migration'} and type(now) is int and 0<=now<1<<63,
+                    'both original confirmation frames required')
+            pair=self.db.execute('SELECT request_sha256,reservation_ns,confirmation_ns FROM enrollment_pairs WHERE funding_idx=?',(index,)).fetchone()
+            require(pair is not None and pair[0]==request_sha256 and pair[2] is None and now>=pair[1],
+                    'original pair missing, changed or confirmation observation already retained')
+            row=self.row(index)
+            require(self._meta('sealed')=='false' and self._meta('cutoffBoundary')=='false'
+                    and row['status'] not in ('qualified','failed','unknown')
+                    and now>=max(v for key in CLOCKS if (v:=row[key]) is not None),'original confirmation observation is stopped or regressed')
+            raw={};pins={}
+            for role,value in confirmations.items():
+                require(type(value) is dict and set(value)=={'raw','sha256'} and type(value['raw']) is bytes
+                        and 0<len(value['raw'])<=2<<20 and enrollment.digest(value['sha256'])
+                        and enrollment.sha(value['raw'])==value['sha256'],'bounded original confirmation frame pin differs')
+                raw[role]=value['raw'];pins[role]=dict(bytes=len(value['raw']),sha256=value['sha256'])
+            self.db.execute('UPDATE enrollment_pairs SET confirmation_ns=?,funding_confirmation=?,migration_confirmation=? WHERE funding_idx=?',
+                            (now,raw['funding'],raw['migration'],index))
+            self._record(dict(kind='enrollment_confirmation_frames_observed',index=index,id=row['id'],atNs=now,
+                              requestSHA256=request_sha256,frames=pins,authenticated=False))
+        return dict(schema=enrollment.SCHEMA,status='OBSERVED_NOT_AUTHENTICATED',frames=pins,
+                    operationIdentity='UNKNOWN',currentEligibility='UNKNOWN',nonceReleased=False,automaticRetry=False)
+
+    def read_enrollment_pair(self,index,request_sha256):
+        """Private original-owner readback only; never writable resume or re-sign."""
+        require(self.read_only and not self.closed and type(index) is int and enrollment.digest(request_sha256),
+                'same original stopped enrollment ledger and request pin required')
+        if not self.enrollment_pairs:return dict(status='UNKNOWN',missingEvidence=['originalPairReservation'])
+        row=self.db.execute('SELECT source,request_sha256,request_raw,reservation_ns,confirmation_ns,funding_confirmation,'
+                            'migration_confirmation FROM enrollment_pairs WHERE funding_idx=?',(index,)).fetchone()
+        if row is None:return dict(status='UNKNOWN',missingEvidence=['originalPairReservation'])
+        require(row[0]==enrollment.SOURCE and row[1]==request_sha256 and enrollment.sha(row[2])==request_sha256,
+                'original pair request/source changed')
+        r=enrollment.request(row[2]);ids=dict(self.db.execute('SELECT role,operation_id FROM enrollment_ids WHERE funding_idx=?',(index,)))
+        require(ids=={role:r[role+'OperationId'] for role in ('funding','migration')},'original pair operation reservation incomplete')
+        funding=self.row(index)
+        require(funding['operationId']==r['fundingOperationId'] and funding['ownerIndex']==r['ownerIndex']
+                and funding['nonce']==enrollment.number(r['fundingNonce']),'original pair funding row differs')
+        require((row[4] is None and row[5] is None and row[6] is None) or
+                (type(row[4]) is int and row[4]>=row[3] and type(row[5]) is bytes and type(row[6]) is bytes),
+                'original dual confirmation observation is incomplete')
+        return dict(schema=enrollment.SCHEMA,status='UNKNOWN',privateOriginalOnly=True,requestRaw=row[2],requestSHA256=row[1],
+            sourceCommit=row[0],reservationStartedNs=row[3],durabilityReturnObserved=False,
+            confirmationObservedNs=row[4],fundingConfirmationRaw=row[5],
+            migrationConfirmationRaw=row[6],recordMACAuthenticated=False,nonceReleased=False,automaticRetry=False,
+            signingAuthorized=False,currentEligibility='UNKNOWN',operationIdentity='UNKNOWN')
 
     def begin_cutoff(self,cutoff):
         """Stop new admissions, then drain existing callbacks by ORIGINAL time.
@@ -493,5 +614,6 @@ def open_readonly(path,plan,expected_plan_sha256,*,max_db_bytes=1<<30):
                 and encoded(metadata,MAX_PLAN_BYTES)==value._meta('plan'),'original durable plan binding differs')
     except BaseException:value.db.close();raise
     value.plan_sha256=digest;value.max_db_bytes=max_db_bytes;value.failed=None;value.read_only=True;value.closed=False
+    value.enrollment_pairs=value.db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='enrollment_pairs'").fetchone() is not None
     value.check_resources=lambda:None
     return value
