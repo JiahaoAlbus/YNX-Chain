@@ -14,6 +14,8 @@ def module(name,file):
 
 existing=module('original_commit_controls','test_pq_commit_observation.py')
 m=existing.m;driver=existing.driver
+stage_summary=module('validation_stage_summary','pq-first100-stage-summary.py')
+held_reader=module('validation_business_stage_reader','pq-first100-7c25-readback.py')
 
 
 class CommitValidationReadbackControls(unittest.TestCase):
@@ -52,6 +54,20 @@ class CommitValidationReadbackControls(unittest.TestCase):
         args=SimpleNamespace(first_trial_profile=driver.HELD_TRIAL_PROFILE,commit_validation_observation=True,
                              commit_observation=True,commit=driver.HELD_TRIAL_SOURCE)
         with self.assertRaisesRegex(RuntimeError,'source/CI NOT_SUPPLIED'):driver.validate_options(args)
+
+    def test_business_height_reducer_keeps_missing_detail_censored(self):
+        value=self.sample();second=copy.deepcopy(value['samples'][0]);second['height']+=1
+        second['persistence']['height']+=1;second.pop('validation');value['samples'].append(second)
+        data=dict(originalCommitCopies=dict(records=[dict(node=0,sha256='1'*64,producerReportedUsable=True,originalSnapshot=value)]))
+        all_rows=stage_summary.commit_stages(data)['nodes']['0']['byStorage']['atomic-json']['validationDetail']
+        self.assertEqual((all_rows['denominator'],all_rows['observed']),(2,1))
+        self.assertEqual(all_rows['phases']['app_hash']['missingOrCensored'],1)
+        self.assertIsNone(all_rows['phases']['app_hash']['retainedSampleP95Ns'])
+        selected=held_reader.business_commit_stages(data,dict(records=[dict(height=str(value['samples'][0]['height']))]),stage_summary)
+        chosen=selected['nodes']['0']['byStorage']['atomic-json']['validationDetail']
+        self.assertEqual((chosen['denominator'],chosen['observed']),(1,1))
+        self.assertEqual(selected['selectedHeights'],[value['samples'][0]['height']])
+        self.assertFalse(selected['perTransactionCostInferred'])
 
     def test_four_original_node_argument_opt_in_is_explicit_and_default_off(self):
         for enabled in (False,True):

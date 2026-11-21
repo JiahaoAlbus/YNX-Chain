@@ -19,6 +19,19 @@ VALIDATION_PHASES=('anchor','validator_registry','engine_schedule','engine_snaps
 def require(ok,message):
     if not ok:raise RuntimeError(message)
 def integer(value):return type(value) is int and 0<=value<1<<63
+def validate_validation_detail(value):
+    detail=value['validation'];require(type(detail) is dict and detail.get('version')=='YNX-COMET-COMMIT-VALIDATION/v1'
+        and type(detail.get('height')) is int and detail['height']==value['height'] and integer(detail.get('elapsedNs')),
+        'original same-attempt Commit validation identity differs')
+    phases=detail.get('phaseNs');require(type(phases) is dict and set(phases)==set(VALIDATION_PHASES)
+        and all(integer(ns) and ns<=detail['elapsedNs'] for ns in phases.values())
+        and sum(phases.values())==detail['elapsedNs'], 'original complete validation phases differ')
+    outer=value['persistence']['stagesNs'].get('validate')
+    require(integer(outer) and detail['elapsedNs']<=outer, 'validation detail exceeds original persistence parent')
+    document=detail.get('hashDocumentNs');digest=detail.get('hashEncodeDigestNs')
+    require(integer(document) and integer(digest) and document+digest<=phases['app_hash'],
+            'original hash child intervals exceed app_hash')
+    return detail
 def strict(raw):
     def pairs(items):
         value={}
@@ -61,18 +74,7 @@ def validate_declared_contract(snapshot,pid,chain_id,genesis_hash,require_runtim
         require(not value['durable'] or (value['elapsedNs']>0 and value['payloadBytes']>0 and bool(stages)),'durable original Commit timing cannot be empty')
     def sample(value):
         point(value);timing(value.get('persistence'),value['height']);require(value['persistence']['durable'] is True,'successful original sample must be durable')
-        if 'validation' in value:
-            detail=value['validation'];require(type(detail) is dict and detail.get('version')=='YNX-COMET-COMMIT-VALIDATION/v1'
-                and type(detail.get('height')) is int and detail['height']==value['height'] and integer(detail.get('elapsedNs')),
-                'original same-attempt Commit validation identity differs')
-            phases=detail.get('phaseNs');require(type(phases) is dict and set(phases)==set(VALIDATION_PHASES)
-                and all(integer(ns) and ns<=detail['elapsedNs'] for ns in phases.values())
-                and sum(phases.values())==detail['elapsedNs'], 'original complete validation phases differ')
-            outer=value['persistence']['stagesNs'].get('validate')
-            require(integer(outer) and detail['elapsedNs']<=outer, 'validation detail exceeds original persistence parent')
-            document=detail.get('hashDocumentNs');digest=detail.get('hashEncodeDigestNs')
-            require(integer(document) and integer(digest) and document+digest<=phases['app_hash'],
-                    'original hash child intervals exceed app_hash')
+        if 'validation' in value:validate_validation_detail(value)
     for key in ('lastFailure','unobservedLatest','finalCheckpoint'):require(key in snapshot,'original nullable failure/missing markers required')
     if snapshot['lastFailure'] is not None:
         failed=snapshot['lastFailure'];require(type(failed) is dict and failed.get('notificationObserved') is True and 'timing' in failed and 'committedCheckpoint' in failed and 'attemptAppHash' in failed,'original failure markers differ')
