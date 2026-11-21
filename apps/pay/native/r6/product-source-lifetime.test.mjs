@@ -12,6 +12,11 @@ async function open(ports={}){
 }
 async function release(source){source.retire();await source.join();await source.close();source.assertSafeToClose();}
 
+test('Shop original request never falls back to an unrelated generic product reader',async()=>{
+ let generic=0;const source=await open({readOriginalInvoiceIntent(){generic++;throw Error('generic reader reached')}});
+ try{await assert.rejects(source.readOriginalInvoiceIntent({productId:'shop.order',sourceOrder:'order:001'},()=>{}),{code:'NATIVE_PAY_SHOP_ORIGINAL_SOURCE_NOT_SUPPLIED'});assert.equal(generic,0)}finally{await release(source)}
+});
+
 test('caller cancellation reaches the fixed private request; held call drains before original join',async()=>{
  let entered,signal,joins=0,closes=0;
  const started=new Promise(resolve=>entered=resolve);

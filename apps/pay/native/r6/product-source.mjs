@@ -111,7 +111,7 @@ export async function openNativePayProductSource({acquireOriginalProductSource,i
   });},
   readOriginalInvoiceIntent(input,callerCurrent){return run(callerCurrent,async fence=>{
    const ref=reference(input);let value,pendingEvidence;
-   if(ref.productId==='shop.order'&&typeof loan.readOriginalShopNativeInvoiceRequestDATA==='function'){
+   if(ref.productId==='shop.order'){
     // Actor/role and the normal route stay inside the genuine supplier.
     value=await readShopOrder(ref,fence);
    }else if(ref.productId==='cloud.ide-usage'&&typeof loan.readOriginalCloudBillLocator==='function'&&typeof loan.cloudClient?.nativeInvoiceIntentOriginal==='function'){
