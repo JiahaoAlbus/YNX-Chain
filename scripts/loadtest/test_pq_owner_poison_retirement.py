@@ -364,4 +364,27 @@ class PoisonControls(unittest.TestCase):
             self.assertEqual(result['firstCause'],existing or 'owned cleanup failed')
             self.assertTrue(result['backendStopError']['cleanupDebt'])
 
+    def test_blocked_shutdown_report_remains_unknown_without_zero_fill(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);(root/'public').mkdir()
+            w=driver.lab.Window.__new__(driver.lab.Window)
+            w.lock=threading.Lock();w.children=[];w.known={};w.logs=[];w.work=root;w.source=root;w.env={};w.cpus=[0]
+            w.sample_stage_totals={'original_hidden_stage':dict(calls=1,timedCalls=1,totalNs=123)}
+            w.stopping=False;w.closed_for_launch=False
+            backend=driver.NormalBackend.__new__(driver.NormalBackend)
+            backend.stop_event=threading.Event();backend.w=w;backend.sessions={}
+            held=threading.Event();release=threading.Event()
+            def holder():
+                with w.lock:held.set();release.wait(6)
+            thread=threading.Thread(target=holder);thread.start();self.assertTrue(held.wait(1))
+            result=dict(firstCause='original transaction UNKNOWN')
+            try:
+                driver.stop_backend_preserving_cause(backend,result)
+                with self.assertRaisesRegex(RuntimeError,'cleanup lock did not retire'):w.stop()
+                report=w.sample_stage_report()
+                self.assertEqual(report['status'],'UNKNOWN');self.assertEqual(report['stages'],{})
+                self.assertIn('not observed',report['reason']);self.assertEqual(result['firstCause'],'original transaction UNKNOWN')
+                self.assertTrue(result['backendStopError']['cleanupDebt']);self.assertTrue(w.closed_for_launch)
+            finally:release.set();thread.join(2)
+
 if __name__=='__main__':unittest.main()

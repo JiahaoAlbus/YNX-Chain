@@ -412,8 +412,16 @@ class Window:
                     row['maxNs']=ns if row['maxNs'] is None else max(row['maxNs'],ns)
 
     def sample_stage_report(self):
-        with self.lock:
-            values={name:dict(row) for name,row in self.sample_stage_totals.items()}
+        # Diagnostics must not indefinitely prevent retaining the original
+        # failure receipt. No values are fabricated if the owner is blocked.
+        if not self.lock.acquire(timeout=1):
+            return dict(schema='YNX-PERF-ORIGINAL-RESOURCE-GUARD-STAGES/v1',
+                status='UNKNOWN',clock='parent_monotonic_ns',stages={},intervalsOverlap=True,
+                guardChecksPreserved=True,byteAccountingChanged=False,cadenceChanged=False,
+                firstStorageSampleGuaranteed=True,pidOrRSSCached=False,
+                reason='original resource guard lock unavailable; stages not observed')
+        try:values={name:dict(row) for name,row in self.sample_stage_totals.items()}
+        finally:self.lock.release()
         for row in values.values():
             if not row['timedCalls']:row['totalNs']=None
         return dict(schema='YNX-PERF-ORIGINAL-RESOURCE-GUARD-STAGES/v1',
