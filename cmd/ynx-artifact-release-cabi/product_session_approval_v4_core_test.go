@@ -236,6 +236,7 @@ func TestProductSessionApprovalV4MemoryAndPublicPreflight(t *testing.T) {
 	for _, kind := range cases {
 		t.Run(kind, func(t *testing.T) {
 			r, arena := approvalV4AllocatedRequest(msg, e, ynxbatch.KeyMaterial{})
+			var rawRequest []uintptr
 			defer clear(arena)
 			// Private DER is deliberately invalid. No success or signer occurs here.
 			public := []*walletAliasSpan{&r.E5, &r.Expected.Network, &r.Expected.Owner, &r.Expected.PKA, &r.Expected.PKB, &r.Expected.Revision, &r.PKA, &r.PKB}
@@ -283,7 +284,14 @@ func TestProductSessionApprovalV4MemoryAndPublicPreflight(t *testing.T) {
 				r.DERA.Data = nil
 				want = resultBounds
 			case "extent-overflow":
-				r.DERA.Data = unsafe.Pointer(^uintptr(0) - 8)
+				// Model the caller's raw C request in aligned, pointer-free storage.
+				// Write the deliberately invalid address as bits, not by converting an
+				// integer to unsafe.Pointer. The entry must reject it without dereference.
+				rawRequest = make([]uintptr, int(unsafe.Sizeof(*r)/unsafe.Sizeof(uintptr(0))))
+				raw := (*approvalV4CRequest)(unsafe.Pointer(&rawRequest[0]))
+				*raw = *r
+				*(*uintptr)(unsafe.Pointer(&raw.DERA.Data)) = ^uintptr(0) - 8
+				r = raw
 				want = resultBounds
 			case "private-request":
 				r.DERA.Data = unsafe.Pointer(r)
@@ -335,6 +343,7 @@ func TestProductSessionApprovalV4MemoryAndPublicPreflight(t *testing.T) {
 				t.Fatal("public preflight did not report not-required cleanup")
 			}
 			runtime.KeepAlive(arena)
+			runtime.KeepAlive(rawRequest)
 		})
 	}
 	t.Run("private-private-alias-is-not-layout-authority", func(t *testing.T) {
