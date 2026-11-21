@@ -156,6 +156,30 @@ class CommitClockReadbackControls(unittest.TestCase):
                 result=driver.original_commit_clock_readback(receipt,root,private,'a'*40)
                 self.assertEqual((result['observed'],result['censored']),(0,1))
 
+    def test_original_read_refuses_file_and_parent_symlinks_and_hardlinks(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();directory=root/'original';directory.mkdir();item=directory/'item';item.write_bytes(b'original')
+            self.assertEqual(r.read_original(item,100),b'original')
+            alias=root/'alias';alias.symlink_to(item)
+            with self.assertRaises(OSError):r.read_original(alias,100)
+            parent=root/'redirect';parent.symlink_to(directory,target_is_directory=True)
+            with self.assertRaises(OSError):r.read_original(parent/'item',100)
+            os.link(item,root/'hardlink')
+            with self.assertRaisesRegex(ValueError,'identity differs'):r.read_original(item,100)
+
+    def test_original_read_refuses_parent_replacement_during_fd_read(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();directory=root/'original';directory.mkdir();item=directory/'item';item.write_bytes(b'original')
+            real_read=os.read;changed=False
+            def replace(fd,size):
+                nonlocal changed
+                chunk=real_read(fd,size)
+                if chunk and not changed:
+                    changed=True;directory.rename(root/'old');directory.mkdir();(directory/'item').write_bytes(b'original')
+                return chunk
+            with mock.patch.object(r.os,'read',side_effect=replace):
+                with self.assertRaisesRegex(ValueError,'changed during read'):r.read_original(item,100)
+
     def test_old_missing_source_or_parent_remains_not_supplied(self):
         receipt,kwargs=self.fixture()
         for mutate in ('source','parent','manifest','build_argv'):

@@ -54,6 +54,35 @@ def strict(raw, limit):
     return json.loads(raw,object_pairs_hook=pairs,parse_constant=invalid)
 
 
+def read_original(path,limit):
+    """Read one anchored regular original; never follow a replaced path."""
+    path=Path(path)
+    require(path.is_absolute() and type(limit) is int and limit>0 and '..' not in path.parts,
+            'absolute bounded original path required')
+    directory=os.open('/',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+    try:
+        for part in path.parts[1:-1]:
+            next_fd=os.open(part,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=directory)
+            os.close(directory);directory=next_fd
+        fd=os.open(path.name,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC,dir_fd=directory)
+        try:
+            before=os.fstat(fd)
+            require(stat.S_ISREG(before.st_mode) and before.st_nlink==1 and 0<before.st_size<=limit,
+                    'bounded regular original identity differs')
+            chunks=[];size=0
+            while True:
+                part=os.read(fd,min(65536,limit+1-size))
+                if not part:break
+                size+=len(part);require(size<=limit,'original input grew beyond bound');chunks.append(part)
+            after=os.fstat(fd);named=os.stat(path.name,dir_fd=directory,follow_symlinks=False);current=path.lstat()
+            fields=lambda item:(item.st_dev,item.st_ino,item.st_mode,item.st_nlink,item.st_size,item.st_mtime_ns,item.st_ctime_ns)
+            require(path.resolve(strict=True)==path and fields(before)==fields(after)==fields(named)==fields(current)
+                    and size==before.st_size,'original input changed during read')
+            return b''.join(chunks)
+        finally:os.close(fd)
+    finally:os.close(directory)
+
+
 def parent_domain():
     require(os.name == 'posix' and Path('/proc/thread-self/ns/time').exists(), 'Linux parent clock domain unavailable')
     boot = Path('/proc/sys/kernel/random/boot_id').read_text().strip()

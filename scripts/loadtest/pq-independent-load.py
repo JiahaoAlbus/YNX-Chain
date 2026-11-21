@@ -1307,7 +1307,7 @@ def validate_escalation(args):
 def original_commit_clock_readback(result,work,private_network,source):
     """Join only retained originals while this one Window still owns them."""
     public=work/'public'
-    def read(relative,limit):return lab.guard.bounded(public/relative,limit)
+    def read(relative,limit):return commit_clock.read_original(public/relative,limit)
     def node_bytes(section,index):
         records=[item for item in result.get(section,{}).get('originalSnapshots',[]) if item.get('node')==index]
         if len(records)!=1:return b''
@@ -1339,7 +1339,7 @@ def original_commit_clock_readback(result,work,private_network,source):
         inclusion=OriginalInclusions(),selection_raw=read('normal-live-source-selection.json',64<<10),
         dependencies_raw=read('normal-live-source-dependencies.json',64<<10),
         build_identity_raw=read('commit-clock-build-identity.log',16<<10),
-        network_plan_raw=lab.guard.bounded(private_network/'network-plan.json',1<<20))
+        network_plan_raw=commit_clock.read_original(private_network/'network-plan.json',1<<20))
 
 
 def finish_commit_clock_readback(result,window,work,private_network,source,demand):
@@ -1470,7 +1470,7 @@ def run(args):
             result['commitClockBuiltBinary']=binary
             proc=w.launch('commit-clock-build-identity',[str(bins/'ynx-comet'),'synthetic-commit-clock-build-identity','--synthetic'])
             w.wait(proc)
-            raw=lab.guard.bounded(work/'public/commit-clock-build-identity.log',16<<10)
+            raw=commit_clock.read_original(work/'public/commit-clock-build-identity.log',16<<10)
             declaration=commit_clock.strict(raw,16<<10)
             lab.require(declaration.get('status')=='DECLARED' and declaration.get('sourceRevision')==args.commit
                 and declaration.get('sourceBinding')==commit_clock.SOURCE_BINDING and declaration.get('syntheticOnly') is True
@@ -1645,7 +1645,7 @@ def run(args):
                     if type(index) is not int or not 0<=index<demand:continue
                     relative='load-operations/%05d/four-node-inclusion.json'%index
                     try:
-                        raw=lab.guard.bounded(work/'public'/relative,4<<20)
+                        raw=commit_clock.read_original(work/'public'/relative,4<<20)
                         refs.append(dict(index=index,path=relative,bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest()))
                     except (OSError,ValueError,RuntimeError):pass # The original missing row remains censored.
                 result['commitClockInclusions']=refs
