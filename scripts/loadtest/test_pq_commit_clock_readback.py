@@ -7,10 +7,16 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
+import threading
+from types import SimpleNamespace
 import unittest
+from unittest import mock
 
 spec=importlib.util.spec_from_file_location('commit_clock_reader',Path(__file__).with_name('pq-commit-clock-readback.py'))
 r=importlib.util.module_from_spec(spec);spec.loader.exec_module(r)
+spec=importlib.util.spec_from_file_location('clock_window',Path(__file__).with_name('consensus-linux-cohort.py'))
+lab=importlib.util.module_from_spec(spec);spec.loader.exec_module(lab)
 
 
 def raw(value): return json.dumps(value,sort_keys=True,separators=(',',':')).encode()
@@ -33,7 +39,7 @@ class CommitClockReadbackControls(unittest.TestCase):
             normalLiveBuildProvenance={'ynx-comet':dict(binarySHA256=binary,originalSource=identity,sourceSelectionSHA256=r.sha(selection),
                 sourceDependenciesReceiptSHA256=r.sha(deps),buildArgv=argv,buildCwd='/synthetic/source',selectedOptionalForkTree='e'*40)},
             normalLiveSourceDependencies={'sourceDependencies':json.loads(deps)},commitClockBuildIdentity=dict(pid=99,**descriptor(declaration)),
-            loadResult=dict(originMonotonicNs='1000',rows=[dict(index=0,id='logical-0',hash=tx,submittedNs=100)]),
+            loadResult=dict(originProcessID=100,originMonotonicNs='1000',rows=[dict(index=0,id='logical-0',hash=tx,submittedNs=100)]),
             normalCommitObservation=dict(originalSnapshots=[]),commitMonotonicObservation=dict(originalSnapshots=[]),
             commitClockProcessProbes=[],processes=[dict(name='commit-clock-build-identity',pid=99,exitCode=0,command=[binary_path,'synthetic-commit-clock-build-identity','--synthetic'])],commitClockInclusions=[])
         evidence=[]
@@ -46,7 +52,7 @@ class CommitClockReadbackControls(unittest.TestCase):
                 chainID='synthetic-chain',originalGenesisHash='g'*64,independentFinality=False,sourceRevision=source,
                 sourceBinding=r.SOURCE_BINDING,clock='CLOCK_MONOTONIC',bootID=parent['bootID'],timeNamespace=parent['timeNamespace'],
                 captureBoundary=r.BOUNDARY,samples=[dict(height=5,appHash=app,monotonicNs=str(1300+node))]))
-            probe=dict(pid=pid,startTicks='19',binarySHA256=binary,binaryPath=binary_path,timeNamespace='1:2',observedEndNs='950',
+            probe=dict(pid=pid,startTicks='19',binarySHA256=binary,binaryPath=binary_path,timeNamespace='1:2',observedStartNs='940',observedEndNs='950',
                        identity='original-unpublished-pidfd-and-live-proc-exe')
             receipt['normalCommitObservation']['originalSnapshots'].append(dict(node=node,pid=pid,**descriptor(commit)))
             receipt['commitMonotonicObservation']['originalSnapshots'].append(dict(node=node,pid=pid,**descriptor(clock)))
@@ -99,6 +105,70 @@ class CommitClockReadbackControls(unittest.TestCase):
                 self.assertEqual((result['observed'],result['censored']),(0,1))
                 self.assertIsNone(result['rows'][0]['fourNodeUpperBoundNs'])
 
+    def test_node_pidfd_is_bound_before_original_child_publication(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);(root/'public').mkdir()
+            window=lab.Window.__new__(lab.Window)
+            window.lock=threading.RLock();window.children=[];window.known={};window.logs=[];window.work=root;window.source=root;window.env={};window.cpus=[0];window.sample=lambda:None
+            child=SimpleNamespace(pid=12345,returncode=None);anchor=mock.Mock()
+            def bind(process):
+                self.assertIs(process,child);self.assertEqual(window.children,[])
+                self.assertTrue(process._ynx_clock_pidfd_required)
+                return anchor
+            spec=SimpleNamespace(loader=SimpleNamespace(exec_module=lambda module:None))
+            module=SimpleNamespace(OriginalOwnerPidfd=bind)
+            with mock.patch.object(lab.subprocess,'Popen',return_value=child),mock.patch.object(lab.guard,'bounded',return_value=b''), \
+                 mock.patch.object(lab.guard,'parse_stat',return_value=dict(startTicks=123)), \
+                 mock.patch.object(lab.importlib.util,'spec_from_file_location',return_value=spec), \
+                 mock.patch.object(lab.importlib.util,'module_from_spec',return_value=module):
+                try:
+                    self.assertIs(window.launch('pq-node-0',['original-node'],True,original_pidfd_node=True),child)
+                    self.assertIs(child._ynx_clock_pidfd,anchor);self.assertEqual(len(window.children),1)
+                    self.assertFalse(hasattr(child,'_ynx_original_pidfd')) # group retirement stays original
+                finally:
+                    for _,log in window.logs:log.close()
+
+    def test_original_node_pidfd_close_requires_original_process_retirement(self):
+        for retired in (False,True):
+            with self.subTest(retired=retired):
+                window=lab.Window.__new__(lab.Window);window.lock=threading.RLock()
+                anchor=mock.Mock();child=SimpleNamespace(returncode=0 if retired else None,_ynx_clock_pidfd=anchor)
+                window.children=[dict(name='pq-node-0',process=child)];window._stop_locked=lambda:True
+                result=window.stop()
+                self.assertEqual(result,retired)
+                self.assertEqual(window.commit_clock_cleanup_debt,[] if retired else ['pq-node-0'])
+                self.assertEqual(anchor.close.call_count,1 if retired else 0)
+
+    def test_failed_original_node_pidfd_binding_retains_original_child(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);(root/'public').mkdir()
+            window=lab.Window.__new__(lab.Window);window.lock=threading.RLock();window.children=[];window.known={};window.logs=[]
+            window.work=root;window.source=root;window.env={};window.cpus=[0];window.sample=lambda:None
+            child=SimpleNamespace(pid=12345,returncode=None)
+            spec=SimpleNamespace(loader=SimpleNamespace(exec_module=lambda module:None))
+            def refused(process):raise OSError('original pidfd unavailable')
+            module=SimpleNamespace(OriginalOwnerPidfd=refused)
+            with mock.patch.object(lab.subprocess,'Popen',return_value=child),mock.patch.object(lab.guard,'bounded',return_value=b''), \
+                 mock.patch.object(lab.guard,'parse_stat',return_value=dict(startTicks=123)), \
+                 mock.patch.object(lab.importlib.util,'spec_from_file_location',return_value=spec), \
+                 mock.patch.object(lab.importlib.util,'module_from_spec',return_value=module):
+                try:
+                    with self.assertRaisesRegex(OSError,'original pidfd unavailable'):
+                        window.launch('pq-node-0',['original-node'],True,original_pidfd_node=True)
+                    self.assertEqual(len(window.children),1);self.assertIs(window.children[0]['process'],child)
+                    self.assertTrue(child._ynx_clock_pidfd_required)
+                finally:
+                    for _,log in window.logs:log.close()
+
+    def test_node_anchor_close_failure_never_replaces_original_stop_error(self):
+        window=lab.Window.__new__(lab.Window);window.lock=threading.RLock()
+        anchor=mock.Mock();anchor.close.side_effect=OSError('secondary identity close')
+        window.children=[dict(name='pq-node-0',process=SimpleNamespace(returncode=0,_ynx_clock_pidfd=anchor))]
+        def original_failure():raise RuntimeError('original stop failure')
+        window._stop_locked=original_failure
+        with self.assertRaisesRegex(RuntimeError,'original stop failure'):window.stop()
+        self.assertEqual(window.commit_clock_cleanup_debt,['pq-node-0'])
+
     @unittest.skipUnless(sys.platform=='linux','real original pidfd and /proc require Linux')
     def test_real_linux_parent_clock_and_original_process_executable(self):
         domain=r.parent_domain();self.assertEqual(domain['processID'],os.getpid())
@@ -110,8 +180,29 @@ class CommitClockReadbackControls(unittest.TestCase):
                 probe=r.capture_owned_executable(child,fd,binary,digest)
                 self.assertEqual((probe['pid'],probe['binarySHA256'],probe['timeNamespace']),(child.pid,digest,domain['timeNamespace']))
                 with self.assertRaises(ValueError):r.capture_owned_executable(child,fd,binary,'0'*64)
-            finally:os.close(fd)
+            finally:fd.close()
         finally:child.terminate();child.wait(timeout=5)
+
+    @unittest.skipUnless(sys.platform=='linux','real original Window and pidfd require Linux')
+    def test_real_linux_window_binds_and_retires_exact_original_node(self):
+        binary=os.path.realpath('/bin/sleep');digest=hashlib.sha256(Path(binary).read_bytes()).hexdigest()
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);(root/'public').mkdir()
+            window=lab.Window.__new__(lab.Window);window.lock=threading.RLock();window.children=[];window.known={};window.logs=[]
+            window.work=root;window.source=root;window.env=dict(os.environ);window.cpus=sorted(os.sched_getaffinity(0));window.sample=lambda:None
+            child=window.launch('pq-node-0',[binary,'30'],True,original_pidfd_node=True)
+            try:
+                probe=window.capture_clock_node(child,binary,digest)
+                self.assertEqual(probe['pid'],child.pid);self.assertEqual(probe['binarySHA256'],digest)
+                with self.assertRaisesRegex(RuntimeError,'one original node clock probe'):
+                    window.capture_clock_node(child,binary,digest)
+                def retire():child.terminate();child.wait(timeout=5);return True
+                window._stop_locked=retire
+                self.assertTrue(window.stop());self.assertEqual(window.commit_clock_cleanup_debt,[])
+                self.assertIsNone(child._ynx_clock_pidfd.fd)
+            finally:
+                if child.poll() is None:child.terminate();child.wait(timeout=5)
+                for _,log in window.logs:log.close()
 
 
 if __name__=='__main__':unittest.main(verbosity=2)

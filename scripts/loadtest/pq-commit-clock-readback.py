@@ -6,6 +6,7 @@ Old archives have neither that evidence nor a parent clock domain: they remain
 NOT_SUPPLIED. No API here starts a node, retries work or grants runtime access.
 """
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -48,12 +49,14 @@ def _live(fd, pid):
 
 def bind_unpublished_process(proc):
     """Caller must own Popen exclusively and call before publishing to monitors."""
-    require(proc.returncode is None and proc.poll() is None, 'original child already retired')
-    fd = os.pidfd_open(proc.pid, 0)
-    try: _live(fd, proc.pid)
+    spec=importlib.util.spec_from_file_location('clock_original_owner_pidfd',Path(__file__).with_name('pq-experimental-owner-pidfd.py'))
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    anchor=module.OriginalOwnerPidfd(proc)
+    try:
+        with anchor.lock: _live(anchor.fd, proc.pid)
     except BaseException:
-        os.close(fd); raise
-    return fd
+        anchor.close(); raise
+    return anchor
 
 
 def _digest_fd(fd):
@@ -71,9 +74,18 @@ def _start_ticks(pid):
     return fields[19]
 
 
-def capture_owned_executable(proc, pidfd, binary_path, binary_sha):
+def capture_owned_executable(proc, anchor, binary_path, binary_sha):
     """No numeric-PID fallback: hash the currently running original exe FD."""
+    require(anchor.pid==proc.pid, 'original process pidfd differs')
+    with anchor.lock:
+        require(anchor.fd is not None, 'original process pidfd already retired')
+        return _capture_owned_executable(proc,anchor.fd,binary_path,binary_sha)
+
+
+def _capture_owned_executable(proc, pidfd, binary_path, binary_sha):
     require(pin(binary_sha,64), 'exact original binary digest required')
+    path=Path(binary_path)
+    require(path.is_absolute() and path.resolve(strict=True)==path, 'canonical original executable path required')
     start=time.monotonic_ns(); pid=proc.pid; _live(pidfd,pid); before=_start_ticks(pid)
     expected=os.open(binary_path,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
     try:
@@ -84,8 +96,10 @@ def capture_owned_executable(proc, pidfd, binary_path, binary_sha):
                     and (e.st_dev,e.st_ino,e.st_size)==(a.st_dev,a.st_ino,a.st_size), 'original process executable differs')
             require(_digest_fd(actual)==binary_sha and _digest_fd(expected)==binary_sha, 'original executable digest differs')
             a2=os.fstat(actual); e2=os.fstat(expected)
+            current=os.stat(binary_path,follow_symlinks=False)
             require((a.st_dev,a.st_ino,a.st_size,a.st_mtime_ns,a.st_ctime_ns)==(a2.st_dev,a2.st_ino,a2.st_size,a2.st_mtime_ns,a2.st_ctime_ns)
-                    and (e.st_dev,e.st_ino,e.st_size,e.st_mtime_ns,e.st_ctime_ns)==(e2.st_dev,e2.st_ino,e2.st_size,e2.st_mtime_ns,e2.st_ctime_ns), 'original executable changed while read')
+                    and (e.st_dev,e.st_ino,e.st_size,e.st_mtime_ns,e.st_ctime_ns)==(e2.st_dev,e2.st_ino,e2.st_size,e2.st_mtime_ns,e2.st_ctime_ns)
+                    and (e.st_dev,e.st_ino,e.st_size,e.st_mtime_ns,e.st_ctime_ns)==(current.st_dev,current.st_ino,current.st_size,current.st_mtime_ns,current.st_ctime_ns), 'original executable changed while read')
             ns=os.stat('/proc/%d/ns/time' % pid); _live(pidfd,pid)
             require(_start_ticks(pid)==before, 'original process start identity changed')
             return dict(pid=pid,startTicks=before,binarySHA256=binary_sha,binaryPath=str(binary_path),device=a.st_dev,inode=a.st_ino,
@@ -116,8 +130,8 @@ def _source_binding(receipt, source, selection_raw, dependencies_raw, build_iden
     reference=receipt['commitClockBuildIdentity']
     require(len(build_identity_raw)==reference['bytes'] and sha(build_identity_raw)==reference['sha256'], 'original binary identity bytes differ')
     identity_processes=[p for p in receipt['processes'] if p['name']=='commit-clock-build-identity']
-    require(len(identity_processes)==1 and identity_processes[0]['pid']==reference['pid']
-            and identity_processes[0]['exitCode']==0
+    require(len(identity_processes)==1 and type(identity_processes[0]['pid']) is int and identity_processes[0]['pid']==reference['pid']
+            and type(identity_processes[0]['exitCode']) is int and identity_processes[0]['exitCode']==0
             and identity_processes[0]['command']==[binary_path,'synthetic-commit-clock-build-identity','--synthetic'],
             'original build identity command differs')
     declared=json.loads(build_identity_raw)
@@ -146,6 +160,7 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
         binary,binary_path=_source_binding(receipt,expected_source,selection_raw,dependencies_raw,build_identity_raw)
         require(parent['processID']==receipt['commitClockParent']['processID'] and parent==receipt['commitClockParent']
                 and type(parent['processID']) is int and parent['processID']>0
+                and receipt['loadResult']['originProcessID']==parent['processID']
                 and re.fullmatch(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',parent['bootID'])
                 and re.fullmatch(r'[0-9]+:[0-9]+',parent['timeNamespace'])
                 and parent['clock']=='CLOCK_MONOTONIC', 'original physical parent clock identity differs')
@@ -171,7 +186,7 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
                     and probe['identity']=='original-unpublished-pidfd-and-live-proc-exe' and probe['binarySHA256']==binary
                     and probe['binaryPath']==binary_path and process['command'].count(binary_path)==1
                     and str(process['startTicks'])==str(probe['startTicks']) and probe['timeNamespace']==parent['timeNamespace']
-                    and int(probe['observedEndNs'])<=origin, 'original node process/executable differs')
+                    and int(probe['observedStartNs'])<=int(probe['observedEndNs'])<=origin, 'original node process/executable differs')
             require(commit['version']=='YNX-COMET-COMMIT-OBSERVATION/v1' and commit['scope']=='synthetic-loopback-lab/v1'
                     and commit['coverage']['notificationCaptureComplete'] is True and commit['independentFinality'] is False,
                     'original node Commit coverage unavailable')
