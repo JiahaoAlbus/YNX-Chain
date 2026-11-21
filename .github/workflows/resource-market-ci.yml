@@ -4423,6 +4423,16 @@ jobs:
             ${{ runner.temp }}/ynx-pq-history-public/*.json
           if-no-files-found: error
           retention-days: 7
+      - name: Preserve only partial history failure diagnostics without qualification
+        if: ${{ failure() && !cancelled() && steps.identity.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-history-failure-diagnostics-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ynx-pq-history-public/*.log
+            ${{ runner.temp }}/ynx-pq-history-public/*.json
+          if-no-files-found: warn
+          retention-days: 7
   detached-source-checks:
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'workflow_dispatch' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))
     runs-on: ubuntu-24.04
