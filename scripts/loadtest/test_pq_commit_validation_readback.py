@@ -78,12 +78,16 @@ class CommitValidationReadbackControls(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError,'no runtime permission inferred'):driver.run(args)
             window.assert_not_called()
             with mock.patch.object(driver.commit_clock_ci,'qualification',return_value=dict(source=args.commit,
-                    runtimePermissionGranted=False,pressureAuthorized=False)) as qualification, \
+                    runtimePermissionGranted=False,pressureAuthorized=False)):
+                with self.assertRaisesRegex(RuntimeError,'no runtime permission inferred'):driver.run(args)
+            window.assert_not_called()
+            with mock.patch.object(driver.commit_clock_ci,'qualification',return_value=dict(source=args.commit,
+                    focusedOriginalLogVerified=True,runtimePermissionGranted=False,pressureAuthorized=False)) as qualification, \
                  mock.patch.object(driver,'load_conditions',return_value={}), \
                  mock.patch.object(driver,'process_capacity',return_value={}):
                 result=driver.run(args)
             self.assertEqual(result['status'],'prepared-only');self.assertEqual(result['commitClockSourceCI']['source'],args.commit)
-            qualification.assert_called_once_with(identity);window.assert_not_called()
+            qualification.assert_called_once_with(identity,metadata_reader=None,focused_log_reader=None);window.assert_not_called()
 
     def test_clock_join_does_not_reuse_retired_original_guard(self):
         from unittest import mock

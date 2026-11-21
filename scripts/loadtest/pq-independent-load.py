@@ -1398,9 +1398,9 @@ def run(args, *, source_metadata_reader=None, clock_original_log_reader=None):
                 clock_original_log_reader=commit_clock_ci.retained_original_log_reader(log_path,commit_clock.read_original)
             clock_source=commit_clock_ci.qualification(identity,metadata_reader=source_metadata_reader,
                                                       focused_log_reader=clock_original_log_reader)
-            lab.require(clock_source['source']==commit_clock.COMMIT_CLOCK_SOURCE==args.commit
-                and clock_source['focusedOriginalLogVerified'] is True
-                and clock_source['runtimePermissionGranted'] is False and clock_source['pressureAuthorized'] is False,
+            lab.require(type(clock_source) is dict and clock_source.get('source')==commit_clock.COMMIT_CLOCK_SOURCE==args.commit
+                and clock_source.get('focusedOriginalLogVerified') is True
+                and clock_source.get('runtimePermissionGranted') is False and clock_source.get('pressureAuthorized') is False,
                 'exact clock source/CI evidence differs; no runtime permission inferred')
         if not args.execute:
             prepared=dict(status='prepared-only', source=identity, configuredDemand=demand,
