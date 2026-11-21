@@ -232,6 +232,51 @@ class OriginalDriverInitializationControls(unittest.TestCase):
                     expected='original missing owner499' if cause is not None else 'original clock inputs missing' if clock else 'original process RSS observation export failed'
                     self.assertEqual(r['firstCause'],expected)
                     self.assertFalse(r['loadExecuted']);self.assertNotIn('loadResult',r)
+
+    def test_original_signal_handlers_keep_their_public_first_cause_and_fingerprint(self):
+        import ast,hashlib
+        for filename in ('pq-independent-load.py','pq-same-runner-controller.py'):
+            source=Path(__file__).with_name(filename)
+            handler,=[node for node in ast.walk(ast.parse(source.read_bytes())) if isinstance(node,ast.FunctionDef) and node.name=='interrupted']
+            namespace={};exec(compile(ast.Module(body=[handler],type_ignores=[]),str(source),'exec'),namespace)
+            for signum in (2,15):
+                try:namespace['interrupted'](signum,None)
+                except RuntimeError as error:original=error
+                raw=str(original).encode()
+                for prior in (None,RuntimeError('earlier original resource failure')):
+                    with self.subTest(handler=filename,signum=signum,prior=prior is not None):
+                        r=self.mocked_initialization(prior,clock_readback=True,clock_error=False,rss_error=original)
+                        self.assertEqual(r['firstCause'],str(prior) if prior is not None else str(original))
+                        failure=r['processRSSObservation']['failure']
+                        self.assertEqual(failure['messageSHA256'],hashlib.sha256(raw).hexdigest())
+                        self.assertEqual(failure['messageBytes'],len(raw))
+                        self.assertEqual(failure['publicSignalMessage'],str(original))
+                        self.assertEqual(r['processRSSObservation']['status'],'UNKNOWN')
+                        self.assertFalse(r['loadExecuted'])
+
+    def test_rss_export_fingerprint_preserves_private_empty_and_unprintable_errors(self):
+        import hashlib
+        class Unprintable(RuntimeError):
+            def __str__(self):raise ValueError('PRIVATE_STR_ERROR')
+        for error in (MemoryError('PRIVATE_EXPORT_ERROR'),RuntimeError(''),Unprintable(),
+                      RuntimeError('p'*65536),RuntimeError('p'*65537),RuntimeError('\U0001f4a1'*32768),RuntimeError('\ud800')):
+            with self.subTest(error=type(error).__name__):
+                r=self.mocked_initialization(rss_error=error)
+                failure=r['processRSSObservation']['failure']
+                self.assertEqual(failure['exceptionType'],type(error).__name__)
+                self.assertIsNone(failure['publicSignalMessage'])
+                self.assertNotIn('PRIVATE_',json.dumps(r))
+                if isinstance(error,Unprintable):
+                    self.assertEqual(failure['messageStatus'],'UNKNOWN')
+                    self.assertEqual(failure['fingerprintErrorType'],'ValueError')
+                    self.assertIsNone(failure['messageSHA256'])
+                elif len(str(error).encode('utf-8',errors='surrogatepass'))>65536:
+                    self.assertEqual(failure['messageStatus'],'UNKNOWN')
+                    self.assertIsNone(failure['messageSHA256']);self.assertIsNone(failure['messageBytes'])
+                else:
+                    self.assertEqual(failure['messageStatus'],'HASHED')
+                    self.assertEqual(failure['messageSHA256'],hashlib.sha256(str(error).encode('utf-8',errors='surrogatepass')).hexdigest())
+                self.assertEqual(r['firstCause'],'original process RSS observation export failed')
     def test_successful_census_with_cleanup_debt_cannot_be_accepted(self):
         r=self.mocked_initialization(cleanup=False)
         self.assertFalse(r['cleanupComplete']);self.assertFalse(r['loadExecuted']);self.assertEqual(r['preparationOnlyDemandAccounting']['notReleased'],500)
