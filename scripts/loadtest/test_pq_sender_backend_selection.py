@@ -25,22 +25,22 @@ class BackendSelection(unittest.TestCase):
     def test_successor_delivery_requires_same_push_and_all_original_fixture_steps(self):
         q = d.module('held_delivery_contract', 'pq-held-first100-source.py')
         source, branch = q.DELIVERY_SOURCE, q.DELIVERY_BRANCH
-        run = dict(id=123, event='push', run_attempt=1, workflow_id=322643672,
+        run = dict(id=q.DELIVERY_RUN, event='push', run_attempt=1, workflow_id=322643672,
                    repository={'full_name': q.REPOSITORY}, path='.github/workflows/resource-market-ci.yml',
                    head_sha=source, head_branch=branch, status='completed', conclusion='success')
-        job = dict(id=456, run_id=123, run_attempt=1, name='protocol-delivery', head_sha=source,
+        job = dict(id=q.DELIVERY_JOB, run_id=q.DELIVERY_RUN, run_attempt=1, name='protocol-delivery', head_sha=source,
                    head_branch=branch, status='completed', conclusion='success',
                    steps=[dict(name=name, status='completed', conclusion='success') for name in q.DELIVERY_STEPS])
         result = q.validate_delivery(run, [job], source=source, branch=branch)
-        self.assertEqual(result['job'], 456)
+        self.assertEqual(result['job'], q.DELIVERY_JOB)
         self.assertFalse(result['runtimePermissionGranted'] or result['independentFinality'])
         with self.assertRaises(RuntimeError):
             q.validate_delivery(run, [job], source='b'*40, branch=branch)
-        for key, value in (('event', 'workflow_dispatch'), ('run_attempt', 2), ('head_sha', 'b'*40),
+        for key, value in (('id',q.DELIVERY_RUN+1),('event', 'workflow_dispatch'), ('run_attempt', 2), ('head_sha', 'b'*40),
                            ('conclusion', 'failure')):
             with self.subTest(run=key), self.assertRaises(RuntimeError):
                 q.validate_delivery(dict(run, **{key: value}), [job], source=source, branch=branch)
-        for key, value in (('run_id', 999), ('run_attempt', 2), ('head_sha', 'b'*40),
+        for key, value in (('id',q.DELIVERY_JOB+1),('run_id', 999), ('run_attempt', 2), ('head_sha', 'b'*40),
                            ('conclusion', 'skipped')):
             with self.subTest(job=key), self.assertRaises(RuntimeError):
                 q.validate_delivery(run, [dict(job, **{key: value})], source=source, branch=branch)
@@ -62,7 +62,7 @@ class BackendSelection(unittest.TestCase):
                 with self.assertRaises(RuntimeError):
                     q.validate_successor(run, focused, [dict(focused, id=790), job])
 
-    def test_successor_qualification_fetches_complete_original_job_inventory(self):
+    def test_selected_qualification_fetches_only_its_exact_original_endpoint_set(self):
         import json
         q = d.module('held_source_inventory_contract', 'pq-held-first100-source.py')
         run = dict(id=q.RUN, event='push', run_attempt=1, workflow_id=322643672,
@@ -70,7 +70,7 @@ class BackendSelection(unittest.TestCase):
                    head_sha=q.SOURCE, head_branch=q.BRANCH, status='completed', conclusion='success')
         focused = dict(run, id=q.JOB, run_id=q.RUN, name='focused-go',
                        steps=[dict(name=n, status='completed', conclusion='success') for n in q.REQUIRED_STEPS])
-        delivery = dict(run, id=q.JOB+1, run_id=q.RUN, name='protocol-delivery',
+        delivery = dict(run, id=q.DELIVERY_JOB, run_id=q.RUN, name='protocol-delivery',
                         steps=[dict(name=n, status='completed', conclusion='success') for n in q.DELIVERY_STEPS])
         inventory = dict(total_count=2, jobs=[focused, delivery])
         class Response:
@@ -79,17 +79,24 @@ class BackendSelection(unittest.TestCase):
             def __enter__(self): return self
             def __exit__(self, *args): pass
             def read(self, limit): return json.dumps(self.value).encode()
+        requested=[]
         class Opener:
             def open(self, request, timeout):
                 self_url=request.full_url
+                requested.append(self_url)
                 self.assert_url=self_url
                 value = inventory if self_url.endswith('/jobs?per_page=100') else focused if '/jobs/' in self_url else run
                 return Response(self_url,value)
         with mock.patch.object(q.urllib.request,'build_opener',return_value=Opener()):
-            self.assertEqual(q.qualification()['delivery']['job'], q.JOB+1)
-            inventory['total_count']=3
-            with self.assertRaisesRegex(RuntimeError,'complete bounded'):
-                q.qualification()
+            result=q.qualification()
+            if q.SOURCE==q.FINAL_FENCE_SOURCE:
+                self.assertEqual(result,q.validate(run,focused));self.assertNotIn('delivery',result)
+                self.assertEqual(len(requested),2)
+                self.assertTrue(q.qualification_boundary()['historicalFocusedValidationOnly'])
+            else:
+                self.assertEqual(result['delivery']['job'],q.DELIVERY_JOB);self.assertEqual(len(requested),3)
+                inventory['total_count']=3
+                with self.assertRaisesRegex(RuntimeError,'complete bounded'):q.qualification()
 
     def test_legacy_auto_and_explicit_public_capacity_keep_original_caps(self):
         self.assertEqual(d.sender_backend_kind(args(sender_backend='auto')),'bounded-cold')

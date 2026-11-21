@@ -55,7 +55,7 @@ def source_metadata(gate):
         path='.github/workflows/resource-market-ci.yml')
     focused = dict(run, id=gate.JOB, run_id=gate.RUN, name='focused-go',
         steps=[dict(name=name,status='completed',conclusion='success') for name in gate.REQUIRED_STEPS])
-    delivery = dict(run, id=gate.JOB+1, run_id=gate.RUN, name='protocol-delivery',
+    delivery = dict(run, id=gate.DELIVERY_JOB, run_id=gate.RUN, name='protocol-delivery',
         steps=[dict(name=name,status='completed',conclusion='success') for name in gate.DELIVERY_STEPS])
     return run, focused, dict(total_count=2, jobs=[focused,delivery])
 
@@ -402,23 +402,38 @@ class ControllerControls(unittest.TestCase):
     def test_source_metadata_transport_keeps_original_validator_and_no_exception_fallback(self):
         gate=original.held_first_trial_source
         run,job,inventory=source_metadata(gate)
-        expected=gate.validate_successor(run,job,inventory['jobs'])
+        historical=gate.SOURCE==gate.FINAL_FENCE_SOURCE
+        expected=gate.validate(run,job) if historical else gate.validate_successor(run,job,inventory['jobs'])
         reader=mock.Mock(side_effect=[run,job,inventory])
         with mock.patch.object(gate.urllib.request,'build_opener') as opened:
             self.assertEqual(gate.qualification(metadata_reader=reader),expected)
-            self.assertEqual(reader.call_args_list,[mock.call('runs/'+str(gate.RUN)),
-                mock.call('jobs/'+str(gate.JOB)),mock.call('runs/'+str(gate.RUN)+'/jobs?per_page=100')])
-            self.assertEqual(expected['delivery']['job'],gate.JOB+1)
-            self.assertFalse(expected['delivery']['runtimePermissionGranted'])
+            endpoints=[mock.call('runs/'+str(gate.RUN)),mock.call('jobs/'+str(gate.JOB))]
+            if not historical:endpoints.append(mock.call('runs/'+str(gate.RUN)+'/jobs?per_page=100'))
+            self.assertEqual(reader.call_args_list,endpoints)
+            if historical:self.assertNotIn('delivery',expected)
+            else:
+                self.assertEqual(expected['delivery']['job'],gate.DELIVERY_JOB)
+                self.assertFalse(expected['delivery']['runtimePermissionGranted'])
             for changed in (dict(run,head_sha='f'*40),dict(run,id=gate.RUN+1),dict(run,conclusion='failure')):
                 with self.assertRaises(RuntimeError):gate.qualification(metadata_reader=mock.Mock(side_effect=[changed,job,inventory]))
             error=OSError('CONTROL metadata failure; no fallback')
             with self.assertRaises(OSError) as raised:gate.qualification(metadata_reader=mock.Mock(side_effect=error))
             self.assertIs(raised.exception,error);opened.assert_not_called()
 
-    def test_injected_reader_requires_same_run_delivery_and_complete_inventory(self):
+    def test_selected_source_gate_rejects_missing_required_evidence(self):
         gate=original.held_first_trial_source
         run,job,inventory=source_metadata(gate)
+        if gate.SOURCE==gate.FINAL_FENCE_SOURCE:
+            for kind in ('missing','duplicate','skipped'):
+                changed=copy.deepcopy(job)
+                if kind=='missing':changed['steps'].pop()
+                elif kind=='duplicate':changed['steps'].append(copy.deepcopy(changed['steps'][0]))
+                else:changed['steps'][0]['conclusion']='skipped'
+                with self.subTest(kind=kind),self.assertRaises(RuntimeError):
+                    gate.qualification(metadata_reader=mock.Mock(side_effect=[run,changed]))
+            with self.assertRaises(RuntimeError):gate.validate_successor(run,job,inventory['jobs'])
+            self.assertFalse(gate.qualification_boundary()['sameRunDeliveryRequired'])
+            return
         mutations=[dict(total_count=3,jobs=inventory['jobs']),dict(total_count=True,jobs=inventory['jobs']),
             dict(total_count=1,jobs=[job]),dict(total_count=3,jobs=inventory['jobs']+[inventory['jobs'][1]]),
             dict(total_count=101,jobs=[job]*101),dict(total_count=2,jobs=tuple(inventory['jobs']))]
@@ -441,7 +456,7 @@ class ControllerControls(unittest.TestCase):
         gate=original.held_first_trial_source;values=source_metadata(gate)
         with mock.patch.object(gate.urllib.request,'build_opener') as opened, \
                 mock.patch.dict(os.environ,GH_TOKEN='CONTROL ambient must not be consulted'):
-            for index in range(3):
+            for index in range(2 if gate.SOURCE==gate.FINAL_FENCE_SOURCE else 3):
                 error=OSError('CONTROL metadata endpoint '+str(index))
                 read=mock.Mock(side_effect=[*values[:index],error])
                 with self.subTest(endpoint=index),self.assertRaises(OSError) as raised:
@@ -451,6 +466,29 @@ class ControllerControls(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError,'metadata reader required'):
                     gate.qualification(metadata_reader=value)
             opened.assert_not_called()
+
+    def test_exact_source_arm_contract_never_transfers_other_source_ci(self):
+        gate=original.held_first_trial_source
+        allowed={
+            '59f7885d11bd3eeb5d27dce7232779aae480a806':('f7d7cf8f6df57d931b2f15bb622405764de27d6b',43585389405,132418666724,True),
+            'c697abae262c3be7859f235f45e9e8447bbccf63':('da151a9140c50e93379abaa3894b254ea44e4547',44880037485,136773095628,False)}
+        self.assertIn(gate.SOURCE,allowed)
+        tree,run_id,job_id,historical=allowed[gate.SOURCE]
+        self.assertEqual((gate.TREE,gate.RUN,gate.JOB),(tree,run_id,job_id))
+        self.assertEqual((original.HELD_TRIAL_SOURCE,original.HELD_TRIAL_TREE),(gate.SOURCE,tree))
+        self.assertIn('metadata_reader',c.inspect.signature(gate.qualification).parameters)
+        self.assertIn('source_metadata_reader',c.inspect.signature(original.run).parameters)
+        boundary=gate.qualification_boundary()
+        self.assertEqual(boundary['historicalFocusedValidationOnly'],historical)
+        self.assertFalse(boundary['runtimePermissionGranted'] or boundary['independentFinality'])
+        if not historical:self.assertEqual((boundary['deliveryRun'],boundary['deliveryJob']),(44880037485,136778017832))
+        run,job,inventory=source_metadata(gate)
+        other=next(source for source in allowed if source!=gate.SOURCE)
+        other_tree,other_run,other_job,_=allowed[other]
+        changed_run=dict(run,id=other_run,head_sha=other)
+        changed_job=dict(job,id=other_job,run_id=other_run,head_sha=other)
+        with self.assertRaises(RuntimeError):
+            gate.qualification(metadata_reader=mock.Mock(side_effect=[changed_run,changed_job,inventory]))
 
     def test_metadata_inventory_routes_remain_exact_bounded_gets(self):
         api=c.ActionsMetadata('CONTROL only')
