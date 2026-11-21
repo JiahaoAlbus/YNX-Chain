@@ -35,6 +35,7 @@ HELD_SOURCE_TREES={HELD_SOURCE:HELD_TREE, HELD_CI_SOURCE:HELD_CI_TREE,
                    _held.PREVIOUS_SOURCE:_held.PREVIOUS_TREE,
                    _held.STREAM_SOURCE:_held.STREAM_TREE,
                    _held.PREPARED_SOURCE:_held.PREPARED_TREE,
+                   _held.FINAL_FENCE_SOURCE:_held.FINAL_FENCE_TREE,
                    _held.SOURCE:_held.TREE}
 # This successor is admitted only for original source materialization. It is
 # deliberately separate from historical held runtime/source-CI qualifications.

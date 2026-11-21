@@ -467,7 +467,7 @@ class TransportControls(unittest.TestCase):
         holder['session']=stream
         Backend=b.backend_class(d.NormalBackend,Session,n,d.lab)
         adapter=Backend.__new__(Backend)
-        adapter.c=SimpleNamespace(consumer_source='59f7885d11bd3eeb5d27dce7232779aae480a806')
+        adapter.c=SimpleNamespace(consumer_source='c697abae262c3be7859f235f45e9e8447bbccf63')
         adapter.public_session=stream
         adapter.checkpoint=lambda stop:dict(height=22,appHash='c'*64)
         class PreparedBackend(controls.StructuralBackend):

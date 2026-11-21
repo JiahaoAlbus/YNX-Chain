@@ -49,9 +49,14 @@ class PublicProofClosureControls(unittest.TestCase):
             p.capture_observation(raw, source='0b515124bda8ff7efaf3ec03456d69dee2c6ad18', **args)
         self.assertEqual(p.capture_observation(raw, source='59f7885d11bd3eeb5d27dce7232779aae480a806',
                                                **args)['typedCrossings'], 5)
+        self.assertEqual(p.capture_observation(raw, source='c697abae262c3be7859f235f45e9e8447bbccf63',
+                                               **args)['typedCrossings'], 5)
         with self.assertRaisesRegex(RuntimeError, 'identity or phase'):
             p.capture_observation(json.dumps(dict(frame, typedCrossings=6)).encode(),
                                   source='59f7885d11bd3eeb5d27dce7232779aae480a806', **args)
+        with self.assertRaisesRegex(RuntimeError, 'identity or phase'):
+            p.capture_observation(json.dumps(dict(frame, typedCrossings=6)).encode(),
+                                  source='c697abae262c3be7859f235f45e9e8447bbccf63', **args)
 
     def test_exact_original_bytes_and_existing_normal_closed_catalog(self):
         with tempfile.TemporaryDirectory() as temp:

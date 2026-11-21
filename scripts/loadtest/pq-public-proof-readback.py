@@ -56,7 +56,8 @@ def pre_output_failure(raw, pin, sequence):
 
 
 def capture_observation(raw, *, node, sequence, pin, request_sha256, failure, source=None):
-    crossing_limit = 5 if source == '59f7885d11bd3eeb5d27dce7232779aae480a806' else 3
+    crossing_limit = 5 if source in ('59f7885d11bd3eeb5d27dce7232779aae480a806',
+                                     'c697abae262c3be7859f235f45e9e8447bbccf63') else 3
     require(type(raw) is bytes and 0 < len(raw) <= CAPTURE_OBSERVATION_LIMIT,
             'bounded original proof capture observation required')
     value = strict(raw)

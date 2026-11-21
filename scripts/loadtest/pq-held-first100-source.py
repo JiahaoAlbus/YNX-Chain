@@ -9,10 +9,12 @@ STREAM_SOURCE = '763b7f8f422f38f39e747a4f7f6cfb6405a0b96d'
 STREAM_TREE = 'f083502be012d84b3cd50e383c3bf2a922d8c2dd'
 PREPARED_SOURCE = '0b515124bda8ff7efaf3ec03456d69dee2c6ad18'
 PREPARED_TREE = 'd2cf1d0620a2157ef2660331eaf1a166049549b9'
-SOURCE = '59f7885d11bd3eeb5d27dce7232779aae480a806'
-TREE = 'f7d7cf8f6df57d931b2f15bb622405764de27d6b'
-RUN = 43585389405
-JOB = 132418666724
+FINAL_FENCE_SOURCE = '59f7885d11bd3eeb5d27dce7232779aae480a806'
+FINAL_FENCE_TREE = 'f7d7cf8f6df57d931b2f15bb622405764de27d6b'
+SOURCE = 'c697abae262c3be7859f235f45e9e8447bbccf63'
+TREE = 'da151a9140c50e93379abaa3894b254ea44e4547'
+RUN = 44880037485
+JOB = 136773095628
 REPOSITORY = 'JiahaoAlbus/YNX-Chain'
 BRANCH = 'codex/ynx-pq-perf-source-20261108'
 REQUIRED_STEPS = (
@@ -96,9 +98,14 @@ def validate(run, job):
 def validate_successor(run, focused_job, jobs):
     """Both original jobs must pass for a future exact successor qualification."""
     focused = validate(run, focused_job)
+    if not (type(jobs) is list and len(jobs) <= 100):
+        raise RuntimeError('bounded original same-run job inventory required')
+    matches = [job for job in jobs if type(job) is dict and job.get('name') == 'focused-go']
+    if not (len(matches) == 1 and all(matches[0].get(key) == focused_job.get(key) for key in
+                                      ('id', 'run_id', 'run_attempt', 'head_sha', 'head_branch', 'status', 'conclusion'))):
+        raise RuntimeError('focused job differs from original same-run inventory')
     delivery = validate_delivery(run, jobs, source=SOURCE, branch=BRANCH)
-    return dict(focused=focused, delivery=delivery, sourceOnlyQualified=True,
-                runtimePermissionGranted=False)
+    return dict(focused, delivery=delivery)
 
 
 def qualification():
@@ -112,11 +119,16 @@ def qualification():
     if token:
         headers['Authorization'] = 'Bearer ' + token
     values = []
-    for endpoint in (f'runs/{RUN}', f'jobs/{JOB}'):
+    for endpoint in (f'runs/{RUN}', f'jobs/{JOB}', f'runs/{RUN}/jobs?per_page=100'):
         url = f'https://api.github.com/repos/{REPOSITORY}/actions/{endpoint}'
         with opener.open(urllib.request.Request(url, headers=headers), timeout=15) as response:
             raw = response.read((1 << 20) + 1)
             if response.status != 200 or response.url != url or len(raw) > 1 << 20:
                 raise RuntimeError('bounded original held first100 CI metadata required')
             values.append(json.loads(raw))
-    return validate(*values)
+    inventory = values[2]
+    if not (type(inventory) is dict and type(inventory.get('total_count')) is int
+            and type(inventory.get('jobs')) is list and inventory['total_count'] == len(inventory['jobs'])
+            and len(inventory['jobs']) <= 100):
+        raise RuntimeError('complete bounded original delivery job inventory required')
+    return validate_successor(values[0], values[1], inventory['jobs'])

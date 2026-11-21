@@ -51,13 +51,45 @@ class BackendSelection(unittest.TestCase):
         for jobs in ([], [job, job]):
             with self.subTest(jobs=jobs), self.assertRaises(RuntimeError):
                 q.validate_delivery(run, jobs, source=source, branch=branch)
-        with mock.patch.object(q, 'validate', return_value=dict(sourceOnlyQualified=True)):
+        with mock.patch.object(q, 'validate', return_value=dict(sourceOnlyQualified=True, runtimePermissionGranted=False)):
             with mock.patch.object(q, 'SOURCE', source), mock.patch.object(q, 'BRANCH', branch):
-                combined = q.validate_successor(run, {'name': 'focused-go'}, [job])
+                focused = dict(job, id=789, name='focused-go')
+                combined = q.validate_successor(run, focused, [focused, job])
                 self.assertTrue(combined['sourceOnlyQualified'])
                 self.assertFalse(combined['runtimePermissionGranted'])
                 with self.assertRaises(RuntimeError):
-                    q.validate_successor(run, {'name': 'focused-go'}, [])
+                    q.validate_successor(run, focused, [focused])
+                with self.assertRaises(RuntimeError):
+                    q.validate_successor(run, focused, [dict(focused, id=790), job])
+
+    def test_successor_qualification_fetches_complete_original_job_inventory(self):
+        import json
+        q = d.module('held_source_inventory_contract', 'pq-held-first100-source.py')
+        run = dict(id=q.RUN, event='push', run_attempt=1, workflow_id=322643672,
+                   repository={'full_name': q.REPOSITORY}, path='.github/workflows/resource-market-ci.yml',
+                   head_sha=q.SOURCE, head_branch=q.BRANCH, status='completed', conclusion='success')
+        focused = dict(run, id=q.JOB, run_id=q.RUN, name='focused-go',
+                       steps=[dict(name=n, status='completed', conclusion='success') for n in q.REQUIRED_STEPS])
+        delivery = dict(run, id=q.JOB+1, run_id=q.RUN, name='protocol-delivery',
+                        steps=[dict(name=n, status='completed', conclusion='success') for n in q.DELIVERY_STEPS])
+        inventory = dict(total_count=2, jobs=[focused, delivery])
+        class Response:
+            status=200
+            def __init__(self, url, value): self.url=url;self.value=value
+            def __enter__(self): return self
+            def __exit__(self, *args): pass
+            def read(self, limit): return json.dumps(self.value).encode()
+        class Opener:
+            def open(self, request, timeout):
+                self_url=request.full_url
+                self.assert_url=self_url
+                value = inventory if self_url.endswith('/jobs?per_page=100') else focused if '/jobs/' in self_url else run
+                return Response(self_url,value)
+        with mock.patch.object(q.urllib.request,'build_opener',return_value=Opener()):
+            self.assertEqual(q.qualification()['delivery']['job'], q.JOB+1)
+            inventory['total_count']=3
+            with self.assertRaisesRegex(RuntimeError,'complete bounded'):
+                q.qualification()
 
     def test_legacy_auto_and_explicit_public_capacity_keep_original_caps(self):
         self.assertEqual(d.sender_backend_kind(args(sender_backend='auto')),'bounded-cold')
