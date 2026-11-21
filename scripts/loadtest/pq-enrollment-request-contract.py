@@ -12,7 +12,9 @@ SOURCE='0a3a44f80159df800eeec8b54d200d982c5af762'
 # blob. This permits BYTE DECODING only; no source CI, binary or runtime grant
 # is inherited. Preserve the actual source in every reservation and outer join.
 INSPECTED_PRODUCER_ABIS={SOURCE:'260ce946f8c76b63c15ff08a6d389138a74a8b52',
-    '2b5eaa56f82c1e06f4ff959048ec8344f5effff3':'260ce946f8c76b63c15ff08a6d389138a74a8b52'}
+    '2b5eaa56f82c1e06f4ff959048ec8344f5effff3':'260ce946f8c76b63c15ff08a6d389138a74a8b52',
+    'd188b960e31fc1f3c746534155c27e27eadcb1f5':'260ce946f8c76b63c15ff08a6d389138a74a8b52',
+    '9710e2f1b7f24c9442a04a3cb72d959561902e3b':'260ce946f8c76b63c15ff08a6d389138a74a8b52'}
 SCHEMA='YNX-PQ-DURABLE-ENROLLMENT-PAIR/v1'
 NORMAL_DUAL_CONFIRMATION_CALLEE=None
 
