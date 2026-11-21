@@ -29,6 +29,18 @@ def pin(value, size):
     return type(value) is str and re.fullmatch('[0-9a-f]{%d}' % size, value) is not None
 
 
+def strict(raw, limit):
+    require(type(raw) is bytes and 0<len(raw)<=limit, 'bounded original JSON bytes required')
+    def pairs(items):
+        result={}
+        for key,value in items:
+            require(key not in result, 'duplicate original JSON field')
+            result[key]=value
+        return result
+    def invalid(value):raise ValueError('nonfinite original JSON')
+    return json.loads(raw,object_pairs_hook=pairs,parse_constant=invalid)
+
+
 def parent_domain():
     require(os.name == 'posix' and Path('/proc/thread-self/ns/time').exists(), 'Linux parent clock domain unavailable')
     boot = Path('/proc/sys/kernel/random/boot_id').read_text().strip()
@@ -115,7 +127,7 @@ def _source_binding(receipt, source, selection_raw, dependencies_raw, build_iden
     binary=receipt['binaries']['ynx-comet']; require(pin(binary,64), 'original binary digest missing')
     require(build['binarySHA256']==binary and build['originalSource']==identity, 'original build source or binary differs')
     require(sha(selection_raw)==build['sourceSelectionSHA256'] and sha(dependencies_raw)==build['sourceDependenciesReceiptSHA256'], 'original source manifest digest differs')
-    selection=json.loads(selection_raw); dependencies=json.loads(dependencies_raw)
+    selection=strict(selection_raw,64<<10); dependencies=strict(dependencies_raw,64<<10)
     require(selection['originalSourceCommit']==source and selection['originalSourceTree']==identity['tree']
             and selection['originalProductionForkTree']==identity['forkTree']
             and selection['originalCheckoutWritten'] is False and selection['fakeVCSIdentity'] is False
@@ -134,7 +146,7 @@ def _source_binding(receipt, source, selection_raw, dependencies_raw, build_iden
             and type(identity_processes[0]['exitCode']) is int and identity_processes[0]['exitCode']==0
             and identity_processes[0]['command']==[binary_path,'synthetic-commit-clock-build-identity','--synthetic'],
             'original build identity command differs')
-    declared=json.loads(build_identity_raw)
+    declared=strict(build_identity_raw,16<<10)
     require(declared['version']=='YNX-COMET-COMMIT-CLOCK-BUILD/v1' and declared['status']=='DECLARED'
             and declared['sourceRevision']==source and declared['sourceBinding']==SOURCE_BINDING
             and declared['syntheticOnly'] is True and declared['runtimeAuthorized'] is False and declared['nodeStarted'] is False,
@@ -153,7 +165,10 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
     originals; this function cannot create them or upgrade their provenance.
     """
     rows=receipt.get('loadResult',{}).get('rows',[]); demand=receipt.get('configuredDemand')
-    require(type(demand) is int and type(rows) is list and len(rows)==demand, 'original full demand required')
+    require(type(demand) is int and 0<demand<=10000 and type(rows) is list and len(rows)==demand
+            and all(type(row) is dict and type(row.get('index')) is int and pin(row.get('id'),64) for row in rows)
+            and sorted(row['index'] for row in rows)==list(range(demand))
+            and len({row['id'] for row in rows})==demand, 'original unique full demand required')
     result=dict(status='NOT_SUPPLIED',configuredDemand=demand,observed=0,censored=demand,rows=[],
                 independentFinality=False,runtimeAuthorized=False,physicalCommitMeaning='per-node local persistent ABCI Commit return upper bounds; not consensus vote or finality')
     try:
@@ -177,7 +192,7 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
             require(len(olds)==len(news)==1, 'duplicate or absent original snapshot binding')
             old,new=olds[0],news[0]
             require(sha(raw)==old['sha256'] and len(raw)==old['bytes'] and sha(clock_raw)==new['sha256'] and len(clock_raw)==new['bytes'], 'original snapshot bytes differ')
-            commit=json.loads(raw); clock=json.loads(clock_raw)
+            commit=strict(raw,512<<10); clock=strict(clock_raw,512<<10)
             processes=[x for x in receipt['processes'] if x['name']=='pq-node-%d'%i]
             probes=[x for x in receipt['commitClockProcessProbes'] if x['node']==i]
             require(len(processes)==len(probes)==1 and probes[0]['probe']==probe, 'original node probe is not receipt-bound')
@@ -214,7 +229,7 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
         try:
             inc_raw=inclusion[row['index']]; references=[x for x in receipt['commitClockInclusions'] if x['index']==row['index']]
             require(len(references)==1 and len(inc_raw)==references[0]['bytes'] and sha(inc_raw)==references[0]['sha256'], 'original inclusion bytes differ')
-            inc=json.loads(inc_raw); rr=inc['rows']; tx=row['hash']; sent=row['submittedNs']
+            inc=strict(inc_raw,4<<20); rr=inc['rows']; tx=row['hash']; sent=row['submittedNs']
             require(pin(tx,64) and type(sent) is int and sent>=0 and type(rr) is list and len(rr)==4, 'original submitted operation unavailable')
             heights=[int(r['height']) for r in rr]
             require(heights[0]>0 and len(set(heights))==1 and all(r['hash'].lower()==tx and type(r['tx_result']['code']) is int and r['tx_result']['code']==0 for r in rr), 'original successful four-node inclusion differs')

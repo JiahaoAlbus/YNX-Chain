@@ -39,7 +39,7 @@ class CommitClockReadbackControls(unittest.TestCase):
             normalLiveBuildProvenance={'ynx-comet':dict(binarySHA256=binary,originalSource=identity,sourceSelectionSHA256=r.sha(selection),
                 sourceDependenciesReceiptSHA256=r.sha(deps),buildArgv=argv,buildCwd='/synthetic/source',selectedOptionalForkTree='e'*40)},
             normalLiveSourceDependencies={'sourceDependencies':json.loads(deps)},commitClockBuildIdentity=dict(pid=99,**descriptor(declaration)),
-            loadResult=dict(originProcessID=100,originMonotonicNs='1000',rows=[dict(index=0,id='logical-0',hash=tx,submittedNs=100)]),
+            loadResult=dict(originProcessID=100,originMonotonicNs='1000',rows=[dict(index=0,id='9'*64,hash=tx,submittedNs=100)]),
             normalCommitObservation=dict(originalSnapshots=[]),commitMonotonicObservation=dict(originalSnapshots=[]),
             commitClockProcessProbes=[],processes=[dict(name='commit-clock-build-identity',pid=99,exitCode=0,command=[binary_path,'synthetic-commit-clock-build-identity','--synthetic'])],commitClockInclusions=[])
         evidence=[]
@@ -85,7 +85,7 @@ class CommitClockReadbackControls(unittest.TestCase):
                 self.assertEqual((result['status'],result['observed'],result['censored']),('NOT_SUPPLIED',0,1))
 
     def test_each_unbound_node_makes_the_transaction_censored(self):
-        for kind in ('pid','executable','namespace','clock_order','wrong_height_hash','duplicate_height','future_clock','inclusion_bytes'):
+        for kind in ('pid','executable','namespace','clock_order','wrong_height_hash','duplicate_height','duplicate_json','duplicate_node_descriptor','future_clock','inclusion_bytes'):
             with self.subTest(kind=kind):
                 receipt,kwargs=self.fixture(); item=kwargs['node_evidence'][1]
                 if kind in ('pid','executable','namespace'):
@@ -93,6 +93,10 @@ class CommitClockReadbackControls(unittest.TestCase):
                     elif kind=='executable':item['processProbe']['binarySHA256']='1'*64
                     else:item['processProbe']['timeNamespace']='9:9'
                 elif kind=='inclusion_bytes':kwargs['inclusion'][0]+=b' '
+                elif kind=='duplicate_node_descriptor':receipt['commitMonotonicObservation']['originalSnapshots'].append(copy.deepcopy(receipt['commitMonotonicObservation']['originalSnapshots'][1]))
+                elif kind=='duplicate_json':
+                    item['clockOriginal']=item['clockOriginal'].replace(b'{',b'{"status":"OBSERVED",',1)
+                    receipt['commitMonotonicObservation']['originalSnapshots'][1].update(descriptor(item['clockOriginal']))
                 else:
                     clock=json.loads(item['clockOriginal'])
                     if kind=='clock_order':clock['samples'].append(dict(height=6,appHash='d'*64,monotonicNs='1'))
@@ -104,6 +108,10 @@ class CommitClockReadbackControls(unittest.TestCase):
                 result=r.reduce(receipt,**kwargs)
                 self.assertEqual((result['observed'],result['censored']),(0,1))
                 self.assertIsNone(result['rows'][0]['fourNodeUpperBoundNs'])
+
+    def test_original_full_demand_indices_and_ids_are_mandatory(self):
+        receipt,kwargs=self.fixture();receipt['loadResult']['rows'][0]['index']=1
+        with self.assertRaisesRegex(ValueError,'unique full demand'):r.reduce(receipt,**kwargs)
 
     def test_node_pidfd_is_bound_before_original_child_publication(self):
         with tempfile.TemporaryDirectory() as temp:
