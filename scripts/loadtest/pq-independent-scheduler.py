@@ -17,6 +17,21 @@ SCHEMA="YNX-PQ-INDEPENDENT-LOAD-PLAN/v1"
 MAX_DEMAND=10000
 
 
+def open_durable_ledger(plan,path,emit,check_resources,*,enabled=False,max_db_bytes=1<<30):
+    """Explicit accounting adapter only; no change to normal source/run gates."""
+    require(enabled is True,"durable demand accounting is explicitly opt-in")
+    import importlib.util
+    from pathlib import Path
+    spec=importlib.util.spec_from_file_location('original_durable_demand',Path(__file__).with_name('pq-durable-demand-ledger.py'))
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    # Reconstruct its lazy sequence from the pinned metadata; never trust a
+    # caller's substituted rows or transfer a runtime/source qualification.
+    original_plan=module.make_plan(plan['networkPlanSHA256'],plan['workloadSHA256'],plan['mode'],plan['accounts'],
+                                  plan['requestedOfferedTPS'],plan['windowNs'],plan['tailNs'],enabled=True)
+    require(original_plan['configuredDemand']==plan['configuredDemand'],'complete durable demand differs')
+    return module.DurableLedger(original_plan,path,emit,check_resources,enabled=True,max_db_bytes=max_db_bytes)
+
+
 class KnownFailure(Exception):
     """A normal identity-bound rejection, never an uncertain external effect."""
 
