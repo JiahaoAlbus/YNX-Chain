@@ -270,6 +270,9 @@ jobs:
       - run: make streambft-candidate-check
       - run: make consensus-abci-check
       - name: Verify exact original state capture and proof authority controls
+        # Diagnostic execution survives an unrelated earlier gate failure.
+        # The original verify job still fails; these controls grant no runtime.
+        if: ${{ !cancelled() }}
         run: python3 -B scripts/verify/pq-state-capture-check.py
       - name: Verify actual ready-sender Commit phase observations
         run: >-
