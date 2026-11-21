@@ -64,13 +64,16 @@ def roots(paths):
 class OriginalDriverAdapter:
     """One-shot bridge; controller-owned qualification is deliberately explicit."""
     def __init__(self, driver, options, qualification_record, *, verify_qualification,
-                 admit, storage_roots):
+                 admit, storage_roots, source_metadata_reader=None):
         self.driver, self._run, self._window = driver, driver.run, driver.lab.Window
         require(isinstance(self._window, type) and self._window.__new__ is object.__new__,
                 'unwrapped original Window class required; do not bypass another controller')
         self.options = copy.deepcopy(options)
         self._record = copy.deepcopy(qualification_record)
         self._verify, self._admission = verify_qualification, admit
+        require(source_metadata_reader is None or callable(source_metadata_reader),
+                'original source metadata transport must be callable')
+        self._source_metadata_reader = source_metadata_reader
         self.storage_roots = roots(storage_roots)
         self.retained_roots = ()
         self.qualified = self.admitted = self.used = self.retired = False
@@ -161,7 +164,8 @@ class OriginalDriverAdapter:
                     'original driver/Window changed after adapter binding')
             self.driver.lab.Window = RegisteredWindow
             try:
-                self.result = self._run(copy.deepcopy(self.options))
+                kwargs = {} if self._source_metadata_reader is None else dict(source_metadata_reader=self._source_metadata_reader)
+                self.result = self._run(copy.deepcopy(self.options), **kwargs)
                 require(len(calls) == 1 and self.registration_error is None,
                         'original driver did not propagate Window registration failure')
                 return self.result

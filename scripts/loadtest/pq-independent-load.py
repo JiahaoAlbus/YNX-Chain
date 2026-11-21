@@ -1219,7 +1219,7 @@ def validate_escalation(args):
     lab.require(q["censored"]==0 and q["p95Ms"]<=2000 and q["p99Ms"]<=5000,"preceding observed qualified receipt latency target not achieved")
 
 
-def run(args):
+def run(args, *, source_metadata_reader=None):
     demand=validate_options(args)
     backend_kind=sender_backend_kind(args) # Source/semantic/window gates below still run before any Window.
     lab.require(not getattr(args,'startup_timings',False) or args.commit in STARTUP_TIMING_ABI_SOURCES,'matching original startup timing ABI required; old source cannot inherit new flags')
@@ -1227,6 +1227,8 @@ def run(args):
     first_trial=getattr(args,'initialize_before_load',False)
     profile=getattr(args,'first_trial_profile','own1b')
     held = profile == HELD_TRIAL_PROFILE
+    lab.require(source_metadata_reader is None or held,
+                'metadata transport injection is limited to the original held source gate')
     if held:
         trial_source = held_first_trial_source
         identity = lab.check_source(Path(args.source), args.commit)
@@ -1243,7 +1245,9 @@ def run(args):
         trial_source={'own1b':first_trial_source,'d24':first_trial_d24_source,'1695':first_trial_1695_source,'7c25':first_trial_7c25_source}[profile]
     expected_source=trial_source.SOURCE if first_trial else STAGED_CALLEE_SOURCE if getattr(args,'staged_publication',False) else CALLEE_SOURCE
     lab.require(args.commit==expected_source,('exact staged normal consumer source required; c06 diagnostic qualification cannot be transferred' if getattr(args,'staged_publication',False) else 'exact c06 Commit consumer source required; old703 qualification cannot be reused'))
-    trial_qualification=(trial_source.trial_qualification() if profile=='1695' else trial_source.qualification()) if first_trial else None
+    trial_qualification=(trial_source.qualification(metadata_reader=source_metadata_reader)
+        if held and source_metadata_reader is not None else
+        (trial_source.trial_qualification() if profile=='1695' else trial_source.qualification()) if first_trial else None)
     if getattr(args,'staged_publication',False) and args.execute and not first_trial:
         if getattr(args,'initialization_only',False):initialization.source_functional_data()
         else:lab.require(STAGED_SOURCE_QUALIFICATION is not None and args.commit==STAGED_CALLEE_SOURCE,'normal staged large-owner callee/source/new normal CI/actual500 initialized-owner qualification NOT_SUPPLIED; no Python fallback or source monkeypatch')
