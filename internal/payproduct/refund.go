@@ -208,7 +208,10 @@ func (s *Service) RefreshRefund(ctx context.Context, actor MerchantPrincipal, re
 		if !found || request.MerchantID != actor.Merchant.ID {
 			return errors.New("refund request not found")
 		}
-		invoice = data.Invoices[request.InvoiceID]
+		invoice, found = data.Invoices[request.InvoiceID]
+		if !found || invoice.ID != request.InvoiceID || invoice.MerchantID != request.MerchantID {
+			return errors.New("original refund invoice requires recovery")
+		}
 		return nil
 	}); err != nil {
 		return RefundRequest{}, err
@@ -232,12 +235,13 @@ func (s *Service) RefreshRefund(ctx context.Context, actor MerchantPrincipal, re
 	if evidence.ID != request.CentralRefundID || evidence.RequestID != request.ID || evidence.InvoiceID != invoice.CentralID || evidence.IntentID != invoice.IntentID || evidence.ChainID != ChainID || evidence.MerchantID != actor.Merchant.CentralMerchantID || evidence.MerchantAccount != request.ApprovedBy || evidence.Payer != request.Payer || evidence.Amount != request.Amount || evidence.Asset != invoice.Asset || strings.ToLower(evidence.TransactionHash) != request.RefundTransactionHash || evidence.BlockNumber == 0 || evidence.Finality != "committed" || evidence.Status != "refunded" || evidence.ReceiptID == "" || len(evidence.AuditHash) != 64 || evidence.CommittedAt.IsZero() || evidence.Source != "authoritative-central-pay-api" || evidence.SourceAsOf.IsZero() || evidence.SourceVersion <= 0 || evidence.Confidence != "authoritative" {
 		return RefundRequest{}, errors.New("authoritative refund evidence is incomplete or mismatched")
 	}
+	originalRequestHash, originalInvoiceHash := hashJSON(request), hashJSON(invoice)
 	now := s.now().UTC()
 	request.Status, request.Evidence, request.UpdatedAt = "refunded", &evidence, now
 	err = s.store.Update(func(data *Snapshot) error {
 		current := data.Refunds[request.ID]
-		if current.Status != "submitted" {
-			return errors.New("refund request state changed")
+		if current.Status != "submitted" || hashJSON(current) != originalRequestHash || hashJSON(data.Invoices[invoice.ID]) != originalInvoiceHash {
+			return errors.New("original refund request or invoice changed during readback")
 		}
 		for id, other := range data.Refunds {
 			if id != request.ID && other.Evidence != nil && (other.Evidence.ReceiptID == evidence.ReceiptID || other.Evidence.TransactionHash == evidence.TransactionHash) {

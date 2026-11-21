@@ -12,6 +12,15 @@ import (
 )
 
 type refundLostPay struct{ *fakeAuthorizedRefundPay }
+type refundReadRacePay struct {
+	*fakeAuthorizedRefundPay
+	during func()
+}
+
+func (p *refundReadRacePay) RefundEvidence(ctx context.Context, id string) (AuthoritativeRefundEvidence, error) {
+	p.during()
+	return p.fakeAuthorizedRefundPay.RefundEvidence(ctx, id)
+}
 
 func (p *refundLostPay) CreateAuthorizedRefund(_ context.Context, input AuthorizedRefundSubmission) (chain.RefundRecord, error) {
 	p.createCalls++
@@ -121,6 +130,38 @@ func TestRefundThirtyColdReadKeepsNetSeventy(t *testing.T) {
 		t.Fatal("refund to wrong destination accepted")
 	}
 	p.evidence.Payer = v.Payer
+	originalReason := submitted.Reason
+	s.pay = &refundReadRacePay{fakeAuthorizedRefundPay: p, during: func() {
+		if e := s.store.Update(func(data *Snapshot) error {
+			changed := data.Refunds[request.ID]
+			changed.Reason = "concurrent original case change"
+			data.Refunds[request.ID] = changed
+			return nil
+		}); e != nil {
+			t.Fatal(e)
+		}
+	}}
+	if _, err = s.RefreshRefund(context.Background(), actor, request.ID); err == nil {
+		t.Fatal("concurrent original refund change was overwritten")
+	}
+	if err = s.store.View(func(data Snapshot) error {
+		changed := data.Refunds[request.ID]
+		if changed.Reason != "concurrent original case change" || changed.Status != "submitted" || changed.Evidence != nil {
+			t.Fatal("changed original refund was replaced")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err = s.store.Update(func(data *Snapshot) error {
+		changed := data.Refunds[request.ID]
+		changed.Reason = originalReason
+		data.Refunds[request.ID] = changed
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	s.pay = p
 	if _, err = s.RefreshRefund(context.Background(), actor, request.ID); err != nil {
 		t.Fatal(err)
 	}
