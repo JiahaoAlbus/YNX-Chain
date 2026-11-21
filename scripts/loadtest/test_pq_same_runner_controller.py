@@ -243,6 +243,13 @@ class ControllerControls(unittest.TestCase):
             c.verify_tool_files(root,pins)
             changed=dict(pins);changed.pop('pq-staged-harness-controls.py')
             with self.assertRaisesRegex(RuntimeError,'TOOL_PINS required'):c.verify_tool_files(root,changed)
+            for name in ('pq-normal-live-reader.py','pq-7c25-native-source-dependencies.py'):
+                changed=dict(pins);changed.pop(name)
+                with self.subTest(name=name),self.assertRaisesRegex(RuntimeError,'TOOL_PINS required'):
+                    c.verify_tool_files(root,changed)
+                changed=dict(pins);changed[name]='0'*64
+                with self.subTest(name=name),self.assertRaisesRegex(RuntimeError,'TOOL_PINS differs'):
+                    c.verify_tool_files(root,changed)
             path=folder/'pq-independent-load.py';path.write_bytes(b'# mutated CONTROL\n')
             with self.assertRaisesRegex(RuntimeError,'TOOL_PINS differs'):c.verify_tool_files(root,pins)
             path.unlink();path.symlink_to(folder/'consensus-linux-cohort.py')

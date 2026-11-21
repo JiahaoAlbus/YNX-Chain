@@ -30,6 +30,11 @@ HELD_SIGNER_COMPOSITION = dict(
     optionalForkTree='08747364c24c065bf2b13527c210625d7ec95fba',
     compositionScriptSHA256='6127446317b29b361aee1f741fb38493e5f0214e67db3a62bb37359390bf192c',
     ciEvidenceSHA256=None)
+HELD_SESSION_COMPOSITION = dict(
+    optionalForkCommit='5a49f5c91452604dffb910df736702b3b9df2562',
+    optionalForkTree='08747364c24c065bf2b13527c210625d7ec95fba',
+    compositionScriptSHA256='e35ff39c10090e9200bdabf7b265c1fd211fd2ae4d227ffaae52054c6dbc2fac',
+    ciEvidenceSHA256=None)
 SIGNER_RETAINED = ('node/observer_node_test.go', 'rpc/core/observer_status_test.go',
                    'rpc/core/status.go', 'node/ynx_proof_source.go',
                    'privval/ynx_context_server.go', 'privval/ynx_context_wire.go',
@@ -108,10 +113,7 @@ def prepare_matching_source(source, destination, *, held_source_only=False):
             require(held and identity['tree'] == held_tree
                     and identity['forkTree'] == '5a128880d14bfc73de4334cba23218859ad3473c',
                     'exact held-session source identity required')
-            q = dict(optionalForkCommit='5a49f5c91452604dffb910df736702b3b9df2562',
-                     optionalForkTree='08747364c24c065bf2b13527c210625d7ec95fba',
-                     compositionScriptSHA256='e35ff39c10090e9200bdabf7b265c1fd211fd2ae4d227ffaae52054c6dbc2fac',
-                     ciEvidenceSHA256=None)
+            q = dict(HELD_SESSION_COMPOSITION)
     else:
         q=qualify(identity)
     path=source/'scripts/verify/wire-live-matching-source-ci.py'

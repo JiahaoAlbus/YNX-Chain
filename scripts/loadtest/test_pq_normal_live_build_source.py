@@ -138,11 +138,15 @@ class HeldSignerSourceControls(unittest.TestCase):
         return dict(sourceDirectory=str(target/'source'),sourceSelection=selection,receiptPath=str(path),
                     receiptBytes=len(raw),receiptSHA256=hashlib.sha256(raw).hexdigest())
 
-    def compose(self,fixture,*,held_source_only=True,native_error=None):
+    def compose(self,fixture,*,held_source_only=True,native_error=None,fixture_held_composer=False):
         source,dest,profile,identity,core,git=fixture
         loader=SimpleNamespace(exec_module=lambda module:None)
         with ExitStack() as stack:
             stack.enter_context(mock.patch.object(reader,'HELD_SIGNER_COMPOSITION',profile))
+            if fixture_held_composer:
+                held_profile=dict(reader.HELD_SESSION_COMPOSITION,
+                                  compositionScriptSHA256=profile['compositionScriptSHA256'])
+                stack.enter_context(mock.patch.object(reader,'HELD_SESSION_COMPOSITION',held_profile))
             stack.enter_context(mock.patch.object(reader.subprocess,'check_output',side_effect=git))
             stack.enter_context(mock.patch.object(reader.importlib.util,'spec_from_file_location',
                                                  return_value=SimpleNamespace(loader=loader)))
@@ -181,6 +185,24 @@ class HeldSignerSourceControls(unittest.TestCase):
         self.assertFalse(result['sourceCIQualified'] or result['runtimeAuthorized'] or result['pressureAuthorized'])
         native=reader.native_source_dependencies
         self.assertEqual(native.SIGNER_SOURCE_ONLY_TREES[native.SIGNER_SOURCE_ONLY],native.SIGNER_SOURCE_ONLY_TREE)
+
+    def test_before59_observer_is_exact_held_materialization_only(self):
+        native=reader.native_source_dependencies
+        for mode in ('exact','commit','tree','fork','normal'):
+            with self.subTest(mode=mode):
+                f=self.fixture(legacy=True)
+                f[3].update(commit=native.BEFORE59_OBSERVER_SOURCE,tree=native.BEFORE59_OBSERVER_TREE)
+                if mode in ('commit','tree','fork'):
+                    f[3][{'commit':'commit','tree':'tree','fork':'forkTree'}[mode]]='0'*40
+                if mode=='exact':
+                    result=self.compose(f,fixture_held_composer=True)
+                    self.assertTrue(result['sourceCompositionOnly'])
+                    self.assertFalse(result['runtimeAuthorized'] or result['sourceCIQualified'] or result['pressureAuthorized'])
+                    self.assertNotIn(native.BEFORE59_OBSERVER_SOURCE,native.SIGNER_SOURCE_ONLY_TREES)
+                else:
+                    with self.assertRaises(RuntimeError):self.compose(f,held_source_only=mode!='normal')
+                    f[4].prepare_wire_live_source.assert_not_called()
+                    self.assertFalse(f[1].exists())
 
     def test_commit_tree_fork_and_composer_changes_refuse_before_export(self):
         for field in ('commit','tree','forkTree','compositionScriptSHA256'):

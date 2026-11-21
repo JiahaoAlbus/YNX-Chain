@@ -49,6 +49,7 @@ REQUIRED_TOOL_PINS = (
     'pq-independent-load.py', 'consensus-linux-cohort.py', 'pq-paired-linux-window.py',
     'pq-staged-independent-scheduler.py', 'pq-staged-harness-controls.py',
     'pq-held-first100-source.py', 'pq-initialization-readback.py', 'pq-public-proof-readback.py',
+    'pq-normal-live-reader.py', 'pq-7c25-native-source-dependencies.py',
 )
 PAIR_JOB_SECONDS = 45*60
 PAIR_EXECUTION_SECONDS = 35*60

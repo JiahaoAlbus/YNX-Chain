@@ -24,6 +24,10 @@ HELD_REGRESSION_SOURCE="a2c0ef48ec840730aabc59212c5ea891a37d45f2"
 HELD_REGRESSION_TREE="677f5b52e7251184a8680579b6f43a8c9e8f85c0"
 HELD_BUSINESS_SOURCE="9c222c8f7fa0501c0aa1dbd86e031c434b897ac8"
 HELD_BUSINESS_TREE="8bb878e0cd0fdb9cd9bb84a41f3b680d0defb932"
+# Exact before59 observer successor, source materialization only.  This does
+# not qualify its CI, enable an observer or authorize a business window.
+BEFORE59_OBSERVER_SOURCE='de54c52b669ad56ebc702a484e2eaca51d0efc2e'
+BEFORE59_OBSERVER_TREE='d22b51801073930a4715dcea20b0320259d27fb4'
 _held_spec=importlib.util.spec_from_file_location('held_first100_source_pin',Path(__file__).with_name('pq-held-first100-source.py'))
 _held=importlib.util.module_from_spec(_held_spec)
 _held_spec.loader.exec_module(_held)
@@ -32,6 +36,7 @@ HELD_SOURCE_TREES={HELD_SOURCE:HELD_TREE, HELD_CI_SOURCE:HELD_CI_TREE,
                    HELD_GETTER_SOURCE:HELD_GETTER_TREE, HELD_RESOURCE_SOURCE:HELD_RESOURCE_TREE,
                    HELD_REGRESSION_SOURCE:HELD_REGRESSION_TREE,
                    HELD_BUSINESS_SOURCE:HELD_BUSINESS_TREE,
+                   BEFORE59_OBSERVER_SOURCE:BEFORE59_OBSERVER_TREE,
                    _held.PREVIOUS_SOURCE:_held.PREVIOUS_TREE,
                    _held.STREAM_SOURCE:_held.STREAM_TREE,
                    _held.PREPARED_SOURCE:_held.PREPARED_TREE,
