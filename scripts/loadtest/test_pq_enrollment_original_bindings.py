@@ -83,7 +83,7 @@ class EnrollmentOriginalBindingControls(unittest.TestCase):
 
     def test_complete_expected_cannot_rebind_wire_hash_header_or_index(self):
         changes=[('NativeWire',b64(b'other')),('Envelope',b64(b'other')),('TransactionHash',b64(b'z'*32)),
-                 ('NativeWireHash',b64(b'z'*32)),('Index',True),('Index',1<<32),('TransactionType','pq_migration'),('Block',{})]
+                 ('NativeWireHash',b64(b'z'*32)),('Index',True),('Index',1<<32),('TransactionType','account_migration'),('Block',{})]
         for key,value in changes:
             with self.subTest(key=key):
                 old=self.expected[key];self.expected[key]=value;self.binding['expectedSHA256']=sha(raw(self.expected))
@@ -127,7 +127,7 @@ class EnrollmentOriginalBindingControls(unittest.TestCase):
                 self.assertEqual(result['currentEligibility'],'UNKNOWN')
 
     def test_missing_classic_and_migration_normal_producers_never_use_sender_format(self):
-        for kind in ('YNX-LAB-LEGACY-FUNDING/v1','pq_migration'):
+        for kind in ('YNX-LAB-LEGACY-FUNDING/v1','account_migration'):
             self.binding['transactionType']=kind
             with mock.patch.object(m,'original_files',side_effect=AssertionError('unsupported role must not read')):
                 result=self.audit()
@@ -213,16 +213,16 @@ class EnrollmentOriginalBindingControls(unittest.TestCase):
         self.assertEqual(before,accounting.path.read_bytes())
 
     def test_candidate_normal_cli_targets_bind_both_originals_but_never_invoke_or_admit(self):
-        migration=copy.deepcopy(self.expected);migration['TransactionType']='pq_migration'
+        migration=copy.deepcopy(self.expected);migration['TransactionType']='account_migration'
         expected={'funding':dict(raw=raw(self.expected),sha256=sha(raw(self.expected))),
                   'migration':dict(raw=raw(migration),sha256=sha(raw(migration)))}
-        # This is the normal transactionExpected CLI ABI from Core f59, not
+        # This is the normal transactionExpected CLI ABI from Core dfad, not
         # the Go type's default JSON. Public proof/trust files are NOT supplied.
         block=dict(chainId='ynx_642399-1',headerHeight='5',blockHash=(b'b'*32).hex(),stateHeight='4',stateAppHash=(b'a'*32).hex())
         target=dict(block=block,successor=dict(block,headerHeight='6',stateHeight='5'),transactionType='pq_transfer',
             envelope=b64(self.envelope),nativeWire=b64(self.wire),transactionHash=sha(self.envelope),nativeWireHash=sha(self.wire),index='0')
         context=dict(version='YNX-CONSENSUS-ENROLLMENT-PROOF-TRUST/v1',lightTrust={},pins={},
-            fundingExpected=target,migrationExpected=dict(copy.deepcopy(target),transactionType='pq_migration'),
+            fundingExpected=target,migrationExpected=dict(copy.deepcopy(target),transactionType='account_migration'),
             fundingOriginalFile='/UNSUPPLIED/funding.abci',migrationOriginalFile='/UNSUPPLIED/migration.abci')
         original=raw(context)
         with mock.patch('subprocess.Popen',side_effect=AssertionError('candidate CLI cannot execute')):
@@ -238,6 +238,33 @@ class EnrollmentOriginalBindingControls(unittest.TestCase):
         with self.assertRaises(ValueError):m.bind_normal_cli_expectations(original,sha(original),expected)
         with self.assertRaises(ValueError):m.bind_normal_cli_expectations(original,'0'*64,expected,enabled=True)
         with self.assertRaises(ValueError):m.bind_normal_cli_expectations(original,sha(original),{'funding':expected['funding']},enabled=True)
+
+    def test_dfad_normal_cli_expected_format_and_actual_migration_literal(self):
+        block=dict(chainId='ynx_642399-1',headerHeight='5',blockHash=(b'b'*32).hex(),stateHeight='4',stateAppHash=(b'a'*32).hex())
+        funding=dict(block=block,successor=dict(block,headerHeight='6',stateHeight='5'),transactionType='pq_transfer',
+            envelope=b64(self.envelope),nativeWire=b64(self.wire),transactionHash=sha(self.envelope),nativeWireHash=sha(self.wire),index='0')
+        migration=dict(copy.deepcopy(funding),transactionType='account_migration')
+        context=dict(version='YNX-CONSENSUS-ENROLLMENT-PROOF-TRUST/v1',lightTrust={},pins={},
+            fundingExpected=funding,migrationExpected=migration,fundingOriginalFile='/UNSUPPLIED/funding.abci',
+            migrationOriginalFile='/UNSUPPLIED/migration.abci')
+        originals={role:dict(raw=raw(target),sha256=sha(raw(target))) for role,target in (('funding',funding),('migration',migration))}
+        encoded=raw(context)
+        with mock.patch('subprocess.Popen',side_effect=AssertionError('format inspection cannot invoke')):
+            result=m.bind_normal_cli_expectations(encoded,sha(encoded),originals,expected_format='normal-cli',enabled=True)
+        self.assertEqual(result['originalExpectedFormat'],'normal-cli');self.assertEqual(result['status'],'UNKNOWN')
+        self.assertEqual(result['inspectedVerifierABI'],'dfadf421e817bf7898c50aea2340a71672561890')
+        self.assertFalse(result['normalVerifierInvoked'] or result['accountAdmissionAllowed'] or result['nonceReleased'])
+        self.assertIsNone(m.NORMAL_ENROLLMENT_CALLEE)
+        # No auto-detection, aliases or coercion of canonical CLI values.
+        with self.assertRaises(ValueError):m.bind_normal_cli_expectations(encoded,sha(encoded),originals,enabled=True)
+        with self.assertRaises(ValueError):m.bind_normal_cli_expectations(encoded,sha(encoded),originals,expected_format='auto',enabled=True)
+        for key,value in (('transactionType','pq_migration'),('index',0),('index','00'),('index',str(1<<32)),
+                          ('transactionHash',sha(self.envelope).upper()),('Block',{})):
+            changed=copy.deepcopy(migration);changed[key]=value
+            with self.subTest(key=key,value=str(value)[:64]):
+                with self.assertRaises(ValueError):m.decode_cli_expected(raw(changed))
+        legacy=dict(funding,transactionType='YNX-LAB-LEGACY-FUNDING/v1')
+        self.assertEqual(m.decode_cli_expected(raw(legacy))['TransactionType'],legacy['transactionType'])
 
 
 if __name__=='__main__':unittest.main(verbosity=2)

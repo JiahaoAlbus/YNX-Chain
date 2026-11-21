@@ -1,8 +1,9 @@
 """Read original sender byte bindings before a SAME-CHAIN proof caller.
 
 This does not authenticate sender-record MACs, decode transaction cryptography,
-or create an enrollment operation. Core 33f has no enrollment CLI and no normal
-classic-funding/initial-migration outbox producer. Those gaps remain UNKNOWN.
+or create an enrollment operation. Core dfad supplies a historical proof CLI;
+normal classic-funding/initial-migration durable outboxes and current account
+eligibility remain separate, unavailable contracts here.
 Only the existing one-member PQ sender format is understood here. An observed
 byte join never releases the ledger, retries an operation or admits an account.
 """
@@ -20,8 +21,9 @@ require=accounting.require
 SCHEMA='YNX-PERF-ENROLLMENT-ORIGINAL-BINDING/v1'
 SOURCE='33f83823f438c8d9ac1edd3014a9ca0505ef4d00'
 # ABI inspection only, NOT an accepted binary/CI tuple or executable source gate.
-INSPECTED_ENROLLMENT_CLI='f59dbce207f5e0a4fcbdce9edc83b4e8774237f7'
-# A reviewed Go API is not an executable CLI. No caller/environment can open it.
+INSPECTED_ENROLLMENT_CLI='dfadf421e817bf7898c50aea2340a71672561890'
+# Source CI or public fixture verification is not production admission.
+# No caller/environment can open the production invocation gate.
 NORMAL_ENROLLMENT_CALLEE=None
 FILE_LIMITS={'request.json':4096,'RESULT.json':2<<20,'transaction.wire':8<<20,'transaction.abci':8<<20}
 EXPECTED_LIMIT=24<<20
@@ -55,7 +57,7 @@ def decode_expected(expected_raw):
     expected=accounting.strict(expected_raw,EXPECTED_LIMIT)
     closed(expected,('Block','Successor','TransactionType','Envelope','NativeWire','TransactionHash','NativeWireHash','Index'),
            'complete original Go proof expectation required')
-    require(expected['TransactionType'] in ('pq_transfer','pq_migration','YNX-LAB-LEGACY-FUNDING/v1')
+    require(expected['TransactionType'] in ('pq_transfer','account_migration','YNX-LAB-LEGACY-FUNDING/v1')
             and type(expected['Index']) is int and 0<=expected['Index']<1<<32,'original proof transaction kind/index differs')
     for key in ('Block','Successor'):
         point=expected[key]
@@ -76,7 +78,31 @@ def decode_expected(expected_raw):
     return expected
 
 
-def bind_normal_cli_expectations(context_raw,context_sha256,expectations,*,enabled=False):
+def decode_cli_expected(expected_raw):
+    """Shape-only conversion from the normal CLI ABI; no transaction decoding."""
+    value=accounting.strict(expected_raw,EXPECTED_LIMIT)
+    closed(value,('block','successor','transactionType','envelope','nativeWire','transactionHash','nativeWireHash','index'),
+           'complete original normal CLI proof expectation required')
+    def integer(text,limit):
+        require(type(text) is str and re.fullmatch('0|[1-9][0-9]*',text) is not None and len(text)<=20,
+                'canonical normal CLI integer required')
+        number=int(text);require(number<limit,'bounded normal CLI integer required');return number
+    def digest(text):
+        require(hex_pin(text),'canonical normal CLI hash required')
+        return base64.b64encode(bytes.fromhex(text)).decode()
+    def point(item):
+        closed(item,('chainId','headerHeight','blockHash','stateHeight','stateAppHash'),
+               'complete original normal CLI header required')
+        return dict(ChainID=item['chainId'],HeaderHeight=integer(item['headerHeight'],1<<63),
+            BlockHash=digest(item['blockHash']),StateHeight=integer(item['stateHeight'],1<<63),
+            StateAppHash=digest(item['stateAppHash']))
+    typed=dict(Block=point(value['block']),Successor=point(value['successor']),TransactionType=value['transactionType'],
+        Envelope=value['envelope'],NativeWire=value['nativeWire'],TransactionHash=digest(value['transactionHash']),
+        NativeWireHash=digest(value['nativeWireHash']),Index=integer(value['index'],1<<32))
+    return decode_expected(accounting.d.encoded(typed,EXPECTED_LIMIT).encode('utf-8'))
+
+
+def bind_normal_cli_expectations(context_raw,context_sha256,expectations,*,expected_format='go-default',enabled=False):
     """Pure ABI adapter; leave the caller's raw trust context unchanged.
 
     This binds both independent typed targets to the normal CLI's lowercase,
@@ -84,6 +110,7 @@ def bind_normal_cli_expectations(context_raw,context_sha256,expectations,*,enabl
     candidate. Missing original operation producers remain UNKNOWN separately.
     """
     require(enabled is True,'normal enrollment ABI binding is explicitly opt-in')
+    require(expected_format in ('go-default','normal-cli'),'explicit original Expected format required')
     require(hex_pin(context_sha256) and type(context_raw) is bytes and sha(context_raw)==context_sha256,
             'independent original normal context pin differs')
     context=accounting.strict(context_raw,2*EXPECTED_LIMIT+(64<<10))
@@ -96,9 +123,9 @@ def bind_normal_cli_expectations(context_raw,context_sha256,expectations,*,enabl
         closed(original,('raw','sha256'),'complete independent typed target pin required')
         require(type(original['raw']) is bytes and hex_pin(original['sha256']) and sha(original['raw'])==original['sha256'],
                 'original typed target bytes differ')
-        expected=decode_expected(original['raw'])
+        expected=(decode_expected if expected_format=='go-default' else decode_cli_expected)(original['raw'])
         require(expected['TransactionType'] in ('pq_transfer','YNX-LAB-LEGACY-FUNDING/v1') if role=='funding'
-                else expected['TransactionType']=='pq_migration','original enrollment role/type differs')
+                else expected['TransactionType']=='account_migration','original enrollment role/type differs')
         def point(value):
             return dict(chainId=value['ChainID'],headerHeight=str(value['HeaderHeight']),blockHash=b64(value['BlockHash'],32).hex(),
                         stateHeight=str(value['StateHeight']),stateAppHash=b64(value['StateAppHash'],32).hex())
@@ -109,7 +136,8 @@ def bind_normal_cli_expectations(context_raw,context_sha256,expectations,*,enabl
                 'normal CLI target differs from complete original Expected')
         pins[role]=original['sha256']
     report=unknown_report()
-    report.update(inspectedVerifierABI=INSPECTED_ENROLLMENT_CLI,normalCLIExpectedByteBindingsObserved=True,
+    report.update(inspectedVerifierABI=INSPECTED_ENROLLMENT_CLI,originalExpectedFormat=expected_format,
+        normalCLIExpectedByteBindingsObserved=True,
         originalPins=dict(contextSHA256=context_sha256,expectedSHA256=pins),
         missingEvidence=['fixedVerifierSourceCIAndBinary','authenticatedIndependentTrust','originalOperationIdentity','authenticatedCurrentAccountState'])
     return report
