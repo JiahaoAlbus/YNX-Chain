@@ -39,6 +39,12 @@ on:
       - "scripts/verify/chain-core-release-check.mjs"
       - "scripts/verify/streambft-candidate-check.sh"
   workflow_dispatch:
+    inputs:
+      synthetic_pair_rss:
+        description: Run the isolated synthetic pair RSS measurement
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -181,14 +187,14 @@ jobs:
           python3 -B scripts/loadtest/test_pq_commit_validation_readback.py
           python3 -B scripts/loadtest/test_pq_commit_clock_source_qualification.py
       - name: Measure original pair producers using synthetic data on Linux
-        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/chain-monotonic-reader-20261121'
+        if: github.event_name == 'workflow_dispatch' && inputs.synthetic_pair_rss && github.ref == 'refs/heads/codex/chain-monotonic-reader-20261121'
         timeout-minutes: 15
         run: |
           set -euo pipefail
           python3 -B scripts/loadtest/test_pq_same_runner_synthetic_rss.py -v
           python3 -B scripts/loadtest/pq-same-runner-synthetic-rss.py --run --repo "$GITHUB_WORKSPACE" --output "$RUNNER_TEMP/synthetic-pair-rss.json"
       - name: Preserve synthetic pair RSS result
-        if: always() && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/chain-monotonic-reader-20261121'
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.synthetic_pair_rss && github.ref == 'refs/heads/codex/chain-monotonic-reader-20261121'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: synthetic-pair-rss-${{ github.run_id }}-${{ github.run_attempt }}
