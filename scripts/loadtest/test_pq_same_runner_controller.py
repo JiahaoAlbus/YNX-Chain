@@ -78,6 +78,55 @@ class ControllerControls(unittest.TestCase):
                     self.assertFalse(plan['configured']); self.assertFalse(plan['runtimePermissionGranted'])
             prepare.assert_not_called(); api.assert_not_called(); child.assert_not_called()
 
+    def test_before_gate_uses_original_log_in_actual_factory_before_window(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace=Path(tmp).resolve();parent=workspace/'tmp';parent.mkdir()
+            for name in ('controller','source-before','source-after','tools-before','tools-after','go/bin'):
+                (workspace/name).mkdir(parents=True)
+            go=workspace/'go/bin/go';go.write_text('CONTROL only')
+            selected=arm()
+            for name in ('pq-before59-held-source.py','pq-before59-equivalence-readback.py',
+                         'pq-commit-clock-source-qualification.py','pq-commit-clock-readback.py','pq-experimental-owner-pidfd.py'):
+                selected['toolPins'][name]='a'*64
+            binding=dict(schema='YNX-PERF-ORIGINAL-PAIR-BINDING/v1',arms=dict(before=selected,after=copy.deepcopy(selected)))
+            environment=dict(GITHUB_WORKSPACE=str(workspace),RUNNER_TEMP=str(parent))
+            pair=dict(controllerCommit='e'*40,runID=10,jobID=20)
+            api=types.SimpleNamespace(token=None,read=lambda suffix:{'CONTROL':suffix})
+            held_binding=dict(source='1'*40);log_requirements=dict(CONTROL=True)
+            gate=types.SimpleNamespace(SOURCE='1'*40,TREE='2'*40,BINDING=held_binding,
+                clock=types.SimpleNamespace(BINDING=held_binding,LOG_REQUIREMENTS=log_requirements),
+                qualification=mock.Mock(return_value=selected['sourceQualification']))
+            gate.qualification.__signature__=c.inspect.signature(original.before59_held_source.qualification)
+            clock_ci=types.SimpleNamespace(BINDING=held_binding,LOG_REQUIREMENTS=log_requirements,BEFORE59_SOURCE='1'*40,
+                qualification=mock.Mock(return_value=dict(source='1'*40,focusedOriginalLogVerified=True,
+                    before59OriginalEquivalenceVerified=True,sourceOnlyEvidence=True,runtimePermissionGranted=False,
+                    pressureAuthorized=False,independentFinality=False)))
+            driver=types.SimpleNamespace(run=mock.Mock(),lab=original.lab,before59_held_source=gate,
+                select_held_source=lambda commit:gate,commit_clock_ci=clock_ci,
+                commit_clock=types.SimpleNamespace(COMMIT_CLOCK_SOURCE='1'*40))
+            driver.run.__signature__=c.inspect.signature(original.run)
+            original_log=mock.Mock(return_value=b'CONTROL original')
+            with ExitStack() as stack:
+                stack.enter_context(mock.patch.object(c,'__file__',str(workspace/'controller/scripts/loadtest/pq-same-runner-controller.py')))
+                clock_identity=dict(source=selected['source'],tools=selected['tools'])
+                stack.enter_context(mock.patch.object(c,'CLOCK_LOG_BINDING',dict(before=clock_identity,after=dict(clock_identity))))
+                stack.enter_context(mock.patch.object(c,'active_pair',return_value=pair))
+                stack.enter_context(mock.patch.object(c,'checkout'));stack.enter_context(mock.patch.object(c,'verify_tool_files'))
+                stack.enter_context(mock.patch.object(c,'verify_tools_ci',return_value={'CONTROL':'tools'}))
+                stack.enter_context(mock.patch.object(c.shutil,'which',return_value=str(go)))
+                stack.enter_context(mock.patch.object(c,'module',return_value=driver))
+                stack.enter_context(mock.patch.object(c,'git',return_value='6'*40))
+                stack.enter_context(mock.patch.object(c.subprocess,'check_output',return_value='go1.26.11\n'))
+                stack.enter_context(mock.patch.object(original.lab,'check_source',return_value={'commit':'1'*40,'tree':'2'*40}))
+                stack.enter_context(mock.patch.object(c,'clock_log_reader_for_arm',return_value=original_log))
+                stack.enter_context(mock.patch.object(c,'clock_evidence_reader_for_arm',return_value=None))
+                window=stack.enter_context(mock.patch.object(original.lab.Window,'__init__',side_effect=AssertionError('no Window before source gate')))
+                prepared=c.prepare(binding,environment,api)
+                prepared['adapters']['before'].qualify()
+                gate.qualification.assert_called_once_with(metadata_reader=api.read,focused_log_reader=original_log)
+                self.assertIs(clock_ci.qualification.call_args.kwargs['focused_log_reader'],original_log)
+                window.assert_not_called();driver.run.assert_not_called()
+
     def test_after_bad_original_evidence_prevents_before_execution(self):
         fixture=module('test_pq_same_runner_pair_producer')
         with tempfile.TemporaryDirectory() as temp:
@@ -384,7 +433,7 @@ class ControllerControls(unittest.TestCase):
             # The REAL bridge and original Window class are supplied. This
             # factory/qualification control never calls adapter.execute.
             driver=types.SimpleNamespace(run=mock.Mock(),lab=original.lab,HELD_TRIAL_SOURCE='1'*40,
-                HELD_TRIAL_TREE='2'*40,held_first_trial_source=source_gate)
+                HELD_TRIAL_TREE='2'*40,held_first_trial_source=source_gate,select_held_source=lambda commit:source_gate)
             driver.run.__signature__=c.inspect.signature(original.run)
             with ExitStack() as stack:
                 stack.enter_context(mock.patch.object(c,'__file__',str(workspace/'controller/scripts/loadtest/pq-same-runner-controller.py')))
@@ -434,7 +483,7 @@ class ControllerControls(unittest.TestCase):
                 return dict(source=identity['commit'],focusedOriginalLogVerified=True,sourceOnlyEvidence=True,
                     historyOriginalExecutionVerified=True,getterOriginalEvidenceVerified=True,
                     runtimePermissionGranted=False,pressureAuthorized=False,independentFinality=False)
-            driver=types.SimpleNamespace(run=mock.Mock(),lab=original.lab,HELD_TRIAL_SOURCE='1'*40,HELD_TRIAL_TREE='2'*40,
+            driver=types.SimpleNamespace(run=mock.Mock(),lab=original.lab,HELD_TRIAL_SOURCE='1'*40,HELD_TRIAL_TREE='2'*40,select_held_source=lambda commit:source_gate,
                 held_first_trial_source=source_gate,commit_clock=types.SimpleNamespace(COMMIT_CLOCK_SOURCE='1'*40),
                 commit_clock_ci=types.SimpleNamespace(BINDING={'historyJob':106},qualification=gate))
             driver.run.__signature__=c.inspect.signature(original.run)

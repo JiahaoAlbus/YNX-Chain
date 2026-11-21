@@ -456,35 +456,33 @@ class TransportControls(unittest.TestCase):
 
     def test_prepared_owner_uses_the_normal_staged_ledger_entry(self):
         controls=module('staged_owner_integration_controls','test_pq_staged_independent_scheduler.py')
-        prepared=dict(response(identity='',code='OWNER_PREPARED'),result=None)
-        holder={}
-        def next_reply():
-            sent=json.loads(holder['session'].proc.stdin.getvalue().splitlines()[-1])
-            if sent['operation']=='prepare-owner':
-                return prepared
-            return response(owner=sent['request']['ownerIndex'],identity=sent['request']['operationId'])
-        stream=session(next_reply)
-        holder['session']=stream
-        Backend=b.backend_class(d.NormalBackend,Session,n,d.lab)
-        adapter=Backend.__new__(Backend)
-        adapter.c=SimpleNamespace(consumer_source='c697abae262c3be7859f235f45e9e8447bbccf63')
-        adapter.public_session=stream
-        adapter.checkpoint=lambda stop:dict(height=22,appHash='c'*64)
-        class PreparedBackend(controls.StructuralBackend):
-            def publish(self,row,account,notify,stop):
-                request=dict(version='YNX-PQ-LAB-SENDER-REQUEST/v1',operationId=row['operationId'],
-                             ownerIndex=row['ownerIndex'],firstNonce=str(row['nonce']),members=1)
-                with tempfile.TemporaryDirectory() as directory:
-                    adapter.sign_original(row,request,None,Path(directory),notify,stop)
-                return super().publish(row,account,notify,stop)
-        result=controls.staged.run(controls.plan(1,1),PreparedBackend(),lambda _event:None,
-                                   lambda:None,threading.Event())
-        self.assertIsNone(result['firstCause'])
-        self.assertEqual(result['qualified'],1)
-        self.assertEqual([json.loads(line)['operation'] for line in stream.proc.stdin.getvalue().splitlines()],
-                         ['prepare-owner','sign'])
-        names=[name for name,_ in result['rows'][0]['stageTimes']]
-        self.assertLess(names.index('owner_prepare'),names.index('sender_ready_checkpoint'))
+        for source in ('c697abae262c3be7859f235f45e9e8447bbccf63','de54c52b669ad56ebc702a484e2eaca51d0efc2e'):
+            with self.subTest(source=source):
+                prepared=dict(response(identity='',code='OWNER_PREPARED'),result=None)
+                holder={}
+                def next_reply():
+                    sent=json.loads(holder['session'].proc.stdin.getvalue().splitlines()[-1])
+                    if sent['operation']=='prepare-owner':return prepared
+                    return response(owner=sent['request']['ownerIndex'],identity=sent['request']['operationId'])
+                stream=session(next_reply);holder['session']=stream
+                Backend=b.backend_class(d.NormalBackend,Session,n,d.lab)
+                adapter=Backend.__new__(Backend);adapter.c=SimpleNamespace(consumer_source=source)
+                adapter.public_session=stream;adapter.checkpoint=lambda stop:dict(height=22,appHash='c'*64)
+                class PreparedBackend(controls.StructuralBackend):
+                    def publish(self,row,account,notify,stop):
+                        request=dict(version='YNX-PQ-LAB-SENDER-REQUEST/v1',operationId=row['operationId'],
+                                     ownerIndex=row['ownerIndex'],firstNonce=str(row['nonce']),members=1)
+                        with tempfile.TemporaryDirectory() as directory:
+                            adapter.sign_original(row,request,None,Path(directory),notify,stop)
+                        return super().publish(row,account,notify,stop)
+                result=controls.staged.run(controls.plan(1,1),PreparedBackend(),lambda _event:None,
+                                           lambda:None,threading.Event())
+                self.assertIsNone(result['firstCause']);self.assertEqual(result['qualified'],1)
+                self.assertEqual([json.loads(line)['operation'] for line in stream.proc.stdin.getvalue().splitlines()],
+                                 ['prepare-owner','sign'])
+                names=[name for name,_ in result['rows'][0]['stageTimes']]
+                self.assertLess(names.index('owner_prepare'),names.index('sender_ready_checkpoint'))
+                self.assertIn('owner_prepare',d.CalleeMeasurements(1,1,source=source).denominators)
 
     def test_real_backend_preserves_shared_process_and_original_proof_arguments(self):
         class Callee:

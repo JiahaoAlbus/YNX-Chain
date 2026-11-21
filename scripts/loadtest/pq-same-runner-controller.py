@@ -416,11 +416,21 @@ def prepare(binding, environment, api):
             require({'pq-source-evidence-archive.py','pq-source-history-readback.py','pq-getter-source-readback.py'} <= set(arm['toolPins']),
                     'original history/getter evidence tool pins NOT_SUPPLIED')
         require('source_metadata_reader' in inspect.signature(driver.run).parameters
-                and 'metadata_reader' in inspect.signature(driver.held_first_trial_source.qualification).parameters,
+                and callable(getattr(driver,'select_held_source',None)),
                 'original held metadata-only transport ABI NOT_SUPPLIED; no environment fallback')
-        require((driver.HELD_TRIAL_SOURCE, driver.HELD_TRIAL_TREE) == (arm['source'], arm['sourceTree'])
-                and (driver.held_first_trial_source.SOURCE, driver.held_first_trial_source.TREE) == (arm['source'], arm['sourceTree']),
+        gate=driver.select_held_source(arm['source'])
+        require('metadata_reader' in inspect.signature(gate.qualification).parameters
+                and (gate.SOURCE,gate.TREE)==(arm['source'],arm['sourceTree']),
                 'original driver source qualification differs; no pin mutation permitted')
+        is_before=gate is getattr(driver,'before59_held_source',None)
+        if is_before:
+            require(config['options'].get('commit_clock_observation') is True
+                    and 'focused_log_reader' in inspect.signature(gate.qualification).parameters
+                    and 'pq-before59-held-source.py' in arm['toolPins']
+                    and driver.commit_clock_ci.BINDING is not None and driver.commit_clock_ci.LOG_REQUIREMENTS is not None
+                    and gate.BINDING==gate.clock.BINDING==driver.commit_clock_ci.BINDING
+                    and gate.clock.LOG_REQUIREMENTS==driver.commit_clock_ci.LOG_REQUIREMENTS,
+                    'original before59 held source and log gate NOT_SUPPLIED')
         tools_ci = verify_tools_ci(arm['toolsCI'], api.read('runs/'+str(arm['toolsCI']['run'])),
                                   api.read('jobs/'+str(arm['toolsCI']['job'])),
                                   clock_observation=config['options'].get('commit_clock_observation',False))
@@ -429,7 +439,7 @@ def prepare(binding, environment, api):
         clock_reader=clock_log_reader_for_arm(label,driver,arm,options)
         evidence_reader=clock_evidence_reader_for_arm(label,driver,arm,options)
 
-        def qualify(arm=arm, source=source, tools=tools, driver=driver, record=record, config=config,
+        def qualify(arm=arm, source=source, tools=tools, driver=driver, gate=gate, is_before=is_before, record=record, config=config,
                     options=options, clock_reader=clock_reader, evidence_reader=evidence_reader):
             checkout(controller, pair['controllerCommit'])
             checkout(source, arm['source'], arm['sourceTree']); checkout(tools, arm['tools'], arm['toolsTree'])
@@ -440,9 +450,10 @@ def prepare(binding, environment, api):
                     'fixed original Go toolchain differs')
             identity = driver.lab.check_source(source, arm['source'])
             require(identity['tree'] == arm['sourceTree'], 'original source identity differs')
-            gate = driver.held_first_trial_source
             source_ci = arm['sourceQualification']
-            require(same(gate.qualification(metadata_reader=api.read), source_ci),
+            source_options=dict(metadata_reader=api.read)
+            if is_before:source_options['focused_log_reader']=clock_reader
+            require(same(gate.qualification(**source_options), source_ci),
                     'original source qualification failed; candidate Tools CI is insufficient')
             preflight_clock_source(driver,identity,api.read,options,clock_reader,evidence_reader)
             require(same(verify_tools_ci(arm['toolsCI'], api.read('runs/'+str(arm['toolsCI']['run'])),

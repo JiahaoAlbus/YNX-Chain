@@ -54,6 +54,7 @@ def public_file(directory,reference):
 
 PREPARED_OWNER_SOURCE = '0b515124bda8ff7efaf3ec03456d69dee2c6ad18'
 PREPARED_OWNER_SOURCES = frozenset((PREPARED_OWNER_SOURCE, '59f7885d11bd3eeb5d27dce7232779aae480a806',
+                                   'de54c52b669ad56ebc702a484e2eaca51d0efc2e',
                                    'c697abae262c3be7859f235f45e9e8447bbccf63'))
 
 def sender_command_data(operation,request,height=0,app_hash="",materials="",materials_sha="",proof=""):

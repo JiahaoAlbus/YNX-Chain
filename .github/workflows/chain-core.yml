@@ -254,6 +254,12 @@ jobs:
           if grep -qi 'skipped' "$RUNNER_TEMP/commit-clock-readback.log"; then exit 1; fi
           python3 -B scripts/loadtest/test_pq_commit_validation_readback.py
           python3 -B scripts/loadtest/test_pq_commit_clock_source_qualification.py
+          if ! python3 -B scripts/loadtest/test_pq_before59_held_source.py -v > "$RUNNER_TEMP/before59-held-source.log" 2>&1; then
+            cat "$RUNNER_TEMP/before59-held-source.log"; exit 1
+          fi
+          cat "$RUNNER_TEMP/before59-held-source.log"
+          grep -q '^Ran 5 tests ' "$RUNNER_TEMP/before59-held-source.log"
+          if grep -qi 'skipped' "$RUNNER_TEMP/before59-held-source.log"; then exit 1; fi
           python3 -B scripts/loadtest/pq-source-evidence-controls.py
       - name: Verify synthetic sampler first-failure retention
         run: |

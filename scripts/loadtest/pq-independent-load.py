@@ -45,6 +45,7 @@ first_trial_d24_source=module('original_first_trial_d24_source','pq-d24-source-r
 first_trial_1695_source=module('original_first_trial_1695_source','pq-1695-source-qualification.py')
 first_trial_7c25_source=module('original_first_trial_7c25_source','pq-7c25-source-qualification.py')
 held_first_trial_source=module('held_first100_source','pq-held-first100-source.py')
+before59_held_source=module('before59_held_source','pq-before59-held-source.py')
 held_input_footprint=module('original_held_input_footprint','pq-held-input-footprint.py')
 request_observation_readback=module('original_request_observation_readback','pq-live-request-observation-readback.py')
 owner_failure_readback=module('original_owner_failure_readback','pq-public-owner-failure-readback.py')
@@ -79,10 +80,16 @@ STARTUP_TIMING_ABI_SOURCES = frozenset({'eff586d429a3c18d52b7e91ed2b58c809fa6f15
 HELD_TRIAL_PROFILE = 'held-first100'
 HELD_TRIAL_SOURCE = held_first_trial_source.SOURCE
 HELD_TRIAL_TREE = held_first_trial_source.TREE
-STARTUP_TIMING_ABI_SOURCES = STARTUP_TIMING_ABI_SOURCES | {first_trial_7c25_source.SOURCE, HELD_TRIAL_SOURCE}
+STARTUP_TIMING_ABI_SOURCES = STARTUP_TIMING_ABI_SOURCES | {first_trial_7c25_source.SOURCE, HELD_TRIAL_SOURCE, before59_held_source.SOURCE}
 PUBLIC_OWNER_ABI_SOURCE = '1695aafd351b3cac7860d3452c555a02498e8350' # ABI identity only; no source/semantic/window qualification.
-PUBLIC_OWNER_ABI_SOURCES = frozenset((PUBLIC_OWNER_ABI_SOURCE,first_trial_7c25_source.SOURCE,HELD_TRIAL_SOURCE))
+PUBLIC_OWNER_ABI_SOURCES = frozenset((PUBLIC_OWNER_ABI_SOURCE,first_trial_7c25_source.SOURCE,HELD_TRIAL_SOURCE,before59_held_source.SOURCE))
 GUARDED_SHUTDOWN_SOURCE = None  # Owner-frozen exact source and own CI required; never a runtime grant.
+
+def select_held_source(commit):
+    if commit==HELD_TRIAL_SOURCE:return held_first_trial_source
+    if commit==before59_held_source.SOURCE and before59_held_source.BINDING is not None:
+        return before59_held_source
+    raise RuntimeError('exact held source and independent same-run binding NOT_SUPPLIED')
 
 
 def callee_snapshot(value):
@@ -1243,9 +1250,12 @@ def validate_options(args):
                 (not getattr(args, 'held_ready_only', False) or profile == HELD_TRIAL_PROFILE),
                 'READY-only requires the fixed held first100 profile')
     if profile in ('7c25', HELD_TRIAL_PROFILE):
-        expected = HELD_TRIAL_SOURCE if profile == HELD_TRIAL_PROFILE else first_trial_7c25_source.SOURCE
+        expected = select_held_source(args.commit).SOURCE if profile == HELD_TRIAL_PROFILE else first_trial_7c25_source.SOURCE
         lab.require(args.commit==expected and getattr(args,'sender_backend','auto')=='public-owner',
                     'selected first100 requires its exact source and explicit public-owner backend')
+        if profile==HELD_TRIAL_PROFILE and expected==before59_held_source.SOURCE:
+            lab.require(getattr(args,'commit_clock_observation',False) is True,
+                        'before59 held source requires original clock and equivalence evidence')
     lab.require(args.mode in ("online","pre-signed") and args.rate in (100,500,1000) and 1<=args.accounts<=996 and 1<=args.per_account<=1024 and 1<=args.seconds<=60 and 1<=args.tail_seconds<=120 and 1<=args.proof_timeout<=120,"bounded explicit original load configuration required")
     if getattr(args,'initialization_only',False):
         lab.require(getattr(args,'staged_publication',False) and (args.mode,args.rate,args.seconds,args.accounts,args.per_account)==('online',100,5,500,1),'initialization-only requires exact original staged online500 plus4 reserved owners; no reduced-account qualification')
@@ -1295,7 +1305,7 @@ def sender_backend_kind(args):
     lab.require(staged and args.mode=='online','selected sender backend requires original staged online demand')
     if selected=='public-owner':
         lab.require(args.commit in PUBLIC_OWNER_ABI_SOURCES,'exact public owner ABI required; source qualification is separate')
-        if args.commit == HELD_TRIAL_SOURCE:
+        if args.commit in (HELD_TRIAL_SOURCE,before59_held_source.SOURCE):
             lab.require(getattr(args, 'first_trial_profile', 'own1b') == HELD_TRIAL_PROFILE
                         and getattr(args, 'initialize_before_load', False),
                         'held-session source requires its explicit first100 profile')
@@ -1551,12 +1561,26 @@ def run(args, *, source_metadata_reader=None, clock_original_log_reader=None, cl
         and not (log_path is not None and clock_original_log_reader is not None),
         'one original held metadata/log transport required; no ambiguous log source')
     if held:
-        trial_source = held_first_trial_source
+        trial_source = select_held_source(args.commit)
         identity = lab.check_source(Path(args.source), args.commit)
-        lab.require(identity['tree'] == HELD_TRIAL_TREE, 'exact held-session source tree differs')
+        lab.require(identity['tree'] == trial_source.TREE, 'exact held-session source tree differs')
+        before_source_qualification=None
+        if trial_source is before59_held_source:
+            lab.require(commit_clock_ci.BINDING is not None and commit_clock_ci.LOG_REQUIREMENTS is not None
+                and trial_source.BINDING==trial_source.clock.BINDING==commit_clock_ci.BINDING
+                and trial_source.clock.LOG_REQUIREMENTS==commit_clock_ci.LOG_REQUIREMENTS,
+                'before59 held and clock frozen original run/log binding differs')
         if getattr(args,'commit_clock_observation',False):
             if log_path is not None:
                 clock_original_log_reader=commit_clock_ci.retained_original_log_reader(log_path,commit_clock.read_original)
+            if trial_source is before59_held_source and clock_original_log_reader is not None:
+                original_reader=clock_original_log_reader;cached=[];attempted=[False]
+                def once_original_log(*keys):
+                    if attempted[0]:
+                        lab.require(bool(cached) and cached[0][0]==keys,'original clock log prior read failed or identity changed')
+                        return cached[0][1]
+                    attempted[0]=True;value=original_reader(*keys);cached.append((keys,value));return value
+                clock_original_log_reader=once_original_log
             evidence_options={} if clock_original_evidence_reader is None else dict(original_evidence_reader=clock_original_evidence_reader)
             clock_source=commit_clock_ci.qualification(identity,metadata_reader=source_metadata_reader,
                                                       focused_log_reader=clock_original_log_reader,**evidence_options)
@@ -1564,6 +1588,12 @@ def run(args, *, source_metadata_reader=None, clock_original_log_reader=None, cl
                 and clock_source.get('focusedOriginalLogVerified') is True
                 and clock_source.get('runtimePermissionGranted') is False and clock_source.get('pressureAuthorized') is False,
                 'exact clock source/CI evidence differs; no runtime permission inferred')
+            if trial_source is before59_held_source:
+                before_source_qualification=trial_source.qualification(metadata_reader=source_metadata_reader,focused_log_reader=clock_original_log_reader)
+                lab.require(before_source_qualification.get('source')==clock_source.get('source')
+                    and before_source_qualification.get('run')==clock_source.get('run')
+                    and before_source_qualification.get('job')==clock_source.get('focusedJob'),
+                    'before59 held and clock original source/run/job differ')
         if not args.execute:
             prepared=dict(status='prepared-only', source=identity, configuredDemand=demand,
                           requestedOfferedTPS=args.rate, loadConditions=load_conditions(args),
@@ -1578,7 +1608,8 @@ def run(args, *, source_metadata_reader=None, clock_original_log_reader=None, cl
         trial_source={'own1b':first_trial_source,'d24':first_trial_d24_source,'1695':first_trial_1695_source,'7c25':first_trial_7c25_source}[profile]
     expected_source=trial_source.SOURCE if first_trial else STAGED_CALLEE_SOURCE if getattr(args,'staged_publication',False) else CALLEE_SOURCE
     lab.require(args.commit==expected_source,('exact staged normal consumer source required; c06 diagnostic qualification cannot be transferred' if getattr(args,'staged_publication',False) else 'exact c06 Commit consumer source required; old703 qualification cannot be reused'))
-    trial_qualification=(trial_source.qualification(metadata_reader=source_metadata_reader)
+    trial_qualification=(before_source_qualification
+        if held and trial_source is before59_held_source else trial_source.qualification(metadata_reader=source_metadata_reader)
         if held and source_metadata_reader is not None else
         (trial_source.trial_qualification() if profile=='1695' else trial_source.qualification()) if first_trial else None)
     if getattr(args,'staged_publication',False) and args.execute and not first_trial:
