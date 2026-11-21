@@ -4,7 +4,7 @@ import json
 import sys
 
 SPECS = {
-    'chain': ('internal/chain', ('TestConsensusSchedulePersistedCopyColdRestartPreservesOriginal', 'TestOfflinePQScheduledCopyFaultsRetainOriginalAttempt')),
+    'chain': ('internal/chain', ('TestConsensusSchedulePersistedCopyColdRestartPreservesOriginal', 'TestOfflinePQScheduledCopyFaultsRetainOriginalAttempt', 'TestOfflinePQScheduledCopyOwnerMetadataFailsClosed')),
     'chaind': ('cmd/ynx-chaind', (
         'TestOfflinePQScheduledCopyNormalAndCold', 'TestOfflinePQScheduledCopyRejectsPinsAndAliasesBeforeTarget',
         'TestOfflinePQScheduledCopyOutputFailureRetainsTarget', 'TestOfflinePQScheduledCopyRejectsSymlinksAndUnsafeParent',

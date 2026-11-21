@@ -8,6 +8,28 @@ import (
 	"testing"
 )
 
+type offlinePQOwnerFixture struct {
+	os.FileInfo
+	sys any
+}
+
+func (f offlinePQOwnerFixture) Sys() any { return f.sys }
+
+func TestOfflinePQScheduledCopyOwnerMetadataFailsClosed(t *testing.T) {
+	info, err := os.Stat(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if os.Geteuid() >= 0 && !offlinePQOwnedByEffectiveUser(info) {
+		t.Fatal("actual private directory owner not recognized")
+	}
+	for _, bad := range []os.FileInfo{nil, offlinePQOwnerFixture{info, nil}, offlinePQOwnerFixture{info, struct{}{}}, offlinePQOwnerFixture{info, struct{ Uid string }{"0"}}, offlinePQOwnerFixture{info, struct{ Uid uint32 }{^uint32(os.Geteuid())}}} {
+		if offlinePQOwnedByEffectiveUser(bad) {
+			t.Fatalf("unknown or different owner accepted: %#v", bad)
+		}
+	}
+}
+
 func TestOfflinePQScheduledCopyFaultsRetainOriginalAttempt(t *testing.T) {
 	for _, name := range []string{"source-writer", "target-replaced", "post-persistence-error"} {
 		t.Run(name, func(t *testing.T) {

@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
-	"syscall"
 )
 
 // ErrOfflinePQCopyUnknown means the new target was reserved; its original
@@ -38,6 +37,20 @@ type OfflinePQCopyResult struct {
 func offlinePQHash(s string) bool {
 	b, err := hex.DecodeString(s)
 	return err == nil && len(b) == 32 && hex.EncodeToString(b) == s
+}
+
+// Owner metadata differs by platform. Missing/unsupported Uid or an unknown
+// effective user is never accepted as ownership of the private directory.
+func offlinePQOwnedByEffectiveUser(info os.FileInfo) bool {
+	if info == nil || os.Geteuid() < 0 {
+		return false
+	}
+	v := reflect.Indirect(reflect.ValueOf(info.Sys()))
+	if !v.IsValid() || v.Kind() != reflect.Struct {
+		return false
+	}
+	uid := v.FieldByName("Uid")
+	return uid.IsValid() && uid.Kind() == reflect.Uint32 && uid.Uint() == uint64(os.Geteuid())
 }
 
 func syncOfflinePQDirectory(path string) error {
@@ -80,8 +93,7 @@ func prepareOfflinePQScheduledCopy(source, target string, pins OfflinePQCopyPins
 	if err != nil || !info.IsDir() || info.Mode().Perm() != 0700 {
 		return result, errors.New("target parent must be a private 0700 directory")
 	}
-	stat, ok := info.Sys().(*syscall.Stat_t)
-	if !ok || stat == nil || stat.Uid != uint32(os.Geteuid()) {
+	if !offlinePQOwnedByEffectiveUser(info) {
 		return result, errors.New("target parent must be owned by the effective user")
 	}
 	rel, err := filepath.Rel(source, target)
@@ -128,8 +140,7 @@ func prepareOfflinePQScheduledCopy(source, target string, pins OfflinePQCopyPins
 		if err != nil || !current.IsDir() || !os.SameFile(held, current) || current.Mode().Perm() != 0700 {
 			return errors.New("new target directory changed during preparation")
 		}
-		owner, ok := current.Sys().(*syscall.Stat_t)
-		if !ok || owner == nil || owner.Uid != uint32(os.Geteuid()) {
+		if !offlinePQOwnedByEffectiveUser(current) {
 			return errors.New("new target directory owner changed during preparation")
 		}
 		return nil
