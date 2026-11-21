@@ -79,4 +79,24 @@ class OriginalDependencies(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'exact clean'):
                 d.source_identity(self.source)
 
+    def test_signer_source_only_uses_all_original_native_bytes_and_exact_tree(self):
+        def signer_git(source,*args):
+            if args==('rev-parse','HEAD'):return d.SIGNER_SOURCE_ONLY.encode()
+            if args==('rev-parse','HEAD^{tree}'):return d.SIGNER_SOURCE_ONLY_TREE.encode()
+            if args[:3]==('ls-tree','-z',d.SIGNER_SOURCE_ONLY):
+                args=('ls-tree','-z',d.SOURCE,*args[3:])
+            return self.git(source,*args)
+        self.assertNotIn(d.SIGNER_SOURCE_ONLY,d.HELD_SOURCE_TREES)
+        with mock.patch.object(d,'git',side_effect=signer_git):
+            result=d.materialize(self.source,self.build,self.receipt)
+        record=result['sourceDependencies']
+        self.assertEqual(record['source'],d.SIGNER_SOURCE_ONLY)
+        self.assertEqual(record['sourceTree'],d.SIGNER_SOURCE_ONLY_TREE)
+        self.assertFalse(record['authorityGranted'] or record['nodeStarted'])
+        for name in d.FILES:self.assertEqual((self.build/name).read_bytes(),(FIXTURES/name).read_bytes())
+        def wrong_tree(source,*args):
+            return b'0'*40 if args==('rev-parse','HEAD^{tree}') else signer_git(source,*args)
+        with mock.patch.object(d,'git',side_effect=wrong_tree),self.assertRaisesRegex(RuntimeError,'exact clean'):
+            d.source_identity(self.source)
+
 if __name__=='__main__':unittest.main(verbosity=2)
