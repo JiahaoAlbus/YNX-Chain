@@ -5469,6 +5469,40 @@ class HistoryPolicyScopeCIControls(unittest.TestCase):
                 for action in ('skip','fail'):
                     with self.assertRaises(RuntimeError):exec(code,{'rows':rows[:i]+[dict(event,Action=action)]+rows[i+1:]})
 class SyntheticClockReceiptControls(unittest.TestCase):
+    def test_original_clock_ab_receipt_accepts_split_output_and_rejects_bad_events(self):
+        import os, tempfile
+        root = Path(__file__).resolve().parents[2]
+        script = (root / 'scripts/verify/pq-clock-ab-ci.sh').read_text()
+        program = script.split("python3 -B - <<'PY'\n", 1)[1].rsplit('\nPY\n', 1)[0]
+        package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet'
+        name = 'TestSyntheticClockFinalizeOverheadIndependent'
+        order = 'TestSyntheticClockMedianPreservesPairedOrder'
+        source = 'a' * 40
+        chunks = ['SYNTHETIC_CLOCK_FINALIZE_AB/v1 source=' + source + ' height=2 ', 'independentFinality=false\n']
+        rows = [dict(Package=package, Action='start')]
+        for test in (name, order):
+            rows.append(dict(Package=package, Test=test, Action='run'))
+            if test == name:
+                rows += [dict(Package=package, Test=test, Action='output', Output=chunk) for chunk in chunks]
+            rows.append(dict(Package=package, Test=test, Action='pass'))
+        rows.append(dict(Package=package, Action='pass'))
+        with tempfile.TemporaryDirectory(prefix='ynx-clock-split-') as directory, patch.dict(os.environ, RUNNER_TEMP=directory, GITHUB_SHA=source):
+            target = Path(directory) / 'ynx-clock-ab-tests.jsonl'
+            def execute(events):
+                target.write_text(''.join(json.dumps(e) + '\n' for e in events))
+                exec(compile(program, '<actual-clock-ab-receipt>', 'exec'), {})
+            execute(rows)
+            bad = [rows[:2] + rows[3:], rows + [rows[2]],
+                   [dict(row, Package='foreign') if i == 3 else row for i, row in enumerate(rows)],
+                   [dict(row, Output='independentFinality=true\n') if i == 3 else row for i, row in enumerate(rows)],
+                   [dict(row, Output='independentFinality=false independentFinality=false\n') if i == 3 else row for i, row in enumerate(rows)],
+                   [dict(row, Output='x'*65537) if i == 3 else row for i, row in enumerate(rows)],
+                   rows + [dict(Package=package, Test=name + '/child', Action='skip')],
+                   rows + [dict(Package=package, Test=name, Action='fail')]]
+            for changed in bad:
+                with self.assertRaises(RuntimeError):
+                    execute(changed)
+
     def test_actual_clock_qualifier_rejects_missing_duplicated_foreign_and_skip(self):
         import ast, textwrap
         root = Path(__file__).resolve().parents[2]

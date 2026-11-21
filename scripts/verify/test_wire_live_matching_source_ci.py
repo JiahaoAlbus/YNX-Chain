@@ -536,6 +536,7 @@ class WireLiveSourceControls(unittest.TestCase):
         client_steps = ["Execute the current client and qualify actual terminal results",
                         "Exercise the original readback CLI and complete logical denominators",
                         "Verify normal PQ lab producers and the original proof caller",
+                        "Retain original synthetic enrollment test events",
                         "Verify the default-off normal node wire observation adapter"]
         optional_steps = ["Verify strict source availability and separated Go stream controls",
                           "Acquire only the immutable optional supplier object",
@@ -545,6 +546,11 @@ class WireLiveSourceControls(unittest.TestCase):
             self.assertEqual(re.findall(r"^      - name: (.+)$", job, re.M), expected)
             for name in expected:
                 self.assertEqual(workflow.count("      - name: " + name + "\n"), 1)
+        receipt = client.split("      - name: Retain original synthetic enrollment test events\n", 1)[1].split("      - name:", 1)[0]
+        for line in ("steps.enrollmentlab.outcome == 'success' || steps.enrollmentlab.outcome == 'failure'",
+                     'name: ynx-enrollment-original-events-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}',
+                     'path: ${{ runner.temp }}/ynx-enrollment-original-ci', 'if-no-files-found: error'):
+            self.assertEqual(receipt.count(line), 1)
         self.assertEqual(optional.count("        run: python3 -B scripts/verify/wire-live-matching-source-ci.py\n"), 1)
         self.assertEqual(optional.count("        run: python3 -B scripts/verify/test_wire_live_matching_source_ci.py\n"), 1)
         self.assertNotIn("go test", optional)
@@ -579,6 +585,12 @@ class WireLiveSourceControls(unittest.TestCase):
                 self.assert_optional_partition(workflow.replace(optional, mutation, 1))
         with self.assertRaises(AssertionError):
             self.assert_optional_partition(workflow.replace(client, client + "      - name: Verify exact optional live getter composition without enabling a carrier\n        run: python3 -B scripts/verify/wire-live-matching-source-ci.py\n", 1))
+        for before, after in (("steps.enrollmentlab.outcome == 'failure'", 'false'),
+                              ('path: ${{ runner.temp }}/ynx-enrollment-original-ci', 'path: /tmp/foreign'),
+                              ('ynx-enrollment-original-events-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}', 'unbound-events')):
+            self.assertIn(before, client)
+            with self.assertRaises(AssertionError):
+                self.assert_optional_partition(workflow.replace(client, client.replace(before, after, 1), 1))
 
     def test_workflow_fetches_only_fixed_supplier_with_ephemeral_read_credential(self):
         workflow = (HERE.parents[1] / ".github/workflows/chain-core.yml").read_text()
