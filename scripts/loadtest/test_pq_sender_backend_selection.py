@@ -65,6 +65,7 @@ class BackendSelection(unittest.TestCase):
                 network_accounting=True,commit_observation=True,owned_storage_accounting=True,
                 commit_clock_observation=True,commit_clock_ci_original_log=str(original_path),execute=False)
             with mock.patch.object(d,'HELD_TRIAL_SOURCE',binding['source']),mock.patch.object(d,'HELD_TRIAL_TREE',binding['tree']), \
+                 mock.patch.object(d.held_first_trial_source,'SOURCE',binding['source']),mock.patch.object(d.held_first_trial_source,'TREE',binding['tree']), \
                  mock.patch.object(d,'PUBLIC_OWNER_ABI_SOURCES',frozenset([binding['source']])), \
                  mock.patch.object(d,'STARTUP_TIMING_ABI_SOURCES',frozenset([binding['source']])), \
                  mock.patch.object(d.commit_clock,'COMMIT_CLOCK_SOURCE',binding['source']), \
@@ -74,6 +75,12 @@ class BackendSelection(unittest.TestCase):
                 self.assertTrue(result['commitClockSourceCI']['focusedOriginalLogVerified'])
                 self.assertFalse(result['actualLoadExecuted'])
                 self.assertEqual(calls,['runs/101','jobs/102','runs/101/jobs?per_page=100','runs/101'])
+                calls_before_bad_tree=list(calls)
+                with mock.patch.object(d.held_first_trial_source,'TREE','f'*40):
+                    with self.assertRaisesRegex(RuntimeError,'held-session source tree differs'):
+                        d.run(option,source_metadata_reader=metadata)
+                self.assertEqual(calls,calls_before_bad_tree)
+                window.assert_not_called()
                 with self.assertRaisesRegex(RuntimeError,'ambiguous log source'):
                     d.run(option,source_metadata_reader=metadata,clock_original_log_reader=lambda *x:original)
                 option.commit_clock_ci_original_log=None;log_calls=[]
