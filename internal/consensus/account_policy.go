@@ -205,6 +205,32 @@ func validateConsensusPQStateWithCaches(state CommittedState, migration chain.Co
 	if cache == nil {
 		cache = chain.NewPQCertificateCache()
 	}
+	// An isolated historical signature cannot reuse a scope; preserve its
+	// original no-snapshot path. Counting only candidates never authorizes or
+	// rejects anything and the original full validator still runs unchanged.
+	potential := len(state.PQBatches)
+	if potential < 2 {
+		for i, entry := range state.PQHistory {
+			if i == 64 {
+				break
+			}
+			if strings.HasPrefix(entry.Transaction.Memo, pqTransferMemo) {
+				potential++
+				if potential >= 2 {
+					break
+				}
+			}
+		}
+	}
+	if potential < 2 {
+		return validateConsensusPQStateWithCallCache(state, migration, initialCertificates, initialScope, cache)
+	}
+	return cache.WithHistoryPolicyCall(state.AccountPolicy, func(local *chain.PQCertificateCache) error {
+		return validateConsensusPQStateWithCallCache(state, migration, initialCertificates, initialScope, local)
+	})
+}
+
+func validateConsensusPQStateWithCallCache(state CommittedState, migration chain.ConsensusMigrationState, initialCertificates *ynxbatch.CertificateCache, initialScope []byte, cache *chain.PQCertificateCache) error {
 	if state.Version < 15 && (state.AccountPolicy != nil || len(state.PQHistory) != 0 || len(state.PQBatches) != 0 || migration.AccountPolicy != nil) {
 		return errors.New("legacy ABCI state cannot carry or erase account policy")
 	}

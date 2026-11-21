@@ -1570,6 +1570,8 @@ def assert_state_math_required_workflow_contract(step):
     for block in (PUBLIC_OWNER_CORE_BLOCK, PUBLIC_OWNER_CORE_CALL, PUBLIC_OWNER_CORE_REQUIRED):
         if step.count("".join("          " + line + "\n" for line in block.splitlines())) != 1:
             raise AssertionError("public owner core requires exact original cases and whole-stream closure")
+    if step.count("          required += ['TestPQHistoryPolicyCallKeepsOriginalEarlyFailure']\n") != 1:
+        raise AssertionError("history policy original early-failure case must execute and pass")
     if step.count("          required += ['TestABCIPublicTraceFullStateAndAppHashEveryHeight']\n") != 1:
         raise AssertionError("fixed public trace regression must execute once and pass")
     if step.count("          required += ['TestPQLabEnrollmentOriginalProofsSameChain', 'TestPQLabEnrollmentOriginalLegacyFundingProof', 'TestPQLabEnrollmentCLIPublicFixture', 'TestPQLabEnrollmentLegacyCLIPublicFixture', 'TestPQLabEnrollmentOriginalDurableSameChainAndCold', 'TestPQLabEnrollmentOriginalUnknownPreservesCrashWindows', 'TestPQLabEnrollmentOriginalRequestAndResultTampering', 'TestPQLabEnrollmentOriginalPostSignCheckpointChangeUnknown', 'TestPQLabEnrollmentOriginalConfirmationSameChainAndCold', 'TestPQLabEnrollmentOriginalRejectedABCIStateSemantics']\n") != 1:
@@ -2516,6 +2518,15 @@ def assert_legacy_snapshot_stream_contract(raw):
                   raise RuntimeError('independent ethers lifecycle/durability did not execute uniquely in original API package: ' + name)
 """
     expected = expected.replace("          for package in ('github.com/JiahaoAlbus/YNX-Chain/internal/chain', 'github.com/JiahaoAlbus/YNX-Chain/internal/api'):\n", ethers_result + "          for package in ('github.com/JiahaoAlbus/YNX-Chain/internal/chain', 'github.com/JiahaoAlbus/YNX-Chain/internal/api'):\n", 1)
+    policy_result = """          history_policy_scope_required = ['TestHistoryPolicyCallScopeMutationAndLifetime', 'TestHistoryPolicyCallOversizeFallsBackWithoutClone', 'TestHistoryPolicyEqualMatchesDeepEqual']
+          for name in history_policy_scope_required:
+              actions = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == name and row['Action'] in ('run', 'pass', 'fail', 'skip')]
+              if actions != [('github.com/JiahaoAlbus/YNX-Chain/internal/chain', 'run'), ('github.com/JiahaoAlbus/YNX-Chain/internal/chain', 'pass')]:
+                  raise RuntimeError('history policy scope original test missing or not passed: ' + name)
+"""
+    marker = "          ethers_required = ['TestEthereumIndependentEthersLifecycle', 'TestEthereumIndependentEthersDurabilityWait', 'TestEthereumIndependentEthersDurabilityRefusals']\n"
+    need(expected.count(marker) == 1)
+    expected = expected.replace(marker, policy_result + marker, 1)
     need(found[0] == expected)
     push = raw.split("  push:\n", 1)[1].split("  pull_request:\n", 1)[0]
     pull_request = raw.split("  pull_request:\n", 1)[1].split("  workflow_dispatch:\n", 1)[0]
@@ -3339,10 +3350,10 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
                     pkg='cmd/ynx-artifact-release-cabi'
                     if label in ('pending_query','source_v2','product_approval_v4') and index<2: pkg='internal/ynxbatch'
                     if label=='resource_consent' and index==0: pkg='internal/ynxresourceconsent'
-                    if label=='legacy_snapshot':pkg='internal/chain'
+                    if label in ('legacy_snapshot','history_policy_scope_required'):pkg='internal/chain'
                     if label=='ethers_required':
                         pkg='internal/api'
-                    if label in ('ethers_required','wallet_alias','product_approval_v4'):
+                    if label in ('ethers_required','wallet_alias','product_approval_v4','history_policy_scope_required'):
                         rows.append(dict(Package='github.com/JiahaoAlbus/YNX-Chain/'+pkg,Test=test,Action='run'))
                     rows.append(dict(Package='github.com/JiahaoAlbus/YNX-Chain/'+pkg,Test=test,Action='pass'))
             if 'legacy_snapshot' not in lists:
@@ -3361,7 +3372,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
                 with contextlib.redirect_stdout(io.StringIO()):
                     exec(compile(body,'actual-workflow-collector','exec'),{'__builtins__':dict(vars(builtins),__import__=control_import)})
             run(rows)
-            selected={test for label in ('resource_consent','source_v2_capacity','legacy_snapshot','ethers_required','wallet_alias','product_approval_v4') for test in lists.get(label,[])}
+            selected={test for label in ('resource_consent','source_v2_capacity','legacy_snapshot','ethers_required','wallet_alias','product_approval_v4','history_policy_scope_required') for test in lists.get(label,[])}
             for index,row in enumerate(rows):
                 if row.get('Test') not in selected and 'Test' in row:continue
                 for action in ('missing','fail','skip','duplicate','foreign-package','foreign-duplicate'):
@@ -4376,6 +4387,7 @@ class CompleteStatePartitionControls(unittest.TestCase):
         caller = next(group for group in scope["state_partitions"] if group[0] == "lab-caller")
         mutations = [
             step.replace("          required += ['TestABCIPublicTraceFullStateAndAppHashEveryHeight']\n", "", 1),
+            step.replace("          required += ['TestPQHistoryPolicyCallKeepsOriginalEarlyFailure']\n", "", 1),
             step.replace("          required += ['TestPQLabEnrollmentOriginalProofsSameChain', 'TestPQLabEnrollmentOriginalLegacyFundingProof', 'TestPQLabEnrollmentCLIPublicFixture', 'TestPQLabEnrollmentLegacyCLIPublicFixture', 'TestPQLabEnrollmentOriginalDurableSameChainAndCold', 'TestPQLabEnrollmentOriginalUnknownPreservesCrashWindows', 'TestPQLabEnrollmentOriginalRequestAndResultTampering', 'TestPQLabEnrollmentOriginalPostSignCheckpointChangeUnknown', 'TestPQLabEnrollmentOriginalConfirmationSameChainAndCold', 'TestPQLabEnrollmentOriginalRejectedABCIStateSemantics']\n", "", 1),
             step.replace("-run '" + caller[1] + "'", "-run '^TestPQLabSenderMissing$'", 1),
             step.replace("-run '" + caller[1] + "'", "-run '^TestPQLab'", 1),
@@ -5203,6 +5215,27 @@ class EnrollmentVerifierProductionCIControls(unittest.TestCase):
         for changed in bad:
             with self.assertRaises(RuntimeError):
                 qualify(changed)
+
+
+class HistoryPolicyScopeCIControls(unittest.TestCase):
+    def test_actual_scope_qualifier_rejects_missing_duplicate_foreign_and_skip(self):
+        import textwrap
+        root=Path(__file__).resolve().parents[2]
+        raw=(root/'.github/workflows/resource-market-ci.yml').read_text()
+        self.assertEqual(raw.count('          history_policy_scope_required = '),1)
+        start=raw.index('          history_policy_scope_required = ')
+        end=raw.index('          ethers_required = ',start)
+        source=textwrap.dedent(raw[start:end]);code=compile(source,'<original-history-policy-guard>','exec')
+        names=['TestHistoryPolicyCallScopeMutationAndLifetime','TestHistoryPolicyCallOversizeFallsBackWithoutClone','TestHistoryPolicyEqualMatchesDeepEqual']
+        package='github.com/JiahaoAlbus/YNX-Chain/internal/chain'
+        rows=[dict(Package=package,Test=name,Action=action) for name in names for action in ('run','pass')]
+        exec(code,{'rows':rows})
+        for i,event in enumerate(rows):
+            for bad in (rows[:i]+rows[i+1:],rows[:i]+[event]+rows[i:],rows[:i]+[dict(event,Package='foreign')]+rows[i+1:]):
+                with self.assertRaises(RuntimeError):exec(code,{'rows':bad})
+            if event['Action']=='pass':
+                for action in ('skip','fail'):
+                    with self.assertRaises(RuntimeError):exec(code,{'rows':rows[:i]+[dict(event,Action=action)]+rows[i+1:]})
 
 if __name__ == "__main__":
     unittest.main()

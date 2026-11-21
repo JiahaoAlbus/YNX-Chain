@@ -2196,6 +2196,11 @@ jobs:
               terminal = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
               if terminal != [('github.com/JiahaoAlbus/YNX-Chain/internal/chain', 'pass')]:
                   raise RuntimeError('legacy snapshot memory did not execute uniquely in original package: ' + name)
+          history_policy_scope_required = ['TestHistoryPolicyCallScopeMutationAndLifetime', 'TestHistoryPolicyCallOversizeFallsBackWithoutClone', 'TestHistoryPolicyEqualMatchesDeepEqual']
+          for name in history_policy_scope_required:
+              actions = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == name and row['Action'] in ('run', 'pass', 'fail', 'skip')]
+              if actions != [('github.com/JiahaoAlbus/YNX-Chain/internal/chain', 'run'), ('github.com/JiahaoAlbus/YNX-Chain/internal/chain', 'pass')]:
+                  raise RuntimeError('history policy scope original test missing or not passed: ' + name)
           ethers_required = ['TestEthereumIndependentEthersLifecycle', 'TestEthereumIndependentEthersDurabilityWait', 'TestEthereumIndependentEthersDurabilityRefusals']
           for name in ethers_required:
               runs = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == name and row['Action'] == 'run']
@@ -2730,6 +2735,7 @@ jobs:
           required += ['TestInitializeApplicationPUBLICSingleOwnedWitness', 'TestInitializeApplicationPUBLICDetachedCallerAfterReservation', 'TestInitializeApplicationPUBLICOwnedJournalColdGuards', 'TestBootstrapMatchesMigrationStreamReferenceCompleteBinding', 'TestBootstrapMatchesMigrationStreamInlineEveryByteAndNil', 'TestBootstrapMatchesMigrationStreamLargeOriginalHistory']
           required += ['TestInitializeApplicationCapacityMatchesWrittenLayoutAndRefusesBeforeReservation']
           required += ['TestZstdDependencyRejectsUpstreamTwoBlockFrame']
+          required += ['TestPQHistoryPolicyCallKeepsOriginalEarlyFailure']
           required += ['TestABCIPublicTraceFullStateAndAppHashEveryHeight']
           required += ['TestPQLabEnrollmentOriginalProofsSameChain', 'TestPQLabEnrollmentOriginalLegacyFundingProof', 'TestPQLabEnrollmentCLIPublicFixture', 'TestPQLabEnrollmentLegacyCLIPublicFixture', 'TestPQLabEnrollmentOriginalDurableSameChainAndCold', 'TestPQLabEnrollmentOriginalUnknownPreservesCrashWindows', 'TestPQLabEnrollmentOriginalRequestAndResultTampering', 'TestPQLabEnrollmentOriginalPostSignCheckpointChangeUnknown', 'TestPQLabEnrollmentOriginalConfirmationSameChainAndCold', 'TestPQLabEnrollmentOriginalRejectedABCIStateSemantics']
           required += ['TestPQLabSenderHeldInputStatsOriginalCountsAndNoCacheGrowth', 'TestPQLabSenderHeldInputStatsNeverLoadsOrValidatesSources', 'TestPQLabPublicOwnerSessionOriginalIsolationAndWitness', 'TestPQLabPublicOwnerSessionProofAndOwnerRetirement']

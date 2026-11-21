@@ -1,8 +1,12 @@
 package chain
 
 import (
+	"bytes"
 	"crypto/sha256"
+	"encoding"
 	"encoding/json"
+	"reflect"
+	"strings"
 	"sync"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
@@ -22,6 +26,10 @@ type PQCertificateCache struct {
 	scopes       [pqPolicyScopeSlots]pqPolicyScopeMemo
 	computed     uint64
 	historical   bool
+	parent       *PQCertificateCache
+	callPolicy   *ynxauth.State
+	callSnapshot *ynxauth.State
+	callTried    bool
 }
 
 // Policy records/tombstones are immutable. Legal in-place append changes a
@@ -66,6 +74,100 @@ func NewPQHistoryCertificateCache() *PQCertificateCache {
 	return &PQCertificateCache{historical: true}
 }
 
+// WithHistoryPolicyCall scopes policy memoization to one synchronous history
+// validation. Its private detached snapshot is compared to the live complete
+// policy on every use; any mutation or schema change falls back to full hashing.
+// Successful certificate mathematics stays in the original bounded cache.
+func (c *PQCertificateCache) WithHistoryPolicyCall(policy *ynxauth.State, fn func(*PQCertificateCache) error) error {
+	if c == nil || !c.historical || policy == nil {
+		return fn(c)
+	}
+	child := &PQCertificateCache{historical: true, parent: c, callPolicy: policy}
+	defer func() {
+		child.mu.Lock()
+		child.callPolicy = nil
+		child.callSnapshot = nil
+		child.scopes = [pqPolicyScopeSlots]pqPolicyScopeMemo{}
+		child.mu.Unlock()
+	}()
+	return fn(child)
+}
+
+// This is only an optimization boundary, never an admission rule. Oversized
+// or unexpected fields use the unchanged per-use full-policy hashing path.
+func cloneHistoryPolicyForCall(policy *ynxauth.State) *ynxauth.State {
+	if !historyPolicyCloneSchema() || len(policy.NetworkID) > 32 || len(policy.Version) > 128 || len(policy.Records) > 1024 || len(policy.Revocations) > 1024 {
+		return nil
+	}
+	for _, r := range policy.Records {
+		if len(r.AlgorithmVersion) > 128 || len(r.Owner) > 128 || len(r.PKA) != ynxbatch.PublicKeyASize || len(r.PKB) != ynxbatch.PublicKeyBSize {
+			return nil
+		}
+	}
+	for _, r := range policy.Revocations {
+		if len(r.Owner) > 128 {
+			return nil
+		}
+	}
+	clone := policy.Clone()
+	clone.Version = strings.Clone(clone.Version)
+	for i := range clone.Records {
+		clone.Records[i].AlgorithmVersion = strings.Clone(clone.Records[i].AlgorithmVersion)
+		clone.Records[i].Owner = strings.Clone(clone.Records[i].Owner)
+	}
+	for i := range clone.Revocations {
+		clone.Revocations[i].Owner = strings.Clone(clone.Revocations[i].Owner)
+	}
+	return &clone
+}
+
+// Equivalent to reflect.DeepEqual for the explicitly guarded current schema;
+// nil and empty slices remain different so normalization always falls back.
+func equalHistoryPolicyForCall(a, b *ynxauth.State) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	equalBytes := func(x, y []byte) bool { return (x == nil) == (y == nil) && bytes.Equal(x, y) }
+	if a.Version != b.Version || a.EnableAt != b.EnableAt || !equalBytes(a.NetworkID, b.NetworkID) || (a.Records == nil) != (b.Records == nil) || (a.Revocations == nil) != (b.Revocations == nil) || len(a.Records) != len(b.Records) || len(a.Revocations) != len(b.Revocations) {
+		return false
+	}
+	for i, x := range a.Records {
+		y := b.Records[i]
+		if x.AlgorithmVersion != y.AlgorithmVersion || x.Owner != y.Owner || !equalBytes(x.PKA, y.PKA) || !equalBytes(x.PKB, y.PKB) || x.Revision != y.Revision || x.RegisteredAt != y.RegisteredAt || x.ActiveFrom != y.ActiveFrom || x.LedgerNonce != y.LedgerNonce {
+			return false
+		}
+	}
+	for i, x := range a.Revocations {
+		if x != b.Revocations[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// Fail closed if new fields or codecs could introduce an alias into Clone.
+func historyPolicyCloneSchema() bool {
+	jsonCodec := reflect.TypeOf((*json.Marshaler)(nil)).Elem()
+	textCodec := reflect.TypeOf((*encoding.TextMarshaler)(nil)).Elem()
+	check := func(v any, names []string, types []reflect.Type) bool {
+		t := reflect.TypeOf(v)
+		if t.NumField() != len(names) || t.Implements(jsonCodec) || reflect.PointerTo(t).Implements(jsonCodec) || t.Implements(textCodec) || reflect.PointerTo(t).Implements(textCodec) {
+			return false
+		}
+		for i, name := range names {
+			f := t.Field(i)
+			if f.Name != name || f.Type != types[i] || f.PkgPath != "" || f.Anonymous {
+				return false
+			}
+		}
+		return true
+	}
+	str, num, data := reflect.TypeOf(""), reflect.TypeOf(uint64(0)), reflect.TypeOf([]byte(nil))
+	return check(ynxauth.State{}, []string{"Version", "NetworkID", "EnableAt", "Records", "Revocations"}, []reflect.Type{str, data, num, reflect.TypeOf([]ynxauth.Record(nil)), reflect.TypeOf([]ynxauth.RevocationRecord(nil))}) &&
+		check(ynxauth.Record{}, []string{"AlgorithmVersion", "Owner", "PKA", "PKB", "Revision", "RegisteredAt", "ActiveFrom", "LedgerNonce"}, []reflect.Type{str, str, data, data, num, num, num, num}) &&
+		check(ynxauth.RevocationRecord{}, []string{"Owner", "AuthorizingRevision", "ThroughRevision", "RegisteredAt", "RevokedFrom", "LedgerNonce"}, []reflect.Type{str, num, num, num, num, num})
+}
+
 func pqScopeStamp(policy *ynxauth.State) pqPolicyScopeStamp {
 	stamp := pqPolicyScopeStamp{version: policy.Version, networkLength: len(policy.NetworkID), enableAt: policy.EnableAt, records: len(policy.Records), revocations: len(policy.Revocations)}
 	copy(stamp.network[:], policy.NetworkID)
@@ -102,16 +204,35 @@ func (c *PQCertificateCache) VerifierCache(policy *ynxauth.State) (*ynxbatch.Cer
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if c.callPolicy == policy && !c.callTried {
+		c.callTried = true
+		c.callSnapshot = cloneHistoryPolicyForCall(policy)
+	}
 	if c.certificates == nil {
-		cache, err := ynxbatch.NewCertificateCache(pqCertificateCacheEntries)
-		if err != nil {
-			return nil, nil, err
+		if c.parent != nil {
+			c.parent.mu.Lock()
+			if c.parent.certificates == nil {
+				cache, err := ynxbatch.NewCertificateCache(pqCertificateCacheEntries)
+				if err != nil {
+					c.parent.mu.Unlock()
+					return nil, nil, err
+				}
+				c.parent.certificates = cache
+			}
+			c.certificates = c.parent.certificates
+			c.parent.mu.Unlock()
+		} else {
+			cache, err := ynxbatch.NewCertificateCache(pqCertificateCacheEntries)
+			if err != nil {
+				return nil, nil, err
+			}
+			c.certificates = cache
 		}
-		c.certificates = cache
 	}
 	stamp := pqScopeStamp(policy)
 	var root *pqPolicyScopeRoot
-	if !c.historical {
+	memoAllowed := !c.historical || c.callSnapshot != nil && c.callPolicy == policy && equalHistoryPolicyForCall(policy, c.callSnapshot)
+	if memoAllowed {
 		for _, memo := range c.scopes {
 			if memo.policy == policy && memo.stamp == stamp {
 				root = memo.root
@@ -146,7 +267,14 @@ func (c *PQCertificateCache) VerifierCache(policy *ynxauth.State) (*ynxbatch.Cer
 	copy(root.scope[:], hash.Sum(nil))
 	root.ready = true
 	c.computed++
-	c.rememberScopeLocked(pqPolicyScopeMemo{policy: policy, stamp: stamp, root: root})
+	if c.parent != nil {
+		c.parent.mu.Lock()
+		c.parent.computed++
+		c.parent.mu.Unlock()
+	}
+	if memoAllowed || c.callSnapshot == nil {
+		c.rememberScopeLocked(pqPolicyScopeMemo{policy: policy, stamp: stamp, root: root})
+	}
 	return c.certificates, append([]byte(nil), root.scope[:]...), nil
 }
 
