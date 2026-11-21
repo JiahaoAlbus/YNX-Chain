@@ -8,6 +8,8 @@ on:
       - codex/v5-link-native-ci
     paths:
       - "scripts/verify/qualify_pq_private_synthetic_ci.py"
+      - "scripts/verify/pq-state-capture-check.py"
+      - "scripts/ops/test_pq_state_capture_ci.py"
       - "scripts/verify/pq-remote-window-entry-check.sh"
       - "scripts/verify/init-consensus-candidate-keys-check.sh"
       - "scripts/verify/qualify_held_optional_live_getter.py"
@@ -53,6 +55,8 @@ on:
       - codex/ynx-pq-perf-integration
     paths:
       - "scripts/verify/qualify_pq_private_synthetic_ci.py"
+      - "scripts/verify/pq-state-capture-check.py"
+      - "scripts/ops/test_pq_state_capture_ci.py"
       - "scripts/verify/pq-remote-window-entry-check.sh"
       - "scripts/verify/init-consensus-candidate-keys-check.sh"
       - "scripts/verify/qualify_held_optional_live_getter.py"
@@ -102,6 +106,28 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  integration-state-capture:
+    name: Exact integration state capture and proof authority
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration') ||
+      (github.event_name == 'pull_request' && github.base_ref == 'codex/ynx-pq-perf-integration')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact integration source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Set up the source Go toolchain
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+      - name: Verify integration state capture CI contract
+        run: python3 -B -m unittest scripts.ops.test_pq_state_capture_ci -v
+      - name: Verify exact original state capture and proof authority controls
+        run: python3 -B scripts/verify/pq-state-capture-check.py
+
   contract-tooling-scope:
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
     runs-on: ubuntu-24.04
