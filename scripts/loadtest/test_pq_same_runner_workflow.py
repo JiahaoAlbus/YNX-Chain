@@ -27,7 +27,21 @@ class WorkflowControls(unittest.TestCase):
         patch=mock.patch.object(urllib.request.OpenerDirector,'open',side_effect=AssertionError('pure controls cannot use network'))
         patch.start();self.addCleanup(patch.stop)
 
-    def candidate(self): return Path(__file__).with_name('pq-same-runner-normal-process.yml').read_text()
+    def candidate(self):
+        installed=w.c.controller_root(__file__)/w.c.WORKFLOW
+        return (installed if installed.exists() else Path(__file__).with_name('pq-same-runner-normal-process.yml')).read_text()
+
+    def workflow_state(self, raw, enabled):
+        # Synthetic YAML edit only: do not write source, dispatch or run an arm.
+        current=None;lines=[]
+        for line in raw.splitlines(keepends=True):
+            match=re.fullmatch(r'  ([a-z0-9-]+):\n',line)
+            if match:current=match[1]
+            if line.startswith('    if:'):
+                value=str(enabled and current in w.legacy.PAIR_JOBS).lower()
+                line=re.sub(r' \|\| (true|false)\)\n$', ' || '+value+')\n',line)
+            lines.append(line)
+        return ''.join(lines)
 
     def case(self,root):
         case=controls.Case(root);case.run();raws,metadata=case.uploads()
@@ -59,6 +73,30 @@ class WorkflowControls(unittest.TestCase):
                              ('cancel-in-progress: false','cancel-in-progress: true')):
             with self.subTest(before=before),self.assertRaises(RuntimeError):w.original_workflow(raw.replace(before,after,1))
 
+    def test_actual_original_7c25_workflow_and_inline_route_guards(self):
+        # Execute the original controller assertions actually installed in YAML.
+        # No copied expectation, source checkout, network or Window is involved.
+        legacy=module('test_pq_first100_7c25_ci')
+        raw=self.candidate()
+        block=raw.split('          functional=workflow.split',1)[1].split('          module.entry.verify_tools',1)[0]
+        import textwrap
+        checks=compile(textwrap.dedent('          functional=workflow.split'+block),'<original YAML route guards>','exec')
+        def verify(candidate):
+            legacy.assert_workflow(candidate)
+            exec(checks,{'workflow':candidate})
+        verify(raw)
+        functional=raw.split('  functional:\n',1)[1].split('    name:',1)[0]
+        route=raw.split('  first100-7c25-public-owner:\n',1)[1].split('    needs:',1)[0]
+        for original,changed in (
+            (functional,functional.replace("github.ref !=", "github.ref ==",1)),
+            (functional,functional.replace(" && inputs.load_profile != '"+w.PROFILE+"'",'',1)),
+            (route,route.replace('github.run_attempt == 1','github.run_attempt >= 1',1)),
+            (route,route.replace("inputs.signing_mode == 'online'","inputs.signing_mode != 'both'",1)),
+            (route,route.replace(" && (inputs.load_profile != '"+w.PROFILE+"' || false)",'')),
+        ):
+            with self.subTest(changed=changed),self.assertRaises((AssertionError,SystemExit)):
+                verify(raw.replace(original,changed,1))
+
     def test_pair_is_explicit_same_job_no_matrix_no_window_on_push_and_time_caps(self):
         raw=self.candidate();job=raw.split('  first100-held-public-owner:\n',1)[1]
         first=raw.split('    name: Normal original',1)[0]
@@ -73,11 +111,41 @@ class WorkflowControls(unittest.TestCase):
         self.assertEqual(controller_controls.original.lab.CAPS['totalSeconds'],w.ARM_SECONDS)
         self.assertEqual((w.JOB_MINUTES*60,w.EXECUTION_MINUTES*60),
                          (w.c.PAIR_JOB_SECONDS,w.c.PAIR_EXECUTION_SECONDS))
-        self.assertFalse(w.WORKFLOW_PAIR_ENABLED);self.assertIsNone(w.c.bridge.QUALIFIED_PAIR_BINDING)
+        if w.legacy.WORKFLOW_PAIR_ENABLED:
+            w.c.validate_binding(w.c.bridge.QUALIFIED_PAIR_BINDING)
+        else:self.assertIsNone(w.c.bridge.QUALIFIED_PAIR_BINDING)
         jobs=re.findall(r'(?m)^  [a-z0-9-]+:\n',raw.split('jobs:\n',1)[1])
         guards=re.findall(r'(?m)^    if: .*',raw)
         self.assertEqual(len(guards),len(jobs))
-        for guard in guards:self.assertTrue(guard.endswith(" && (inputs.load_profile != '"+w.PROFILE+"' || false)"))
+        w.original_workflow(raw)  # Exact state for both pair jobs and all eleven old jobs.
+
+    def test_disabled_and_source_enabled_workflows_preserve_every_legacy_byte(self):
+        binding=dict(schema='YNX-PERF-ORIGINAL-PAIR-BINDING/v1',
+            arms=dict(before=controller_controls.arm(),after=controller_controls.arm()))
+        after=binding['arms']['after'];after.update(source='b'*40,sourceTree='c'*40,tools='d'*40,toolsTree='e'*40)
+        after['toolsCI'].update(source=after['tools'],run=300,job=301)
+        after['sourceQualification'].update(source=after['source'],sourceTree=after['sourceTree'],run=400,job=401)
+        w.c.validate_binding(binding)
+        for enabled in (False,True):
+            raw=self.workflow_state(self.candidate(),enabled)
+            with self.subTest(enabled=enabled),mock.patch.object(w.legacy,'WORKFLOW_PAIR_ENABLED',enabled), \
+                    mock.patch.object(w.c.bridge,'QUALIFIED_PAIR_BINDING',binding if enabled else None):
+                self.assertEqual(w.r.digest(w.original_workflow(raw).encode()),w.ORIGINAL_WORKFLOW_SHA256)
+                self.assertEqual(sum(line.endswith(' || true)') for line in raw.splitlines() if line.startswith('    if:')),2 if enabled else 0)
+                for changed in (self.workflow_state(raw,not enabled),
+                        raw.replace(" || false)\n", " || true)\n",1),
+                        raw.replace('timeout-minutes: 18','timeout-minutes: 19',1)):
+                    with self.assertRaises(RuntimeError):w.original_workflow(changed)
+
+    def test_binding_and_workflow_enable_must_both_precede_metadata_or_checkout(self):
+        binding=dict(schema='YNX-PERF-ORIGINAL-PAIR-BINDING/v1',
+            arms=dict(before=controller_controls.arm(),after=controller_controls.arm()))
+        for enabled,frozen in ((False,binding),(True,None),(1,binding)):
+            with self.subTest(enabled=enabled),mock.patch.object(w.legacy,'WORKFLOW_PAIR_ENABLED',enabled), \
+                    mock.patch.object(w.c.bridge,'QUALIFIED_PAIR_BINDING',frozen), \
+                    mock.patch.object(w.c,'ActionsMetadata') as api,mock.patch.object(w.c,'checkout') as checkout:
+                with self.assertRaises(RuntimeError):w.context({})
+                api.assert_not_called();checkout.assert_not_called()
 
     def test_fresh_job_and_execution_deadlines_reserve_both_arms_cleanup_and_uploads(self):
         pair=dict(jobID=2,runID=1,controllerCommit='e'*40,runnerID=9,runnerName='CONTROL')
@@ -106,6 +174,11 @@ class WorkflowControls(unittest.TestCase):
 
     def test_checkout_setup_and_three_uploads_are_after_default_closed_preflight(self):
         raw=self.candidate();block=raw.split('# BEGIN YNX_PAIR_RUNTIME_STEPS',1)[1]
+        pure=raw.split('# BEGIN YNX_PAIR_PURE_CONTROLS',1)[1].split('# END YNX_PAIR_PURE_CONTROLS',1)[0]
+        self.assertEqual(pure.count("if: github.event_name != 'workflow_dispatch' || inputs.load_profile == '"+w.PROFILE+"'"),2)
+        self.assertIn('sparse-checkout: /scripts/loadtest/same-runner/',pure)
+        self.assertIn('same-runner/pq-same-runner-controls.py',pure)
+        self.assertNotIn('--execute',pure)
         self.assertLess(block.index('workflow.py checkouts'),block.index('path: source-before'))
         self.assertLess(block.index('workflow.py checkouts'),block.index('actions/setup-go@'))
         self.assertEqual(block.count('pq-same-runner-controller.py --execute'),1)
@@ -122,7 +195,8 @@ class WorkflowControls(unittest.TestCase):
             self.assertRegex(step,r"(?m)^        if: .*inputs\.load_profile == '"+w.PROFILE+r"'")
         for label in ('before','after','manifest'):
             self.assertIn('path: ${{ steps.pair-inputs.outputs.output }}/'+label+'/',block)
-        with mock.patch.object(w.c,'ActionsMetadata') as api,mock.patch.object(w.c,'checkout') as checkout:
+        with mock.patch.object(w.c.bridge,'QUALIFIED_PAIR_BINDING',None), \
+                mock.patch.object(w.c,'ActionsMetadata') as api,mock.patch.object(w.c,'checkout') as checkout:
             for phase in ('checkouts','seal','verify'):
                 with self.assertRaisesRegex(RuntimeError,'NOT_SUPPLIED'):w.main([phase])
             api.assert_not_called();checkout.assert_not_called()
@@ -195,7 +269,8 @@ class WorkflowControls(unittest.TestCase):
                     "import os;raise SystemExit(int(any(k in os.environ for k in ('GH_TOKEN','GITHUB_TOKEN'))))"],check=False)
                 self.assertEqual(result.returncode,0)
                 raise error
-            with mock.patch.object(w.c.bridge,'QUALIFIED_PAIR_BINDING',binding), \
+            with mock.patch.object(w.legacy,'WORKFLOW_PAIR_ENABLED',True), \
+                    mock.patch.object(w.c.bridge,'QUALIFIED_PAIR_BINDING',binding), \
                     mock.patch.object(w.c,'active_pair',return_value=pair), \
                     mock.patch.object(w.c,'checkout',side_effect=checkout), \
                     mock.patch.object(w,'__file__',str(root/'controller/scripts/loadtest/pq-same-runner-workflow.py')), \

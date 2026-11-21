@@ -102,8 +102,8 @@ class OriginalAdapterControls(unittest.TestCase):
 
     def test_unbound_source_refuses_before_factory_or_driver(self):
         factory = mock.Mock(side_effect=AssertionError('no loading or effects'))
-        self.assertIsNone(bridge.QUALIFIED_PAIR_BINDING)
-        with self.assertRaisesRegex(RuntimeError, 'NOT_SUPPLIED'):
+        with mock.patch.object(bridge, 'QUALIFIED_PAIR_BINDING', None), \
+                self.assertRaisesRegex(RuntimeError, 'NOT_SUPPLIED'):
             bridge.configured_adapters(factory)
         factory.assert_not_called()
 

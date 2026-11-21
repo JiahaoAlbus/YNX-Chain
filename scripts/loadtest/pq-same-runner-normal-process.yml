@@ -278,6 +278,7 @@ jobs:
             /scripts/loadtest/pq-current75-baseline-ci.py
             /scripts/loadtest/pq-first100-d24-ci.py
             /scripts/loadtest/test_pq_first100_d24_ci.py
+            /scripts/loadtest/same-runner/pq-same-runner-workflow-legacy.py
             /scripts/loadtest/pq-hosted-initialization-space-ci.py
             /scripts/loadtest/test_pq_hosted_initialization_space_ci.py
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -323,6 +324,7 @@ jobs:
             /.github/workflows/pq-normal-process.yml
             /scripts/loadtest/pq-first100-d24-ci.py
             /scripts/loadtest/test_pq_first100_d24_ci.py
+            /scripts/loadtest/same-runner/pq-same-runner-workflow-legacy.py
             /scripts/loadtest/pq-hosted-initialization-space-ci.py
             /scripts/loadtest/test_pq_hosted_initialization_space_ci.py
       - name: Receive exact d24 qualified source graph for initialization and first100
@@ -416,6 +418,7 @@ jobs:
             /scripts/loadtest/pq-current75-baseline-ci.py
             /scripts/loadtest/pq-first100-1695-ci.py
             /scripts/loadtest/test_pq_first100_1695_ci.py
+            /scripts/loadtest/same-runner/pq-same-runner-workflow-legacy.py
             /scripts/loadtest/pq-hosted-1695-space-ci.py
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -460,6 +463,7 @@ jobs:
             /.github/workflows/pq-normal-process.yml
             /scripts/loadtest/pq-first100-1695-ci.py
             /scripts/loadtest/test_pq_first100_1695_ci.py
+            /scripts/loadtest/same-runner/pq-same-runner-workflow-legacy.py
             /scripts/loadtest/pq-hosted-1695-space-ci.py
       - name: Receive exact 1695 qualified source graph for initialization and first100
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -557,6 +561,7 @@ jobs:
             /.github/workflows/pq-normal-process.yml
             /scripts/loadtest/pq-first100-1695-ci.py
             /scripts/loadtest/test_pq_first100_1695_ci.py
+            /scripts/loadtest/same-runner/pq-same-runner-workflow-legacy.py
             /scripts/loadtest/pq-hosted-1695-space-ci.py
       - name: Receive exact 1695 qualified source graph for initialization and first100
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -672,11 +677,11 @@ jobs:
           workflow=Path('controller/.github/workflows/pq-normal-process.yml').read_text()
           module.assert_workflow(workflow)
           functional=workflow.split('  functional:\n',1)[1].split('    name:',1)[0]
-          if functional.strip()!="if: github.ref != 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-own1b-initialize-before-load') && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-7c25-public-owner') && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-held-public-owner')":
+          if functional.strip()!="if: github.ref != 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-own1b-initialize-before-load') && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-7c25-public-owner') && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-held-public-owner') && inputs.load_profile != 'first100-held-public-owner-sequential-pair' && (inputs.load_profile != 'first100-held-public-owner-sequential-pair' || false)":
               raise SystemExit('new fixed profile must never fall through to the old functional job')
           profile=workflow.split('  first100-7c25-public-owner:\n',1)[1].split('    needs:',1)[0]
           route=[line.strip() for line in profile.splitlines() if line.startswith('    if: ')]
-          if route!=["if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && github.run_attempt == 1 && inputs.load_profile == 'first100-7c25-public-owner' && inputs.signing_mode == 'online'"]:
+          if route!=["if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && github.run_attempt == 1 && inputs.load_profile == 'first100-7c25-public-owner' && inputs.signing_mode == 'online' && (inputs.load_profile != 'first100-held-public-owner-sequential-pair' || false)"]:
               raise SystemExit('new profile requires the sole original fresh online dispatch route')
           module.entry.verify_tools(Path('tools').resolve(strict=True))
           suite=unittest.defaultTestLoader.loadTestsFromModule(module)
@@ -922,17 +927,17 @@ jobs:
 
       # BEGIN YNX_PAIR_PURE_CONTROLS
       - name: Receive complete same-runner pure control inputs
-        if: inputs.load_profile == 'first100-held-public-owner-sequential-pair'
+        if: github.event_name != 'workflow_dispatch' || inputs.load_profile == 'first100-held-public-owner-sequential-pair'
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           ref: ${{ github.sha }}
           path: pair-controller
           persist-credentials: false
           sparse-checkout-cone-mode: false
-          sparse-checkout: /scripts/loadtest/
+          sparse-checkout: /scripts/loadtest/same-runner/
       - name: Verify same-runner profile lifecycle and official upload contracts without a window
-        if: inputs.load_profile == 'first100-held-public-owner-sequential-pair'
-        run: python3 -I -B pair-controller/scripts/loadtest/pq-same-runner-controls.py
+        if: github.event_name != 'workflow_dispatch' || inputs.load_profile == 'first100-held-public-owner-sequential-pair'
+        run: python3 -I -B pair-controller/scripts/loadtest/same-runner/pq-same-runner-controls.py
       # END YNX_PAIR_PURE_CONTROLS
 
   first100-held-public-owner:
@@ -952,7 +957,7 @@ jobs:
           path: controller
           persist-credentials: false
           sparse-checkout-cone-mode: false
-          sparse-checkout: ${{ inputs.load_profile == 'first100-held-public-owner-sequential-pair' && '/scripts/loadtest/' || '/scripts/loadtest/pq-first100-held-ci.py' }}
+          sparse-checkout: ${{ inputs.load_profile == 'first100-held-public-owner-sequential-pair' && '/scripts/loadtest/same-runner/' || '/scripts/loadtest/pq-first100-held-ci.py' }}
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         if: inputs.load_profile != 'first100-held-public-owner-sequential-pair'
         with:
@@ -1022,7 +1027,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           YNX_HELD_DISPATCH_PROFILE: ${{ inputs.load_profile }}
-        run: python3 -I -B controller/scripts/loadtest/pq-same-runner-workflow.py checkouts
+        run: python3 -I -B controller/scripts/loadtest/same-runner/pq-same-runner-workflow.py checkouts
       - name: Receive exact before source with independent initialization inputs
         if: inputs.load_profile == 'first100-held-public-owner-sequential-pair'
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -1118,7 +1123,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           YNX_HELD_DISPATCH_PROFILE: ${{ inputs.load_profile }}
-        run: python3 -I -B controller/scripts/loadtest/pq-same-runner-controller.py --execute
+        run: python3 -I -B controller/scripts/loadtest/same-runner/pq-same-runner-controller.py --execute
       - name: Preserve same-runner before originals
         id: pair-before
         if: always() && inputs.load_profile == 'first100-held-public-owner-sequential-pair' && steps.pair-inputs.outcome == 'success'
@@ -1151,7 +1156,7 @@ jobs:
           YNX_BEFORE_ARTIFACT_DIGEST: ${{ steps.pair-before.outputs.artifact-digest }}
           YNX_AFTER_ARTIFACT_ID: ${{ steps.pair-after.outputs.artifact-id }}
           YNX_AFTER_ARTIFACT_DIGEST: ${{ steps.pair-after.outputs.artifact-digest }}
-        run: python3 -I -B controller/scripts/loadtest/pq-same-runner-workflow.py seal
+        run: python3 -I -B controller/scripts/loadtest/same-runner/pq-same-runner-workflow.py seal
       - name: Preserve same-runner manifest originals
         id: pair-manifest
         if: always() && inputs.load_profile == 'first100-held-public-owner-sequential-pair' && steps.pair-inputs.outcome == 'success'
@@ -1174,5 +1179,5 @@ jobs:
           YNX_AFTER_ARTIFACT_DIGEST: ${{ steps.pair-after.outputs.artifact-digest }}
           YNX_MANIFEST_ARTIFACT_ID: ${{ steps.pair-manifest.outputs.artifact-id }}
           YNX_MANIFEST_ARTIFACT_DIGEST: ${{ steps.pair-manifest.outputs.artifact-digest }}
-        run: python3 -I -B controller/scripts/loadtest/pq-same-runner-workflow.py verify
+        run: python3 -I -B controller/scripts/loadtest/same-runner/pq-same-runner-workflow.py verify
       # END YNX_PAIR_RUNTIME_STEPS

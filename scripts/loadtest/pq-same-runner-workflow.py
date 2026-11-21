@@ -23,37 +23,20 @@ ORIGINAL_CONTROLLER = 'd77856ad408434ffce03277bee76d0c330c2cc62'
 JOB_MINUTES = 45
 EXECUTION_MINUTES = 35
 ARM_SECONDS = 900
-WORKFLOW_PAIR_ENABLED = False
 ORIGINAL_WORKFLOW_SHA256 = '90141a02cf15fc96a2513198b428d0ea1c403bffa74623bf6f1e68187b3d5f6d'
 
 
-def original_workflow(candidate):
-    """Reverse only declared pair edits; hash proves old single-arm bytes remain."""
-    yes,no = "inputs.load_profile == '"+PROFILE+"'", "inputs.load_profile != '"+PROFILE+"'"
-    candidate = candidate.replace(' && ('+no+' || false)\n','\n')
-    text = re.sub(r'      # BEGIN YNX_PAIR_PURE_CONTROLS\n.*?      # END YNX_PAIR_PURE_CONTROLS\n\n','',candidate,flags=re.S)
-    text = re.sub(r'      # BEGIN YNX_PAIR_RUNTIME_STEPS\n.*?      # END YNX_PAIR_RUNTIME_STEPS\n','',text,flags=re.S)
-    text = text.replace(PROFILE+', first100-held-public-owner, first100-held-public-owner-business]',
-                        'first100-held-public-owner, first100-held-public-owner-business]',1)
-    text = text.replace(' && '+no+'\n    name: Normal original','\n    name: Normal original',1)
-    prefix,job = text.split('  first100-held-public-owner:\n',1)
-    job = job.replace("name: ${{ "+yes+" && 'Held public-owner normal504 sequential pair' || ",'name: ${{ ',1)
-    job = job.replace("inputs.load_profile == 'first100-held-public-owner-business' || "+yes+')',
-                      "inputs.load_profile == 'first100-held-public-owner-business')",1)
-    job = job.replace('timeout-minutes: ${{ '+yes+' && 45 || 18 }}','timeout-minutes: 18',1)
-    job = job.replace("sparse-checkout: ${{ "+yes+" && '/scripts/loadtest/' || '/scripts/loadtest/pq-first100-held-ci.py' }}",
-                      'sparse-checkout: /scripts/loadtest/pq-first100-held-ci.py',1)
-    job = job.replace('        if: '+no+'\n','').replace('        if: always() && '+no+'\n','        if: always()\n')
-    original = prefix+'  first100-held-public-owner:\n'+job
-    require(r.digest(original.encode()) == ORIGINAL_WORKFLOW_SHA256,
-            'original single-arm workflow bytes or pair isolation changed')
-    return original
+spec = importlib.util.spec_from_file_location('same_runner_workflow_legacy',
+    Path(__file__).with_name('pq-same-runner-workflow-legacy.py'))
+legacy = importlib.util.module_from_spec(spec); spec.loader.exec_module(legacy)
+original_workflow = legacy.original_workflow
 
 
 def context(environment=None):
     environment = os.environ if environment is None else environment
     binding = c.bridge.QUALIFIED_PAIR_BINDING
     require(binding is not None, 'original pair source/Tools/CI binding NOT_SUPPLIED')
+    require(legacy.WORKFLOW_PAIR_ENABLED is True, 'source-frozen pair workflow is disabled')
     binding = copy.deepcopy(binding)
     configurations = c.validate_binding(binding)
     token = environment.get('GH_TOKEN') or environment.get('GITHUB_TOKEN')
@@ -62,7 +45,7 @@ def context(environment=None):
     api = c.ActionsMetadata(token)
     pair = c.active_pair(environment, api, configurations)
     root = Path(environment['GITHUB_WORKSPACE']).resolve(strict=True)/'controller'
-    require(Path(__file__).resolve().parents[2] == root, 'original workflow controller checkout differs')
+    require(c.controller_root(__file__) == root, 'original workflow controller checkout differs')
     c.checkout(root, pair['controllerCommit'])
     parent = Path(environment['RUNNER_TEMP']).resolve(strict=True)
     output = parent/('pq-same-runner-pair-%d-%d' % (pair['runID'],pair['jobID']))

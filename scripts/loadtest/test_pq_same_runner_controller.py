@@ -66,9 +66,19 @@ class ControllerControls(unittest.TestCase):
             side_effect=AssertionError('synthetic controller controls may not access network'))
         no_network.start(); self.addCleanup(no_network.stop)
 
+    def test_exact_isolated_controller_root_without_importing_legacy_runtime(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve()
+            for suffix in ('scripts/loadtest/pq-same-runner-controller.py',
+                           'scripts/loadtest/same-runner/pq-same-runner-controller.py'):
+                self.assertEqual(c.controller_root(root/suffix),root)
+            for suffix in ('scripts/other/same-runner/controller.py',
+                           'scripts/loadtest/other/controller.py','other/controller.py'):
+                with self.subTest(suffix=suffix),self.assertRaises(RuntimeError):c.controller_root(root/suffix)
+
     def test_default_cli_refuses_before_metadata_host_import_or_process(self):
-        self.assertIsNone(c.bridge.QUALIFIED_PAIR_BINDING)
-        with mock.patch.object(c, 'prepare') as prepare, mock.patch.object(c, 'ActionsMetadata') as api, \
+        with mock.patch.object(c.bridge, 'QUALIFIED_PAIR_BINDING', None), \
+                mock.patch.object(c, 'prepare') as prepare, mock.patch.object(c, 'ActionsMetadata') as api, \
                 mock.patch.object(c.subprocess, 'Popen') as child:
             for arguments in ([], ['--execute']):
                 if arguments:
@@ -84,7 +94,8 @@ class ControllerControls(unittest.TestCase):
         self.assertIsNone(config['options']['prior_result']); self.assertFalse(config['options']['execute'])
         value['options'] = {'accounts':1}
         with self.assertRaisesRegex(RuntimeError, 'fields differ'): c.configuration(value)
-        with mock.patch.dict(os.environ, YNX_PAIR_BINDING='CONTROL', YNX_HELD_DISPATCH_PROFILE=c.PROFILE):
+        with mock.patch.object(c.bridge, 'QUALIFIED_PAIR_BINDING', None), \
+                mock.patch.dict(os.environ, YNX_PAIR_BINDING='CONTROL', YNX_HELD_DISPATCH_PROFILE=c.PROFILE):
             with self.assertRaisesRegex(RuntimeError, 'NOT_SUPPLIED'): c.execute()
 
     def test_frozen_pair_keeps_supplier_toolchain_and_source_qualification(self):

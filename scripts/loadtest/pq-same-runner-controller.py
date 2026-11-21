@@ -52,6 +52,18 @@ PAIR_JOB_SECONDS = 45*60
 PAIR_EXECUTION_SECONDS = 35*60
 
 
+def controller_root(filename):
+    """Only the development location or isolated original-controller install."""
+    path = Path(filename).resolve()
+    if path.parent.name == 'same-runner':
+        require(path.parts[-4:-1] == ('scripts', 'loadtest', 'same-runner'),
+                'exact isolated pair controller installation required')
+        return path.parents[3]
+    require(path.parts[-3:-1] == ('scripts', 'loadtest'),
+            'exact pair development installation required')
+    return path.parents[2]
+
+
 def pair_time_budget(job, pair, remaining_arms, execution_started, *, now=None, elapsed=None):
     """Actual Actions job deadline plus monotonic coordinator deadline, never a cap increase."""
     require(type(remaining_arms) is int and remaining_arms in (1,2), 'bounded remaining original arms required')
@@ -281,7 +293,7 @@ def prepare(binding, environment, api):
     workspace = Path(environment['GITHUB_WORKSPACE']).resolve(strict=True)
     parent = Path(environment['RUNNER_TEMP']).resolve(strict=True)
     controller = workspace/'controller'
-    require(Path(__file__).resolve().parents[2] == controller, 'original pair controller checkout path required')
+    require(controller_root(__file__) == controller, 'original pair controller checkout path required')
     checkout(controller, pair['controllerCommit'])
     go = shutil.which('go')
     require(go is not None, 'original pinned Go toolchain missing')
