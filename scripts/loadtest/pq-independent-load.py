@@ -1602,7 +1602,10 @@ def run(args):
     return result
 
 
-if __name__=="__main__":
+def main(argv=None):
+    argv=list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0]=='enrollment-original':
+        return module('original_enrollment_dispatch','pq-enrollment-original-command.py').main(argv[1:])
     p=argparse.ArgumentParser(description=__doc__);p.add_argument("--source",required=True);p.add_argument("--commit",required=True);p.add_argument("--mode",choices=("online","pre-signed"),required=True)
     p.add_argument("--rate",type=int,choices=(100,500,1000),default=100);p.add_argument("--seconds",type=int,required=True);p.add_argument("--tail-seconds",type=int,default=30);p.add_argument("--accounts",type=int,required=True);p.add_argument("--per-account",type=int,required=True);p.add_argument("--proof-timeout",type=int,default=30);p.add_argument("--wire-observation",action="store_true");p.add_argument("--prior-result");p.add_argument("--prior-result-sha256");p.add_argument("--execute",action="store_true")
     p.add_argument("--commit-observation",action="store_true",help="explicit final qualified normal Commit consumer only; no signer fsync/finality or whole replay claim")
@@ -1618,6 +1621,10 @@ if __name__=="__main__":
     p.add_argument('--first-trial-profile',choices=('own1b','d24','1695','7c25',HELD_TRIAL_PROFILE),default='own1b',help='explicit fixed source selection for same-window first100 only; each source keeps its independent CI/semantic gates; no pressure grant')
     def interrupted(signum,frame):raise RuntimeError("normal independent load received signal "+str(signum))
     signal.signal(signal.SIGINT,interrupted);signal.signal(signal.SIGTERM,interrupted)
-    args=p.parse_args();result=run(args);print(json.dumps(result))
+    args=p.parse_args(argv);result=run(args);print(json.dumps(result))
     if args.execute and args.initialization_only:lab.require(result["firstCause"] is None and result["cleanupComplete"] is True and result.get("initializationOnlyComplete") is True and result.get("loadExecuted") is False,"full500 normal initialization incomplete; preserve first cause and original inputs")
     elif args.execute:lab.require(result["firstCause"] is None and result["cleanupComplete"] and result.get("loadResult",{}).get("windowCompleted") is True and result["loadResult"]["notQualified"]==0,"original finite load incomplete or unresolved; retain full demand and originals, do not escalate")
+    return 0
+
+
+if __name__=="__main__":raise SystemExit(main())

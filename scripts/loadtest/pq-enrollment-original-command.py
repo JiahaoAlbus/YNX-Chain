@@ -274,16 +274,17 @@ def inherited_credential(fd,root):
         os.close(directory)
 
 
-def _retain_readback(output,value):
+def _retain_readback(output,value,*,name='readback.json'):
+    require(name in ('readback.json','dispatch.json'),'fixed private original readback filename required')
     raw=c.encoded(value);path=Path(output)
     folder=os.open(path,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC);identity=os.fstat(folder);fd=None
     try:
-        fd=os.open('readback.json',os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600,dir_fd=folder)
+        fd=os.open(name,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600,dir_fd=folder)
         pending=memoryview(raw)
         while pending:
             n=os.write(fd,pending);require(n>0,'original reply readback short write');pending=pending[n:]
         os.fsync(fd);os.fsync(folder)
-        info=os.fstat(fd);named=os.stat('readback.json',dir_fd=folder,follow_symlinks=False);current=path.lstat()
+        info=os.fstat(fd);named=os.stat(name,dir_fd=folder,follow_symlinks=False);current=path.lstat()
         require(b.metadata(info)==b.metadata(named) and info.st_nlink==1 and info.st_size==len(raw)
                 and stat.S_IMODE(info.st_mode)==0o600 and (identity.st_dev,identity.st_ino)==(current.st_dev,current.st_ino),
                 'original reply readback identity changed')
@@ -396,3 +397,116 @@ def normal_original(*,enabled=False,source=None,binary=None,root=None,plan_sha25
 def durable_plan_pin(durable):
     plan=b.accounting.strict(durable['plan_raw'],b.accounting.d.MAX_PLAN_BYTES)
     return plan['plan']['networkPlanSHA256']
+
+
+INPUT_SCHEMA='YNX-PERF-ENROLLMENT-ORIGINAL-INPUTS/v1'
+INPUT_LIMITS={'runReceipt':8<<20,'plan':b.accounting.d.MAX_PLAN_BYTES,'accounting':1<<20,
+              'binding':64<<10,'request':16<<10,'workload':8<<20,
+              'context':2*b.EXPECTED_LIMIT+(64<<10),
+              'fundingExpected':b.EXPECTED_LIMIT,'migrationExpected':b.EXPECTED_LIMIT}
+
+
+def load_original_inputs(path,pin):
+    """Strict private descriptors of existing stopped originals, never keys.
+
+    This manifest cannot qualify a source or mint operations. Every byte pin
+    is checked again by the normal ledger/outbox joins; DB stays read-only.
+    """
+    require(b.hex_pin(pin),'independent original input manifest SHA required')
+    with c.held(path,128<<10) as (raw,fd):
+        info=os.fstat(fd)
+        require(stat.S_IMODE(info.st_mode)==0o600 and info.st_uid==os.geteuid(),
+                'private original input manifest ownership/mode required')
+        require(b.sha(raw)==pin,'original input manifest bytes differ')
+    value=b.accounting.strict(raw,128<<10)
+    b.closed(value,('schema','sourceCommit','operation','root','index','sourceTools','privateDatabase',
+                    'originalDirectory','files','proofInputs'),'closed private original input manifest required')
+    require(value['schema']==INPUT_SCHEMA and value['sourceCommit']==INSPECTED_CLI
+            and type(value['index']) is int and 0<=value['index']<10000,'original source/slot manifest differs')
+    b.closed(value['files'],INPUT_LIMITS,'complete original file descriptors required')
+    originals={}
+    for name,limit in INPUT_LIMITS.items():
+        item=value['files'][name]
+        b.closed(item,('path','bytes','sha256'),'closed original file descriptor required')
+        require(type(item['bytes']) is int and 0<item['bytes']<=limit and b.hex_pin(item['sha256']),
+                'bounded original file descriptor required')
+        data=c.read(item['path'],limit)
+        require(len(data)==item['bytes'] and b.sha(data)==item['sha256'],'original '+name+' bytes differ')
+        originals[name]=data
+    require(type(value['privateDatabase']) is str and Path(value['privateDatabase']).is_absolute(),
+            'original stopped private database path required')
+    durable=dict(run_raw=originals['runReceipt'],run_sha256=value['files']['runReceipt']['sha256'],
+        source_tools=b.accounting.source_tools_binding(value['sourceTools']),plan_raw=originals['plan'],
+        accounting_raw=originals['accounting'],private_database=value['privateDatabase'],index=value['index'])
+    original=dict(binding=b.accounting.strict(originals['binding'],64<<10),parent_directory=value['originalDirectory'],
+        request_raw=originals['request'],workload_raw=originals['workload'],context_raw=originals['context'],
+        expected_raws={role:originals[role+'Expected'] for role in ROLES})
+    require(original['binding']['sourceCommit']==value['sourceCommit']==durable['source_tools']['source']['commit'],
+            'original manifest, producer and stopped run source differ')
+    return dict(source=value['sourceCommit'],root=value['root'],operation=value['operation'],durable=durable,original=original,
+        plan_sha256=durable_plan_pin(durable),workload_sha256=original['binding']['workloadSHA256'],proof_inputs=value['proofInputs'])
+
+
+def main(argv=None):
+    """Normal driver's explicit stopped-original dispatch, never a load window.
+
+    Exit2 means unresolved original/current eligibility even if historical
+    reply bytes joined. No CLI argument/environment fills the frozen gate.
+    """
+    import argparse
+    parser=argparse.ArgumentParser(description=__doc__,allow_abbrev=False)
+    parser.add_argument('--execute',action='store_true')
+    for name in ('inputs','inputs-sha256','binary','output'):parser.add_argument('--'+name,required=True)
+    parser.add_argument('--credential-fd',type=int,required=True)
+    parser.add_argument('--timeout',type=float,default=10)
+    args=parser.parse_args(argv)
+    with original_dispatch_signals() as stop:return dispatch_original(args,stop)
+
+
+@contextmanager
+def original_dispatch_signals():
+    # The enrollment route runs before the finite driver's signal setup.
+    # A handler-raised InterruptedError is swallowed by selectors' EINTR
+    # handling. Set the original stop event instead; the bounded IO loop
+    # observes it outside select and preserves its actual cancellation cause.
+    import signal
+    import threading
+    previous={};stop=threading.Event()
+    def interrupted(signum,frame):stop.set()
+    try:
+        for signum in (signal.SIGINT,signal.SIGTERM):previous[signum]=signal.signal(signum,interrupted)
+        yield stop
+    finally:
+        for signum,handler in previous.items():signal.signal(signum,handler)
+
+
+def dispatch_original(args,stop):
+    out=unknown();observed=False
+    try:
+        if not args.execute:out['missingEvidence']=['explicitOriginalRecoveryOptIn']
+        elif NORMAL_ORIGINAL_CALLEE is None:out=normal_original(enabled=True)
+        else:
+            inputs=load_original_inputs(args.inputs,args.inputs_sha256);observed=True
+            out=normal_original(enabled=True,binary=args.binary,credential_fd=args.credential_fd,
+                                output=args.output,timeout=args.timeout,stop=stop,**inputs)
+    except Exception as error:
+        out['firstCause']=dict(type=type(error).__name__,message=b.accounting.d.failure_message(error))
+        out['missingEvidence']=list(dict.fromkeys(out['missingEvidence']+['completeOriginalDispatch']))
+    if 'process' in out:
+        dispatch=dict(inputManifestSHA256=args.inputs_sha256,inputManifestObserved=observed,result=out)
+        try:_retain_readback(args.output,dispatch,name='dispatch.json')
+        except Exception as error:
+            out['dispatchRetention']='NOT_RETAINED'
+            out['dispatchRetentionFailure']=dict(type=type(error).__name__,message=b.accounting.d.failure_message(error))
+            if out.get('firstCause') is None:out['firstCause']=out['dispatchRetentionFailure']
+    # Public stdout excludes file paths, original payloads and exception text.
+    keys=('schema','status','normalCalleeInvoked','normalReplyObserved','originalPairReservationObserved',
+          'originalReplyByteBindingsObserved','operationIdentity','currentEligibility','nativeGrant','nonceReleased',
+          'resigningAllowed','automaticRetry','missingEvidence')
+    public={key:out[key] for key in keys}
+    public.update(inputManifestObserved=observed,inputManifestSHA256=args.inputs_sha256 if observed else None,
+                  firstCauseType=(out.get('firstCause') or {}).get('type'),
+                  normalReplyCode=out.get('normalReplyCode'),failureStage=out.get('failureStage'),
+                  proofFailureCode=out.get('proofFailureCode'),readbackRetention=out.get('readbackRetention'),
+                  dispatchRetention=out.get('dispatchRetention'))
+    print(json.dumps(public,sort_keys=True));return 2
