@@ -122,7 +122,7 @@ class StoppedReadScope:
         require(sys.platform=='linux' and threading.current_thread() is threading.main_thread(),
                 'stopped originals require original Linux main-thread read scope')
         self.window=window;self.lock=threading.Lock();self.roots=[];self.monitor=None
-        self.first=None;self.closed=False;self.closing=False;self.alarm=False;self.cleanup_debt=False;self.samples=0
+        self.first=None;self.first_observed_ns=None;self.closed=False;self.closing=False;self.alarm=False;self.cleanup_debt=False;self.samples=0
         self.cleanup_errors=[]
         self.storage_bytes=None;self.last_storage=None
         self.peak=None;self.peak_bytes=None;self.first_ns=None;self.last_ns=None;self.fallback_kinds=set()
@@ -199,14 +199,37 @@ class StoppedReadScope:
         self.sample();self.monitor.thread.start()
     def check(self,*,final=False):
         require(self.monitor is not None and not self.closing,'original stopped read observer not started or closing')
-        self.monitor.check();self.sample(final=final);self.monitor.check()
+        for after in (False,True):
+            if after:self.sample(final=final)
+            snapshot=self.monitor_snapshot()
+            if snapshot is not None:raise RuntimeError(snapshot['originalError'])
+    def monitor_snapshot(self):
+        if self.monitor is None:return None
+        require(self.monitor.failure_lock.acquire(timeout=.05),'original stopped observer failure snapshot unavailable')
+        try:return None if self.monitor.first_failure is None else dict(self.monitor.first_failure)
+        finally:self.monitor.failure_lock.release()
+    def remember_first(self,value,observed_ns=...):
+        if observed_ns is ...:
+            try:observed_ns=time.monotonic_ns()
+            except BaseException:observed_ns=None
+        if self.first is None or (type(observed_ns) is int and type(self.first_observed_ns) is int
+                                  and observed_ns<self.first_observed_ns):
+            self.first=value;self.first_observed_ns=observed_ns
+    def retain_monitor_failure(self):
+        snapshot=self.monitor_snapshot()
+        if snapshot is not None:
+            self.remember_first(dict(type=snapshot['errorType'],message=snapshot['originalError']),snapshot['observedMonotonicNs'])
     def close(self):
         if self.closed or self.closing:return
         self.closing=True
         def secondary(error):
             self.cleanup_debt=True
             self.cleanup_errors.append(failure(error))
-            if self.first is None:self.first=failure(error)
+            self.remember_first(failure(error))
+        # A failure already latched by the periodic observer precedes timer or
+        # join cleanup. Preserve it before either secondary operation can fail.
+        try:self.retain_monitor_failure()
+        except BaseException as error:secondary(error)
         if self.alarm:
             self.alarm=False
             try:signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,self.old_alarm)
@@ -219,9 +242,8 @@ class StoppedReadScope:
             if self.monitor.thread.is_alive():
                 secondary(RuntimeError('original stopped read observer did not retire'))
                 self.closed=True;_READ_SCOPE_DEBT.append(self);return
-            snapshot=self.monitor.failure_snapshot()
-            if snapshot is not None and self.first is None:
-                self.first=dict(type=snapshot['errorType'],message=snapshot['originalError'])
+            try:self.retain_monitor_failure()
+            except BaseException as error:secondary(error)
         self.closed=True
         roots,self.roots=self.roots,[] # Single close responsibility, no reused FD retry.
         for _,fd,_ in roots:
@@ -238,6 +260,7 @@ class StoppedReadScope:
             deadlineSeconds=self.SECONDS,originalTotalDeadlinePreserved=True,cleanupDebt=self.cleanup_debt,
             firstCauseType=None if self.first is None else self.first['type'],
             firstCauseSHA256=None if self.first is None else r.b.sha(r.original.canonical(self.first)),
+            firstCauseObservedMonotonicNs=self.first_observed_ns,
             cleanupErrors=[dict(type=error['type'],sha256=r.b.sha(r.original.canonical(error))) for error in self.cleanup_errors],
             monitorRetired=self.monitor is not None and not self.monitor.thread.is_alive(),
             continuousRSSLimitProven=False,readOnly=True,normalWindowRestarted=False)
@@ -261,16 +284,24 @@ def finish_stopped_readback(window,lifecycle,out,handshake,binaries):
             binary_pins={role+'SHA256':pin['sha256'] for role,pin in binaries.items()},
             stopped=dict(originalProcessReaped=True,ownedDescendantsRetired=True,cleanupDebt=False,firstCause=out['firstCause']),
             check_resources=scope.check,enabled=True)
-        scope.check(final=True)
         observed=out['stoppedReadback']
         if observed['firstCauseType'] is not None:
             out['firstCause']=out['firstCause'] or dict(type=observed['firstCauseType'],message='original stopped byte read refused; see retained error SHA')
         if observed['cleanupDebt']:out['cleanupDebt']=True;out['cleanupComplete']=False
+        # The reader may return a retained failure instead of raising. Fold
+        # that original outcome before a later final resource check can fail.
+        scope.check(final=True)
     except BaseException as error:
-        original=None if scope is None or scope.monitor is None else scope.monitor.failure_snapshot()
+        original=None
+        if scope is not None:
+            try:original=scope.monitor_snapshot()
+            except BaseException as secondary:
+                scope.cleanup_debt=True;scope.cleanup_errors.append(failure(secondary))
         first=failure(error) if original is None else dict(type=original['errorType'],message=original['originalError'])
         out['firstCause']=out['firstCause'] or first
-        if scope is not None and scope.first is None:scope.first=first
+        if scope is not None:
+            if original is None:scope.remember_first(first)
+            else:scope.remember_first(first,original['observedMonotonicNs'])
         if not isinstance(error,Exception):raise
     finally:
         if scope is not None:
@@ -278,7 +309,7 @@ def finish_stopped_readback(window,lifecycle,out,handshake,binaries):
             except BaseException as error:
                 scope.cleanup_debt=True
                 scope.cleanup_errors.append(failure(error))
-                if scope.first is None:scope.first=failure(error)
+                scope.remember_first(failure(error))
                 if scope not in _READ_SCOPE_DEBT:_READ_SCOPE_DEBT.append(scope)
             out['stoppedReadResources']=scope.report()
             if scope.first is not None:out['firstCause']=out['firstCause'] or scope.first

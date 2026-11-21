@@ -155,6 +155,25 @@ class StoppedResourceControls(unittest.TestCase):
         self.assertEqual(out['stoppedReadback']['firstCauseSHA256'],'a'*64)
         m._READ_SCOPE_DEBT.remove(scope)
 
+    def test_reader_error_precedes_later_final_resource_error(self):
+        factory=m.StoppedReadScope
+        def make(window):
+            scope=factory(window);check=scope.check
+            def final_failed(*,final=False):
+                check(final=final)
+                if final:raise OSError('UNIT final resource read failed after reader EOF')
+            scope.check=final_failed;return scope
+        def refused(**kwargs):
+            result=m.stopped_reader.report();result.update(firstCauseType='EOFError',firstCauseSHA256='a'*64,cleanupDebt=True)
+            return result
+        with self.resources(),mock.patch.object(m,'StoppedReadScope',side_effect=make),\
+                mock.patch.object(m.stopped_reader,'audit_stopped_originals',side_effect=refused):out=self.finish()
+        self.assertEqual(out['firstCause']['type'],'EOFError')
+        self.assertEqual(out['stoppedReadback']['firstCauseSHA256'],'a'*64)
+        self.assertEqual(out['stoppedReadResources']['firstCauseType'],'OSError')
+        self.assertTrue(out['cleanupDebt']);self.assertFalse(out['cleanupComplete'])
+        self.assertFalse(out['stoppedReadback']['bothConfirmationByteBindingsObserved'])
+
     def test_close_raising_after_actual_retirement_still_returns_unknown_for_job_retention(self):
         factory=m.StoppedReadScope;scope=None
         def make(window):
@@ -234,6 +253,38 @@ class StoppedResourceControls(unittest.TestCase):
                 mock.patch.object(m.signal,'signal',side_effect=AssertionError('existing timer owner unchanged')):
             out=self.finish()
         self.assertIn('timer already owned',out['firstCause']['message'])
+
+    def test_monitor_first_failure_survives_timer_and_join_cleanup_errors(self):
+        for phase in ('timer','join','missing-clock'):
+            with self.subTest(phase=phase),self.resources():
+                scope=m.StoppedReadScope(self.w);scope.start()
+                scope.monitor.latch(ValueError('UNIT earlier resource failure'),'CONTROL original resource callback')
+                if phase=='missing-clock':scope.monitor.first_failure['observedMonotonicNs']=None
+                timer=signal.setitimer;join=scope.monitor.thread.join
+                def timer_failed(*args):timer(*args);raise OSError('UNIT later timer cleanup failure')
+                def join_failed(*args,**kwargs):join(*args,**kwargs);raise OSError('UNIT later observer join failure')
+                try:
+                    with mock.patch.object(m.signal,'setitimer',side_effect=timer_failed) if phase=='timer' else mock.patch.object(scope.monitor.thread,'join',side_effect=join_failed):
+                        scope.close()
+                    self.assertTrue(scope.cleanup_debt)
+                    self.assertEqual(scope.report()['firstCauseType'],'ValueError')
+                    if phase=='missing-clock':self.assertIsNone(scope.report()['firstCauseObservedMonotonicNs'])
+                    self.assertEqual(scope.cleanup_errors[0]['type'],'OSError')
+                finally:
+                    timer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,signal.SIG_DFL)
+                    scope.monitor.finished.set();join(1)
+                    self.assertFalse(scope.monitor.thread.is_alive());self.assertEqual(scope.roots,[])
+                    if scope in m._READ_SCOPE_DEBT:m._READ_SCOPE_DEBT.remove(scope)
+        with self.subTest(phase='snapshot-lock'),self.resources():
+            scope=m.StoppedReadScope(self.w);scope.start()
+            scope.monitor.failure_lock.acquire();started=time.monotonic()
+            try:scope.close()
+            finally:scope.monitor.failure_lock.release()
+            self.assertLess(time.monotonic()-started,.4)
+            self.assertTrue(scope.cleanup_debt);self.assertEqual(scope.report()['status'],'UNKNOWN')
+            self.assertIn('snapshot unavailable',scope.first['message'])
+            self.assertFalse(scope.monitor.thread.is_alive());self.assertEqual(scope.roots,[])
+            m._READ_SCOPE_DEBT.remove(scope)
 
     @unittest.skipUnless(sys.platform=='linux','actual original Linux proc/RSS observer required')
     def test_actual_linux_original_window_stop_then_read_scope_samples_same_pid(self):
