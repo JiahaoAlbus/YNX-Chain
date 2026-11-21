@@ -1570,6 +1570,8 @@ def assert_state_math_required_workflow_contract(step):
     for block in (PUBLIC_OWNER_CORE_BLOCK, PUBLIC_OWNER_CORE_CALL, PUBLIC_OWNER_CORE_REQUIRED):
         if step.count("".join("          " + line + "\n" for line in block.splitlines())) != 1:
             raise AssertionError("public owner core requires exact original cases and whole-stream closure")
+    if step.count("          required += ['TestABCIPublicTraceFullStateAndAppHashEveryHeight']\n") != 1:
+        raise AssertionError("fixed public trace regression must execute once and pass")
     for block in (SENDER_PARENT_PERSISTENCE_BLOCK, SENDER_PARENT_PERSISTENCE_CALL, SENDER_PARENT_PERSISTENCE_REQUIRED):
         if step.count("".join("          " + line + "\n" for line in block.splitlines())) != 1:
             raise AssertionError("five original sender persistence cases require unique complete-stream qualification")
@@ -4371,6 +4373,7 @@ class CompleteStatePartitionControls(unittest.TestCase):
         base, proof = scope["state_partitions"][:2]
         caller = next(group for group in scope["state_partitions"] if group[0] == "lab-caller")
         mutations = [
+            step.replace("          required += ['TestABCIPublicTraceFullStateAndAppHashEveryHeight']\n", "", 1),
             step.replace("-run '" + caller[1] + "'", "-run '^TestPQLabSenderMissing$'", 1),
             step.replace("-run '" + caller[1] + "'", "-run '^TestPQLab'", 1),
             step.replace("-timeout=180s -run '" + caller[1], "-timeout=181s -run '" + caller[1], 1),
@@ -5080,6 +5083,71 @@ class IndependentSourceChecksControls(unittest.TestCase):
         self.assertEqual(kwargs['env']['YNX_ENTRY_GITHUB_SHA'], 'a' * 40)
         self.assertTrue(kwargs['check'])
         self.assertEqual(kwargs['timeout'], 30)
+
+class ChainLabSplitCIControls(unittest.TestCase):
+    @staticmethod
+    def qualify(raw):
+        marker = '      - name: Verify normal PQ lab producers and the original proof caller\n'
+        if raw.count(marker) != 1:
+            raise AssertionError('unique original chain caller required')
+        step = raw.split(marker, 1)[1].split('      - name:', 1)[0]
+        core = "-run '^TestPQLab' -skip '^(TestPQLabLiveMaterials|TestPQLabDistributed|TestPQLabFinalizeTrace|TestPQLabExport|TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload))' ./internal/consensus > \"$RUNNER_TEMP/pq-lab-core-tests.jsonl\""
+        export = "-run '^TestPQLabExport' ./internal/consensus > \"$RUNNER_TEMP/pq-lab-export-tests.jsonl\""
+        checkpoint = "-run '^TestPQLab(Checkpoint|ProofInputs)' ./internal/consensus > \"$RUNNER_TEMP/pq-lab-checkpoint-tests.jsonl\""
+        caller = "-run '^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Workload)' ./internal/consensus > \"$RUNNER_TEMP/pq-lab-caller-tests.jsonl\""
+        live = "-run '^TestPQLabLiveMaterials' -skip '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$' ./internal/consensus > \"$RUNNER_TEMP/pq-lab-live-tests.jsonl\""
+        live_large = "-run '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$' ./internal/consensus > \"$RUNNER_TEMP/pq-lab-live-large-tests.jsonl\""
+        command = "./cmd/ynx-consensus-pq-lab > \"$RUNNER_TEMP/pq-lab-command-tests.jsonl\""
+        streams = "('pq-lab-core-tests.jsonl', 'pq-lab-export-tests.jsonl', 'pq-lab-checkpoint-tests.jsonl', 'pq-lab-caller-tests.jsonl', 'pq-lab-live-tests.jsonl', 'pq-lab-live-large-tests.jsonl', 'pq-lab-command-tests.jsonl', 'pq-proof-history-tests.jsonl')"
+        for part in (core, export, checkpoint, caller, live, live_large, command, streams, "if terminal != ['pass']:", 'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"'):
+            if step.count(part) != 1:
+                raise AssertionError('original lab command, stream or required receipt changed')
+        for part, output in ((core, 'core'), (export, 'export'), (checkpoint, 'checkpoint'), (caller, 'caller'), (live, 'live'), (live_large, 'live-large')):
+            expected = '          if ! go test -json -p 1 -count=1 -timeout=120s ' + part + '; then\n            cat \"$RUNNER_TEMP/pq-lab-' + output + '-tests.jsonl\"\n            exit 1\n          fi\n'
+            if step.count(expected) != 1:
+                raise AssertionError('original bounded Go execution or failure propagation changed')
+        if not (step.index(core) < step.index(export) < step.index(checkpoint) < step.index(caller) < step.index(live) < step.index(live_large) < step.index(command) < step.index(streams)):
+            raise AssertionError('original fixture producers must precede consumers and receipt')
+        for name in ('YNX_PQ_LAB_PROOF_FIXTURE_OUT', 'YNX_PQ_LAB_STOPPED_FIXTURE_ROOT', 'YNX_PQ_LAB_LIVE_FIXTURE_ROOT'):
+            if step.count('test ! -e "$' + name + '"') != 1:
+                raise AssertionError('fresh original fixture root required')
+        return step
+
+    def test_original_lab_split_retains_exact_union_and_fixture_receipt(self):
+        root = Path(__file__).resolve().parents[2]
+        raw = (root / '.github/workflows/chain-core.yml').read_text()
+        step = self.qualify(raw)
+        tests = set()
+        for file in (root / 'internal/consensus').glob('*_test.go'):
+            tests.update(re.findall(r'(?m)^func (Test\w+)\([^)]*\*testing\.T\)', file.read_text()))
+        original = lambda name: bool(re.search(r'^TestPQLab', name)) and not re.search(r'^(TestPQLabLiveMaterials|TestPQLabDistributed|TestPQLabFinalizeTrace)', name)
+        core = lambda name: original(name) and not re.search(r'^TestPQLab(Export|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)', name)
+        export = lambda name: bool(re.search(r'^TestPQLabExport', name))
+        checkpoint = lambda name: bool(re.search(r'^TestPQLab(Checkpoint|ProofInputs)', name))
+        caller = lambda name: bool(re.search(r'^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Workload)', name))
+        self.assertGreater(len([name for name in tests if original(name)]), 10)
+        for name in tests:
+            self.assertEqual(int(bool(core(name))) + int(bool(export(name))) + int(bool(checkpoint(name))) + int(bool(caller(name))), int(bool(original(name))), name)
+        live_large_name = 'TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult'
+        self.assertIn(live_large_name, tests)
+        for name in tests:
+            is_live = bool(re.search(r'^TestPQLabLiveMaterials', name))
+            selected_live = is_live and name != live_large_name
+            selected_large = name == live_large_name
+            self.assertEqual(int(selected_live) + int(selected_large), int(is_live), name)
+        for name in ('TestPQLabWorkloadProofOriginalCLIInputsAndNegatives', 'TestPQLabExportOriginalFourStoresNormalProofAndRefusals'):
+            self.assertIn(name, tests)
+            self.assertIn(name, step)
+        for old, new in (
+            ('pq-lab-caller-tests.jsonl', 'missing.jsonl'),
+            ("if terminal != ['pass']:", 'if False:'),
+            ("-run '^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Workload)'", "-run '^TestNothing'"),
+        ):
+            changed_step = step.replace(old, new, 1)
+            self.assertNotEqual(changed_step, step)
+            changed = raw.replace(step, changed_step, 1)
+            with self.assertRaises(AssertionError):
+                self.qualify(changed)
 
 if __name__ == "__main__":
     unittest.main()

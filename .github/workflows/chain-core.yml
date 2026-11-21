@@ -325,12 +325,30 @@ jobs:
           test ! -e "$YNX_PQ_LAB_PROOF_FIXTURE_OUT"
           test ! -e "$YNX_PQ_LAB_STOPPED_FIXTURE_ROOT"
           test ! -e "$YNX_PQ_LAB_LIVE_FIXTURE_ROOT"
-          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLab' -skip '^(TestPQLabLiveMaterials|TestPQLabDistributed|TestPQLabFinalizeTrace)' ./internal/consensus > "$RUNNER_TEMP/pq-lab-core-tests.jsonl"; then
+          # Preserve the same full lab union in four bounded processes.
+          # Producers write their original fixture roots before the command consumer.
+          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLab' -skip '^(TestPQLabLiveMaterials|TestPQLabDistributed|TestPQLabFinalizeTrace|TestPQLabExport|TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload))' ./internal/consensus > "$RUNNER_TEMP/pq-lab-core-tests.jsonl"; then
             cat "$RUNNER_TEMP/pq-lab-core-tests.jsonl"
             exit 1
           fi
-          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLabLiveMaterials' ./internal/consensus > "$RUNNER_TEMP/pq-lab-live-tests.jsonl"; then
+          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLabExport' ./internal/consensus > "$RUNNER_TEMP/pq-lab-export-tests.jsonl"; then
+            cat "$RUNNER_TEMP/pq-lab-export-tests.jsonl"
+            exit 1
+          fi
+          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLab(Checkpoint|ProofInputs)' ./internal/consensus > "$RUNNER_TEMP/pq-lab-checkpoint-tests.jsonl"; then
+            cat "$RUNNER_TEMP/pq-lab-checkpoint-tests.jsonl"
+            exit 1
+          fi
+          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Workload)' ./internal/consensus > "$RUNNER_TEMP/pq-lab-caller-tests.jsonl"; then
+            cat "$RUNNER_TEMP/pq-lab-caller-tests.jsonl"
+            exit 1
+          fi
+          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLabLiveMaterials' -skip '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$' ./internal/consensus > "$RUNNER_TEMP/pq-lab-live-tests.jsonl"; then
             cat "$RUNNER_TEMP/pq-lab-live-tests.jsonl"
+            exit 1
+          fi
+          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$' ./internal/consensus > "$RUNNER_TEMP/pq-lab-live-large-tests.jsonl"; then
+            cat "$RUNNER_TEMP/pq-lab-live-large-tests.jsonl"
             exit 1
           fi
           if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLab' -skip '^TestPQLab(Distributed|FinalizeTrace)' ./cmd/ynx-consensus-pq-lab > "$RUNNER_TEMP/pq-lab-command-tests.jsonl"; then
@@ -345,7 +363,7 @@ jobs:
           import json, os
           from pathlib import Path
           rows = []
-          for name in ('pq-lab-core-tests.jsonl', 'pq-lab-live-tests.jsonl', 'pq-lab-command-tests.jsonl', 'pq-proof-history-tests.jsonl'):
+          for name in ('pq-lab-core-tests.jsonl', 'pq-lab-export-tests.jsonl', 'pq-lab-checkpoint-tests.jsonl', 'pq-lab-caller-tests.jsonl', 'pq-lab-live-tests.jsonl', 'pq-lab-live-large-tests.jsonl', 'pq-lab-command-tests.jsonl', 'pq-proof-history-tests.jsonl'):
               rows += [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / name).read_text().splitlines()]
           required = ['TestPQLabNetworkOriginalInputsExclusiveAndLoopback', 'TestPQLabNetworkActiveEngineDBRefusesCustodyCreation', 'TestPQLabNetworkRealRegistryStoppedSourcesAndColdCustody', 'TestPQLabNetworkMissingCheckpointPreservesFailedAttempt', 'TestPQLabWorkloadRealSourceCorpusExecutionAndRestart', 'TestPQLabWorkloadBoundsAliasesAndExactSource', 'TestPQLabWorkloadProofOriginalCLIInputsAndNegatives', 'TestPQLabProofMaterialsCanonicalReadback', 'TestPQLabWorkloadMaximumProtocolWhole', 'TestPQLabNormalCommandFreshIndependentProcessInputs', 'TestPQLabNormalCommandRefusesImplicitOrDuplicateInputs', 'TestPQLabWorkloadCommandInputsAndNoMutation', 'TestPQLabWorkloadCommandRealProofInputs']
           required += ['TestPQLabExportOriginalFourStoresNormalProofAndRefusals', 'TestPQLabMultiOwnerOriginalExecutionAndBounds', 'TestPQLabOnlineSenderRevocationAndPartialIntentPreserved', 'TestPQLabOnlineSenderOriginalRecoveryAndFullProof', 'TestPQLabOnlineSenderCommandOriginalLostAckAndUnknown', 'TestPQLabPreSignedCommandCurrentCheckpoint', 'TestPQLabExportCommandRejectsImplicitTrustAndUnknownInputs', 'TestPQLabNormalCommandOnlineIndependentOwnerFlags', 'TestPQLabExportCommandOriginalStoppedStoreFixture']
