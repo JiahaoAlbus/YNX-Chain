@@ -186,6 +186,11 @@ jobs:
           if grep -qi 'skipped' "$RUNNER_TEMP/commit-clock-readback.log"; then exit 1; fi
           python3 -B scripts/loadtest/test_pq_commit_validation_readback.py
           python3 -B scripts/loadtest/test_pq_commit_clock_source_qualification.py
+      - name: Verify synthetic sampler first-failure retention
+        run: |
+          python3 -B scripts/loadtest/test_pq_same_runner_synthetic_rss.py \
+            SyntheticRSSControls.test_sampler_stop_never_replaces_first_failure \
+            SyntheticRSSControls.test_sampler_stop_failure_without_first_failure_is_not_hidden -v
       - name: Measure original pair producers using synthetic data on Linux
         if: github.event_name == 'workflow_dispatch' && inputs.synthetic_pair_rss && github.ref == 'refs/heads/codex/chain-monotonic-reader-20261121'
         timeout-minutes: 15

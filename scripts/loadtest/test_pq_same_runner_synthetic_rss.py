@@ -45,6 +45,23 @@ class SyntheticRSSControls(unittest.TestCase):
         sampler=rss.Sampler(types.SimpleNamespace(guard=guard,owned_rss=rss_bound),10,11)
         with self.assertRaisesRegex(RuntimeError,'upper bound'):sampler.sample('bad')
 
+    def test_sampler_stop_never_replaces_first_failure(self):
+        class Case:
+            def run(self):raise ValueError('original synthetic first failure')
+        class Sampler:
+            def sample(self,label):raise AssertionError('unexpected success path')
+            def close(self):raise OSError('secondary close failure')
+        with self.assertRaisesRegex(ValueError,'original synthetic first failure') as found:
+            rss.run_sampled(Case(),Sampler())
+        if hasattr(found.exception,'__notes__'):
+            self.assertIn('secondary sampler stop failure: OSError',found.exception.__notes__)
+
+    def test_sampler_stop_failure_without_first_failure_is_not_hidden(self):
+        case=types.SimpleNamespace(run=lambda:True)
+        def fail():raise OSError('original sampler stop failure')
+        sampler=types.SimpleNamespace(sample=lambda label:None,close=fail)
+        with self.assertRaisesRegex(OSError,'original sampler stop failure'):rss.run_sampled(case,sampler)
+
     def test_exact_original_producers_with_small_synthetic_payloads(self):
         # Exercise both real pair producers, with original-format synthetic
         # fixtures and an actual >8 MiB declared blob. No node or sender runs.

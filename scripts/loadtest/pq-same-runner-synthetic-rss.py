@@ -146,6 +146,20 @@ class Sampler:
         require(not self.thread.is_alive() and self.error is None,'original synthetic RSS sampling incomplete')
 
 
+def run_sampled(case,sampler):
+    """Preserve the original failure if stopping the sampler also fails."""
+    primary=None
+    try:
+        result=case.run();sampler.sample('finished');return result
+    except BaseException as error:
+        primary=error;raise
+    finally:
+        try:sampler.close()
+        except BaseException as error:
+            if primary is None:raise
+            if hasattr(primary,'add_note'):primary.add_note('secondary sampler stop failure: '+type(error).__name__)
+
+
 def worker(source_dir,work,distribution):
     require(sys.platform=='linux','actual Linux /proc required; no platform substitution')
     source_dir=Path(source_dir);work=Path(work)
@@ -173,9 +187,7 @@ def worker(source_dir,work,distribution):
             sampler.sample(label+':admission');return admit(roots)
         adapter.execute=wrapped_execute;adapter.admit=wrapped_admit
     sampler.sample('start');sampler.thread.start()
-    try:
-        result=case.run();sampler.sample('finished')
-    finally:sampler.close()
+    result=run_sampled(case,sampler)
     require(result['status']=='PAYLOADS_SEALED_AWAITING_ORIGINAL_ACTIONS_UPLOADS'
         and result['firstCause'] is None and shapes.get('before')==shapes.get('after'),
         'synthetic original pair incomplete; no RSS comparison')
@@ -201,6 +213,7 @@ def run(repo,output):
         comparisonScope='same host, separate fresh Python processes; synthetic original producer only',
         originalArchiveSizeDistributionOnly=True,baselineFixtureOverheadIncluded=True,samplingMayMissTransientPeaks=True,
         onlineTPSQualified=False,actualWindowExecuted=False,runtimePermissionGranted=False)
+    primary=None
     try:
         for label,commit in (('before',BEFORE),('after',AFTER)):
             # The preceding generated fixture is removed before the next run;
@@ -216,11 +229,16 @@ def run(repo,output):
         result.update(status='OBSERVED_SYNTHETIC_ONLY',
             peakChangeBytes=records[1]['samplePeakRSSBytes']-records[0]['samplePeakRSSBytes'])
     except BaseException as error:
+        primary=error
         result['firstCause']=dict(type=type(error).__name__,message=str(error))
         raise
     finally:
-        with output.open('x') as target:
-            json.dump(result,target,sort_keys=True,separators=(',',':'));target.write('\n');target.flush();os.fsync(target.fileno())
+        try:
+            with output.open('x') as target:
+                json.dump(result,target,sort_keys=True,separators=(',',':'));target.write('\n');target.flush();os.fsync(target.fileno())
+        except BaseException as error:
+            if primary is None:raise
+            if hasattr(primary,'add_note'):primary.add_note('secondary result retention failure: '+type(error).__name__)
     return result
 
 
