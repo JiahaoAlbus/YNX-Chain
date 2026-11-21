@@ -8,6 +8,7 @@ PQ requires the owning normal producer/client integration, never a relabel.
 """
 import argparse
 import contextlib
+import copy
 import ctypes
 import errno
 import hashlib
@@ -342,6 +343,55 @@ class ProcessEvidence:
         self.index[key]=len(self.records);self.records.append(row)
 
 
+class ProcessRSSObservation:
+    """Bounded diagnostics from values the original guard already returned.
+
+    No procfs reader, process handle, or authority decision lives in this sink.
+    Missing/omitted values and retention errors never become a measured zero;
+    diagnostic failure must not short-circuit the original resource checks.
+    The caller serializes mutation with the original Window resource lock.
+    """
+    def __init__(self):
+        self.records=[];self.keys=set()
+        self.evidence=ProcessEvidence(self.records,('pid','startTicks','sampleKind'))
+        self.observations=0;self.omitted=0;self.retention_errors=0
+        self.first_error_type=None;self.counter_overflow=False
+
+    def retain(self,pid,start_ticks,value,kind='owned-rss-bytes',at_ns=None):
+        if self.observations==ProcessEvidence.MAX_COUNT:
+            self.counter_overflow=True;return
+        self.observations+=1
+        try:
+            require(type(pid) is int and 0<pid<1<<64 and type(start_ticks) is int and 0<=start_ticks<1<<64,
+                    'invalid original RSS observation identity')
+            require(kind in ('owned-rss-bytes','owned-vmsize-upper-bound','owned-retired-zero'),'invalid original RSS observation kind')
+            kind='owned-rss-unavailable' if value is None else kind
+            require(kind!='owned-retired-zero' or type(value) is int and value==0,'original retired charge must be zero')
+            key=(pid,start_ticks,kind)
+            if key not in self.keys and len(self.records)>=ProcessEvidence.LIMIT:
+                self.omitted+=1;return
+            event=dict(pid=pid,startTicks=start_ticks,sampleKind=kind)
+            if value is not None:event['sampledBytes']=value
+            self.evidence.retain(event,at_ns=at_ns)
+            self.keys.add(key)
+        except Exception as error:
+            self.omitted+=1;self.retention_errors+=1
+            if self.first_error_type is None:self.first_error_type=type(error).__name__
+
+    def report(self):
+        base=dict(schema='YNX-PERF-PROCESS-RSS-OBSERVATIONS/v1',clock='parent_monotonic_ns',
+            basis='original-owned-rss-return-values',evidenceVersion=PROCESS_EVIDENCE_VERSION,
+            recordLimit=ProcessEvidence.LIMIT,additionalRSSReads=0,
+            individualLifetimePeakMeasured=False,failedOwnedRSSCallsMeasured=False)
+        if self.counter_overflow:
+            return dict(base,status='UNKNOWN',reason='original RSS observation counter overflow',
+                        observations=None,omittedObservations=None,records=[])
+        return dict(base,status='PARTIAL' if self.omitted else 'OBSERVED',
+            observations=str(self.observations),omittedObservations=str(self.omitted),
+            retentionErrors=str(self.retention_errors),firstRetentionErrorType=self.first_error_type,
+            records=copy.deepcopy(self.records))
+
+
 
 def bind_process_lifecycle(proc):
     """Bind the original Popen before publication; keep its identity and pipes.
@@ -447,6 +497,7 @@ class Window:
         self.rss_fallback_samples = []
         self.retired_evidence=ProcessEvidence(self.retired_samples,("pid","startTicks","reason","rssError","statError"))
         self.fallback_evidence=ProcessEvidence(self.rss_fallback_samples,("pid","startTicks","tid","threadStartTicks","sampleKind","reason","originalRSSKernelError","retired"))
+        self.process_rss_observation=ProcessRSSObservation()
         self.peak_rss = self.peak_bytes = 0
         self.peak_rss_sample = None
         self.last_storage_sample = None
@@ -510,6 +561,15 @@ class Window:
             guardChecksPreserved=True,byteAccountingChanged=False,cadenceChanged=False,firstStorageSampleGuaranteed=True,pidOrRSSCached=False,
             meaning='sampleIncludingLockWait encloses component spans and child work may overlap; no sum across nesting or subtraction from Go CPU; failed original guard and clock errors retained')
 
+    def process_rss_report(self):
+        if not self.lock.acquire(timeout=1):
+            value=ProcessRSSObservation().report()
+            value.update(status='UNKNOWN',reason='original resource guard lock unavailable',
+                         observations=None,omittedObservations=None,records=[])
+            return value
+        try:return self.process_rss_observation.report()
+        finally:self.lock.release()
+
     def sample(self):
         with self.sample_stage('sampleIncludingLockWait'):
             with self.lock:
@@ -535,14 +595,22 @@ class Window:
             for pid in ids:
                 before = rows[pid]
                 self.known[pid] = before["startTicks"]
+                sample_kind='owned-rss-bytes'
                 def retain_retired(event):
+                    nonlocal sample_kind
                     self.retired_evidence.retain(event)
+                    sample_kind='owned-retired-zero'
                 def retain_fallback(event):
+                    nonlocal sample_kind
                     self.fallback_evidence.retain(event)
+                    if event.get('sampleKind')=='same-thread-group-VmSize-upper-bound':
+                        sample_kind='owned-vmsize-upper-bound'
                 size = owned_rss(pid, before, retain_retired, retain_fallback)
                 rss_by_pid[pid] = size
                 if size is not None:
                     rss += size
+                with self.sample_stage('processRSSRetention'):
+                    self.process_rss_observation.retain(pid,before['startTicks'],size,sample_kind)
         if self.last_storage_sample is None or time.monotonic() - self.last_storage_sample >= 1:
             with self.sample_stage('storageInventory'):
                 self.storage_bytes = sum(private_bytes(root) for root in self.storage_roots)
@@ -1128,6 +1196,7 @@ def run(args):
                       resourceSemantics="sampled owned RSS; explicit same-process VmSize conservative upper bounds if present; artifacts 1s; not atomic or hard cgroup ceilings",
                       resourceObserverVersion=RSS_OBSERVER_VERSION,processEvidenceVersion=PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=window.rss_fallback_samples,
                       resourceGuardStageElapsed=window.sample_stage_report(),launchLifecycle=window.launch_cleanup_report(),
+                      processRSSObservation=window.process_rss_report(),
                       processPhaseMeaning="parent monotonic launch-to-observed-exit durations; includes polling; concurrent node lifetimes overlap and are not additive",
                       processPhases=[dict(name=c["name"], elapsedNs=c.get("elapsedNs"), exitCode=c["process"].returncode) for c in window.children])
         write_new(work / "public/receipt.json", result)

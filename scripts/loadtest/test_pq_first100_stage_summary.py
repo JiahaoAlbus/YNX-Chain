@@ -533,6 +533,7 @@ class ProcessRSSObservationContractControls(unittest.TestCase):
         return dict(schema='YNX-PERF-PROCESS-RSS-OBSERVATIONS/v1', clock='parent_monotonic_ns',
             basis='original-owned-rss-return-values', evidenceVersion=lab.PROCESS_EVIDENCE_VERSION,
             recordLimit=lab.ProcessEvidence.LIMIT, additionalRSSReads=0,
+            status='OBSERVED',retentionErrors='0',firstRetentionErrorType=None,
             observations=str(len(values)+int(unavailable)), omittedObservations='0', records=records)
 
     def reduce(self, report):
@@ -567,7 +568,7 @@ class ProcessRSSObservationContractControls(unittest.TestCase):
 
     def test_omitted_observations_keep_original_denominator_and_unknown_identity_coverage(self):
         report = self.report()
-        report.update(observations='6', omittedObservations='2')
+        report.update(observations='6', omittedObservations='2',status='PARTIAL')
         result = self.reduce(report)
         self.assertEqual(result['originalObservationCount'], '6')
         self.assertEqual(result['omittedObservations'], '2')
@@ -600,7 +601,8 @@ class ProcessRSSObservationContractControls(unittest.TestCase):
     def test_unknown_schema_basis_extra_reads_and_changed_bound_are_refused(self):
         for key, value in [('schema', 'v2'), ('clock', 'wall'), ('basis', 'new-proc-read'),
                            ('evidenceVersion', 'other'), ('additionalRSSReads', 1),
-                           ('additionalRSSReads', False), ('recordLimit', 8192)]:
+                           ('additionalRSSReads', False), ('recordLimit', 8192),
+                           ('status', 'UNKNOWN'), ('status', 'PARTIAL'), ('retentionErrors', '1')]:
             report = self.report(); report[key] = value
             with self.subTest(key=key, value=value), self.assertRaises(RuntimeError): self.reduce(report)
 

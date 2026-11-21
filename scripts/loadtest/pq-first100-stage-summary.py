@@ -390,6 +390,14 @@ def process_rss_observations(receipt):
             'per-process RSS export must report zero additional reads')
     require(type(report.get('recordLimit')) is int and report['recordLimit'] == RSS_EVIDENCE_LIMIT,
             'original process evidence record limit differs')
+    status=report.get('status')
+    require(status in ('OBSERVED','PARTIAL','UNKNOWN'), 'original RSS retention status differs')
+    if status=='UNKNOWN':
+        require(report.get('observations') is None and report.get('omittedObservations') is None
+                and report.get('records') == [] and type(report.get('reason')) is str
+                and 0<len(report['reason'])<=256, 'unknown RSS retention cannot promote samples')
+        return dict(status='UNKNOWN',reason=report['reason'],records=[],retainedObservations=None,
+                    omittedObservations=None,individualLifetimePeakMeasured=False)
 
     def uint(value, label):
         require(integer(value, label) < 1 << 64, label + ' exceeds original uint64 bound')
@@ -402,6 +410,12 @@ def process_rss_observations(receipt):
 
     total = count(report.get('observations'), 'RSS observations')
     omitted = count(report.get('omittedObservations'), 'omitted RSS observations')
+    errors = count(report.get('retentionErrors'), 'RSS retention errors')
+    first_error=report.get('firstRetentionErrorType')
+    require(errors<=omitted and (status=='PARTIAL')==(omitted>0)
+            and ((errors==0 and first_error is None) or
+                 (errors>0 and type(first_error) is str and 0<len(first_error)<=128)),
+            'original RSS retention error or omission coverage differs')
     rows = report.get('records')
     require(type(rows) is list and len(rows) <= RSS_EVIDENCE_LIMIT, 'RSS evidence exceeds retained bound')
     by_identity, keys, retained = {}, set(), 0
@@ -413,8 +427,8 @@ def process_rss_observations(receipt):
         pid, ticks = uint(row.get('pid'), 'RSS pid'), uint(row.get('startTicks'), 'RSS startTicks')
         require(pid > 0, 'RSS pid must be positive')
         kind = row.get('sampleKind')
-        require(kind in ('owned-rss-bytes', 'owned-rss-unavailable'), 'unknown original RSS sample kind')
-        sampled = kind == 'owned-rss-bytes'
+        require(kind in ('owned-rss-bytes', 'owned-vmsize-upper-bound', 'owned-retired-zero', 'owned-rss-unavailable'), 'unknown original RSS sample kind')
+        sampled = kind != 'owned-rss-unavailable'
         event_fields = base_fields | ({'sampledBytes'} if sampled else set())
         require(set(row) == event_fields | evidence_fields | ({'minSampledBytes', 'maxSampledBytes'} if sampled else set())
                 and row['evidenceVersion'] == RSS_EVIDENCE_VERSION, 'original RSS evidence fields differ')
@@ -444,22 +458,31 @@ def process_rss_observations(receipt):
                     'original RSS extrema exclude endpoints')
             if observations <= 2:
                 require((minimum, maximum) == (min(ends), max(ends)), 'RSS extrema require unobserved samples')
+            if kind=='owned-retired-zero':
+                require(minimum==maximum==0,'original retirement charge must stay zero')
         retained += observations
         value = by_identity.setdefault((pid, ticks), dict(pid=pid, startTicks=ticks,
-            observedCount=0, missingCount=0, firstObservedMonotonicNs=first,
+            observedCount=0, upperBoundCount=0, retiredZeroCount=0, missingCount=0, firstObservedMonotonicNs=first,
             lastObservedMonotonicNs=last, observedMinRSSBytes=None, observedMaxRSSBytes=None,
+            observedMinVirtualUpperBoundBytes=None, observedMaxVirtualUpperBoundBytes=None,
             originalRecords=[]))
         value['firstObservedMonotonicNs'] = min(value['firstObservedMonotonicNs'], first)
         value['lastObservedMonotonicNs'] = max(value['lastObservedMonotonicNs'], last)
-        value['observedCount' if sampled else 'missingCount'] += observations
-        if sampled:
+        count_key={'owned-rss-bytes':'observedCount','owned-vmsize-upper-bound':'upperBoundCount',
+                   'owned-retired-zero':'retiredZeroCount','owned-rss-unavailable':'missingCount'}[kind]
+        value[count_key] += observations
+        if kind=='owned-rss-bytes':
             value['observedMinRSSBytes'], value['observedMaxRSSBytes'] = minimum, maximum
+        elif kind=='owned-vmsize-upper-bound':
+            value['observedMinVirtualUpperBoundBytes'], value['observedMaxVirtualUpperBoundBytes'] = minimum, maximum
         value['originalRecords'].append(copy.deepcopy(row))
     require(retained + omitted == total, 'original RSS observation denominator differs')
     records = []
     for key in sorted(by_identity):
         row = by_identity[key]
         row.update(observedCount=str(row['observedCount']), missingCount=str(row['missingCount']),
+                   upperBoundCount=str(row['upperBoundCount']),
+                   retiredZeroCount=str(row['retiredZeroCount']),
                    allTimePeakRSSBytes=None, fullLifetimeCoverage='UNKNOWN',
                    rawIndividualSamplesAvailable=False, percentile=None,
                    omittedObservationsCouldAffectIdentity=omitted > 0)
@@ -467,8 +490,9 @@ def process_rss_observations(receipt):
     return dict(status='OBSERVED_PRODUCER_AGGREGATES_ONLY', records=records,
                 retainedObservations=str(retained), omittedObservations=str(omitted),
                 originalObservationCount=str(total), originalRecordLimit=RSS_EVIDENCE_LIMIT,
+                originalRetentionStatus=status,retentionErrors=str(errors),firstRetentionErrorType=first_error,
                 producerReportedAdditionalRSSReads=0, individualLifetimePeakMeasured=False,
-                meaning='Exact identity aggregate of original owned_rss return values; unavailable is not zero. Producer min/max/count are retained, not reconstructed raw samples or continuous lifetime coverage.')
+                meaning='Exact identity aggregate of original owned_rss return values; unavailable, proven retirement zero charges and VmSize upper bounds are separate from measured RSS. Producer min/max/count are retained, not reconstructed raw samples or continuous lifetime coverage.')
 
 
 def verifier_resources(receipt):

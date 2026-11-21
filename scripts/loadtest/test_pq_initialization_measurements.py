@@ -124,6 +124,7 @@ class OriginalDriverInitializationControls(unittest.TestCase):
         import contextlib,io
         d=self.driver
         original_launch_report=d.lab.Window.launch_cleanup_report
+        original_rss_report=d.lab.Window.process_rss_report
         with tempfile.TemporaryDirectory() as tmp:
             parent=Path(tmp).resolve();source=parent/'source';source.mkdir();args=self.args();args.source=str(source)
             work_holder={};c=SimpleNamespace(commit_observation_enabled=False,measurements=SimpleNamespace(report=lambda:{}),wire_readback=lambda:{},prepare_network=lambda:{'original':'activation'},pending_owners=set(range(4)),live=[],pin='a'*64,workload_pin='b'*64,root=None)
@@ -144,6 +145,8 @@ class OriginalDriverInitializationControls(unittest.TestCase):
                 w.commit_clock_cleanup_debt=[]
                 w.launch_cleanup_debt=[] if cleanup else [dict(operation='Window.stop',errorType='RuntimeError',meaning='synthetic unresolved cleanup control')]
                 w.launch_cleanup_report=lambda:original_launch_report(w)
+                w.process_rss_observation=d.lab.ProcessRSSObservation()
+                w.process_rss_report=lambda:original_rss_report(w)
                 w.sample_stage_report=lambda:dict(status='NOT_OBSERVED',stages={},runtimeMeasured=False)
                 w.launch=launch;work_holder['window']=w;return w
             def instrumented(base):
@@ -162,6 +165,9 @@ class OriginalDriverInitializationControls(unittest.TestCase):
                 if census_error is not None:stack.enter_context(mock.patch.object(d.initialization,'complete_account_readback',side_effect=census_error))
                 stack.enter_context(mock.patch.object(d.sys,'platform','linux'));stack.enter_context(mock.patch.dict(d.os.environ,env));stack.enter_context(contextlib.redirect_stdout(io.StringIO()));r=d.run(args)
             result=copy.deepcopy(r)
+            self.assertEqual(result['processRSSObservation']['observations'],'0')
+            self.assertEqual(result['processRSSObservation']['records'],[])
+            self.assertFalse(result['processRSSObservation']['individualLifetimePeakMeasured'])
             work_holder['window'].stop.assert_called_once();self.assertTrue((work_holder['path']/'public/receipt.json').is_file())
             return result
     def test_full_mocked_original_driver_initializes_then_cleans_without_business_lanes(self):
