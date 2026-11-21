@@ -132,6 +132,7 @@ func TestPaymentOutcomeHTTPRequiresFreshOriginalPayerProof(t *testing.T) {
 	v.Payer = account
 	v.TransactionHash = result.TransactionHash
 	v.Merchant = m.CentralMerchantID
+	v.IdempotencyKey = "http-original-operation"
 	p.settlement = v
 	p.ready = true
 	req = httptest.NewRequest("GET", "/v1/invoices/"+invoice.ID+"/payment-outcome", nil)
