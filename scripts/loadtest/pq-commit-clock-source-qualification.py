@@ -94,8 +94,7 @@ def binding_identity(binding,identity):
             (('commit','source'),('tree','tree'),('forkTree','forkTree'))),'exact original source/tree/fork differs')
 
 
-def validate_original_log(binding,requirements,original):
-    """Check a pinned, already-collected official job log, never a test summary."""
+def original_log_identity(binding,requirements):
     fields={'source','run','job','attempt','sha256'}
     require(type(requirements) is dict and set(requirements)==fields
             and requirements['source']==binding['source'] and requirements['run']==binding['run']
@@ -104,6 +103,11 @@ def validate_original_log(binding,requirements,original):
             and requirements['attempt']==1 and type(requirements['sha256']) is str
             and re.fullmatch('[0-9a-f]{64}',requirements['sha256']),
             'frozen same-job original log identity required')
+
+
+def validate_original_log(binding,requirements,original):
+    """Check a pinned, already-collected official job log, never a test summary."""
+    original_log_identity(binding,requirements)
     expected=REQUIRED_TESTS
     require(type(original) is bytes and 0<len(original)<=32<<20
             and hashlib.sha256(original).hexdigest()==requirements['sha256'],
@@ -212,17 +216,18 @@ def qualification(identity,*,metadata_reader=None,focused_log_reader=None):
             and type(inventory.get('jobs')) is list and inventory['total_count']==len(inventory['jobs'])
             and len(inventory['jobs'])<=100,'complete bounded original CI job inventory required')
     result=validate(BINDING,identity,run,focused,inventory['jobs'])
+    require(LOG_REQUIREMENTS is not None and focused_log_reader is not None,
+            'same-job original test log and fixed inventory NOT_SUPPLIED')
+    original_log_identity(BINDING,LOG_REQUIREMENTS)
+    # A single original collector owns retrieval. This boundary only consumes
+    # its preserved bytes; it never starts or retries an Actions log download.
+    original=focused_log_reader(BINDING['run'],BINDING['focusedJob'],1)
+    result['originalFocusedTestLog']=validate_original_log(BINDING,LOG_REQUIREMENTS,original)
     latest=metadata_reader('runs/%d'%BINDING['run'])
     require(type(latest) is dict and all(latest.get(key)==run.get(key) for key in
         ('id','head_sha','head_branch','event','run_attempt','workflow_id','path','status','conclusion'))
         and type(latest.get('repository')) is dict and latest['repository'].get('full_name')==REPOSITORY,
         'original source run changed while reading job inventory')
     validate(BINDING,identity,latest,focused,inventory['jobs'])
-    require(LOG_REQUIREMENTS is not None and focused_log_reader is not None,
-            'same-job original test log and fixed inventory NOT_SUPPLIED')
-    # A single original collector owns retrieval. This boundary only consumes
-    # its preserved bytes; it never starts or retries an Actions log download.
-    original=focused_log_reader(BINDING['run'],BINDING['focusedJob'],1)
-    result['originalFocusedTestLog']=validate_original_log(BINDING,LOG_REQUIREMENTS,original)
     result['focusedOriginalLogVerified']=True
     return result

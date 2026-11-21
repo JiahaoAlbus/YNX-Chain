@@ -71,6 +71,10 @@ class ClockSourceQualificationControls(unittest.TestCase):
         with mock.patch.object(m,'BINDING',binding),self.assertRaisesRegex(RuntimeError,'NOT_SUPPLIED'):
             m.qualification(identity,metadata_reader=metadata,focused_log_reader=lambda *x:reads.append(x))
         self.assertEqual(reads,[])
+        requirements,_=self.original_log(binding);requirements['job']=999
+        with mock.patch.object(m,'BINDING',binding),mock.patch.object(m,'LOG_REQUIREMENTS',requirements),self.assertRaisesRegex(RuntimeError,'log identity'):
+            m.qualification(identity,metadata_reader=metadata,focused_log_reader=lambda *x:reads.append(x))
+        self.assertEqual(reads,[])
 
     def test_log_exact_identity_markers_and_tests_fail_closed(self):
         binding,*_=self.fixture();requirements,raw=self.original_log(binding)
@@ -167,19 +171,20 @@ class ClockSourceQualificationControls(unittest.TestCase):
 
     def test_rerun_during_original_inventory_fails_closed(self):
         binding,identity,run,focused,jobs=self.fixture();calls=[]
+        requirements,raw=self.original_log(binding)
         def read(endpoint):
             calls.append(endpoint)
             if endpoint=='runs/101' and calls.count(endpoint)==2:return dict(run,run_attempt=2)
             return {'runs/101':run,'jobs/102':focused,'runs/101/jobs?per_page=100':dict(total_count=4,jobs=jobs)}[endpoint]
-        with mock.patch.object(m,'BINDING',binding),self.assertRaisesRegex(RuntimeError,'run changed'):
-            m.qualification(identity,metadata_reader=read)
+        with mock.patch.object(m,'BINDING',binding),mock.patch.object(m,'LOG_REQUIREMENTS',requirements),self.assertRaisesRegex(RuntimeError,'run changed'):
+            m.qualification(identity,metadata_reader=read,focused_log_reader=lambda *x:raw)
         calls=[]
         def changed_repository(endpoint):
             calls.append(endpoint)
             if endpoint=='runs/101' and calls.count(endpoint)==2:return dict(run,repository=dict(full_name='other/repo'))
             return {'runs/101':run,'jobs/102':focused,'runs/101/jobs?per_page=100':dict(total_count=4,jobs=jobs)}[endpoint]
-        with mock.patch.object(m,'BINDING',binding),self.assertRaisesRegex(RuntimeError,'run changed'):
-            m.qualification(identity,metadata_reader=changed_repository)
+        with mock.patch.object(m,'BINDING',binding),mock.patch.object(m,'LOG_REQUIREMENTS',requirements),self.assertRaisesRegex(RuntimeError,'run changed'):
+            m.qualification(identity,metadata_reader=changed_repository,focused_log_reader=lambda *x:raw)
 
 
 if __name__=='__main__':unittest.main(verbosity=2)
