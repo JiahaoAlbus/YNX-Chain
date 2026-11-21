@@ -24,6 +24,44 @@ type nativeIntentObservationInput struct {
 	Order           Order
 	Origin          string
 	OriginalRequest *NativeShopInvoiceRequestDATA `json:",omitempty"`
+	OriginalSession string                        `json:",omitempty"`
+}
+
+// A bound order may be observed only against the session from its own retained
+// original creation or recovered creation response, never a later Pay reply.
+func originalNativeIntentSession(tx *Store, order Order, origin string, request NativeShopInvoiceRequestDATA) (string, error) {
+	for _, record := range tx.s.BusinessEffects {
+		if record.Kind != "pay.native-create" || record.Target != order.ID {
+			continue
+		}
+		var original nativeInvoiceInput
+		if err := decodeEffect(record.Input, &original); err != nil {
+			return "", err
+		}
+		if original.Origin != origin {
+			return "", ErrConflict
+		}
+		want, e := json.Marshal(request)
+		got, f := json.Marshal(original.Request)
+		if e != nil || f != nil || !bytes.Equal(want, got) {
+			return "", ErrConflict
+		}
+		_, binding, err := nativeInvoiceReply(original, record.Result, true)
+		if err != nil {
+			return "", err
+		}
+		if binding.IntentID != order.PayIntentID || binding.InvoiceID != order.InvoiceID || binding.Merchant != order.PayMerchant || binding.PayoutAddress != order.PayPayoutAddress {
+			return "", ErrConflict
+		}
+		var view struct {
+			Terms NativeShopPayTerms `json:"terms"`
+		}
+		if err := json.Unmarshal(record.Result, &view); err != nil || view.Terms.SessionID == "" {
+			return "", ErrInvalidState
+		}
+		return view.Terms.SessionID, nil
+	}
+	return "", ErrNotFound
 }
 
 func originalNativeIntentObservation(order Order, raw json.RawMessage) (NativeShopIntentObservation, error) {
@@ -91,10 +129,15 @@ func (s *Server) nativePayIntentObservation(target string, proof businessActionA
 			return nil, ErrNotFound
 		}
 		var request *NativeShopInvoiceRequestDATA
+		var session string
 		if err == nil {
 			request = &original
+			session, err = originalNativeIntentSession(tx, order, pay.origin, original)
+			if err != nil {
+				return nil, err
+			}
 		}
-		return encodeEffect(nativeIntentObservationInput{Order: order, Origin: pay.origin, OriginalRequest: request})
+		return encodeEffect(nativeIntentObservationInput{Order: order, Origin: pay.origin, OriginalRequest: request, OriginalSession: session})
 	}
 	plan.check = func(tx *Store, actor string, record BusinessEffect) error {
 		var saved nativeIntentObservationInput
@@ -119,6 +162,10 @@ func (s *Server) nativePayIntentObservation(target string, proof businessActionA
 			want, e := json.Marshal(saved.OriginalRequest)
 			got, f := json.Marshal(original)
 			if e != nil || f != nil || !bytes.Equal(want, got) {
+				return ErrConflict
+			}
+			session, err := originalNativeIntentSession(tx, order, pay.origin, original)
+			if err != nil || session != saved.OriginalSession {
 				return ErrConflict
 			}
 		}
@@ -152,6 +199,12 @@ func (s *Server) nativePayIntentObservation(target string, proof businessActionA
 				return nil, err
 			}
 			if binding.IntentID != order.PayIntentID || binding.InvoiceID != order.InvoiceID || binding.Merchant != order.PayMerchant || binding.PayoutAddress != order.PayPayoutAddress {
+				return nil, ErrConflict
+			}
+			var view struct {
+				Terms NativeShopPayTerms `json:"terms"`
+			}
+			if json.Unmarshal(record.Result, &view) != nil || view.Terms.SessionID != saved.OriginalSession {
 				return nil, ErrConflict
 			}
 			return observation, nil

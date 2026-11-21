@@ -188,6 +188,26 @@ func TestBusinessNativeIntentRefusesForeignAndReboundOriginal(t *testing.T) {
 	}
 }
 
+func preparePublicNativeIntentOriginal(t *testing.T, s *Store, request NativeShopInvoiceRequestDATA) {
+	t.Helper()
+	for id, record := range s.s.BusinessEffects {
+		if record.Kind != "pay.native-create" {
+			continue
+		}
+		var original nativeInvoiceInput
+		if err := json.Unmarshal(record.Input, &original); err != nil {
+			t.Fatal(err)
+		}
+		original.Origin = "https://pay.invalid"
+		record.Input, _ = json.Marshal(original)
+		record.Result = json.RawMessage(publicNativeInvoiceResponse(request))
+		record.Phase = "completed"
+		s.s.BusinessEffects[id] = record
+		return
+	}
+	t.Fatal("missing original creation")
+}
+
 func TestBusinessNativeIntentReadUsesCapturedOriginalBill(t *testing.T) {
 	for _, mode := range []string{"same", "network", "amount", "asset", "session", "duplicate"} {
 		t.Run(mode, func(t *testing.T) {
@@ -196,6 +216,7 @@ func TestBusinessNativeIntentReadUsesCapturedOriginalBill(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			preparePublicNativeIntentOriginal(t, s, request)
 			wire := []byte(publicNativeInvoiceResponse(request))
 			var from, to string
 			switch mode {
@@ -206,7 +227,7 @@ func TestBusinessNativeIntentReadUsesCapturedOriginalBill(t *testing.T) {
 			case "asset":
 				from, to = `"assetId":"`+request.AssetID+`"`, `"assetId":"foreign"`
 			case "session":
-				from, to = `"sessionId":"core_original_session"`, `"sessionId":""`
+				from, to = `"sessionId":"core_original_session"`, `"sessionId":"other_valid_session"`
 			case "duplicate":
 				for _, record := range s.s.BusinessEffects {
 					if record.Kind == "pay.native-create" {
@@ -252,6 +273,7 @@ func TestBusinessNativeIntentRejectsChangedOriginalAfterRead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	preparePublicNativeIntentOriginal(t, s, request)
 	calls := 0
 	client := nativeIntentObservationClient(t, func(*http.Request) (*http.Response, error) {
 		calls++
