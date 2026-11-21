@@ -7,11 +7,11 @@ const original={productId:'shop.order',sourceOrder:'order:original',storeId:'sto
 function boot(pay,extra={}){const entry=createNativePayMainEntry({getMain:()=>null,getContext:()=>({account:merchant,revision:1,focused:true})});entry.compose({pay,current(){},...extra});return entry;}
 test('Shop original source conflict stops create and lookup before any Pay request',async()=>{
  let creates=0,lookups=0,reads=0;
- const conflict=Object.assign(Error('multiple original Shop records'),{code:'SHOP_ORIGINAL_CONFLICT',status:409});
+ const conflict=Object.assign(Error('conflict'),{status:409});
  const entry=boot({async createInvoiceIntent(){creates++},async lookupInvoiceIntent(){lookups++}},{async readOriginalInvoiceIntent(ref){reads++;assert.deepEqual(ref,{productId:original.productId,sourceOrder:original.sourceOrder});throw conflict}});
  for(const action of ['create-intent','lookup-intent']){
   const result=await entry.invokeResult({action,productId:original.productId,sourceOrder:original.sourceOrder});
-  assert.equal(result.ok,false);assert.equal(result.code,'SHOP_ORIGINAL_CONFLICT');assert.equal(result.canRetry,false);
+  assert.equal(result.ok,false);assert.equal(result.code,'NATIVE_PAY_OPERATION_UNAVAILABLE');assert.equal(result.httpStatus,409);assert.equal(result.canRetry,false);
   assert.equal(readNativePayFailureCause(result).cause,conflict);
  }
  assert.equal(reads,2);assert.equal(creates,0);assert.equal(lookups,0);
