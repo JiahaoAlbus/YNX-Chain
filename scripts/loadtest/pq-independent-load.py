@@ -1451,19 +1451,44 @@ def original_commit_clock_readback(result,work,private_network,source):
     return joined
 
 
+def rss_export_failure(error):
+    # The report can be interrupted by the CLI or pair's original signal
+    # handler. Keep its known public message, and fingerprint other failures
+    # without exposing paths/payloads or invoking a failing __str__ twice.
+    failure=dict(exceptionType=type(error).__name__,messageStatus='UNKNOWN',
+        messageSHA256=None,messageBytes=None,publicSignalMessage=None,
+        messageEncoding='utf-8/surrogatepass',messageByteLimit=65536)
+    try:
+        message=str(error)
+        if len(message)>failure['messageByteLimit']:
+            failure['reason']='exception message exceeds fingerprint byte bound';return failure
+        encoded=message.encode('utf-8',errors='surrogatepass')
+        if len(encoded)>failure['messageByteLimit']:
+            failure['reason']='exception message exceeds fingerprint byte bound';return failure
+        failure.update(messageStatus='HASHED',messageBytes=len(encoded),messageSHA256=hashlib.sha256(encoded).hexdigest())
+        public={prefix+str(signum) for prefix in ('normal independent load received signal ',
+            'original sequential pair interrupted by signal ') for signum in (signal.SIGINT,signal.SIGTERM)}
+        if type(error) is RuntimeError and message in public:failure['publicSignalMessage']=message
+    except BaseException as fingerprint_error:
+        failure['fingerprintErrorType']=type(fingerprint_error).__name__
+    return failure
+
+
 def retain_original_process_rss(result,window):
     # Materialize once after the last original readback. This is a retained
     # diagnostic snapshot, not another procfs sample or a cleanup success gate.
     try:result['processRSSObservation']=window.process_rss_report()
     except BaseException as error:
+        failure=rss_export_failure(error)
         result['processRSSObservation']=dict(
             schema='YNX-PERF-PROCESS-RSS-OBSERVATIONS/v1',clock='parent_monotonic_ns',
             basis='original-owned-rss-return-values',evidenceVersion=lab.PROCESS_EVIDENCE_VERSION,
             recordLimit=lab.ProcessEvidence.LIMIT,additionalRSSReads=0,
             individualLifetimePeakMeasured=False,failedOwnedRSSCallsMeasured=False,
             status='UNKNOWN',reason='original process RSS observation export failed',
-            observations=None,omittedObservations=None,records=[],errorType=type(error).__name__)
-        result['firstCause']=result['firstCause'] or 'original process RSS observation export failed'
+            observations=None,omittedObservations=None,records=[],errorType=type(error).__name__,failure=failure)
+        if result['firstCause'] is None:
+            result['firstCause']=failure['publicSignalMessage'] or 'original process RSS observation export failed'
 
 
 def finish_commit_clock_readback(result,window,work,private_network,source,demand):
