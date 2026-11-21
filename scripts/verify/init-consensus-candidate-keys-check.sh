@@ -122,6 +122,15 @@ grep -Fq "\"role\":\"$4\"" "$3"
 grep -Fq '"custodyBoundary":"owner-controlled-host-local"' "$3"
 printf 'VALIDATE|%s\n' "$4" >>"$FIXTURE_EVENTS"
 SH
+cat >"$tmp/bin/sha256sum" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+# Use the host's actual SHA-256 implementation for the inert remote fixture.
+if [[ $(/usr/bin/uname -s) == Darwin ]]; then
+  exec /sbin/sha256sum "$@"
+fi
+exec /usr/bin/sha256sum "$@"
+SH
 cat >"$tmp/bin/id" <<'SH'
 #!/usr/bin/env bash
 if [[ $# == 2 && $1 == -u && $2 == ynx ]]; then printf '1000\n'; else exec /usr/bin/id "$@"; fi

@@ -43,11 +43,15 @@ REQUIRED_NAMES = (
 )
 
 
-def validate_ci_contract(workflow, verify):
+def validate_ci_contract(workflow, verify, history):
     for block in (workflow.split('  push:\n',1)[1].split('  pull_request:\n',1)[0], workflow.split('  pull_request:\n',1)[1].split('  workflow_dispatch:\n',1)[0]):
         for name in ('scripts/ops/init-consensus-candidate-keys.sh', 'scripts/verify/init-consensus-candidate-keys-check.sh', 'scripts/ops/consensus-recovery-capsule.sh', 'scripts/ops/test_consensus_recovery_capsule.py'):
             assert block.count("      - '"+name+"'\n") == 1, 'normal caller/controls must trigger push and PR exactly once'
-    assert workflow.count('\n          bash scripts/verify/init-consensus-candidate-keys-check.sh\n') == 1, 'original shell gate must run without an allow-failure suffix'
+    assert workflow.count('        run: bash scripts/verify/pq-history-ceremony-ci.sh\n') == 1, 'same-source history case must be called exactly once'
+    job = workflow.split('  source-history-counterexamples:\n',1)[1].split('  detached-source-checks:\n',1)[0]
+    assert job.count('        run: bash scripts/verify/pq-history-ceremony-ci.sh\n') == 1 and 'continue-on-error:' not in job
+    assert '    needs: [detached-source-checks, source-history-counterexamples]\n' in workflow
+    assert history.count('\nbash scripts/verify/init-consensus-candidate-keys-check.sh\n') == 1, 'original shell gate must run without an allow-failure suffix'
     assert verify.count(REQUIRED_HOOK) == 1 and verify.count(REQUIRED_ASSERTION) == 1
     assert verify.endswith(REQUIRED_HOOK+'\n'+REQUIRED_ASSERTION+'\n'), 'mandatory all-controls call and single success assertion required'
     assert 'set -Eeuo pipefail\n' in verify
@@ -366,21 +370,21 @@ class CapsuleOpsControls(unittest.TestCase):
 class CapsuleCIControls(unittest.TestCase):
     def sources(self):
         path = Path(os.environ.get('CAPSULE_TEST_WORKFLOW',str(REPO/'.github/workflows/resource-market-ci.yml')))
-        return path.read_text(), (REPO/'scripts/verify/init-consensus-candidate-keys-check.sh').read_text()
+        return path.read_text(), (REPO/'scripts/verify/init-consensus-candidate-keys-check.sh').read_text(), (REPO/'scripts/verify/pq-history-ceremony-ci.sh').read_text()
 
     def test_normal_ci_required_entry(self):
         validate_ci_contract(*self.sources())
 
     def test_trigger_and_mandatory_call_mutations(self):
-        workflow, verify = self.sources()
+        workflow, verify, history = self.sources()
         changes=[]
         for name in ('scripts/ops/init-consensus-candidate-keys.sh','scripts/verify/init-consensus-candidate-keys-check.sh','scripts/ops/consensus-recovery-capsule.sh','scripts/ops/test_consensus_recovery_capsule.py'):
             line="      - '"+name+"'\n"
             for start in (0,workflow.index('  pull_request:\n')):
                 at=workflow.index(line,start)
-                changes.extend([(workflow[:at]+workflow[at+len(line):],verify),(workflow[:at]+line+workflow[at:],verify)])
-        command='          bash scripts/verify/init-consensus-candidate-keys-check.sh\n'
-        changes.extend([(workflow.replace(command,''),verify),(workflow.replace(command,command.rstrip()+' || true\n'),verify),(workflow,verify.replace(REQUIRED_HOOK,'')),(workflow,verify.replace(REQUIRED_HOOK,REQUIRED_HOOK+' || true')),(workflow,verify.replace(REQUIRED_HOOK,REQUIRED_HOOK+'\n'+REQUIRED_HOOK)),(workflow,verify.replace(' --required-controls |',' |')),(workflow,verify.replace(REQUIRED_ASSERTION,'')),(workflow,verify.replace(REQUIRED_ASSERTION,REQUIRED_ASSERTION+' || true'))])
+                changes.extend([(workflow[:at]+workflow[at+len(line):],verify,history),(workflow[:at]+line+workflow[at:],verify,history)])
+        command='bash scripts/verify/init-consensus-candidate-keys-check.sh\n'
+        changes.extend([(workflow,verify,history.replace(command,'')),(workflow,verify,history.replace(command,command.rstrip()+' || true\n')),(workflow,verify.replace(REQUIRED_HOOK,''),history),(workflow,verify.replace(REQUIRED_HOOK,REQUIRED_HOOK+' || true'),history),(workflow,verify.replace(REQUIRED_HOOK,REQUIRED_HOOK+'\n'+REQUIRED_HOOK),history),(workflow,verify.replace(' --required-controls |',' |'),history),(workflow,verify.replace(REQUIRED_ASSERTION,''),history),(workflow,verify.replace(REQUIRED_ASSERTION,REQUIRED_ASSERTION+' || true'),history),(workflow.replace('    needs: [detached-source-checks, source-history-counterexamples]','    needs: detached-source-checks'),verify,history)])
         for index, pair in enumerate(changes):
             with self.subTest(mutation=index):
                 with self.assertRaises((AssertionError,IndexError,ValueError)): validate_ci_contract(*pair)
