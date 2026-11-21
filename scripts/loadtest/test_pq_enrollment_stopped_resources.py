@@ -245,6 +245,44 @@ class StoppedResourceControls(unittest.TestCase):
                     scope.roots=[]
                     if scope in m._READ_SCOPE_DEBT:m._READ_SCOPE_DEBT.remove(scope)
 
+    def test_monitor_failure_during_join_precedes_join_exception_with_one_join(self):
+        for unavailable in (False,True):
+            entered=threading.Event();release=threading.Event();latched=threading.Event();scope=None;joins=[];held=[]
+            def rss(*args):
+                if threading.current_thread() is not threading.main_thread():
+                    entered.set();release.wait(2);raise ValueError('UNIT original observer failed during join')
+                return 4096
+            with self.subTest(snapshotUnavailable=unavailable),self.resources(side_effect=rss):
+                try:
+                    scope=m.StoppedReadScope(self.w);scope.start();self.assertTrue(entered.wait(1))
+                    original_latch=scope.monitor.latch
+                    def latch(error,source):original_latch(error,source);latched.set()
+                    def failed_join(*args,**kwargs):
+                        release.set();self.assertTrue(latched.wait(1));joins.append(time.monotonic_ns())
+                        if unavailable:scope.monitor.failure_lock.acquire();held.append(True)
+                        raise OSError('UNIT later join exception')
+                    with mock.patch.object(scope.monitor,'latch',side_effect=latch),mock.patch.object(scope.monitor.thread,'join',side_effect=failed_join):
+                        scope.close()
+                    observed=scope.report();original=scope.monitor.first_failure
+                    self.assertEqual(len(joins),1);self.assertLess(original['observedMonotonicNs'],joins[0])
+                    if unavailable:
+                        self.assertEqual(observed['firstCauseType'],'OSError')
+                        self.assertIn('snapshot unavailable',scope.cleanup_errors[-1]['message'])
+                    else:
+                        self.assertEqual(observed['firstCauseType'],'ValueError')
+                        self.assertEqual(observed['firstCauseObservedMonotonicNs'],original['observedMonotonicNs'])
+                    self.assertTrue(scope.cleanup_debt);self.assertFalse(observed['monitorRetired'])
+                    self.assertEqual(scope.cleanup_errors[0]['type'],'OSError')
+                    for _,fd,_ in scope.roots:os.fstat(fd)
+                finally:
+                    release.set()
+                    if scope is not None:
+                        if held:scope.monitor.failure_lock.release()
+                        scope.monitor.thread.join(1);self.assertFalse(scope.monitor.thread.is_alive())
+                        for _,fd,_ in scope.roots:os.close(fd)
+                        scope.roots=[]
+                        if scope in m._READ_SCOPE_DEBT:m._READ_SCOPE_DEBT.remove(scope)
+
     def test_original_job_invokes_stopped_continuation_after_stop_and_before_private_retention(self):
         fixture=job.HostedSyntheticReservationControls();fixture.setUp();self.addCleanup(fixture.doCleanups)
         events=fixture.events

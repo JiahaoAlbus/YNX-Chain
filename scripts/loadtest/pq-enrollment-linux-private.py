@@ -241,13 +241,16 @@ class StoppedReadScope:
             if self.monitor.thread.ident is not None:
                 try:self.monitor.thread.join(timeout=.5)
                 except BaseException as error:secondary(error);join_failed=True
-            if join_failed:
+            if join_failed or self.monitor.thread.is_alive():
                 # An exceptional join is not a retirement proof. In particular
                 # do not use an unreliable dead flag to close a live reader's
                 # original FDs; retain custody without a second join/close.
-                self.closed=True;_READ_SCOPE_DEBT.append(self);return
-            if self.monitor.thread.is_alive():
-                secondary(RuntimeError('original stopped read observer did not retire'))
+                if not join_failed:secondary(RuntimeError('original stopped read observer did not retire'))
+                # The observer may have latched a failure during the join.
+                # One bounded snapshot can retain its earlier original clock;
+                # an unavailable snapshot leaves current evidence UNKNOWN.
+                try:self.retain_monitor_failure()
+                except BaseException as error:secondary(error)
                 self.closed=True;_READ_SCOPE_DEBT.append(self);return
             self.observer_retired=True
             try:self.retain_monitor_failure()
