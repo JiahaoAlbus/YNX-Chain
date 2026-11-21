@@ -157,6 +157,10 @@ class CommitClockReadbackControls(unittest.TestCase):
                 buildArgv=['go','build','-mod=readonly','-p','1','-trimpath','-buildvcs=false','-o','/synthetic/ynx-consensus-pq-lab','./cmd/ynx-consensus-pq-lab'])
             receipt['processes'].append(dict(name='create-original',pid=99,startTicks=17,exitCode=0,
                 command=['/synthetic/ynx-consensus-pq-lab','create','--synthetic','--root',str(private)]))
+            receipt['commitClockBuiltCreator']=dict(path='/synthetic/ynx-consensus-pq-lab',sha256='1'*64,device=1,inode=45,size=1024)
+            receipt['commitClockCreatorProbe']=dict(pid=99,startTicks='17',binarySHA256='1'*64,binaryPath='/synthetic/ynx-consensus-pq-lab',
+                device=1,inode=45,size=1024,timeNamespace='1:2',observedStartNs='750',observedEndNs='790',
+                identity='original-unpublished-pidfd-and-live-proc-exe')
             with mock.patch.object(driver.commit_clock,'COMMIT_CLOCK_SOURCE','a'*40):
                 result=driver.original_commit_clock_readback(receipt,root,private,'a'*40)
                 self.assertEqual((result['observed'],result['rows'][0]['fourNodeUpperBoundNs']),(1,203))
@@ -164,6 +168,8 @@ class CommitClockReadbackControls(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError,'original synthetic create process'):driver.original_commit_clock_readback(bad,root,private,'a'*40)
                 bad=copy.deepcopy(receipt);bad['normalLiveBuildProvenance']['ynx-consensus-pq-lab']['binarySHA256']='2'*64
                 with self.assertRaisesRegex(RuntimeError,'creator build/source binding'):driver.original_commit_clock_readback(bad,root,private,'a'*40)
+                bad=copy.deepcopy(receipt);bad['commitClockCreatorProbe']['inode']+=1
+                with self.assertRaisesRegex(RuntimeError,'creator pidfd/executable'):driver.original_commit_clock_readback(bad,root,private,'a'*40)
                 (public/'commit-monotonic-node-2-original.json').unlink()
                 result=driver.original_commit_clock_readback(receipt,root,private,'a'*40)
                 self.assertEqual((result['observed'],result['censored']),(0,1))
@@ -343,6 +349,49 @@ class CommitClockReadbackControls(unittest.TestCase):
                 finally:
                     for _,log in window.logs:log.close()
 
+    def test_creator_pidfd_is_bound_before_original_child_publication(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();(root/'public').mkdir()
+            window=lab.Window.__new__(lab.Window);window.lock=threading.RLock();window.children=[];window.known={};window.logs=[]
+            window.work=root;window.source=root;window.env={};window.cpus=[0];window.sample=lambda:None
+            child=SimpleNamespace(pid=12345,returncode=None);anchor=mock.Mock()
+            def bind(process):
+                self.assertIs(process,child);self.assertEqual(window.children,[]);self.assertTrue(process._ynx_clock_pidfd_required)
+                return anchor
+            spec=SimpleNamespace(loader=SimpleNamespace(exec_module=lambda module:None));module=SimpleNamespace(OriginalOwnerPidfd=bind)
+            with mock.patch.object(lab.subprocess,'Popen',return_value=child),mock.patch.object(lab.guard,'bounded',return_value=b''), \
+                 mock.patch.object(lab.guard,'parse_stat',return_value=dict(startTicks=123)), \
+                 mock.patch.object(lab.importlib.util,'spec_from_file_location',return_value=spec), \
+                 mock.patch.object(lab.importlib.util,'module_from_spec',return_value=module):
+                try:
+                    self.assertIs(window.launch('create-original',['original'],original_pidfd_creator=True),child)
+                    self.assertIs(child._ynx_clock_pidfd,anchor);self.assertEqual(len(window.children),1)
+                    self.assertFalse(hasattr(child,'_ynx_original_pidfd'))
+                finally:
+                    for _,log in window.logs:log.close()
+
+    def test_failed_creator_pidfd_binding_preserves_child_and_cleanup_debt(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();(root/'public').mkdir()
+            window=lab.Window.__new__(lab.Window);window.lock=threading.RLock();window.children=[];window.known={};window.logs=[]
+            window.work=root;window.source=root;window.env={};window.cpus=[0];window.sample=lambda:None
+            child=SimpleNamespace(pid=12345,returncode=0)
+            spec=SimpleNamespace(loader=SimpleNamespace(exec_module=lambda module:None))
+            def refused(process):raise OSError('original creator pidfd unavailable')
+            module=SimpleNamespace(OriginalOwnerPidfd=refused)
+            with mock.patch.object(lab.subprocess,'Popen',return_value=child),mock.patch.object(lab.guard,'bounded',return_value=b''), \
+                 mock.patch.object(lab.guard,'parse_stat',return_value=dict(startTicks=123)), \
+                 mock.patch.object(lab.importlib.util,'spec_from_file_location',return_value=spec), \
+                 mock.patch.object(lab.importlib.util,'module_from_spec',return_value=module):
+                try:
+                    with self.assertRaisesRegex(OSError,'creator pidfd unavailable'):
+                        window.launch('create-original',['original'],original_pidfd_creator=True)
+                    self.assertIs(window.children[0]['process'],child)
+                    window._stop_locked=lambda:True
+                    self.assertFalse(window.stop());self.assertEqual(window.commit_clock_cleanup_debt,['create-original'])
+                finally:
+                    for _,log in window.logs:log.close()
+
     def test_original_node_pidfd_close_requires_original_process_retirement(self):
         for retired in (False,True):
             with self.subTest(retired=retired):
@@ -424,6 +473,26 @@ class CommitClockReadbackControls(unittest.TestCase):
                 self.assertEqual(probe['pid'],child.pid);self.assertEqual(probe['binarySHA256'],digest)
                 with self.assertRaisesRegex(RuntimeError,'one original node clock probe'):
                     window.capture_clock_node(child,binary,digest)
+                def retire():child.terminate();child.wait(timeout=5);return True
+                window._stop_locked=retire
+                self.assertTrue(window.stop());self.assertEqual(window.commit_clock_cleanup_debt,[])
+                self.assertIsNone(child._ynx_clock_pidfd.fd)
+            finally:
+                if child.poll() is None:child.terminate();child.wait(timeout=5)
+                for _,log in window.logs:log.close()
+
+    @unittest.skipUnless(sys.platform=='linux','real original creator pidfd and /proc require Linux')
+    def test_real_linux_window_binds_original_creator_before_publication(self):
+        binary=os.path.realpath('/bin/sleep');digest=hashlib.sha256(Path(binary).read_bytes()).hexdigest()
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();(root/'public').mkdir()
+            window=lab.Window.__new__(lab.Window);window.lock=threading.RLock();window.children=[];window.known={};window.logs=[]
+            window.work=root;window.source=root;window.env=dict(os.environ);window.cpus=sorted(os.sched_getaffinity(0));window.sample=lambda:None
+            child=window.launch('create-original',[binary,'30'],original_pidfd_creator=True)
+            try:
+                self.assertFalse(hasattr(child,'_ynx_original_pidfd'))
+                probe=window.capture_clock_node(child,binary,digest)
+                self.assertEqual((probe['pid'],probe['binarySHA256']),(child.pid,digest))
                 def retire():child.terminate();child.wait(timeout=5);return True
                 window._stop_locked=retire
                 self.assertTrue(window.stop());self.assertEqual(window.commit_clock_cleanup_debt,[])

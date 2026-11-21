@@ -1329,6 +1329,18 @@ def original_commit_clock_readback(result,work,private_network,source):
         and creators[0]['command'][0]==expected_creator
         and creators[0]['command'][1:5]==['create','--synthetic','--root',str(private_network)],
         'one successful original synthetic create process required')
+    creator=creators[0];physical=result['commitClockBuiltCreator'];probe=result['commitClockCreatorProbe'];parent=result['commitClockParent']
+    lab.require(physical['path']==expected_creator and physical['sha256']==result['binaries']['ynx-consensus-pq-lab']
+        and type(probe['pid']) is int and probe['pid']==creator['pid']
+        and commit_clock.decimal(probe['startTicks'],positive=True)==creator['startTicks']
+        and probe['identity']=='original-unpublished-pidfd-and-live-proc-exe'
+        and probe['binaryPath']==expected_creator and probe['binarySHA256']==physical['sha256']
+        and all(type(physical.get(key)) is int and physical[key]>0 and type(probe.get(key)) is int and probe[key]==physical[key]
+                for key in ('device','inode','size'))
+        and probe['timeNamespace']==parent['timeNamespace']
+        and commit_clock.decimal(probe['observedStartNs'])<=commit_clock.decimal(probe['observedEndNs'])
+            <=commit_clock.decimal(parent['observedStartNs']),
+        'original live creator pidfd/executable or clock binding differs')
     created_plan=commit_clock.plan_from_original_create(read('create-original.log',4<<20),result['activation']['networkPlanSHA256'])
     lab.require(created_plan==commit_clock.read_original(private_network/'network-plan.json',1<<20),
         'original create log and held private plan bytes differ')
@@ -1364,7 +1376,8 @@ def original_commit_clock_readback(result,work,private_network,source):
         dependencies_raw=read('normal-live-source-dependencies.json',64<<10),
         build_identity_raw=read('commit-clock-build-identity.log',16<<10),
         network_plan_raw=created_plan)
-    joined['createProcessExecutableIndependentlyVerified']=False
+    joined['createProcessLiveExecutableObserved']=True
+    joined['createProcessExecutableIndependentlyVerified']=False # One live probe is not whole-lifetime attestation.
     return joined
 
 
@@ -1496,6 +1509,9 @@ def run(args):
             binary=commit_clock.capture_built_binary(bins/'ynx-comet')
             lab.require(binary['sha256']==result['binaries']['ynx-comet'],'original physical Commit clock build differs')
             result['commitClockBuiltBinary']=binary
+            creator_binary=commit_clock.capture_built_binary(bins/'ynx-consensus-pq-lab')
+            lab.require(creator_binary['sha256']==result['binaries']['ynx-consensus-pq-lab'],'original physical creator build differs')
+            result['commitClockBuiltCreator']=creator_binary
             proc=w.launch('commit-clock-build-identity',[str(bins/'ynx-comet'),'synthetic-commit-clock-build-identity','--synthetic'])
             w.wait(proc)
             raw=commit_clock.read_original(work/'public/commit-clock-build-identity.log',16<<10)
@@ -1507,7 +1523,11 @@ def run(args):
             result['commitClockBuildIdentity']=dict(path='commit-clock-build-identity.log',pid=proc.pid,bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest())
         root=work/".private/network"
         def create_original():
-            p=w.launch("create-original",[str(bins/"ynx-consensus-pq-lab"),"create","--synthetic","--root",str(root),"--transactions",str(args.per_account),"--batch-size","1","--owners",str(args.accounts+4),*(["--online"] if args.mode=="online" else []),"--base-p2p-port","31656","--base-rpc-port","31757"])
+            command=[str(bins/"ynx-consensus-pq-lab"),"create","--synthetic","--root",str(root),"--transactions",str(args.per_account),"--batch-size","1","--owners",str(args.accounts+4),*(["--online"] if args.mode=="online" else []),"--base-p2p-port","31656","--base-rpc-port","31757"]
+            if getattr(args,'commit_clock_observation',False):
+                p=w.launch("create-original",command,original_pidfd_creator=True)
+                result['commitClockCreatorProbe']=w.capture_clock_node(p,str(bins/'ynx-consensus-pq-lab'),result['binaries']['ynx-consensus-pq-lab'])
+            else:p=w.launch("create-original",command)
             w.wait(p)
         stages.run("create_original","all-configured-owners",create_original)
         created=json.loads((work/"public/create-original.log").read_bytes())

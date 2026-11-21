@@ -489,18 +489,22 @@ class Window:
         if len(self.samples) < 1800 and (not self.samples or time.monotonic() - self.samples[-1]["at"] >= 1):
             self.samples.append(dict(at=time.monotonic(), rssBytes=rss, newBytes=size, processes=len(ids)))
 
-    def launch(self, name, command, persistent=False, pass_fds=(), stdin_path=None, stdin_pipe=False, thread_safe=False, *, private_log=False, stop=None, original_pidfd=False, original_pidfd_node=False):
+    def launch(self, name, command, persistent=False, pass_fds=(), stdin_path=None, stdin_pipe=False, thread_safe=False, *, private_log=False, stop=None, original_pidfd=False, original_pidfd_node=False, original_pidfd_creator=False):
         with self.lock:
-            return self._launch(name, command, persistent, pass_fds, stdin_path, stdin_pipe, thread_safe, private_log, stop, original_pidfd, original_pidfd_node)
+            return self._launch(name, command, persistent, pass_fds, stdin_path, stdin_pipe, thread_safe, private_log, stop, original_pidfd, original_pidfd_node, original_pidfd_creator)
 
-    def _launch(self, name, command, persistent, pass_fds, stdin_path, stdin_pipe, thread_safe, private_log, stop=None, original_pidfd=False, original_pidfd_node=False):
+    def _launch(self, name, command, persistent, pass_fds, stdin_path, stdin_pipe, thread_safe, private_log, stop=None, original_pidfd=False, original_pidfd_node=False, original_pidfd_creator=False):
         require(not getattr(self,'closed_for_launch',False), 'original Window has already entered terminal stop')
         require(not (stdin_pipe and stdin_path is not None), "one original stdin transport required")
         require(type(original_pidfd) is bool and (not original_pidfd or (thread_safe and stdin_pipe)),
                 'original pidfd only for one thread-safe owned stdin stream')
         require(type(original_pidfd_node) is bool and (not original_pidfd_node or
-                (not original_pidfd and persistent and re.fullmatch(r'pq-node-[0-3]',name) and not stdin_pipe and stdin_path is None)),
+                (not original_pidfd and not original_pidfd_creator and persistent and re.fullmatch(r'pq-node-[0-3]',name) and not stdin_pipe and stdin_path is None)),
                 'original clock pidfd requires one synthetic persistent node')
+        require(type(original_pidfd_creator) is bool and (not original_pidfd_creator or
+                (not original_pidfd and not original_pidfd_node and not persistent and name=='create-original'
+                 and not stdin_pipe and stdin_path is None and not thread_safe)),
+                'original clock creator pidfd requires the one synthetic creator process')
         self.sample()
         require(not getattr(self,'closed_for_launch',False), 'original Window has already entered terminal stop')
         require(stop is None or not stop.is_set(), "normal helper cancelled before launch; preserve UNKNOWN")
@@ -525,7 +529,7 @@ class Window:
             if source_input is not None:
                 source_input.close()
         row = dict(name=name, process=proc, persistent=persistent, command=list(command), startedNs=time.monotonic_ns())
-        if not (original_pidfd or original_pidfd_node):self.children.append(row) # Original default ordering.
+        if not (original_pidfd or original_pidfd_node or original_pidfd_creator):self.children.append(row) # Original default ordering.
         elif original_pidfd:proc._ynx_original_pidfd_required=True
         else:proc._ynx_clock_pidfd_required=True
         try:
@@ -544,16 +548,16 @@ class Window:
                 spec=importlib.util.spec_from_file_location('original_owner_pidfd',Path(__file__).with_name('pq-experimental-owner-pidfd.py'))
                 identity=importlib.util.module_from_spec(spec);spec.loader.exec_module(identity)
                 proc._ynx_original_pidfd=identity.OriginalOwnerPidfd(proc)
-            elif original_pidfd_node:
+            elif original_pidfd_node or original_pidfd_creator:
                 # Reuse the same reviewed pidfd constructor before publication,
                 # but keep this measurement handle separate from group cleanup.
                 spec=importlib.util.spec_from_file_location('original_owner_pidfd',Path(__file__).with_name('pq-experimental-owner-pidfd.py'))
                 identity=importlib.util.module_from_spec(spec);spec.loader.exec_module(identity)
                 proc._ynx_clock_pidfd=identity.OriginalOwnerPidfd(proc)
         except BaseException:
-            if original_pidfd or original_pidfd_node:self.children.append(row) # Preserve explicit debt; never numeric fallback.
+            if original_pidfd or original_pidfd_node or original_pidfd_creator:self.children.append(row) # Preserve explicit debt; never numeric fallback.
             raise
-        if original_pidfd or original_pidfd_node:self.children.append(row)
+        if original_pidfd or original_pidfd_node or original_pidfd_creator:self.children.append(row)
         return proc
 
     def capture_clock_node(self, proc, binary_path, binary_sha):
@@ -654,7 +658,9 @@ class Window:
                 self.commit_clock_cleanup_debt=[]
                 for row in self.children:
                     process=row['process']; anchor=vars(process).get('_ynx_clock_pidfd')
-                    if anchor is not None:
+                    if anchor is None and vars(process).get('_ynx_clock_pidfd_required') is True:
+                        self.commit_clock_cleanup_debt.append(row['name'])
+                    elif anchor is not None:
                         if process.returncode is None:self.commit_clock_cleanup_debt.append(row['name'])
                         else:
                             try:
