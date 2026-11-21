@@ -27,6 +27,7 @@ require=d.require
 SCHEMA='YNX-PQ-DURABLE-DRIVER-ACCOUNTING/v1'
 RUN_SCHEMA='YNX-PQ-INDEPENDENT-DURABLE-RUN/v1'
 PLAN_SCHEMA='YNX-PQ-DURABLE-DRIVER-PLAN/v1'
+JOIN_SCHEMA='YNX-PQ-DURABLE-DRIVER-JOIN/v1'
 DB_LIMIT=1<<30
 ENVELOPE_LIMIT=40<<20
 COUNTS=('logicalReleased','notReleased','submitted','included','qualified','notQualified','notSubmitted',
@@ -80,6 +81,19 @@ def strict(raw,limit=1<<20):
         return value
     def constant(value):raise ValueError('non-finite original accounting number')
     return json.loads(raw,object_pairs_hook=pairs,parse_constant=constant)
+
+
+def source_tools_binding(value):
+    require(type(value) is dict and set(value)=={'source','tools'},'closed original source/tools binding required')
+    require(type(value['source']) is dict and set(value['source'])=={'commit','tree','forkTree'}
+            and type(value['tools']) is dict and set(value['tools'])=={'commit','tree','driverSHA256','resourceGuardSHA256'},
+            'exact original source/tools identities required')
+    for section,fields in value.items():
+        for name,pin in fields.items():
+            length=64 if name.endswith('SHA256') else 40
+            require(type(pin) is str and len(pin)==length and all(c in '0123456789abcdef' for c in pin),
+                    'original source/tools lowercase digest required')
+    return {key:dict(fields) for key,fields in value.items()}
 
 
 class StopOnce:
@@ -334,11 +348,103 @@ def readback(receipt,plan_raw,*,private_database=None):
     return report
 
 
+def join_run(run_raw,run_sha256,*,binding,plan_raw=None,accounting_raw=None,private_database=None):
+    """Bind original public bytes, then audit the same optional stopped DB.
+
+    Expected source/tools identities are input pins, never CI or execution
+    authority. The public archive alone cannot independently audit the private
+    ledger, and this join never exports rows or verifies a transaction proof.
+    """
+    binding=source_tools_binding(binding)
+    result=dict(schema=JOIN_SCHEMA,status='UNKNOWN',missingEvidence=[],sourceTools=binding,
+                configuredDemand=None,firstCause=None,counts=None,intervals=None,
+                privateOriginalStatus='NOT_SUPPLIED',originalPins={},
+                independentTransactionFinality=False,sourceCIIndependentlyVerified=False,archiveOriginIndependentlyVerified=False,
+                sourceQualificationGranted=False,pressureAuthorized=False,automaticRetry=False,
+                privateDataExported=False,originalResourceGuardIndependentlyReverified=False)
+    if run_raw is None:
+        result['missingEvidence']=['runReceipt'];return result
+    require(type(run_sha256) is str and len(run_sha256)==64 and all(c in '0123456789abcdef' for c in run_sha256),
+            'exact original run receipt pin required')
+    run=strict(run_raw,8<<20)
+    require(hashlib.sha256(run_raw).hexdigest()==run_sha256,'original run receipt bytes differ')
+    require(type(run) is dict and run.get('schema')==RUN_SCHEMA,'separate original durable run required')
+    require(run.get('source')==binding['source'] and run.get('toolIdentity')==binding['tools'],
+            'original source/tools identity differs')
+    n=run.get('configuredDemand')
+    require(type(n) is int and 0<n<=10000 and type(run.get('loadExecuted')) is bool
+            and (run.get('firstCause') is None or type(run['firstCause']) is str),
+            'original driver denominator or execution state differs')
+    conditions=run.get('loadConditions',{})
+    require(type(conditions) is dict and run.get('mode')=='online' and conditions.get('mode')=='online'
+            and all(conditions.get(key) is True for key in ('durableAccounting','staged_publication','owned_storage_accounting')),
+            'original durable finite profile differs')
+    result.update(configuredDemand=n,firstCause=run.get('firstCause'),
+                  originalPins={'runReceiptSHA256':run_sha256})
+    missing=[name for name,value in (('publicPlan',plan_raw),('accountingSidecar',accounting_raw)) if value is None]
+    if missing:
+        result['missingEvidence']=missing;return result
+    require(type(plan_raw) is bytes and len(plan_raw)<=d.MAX_PLAN_BYTES
+            and type(accounting_raw) is bytes and len(accounting_raw)<=1<<20,'bounded original public inputs required')
+    require(hashlib.sha256(plan_raw).hexdigest()==run.get('planSHA256'),'original driver plan pin differs')
+    reference=run.get('durableAccountingArtifact')
+    if reference is None:
+        result['missingEvidence']=['accountingSidecarBinding'];return result
+    require(type(reference) is dict and set(reference)=={'path','bytes','sha256'}
+            and reference['path']=='durable-accounting.json' and type(reference['bytes']) is int
+            and reference['bytes']==len(accounting_raw) and reference['sha256']==hashlib.sha256(accounting_raw).hexdigest(),
+            'original accounting sidecar bytes or public role differ')
+    accounting=strict(accounting_raw)
+    require(d.encoded(accounting,1<<20)==d.encoded(run.get('durableAccounting'),1<<20),
+            'embedded and original accounting sidecar differ')
+    database_missing=private_database is None
+    try:observed=readback(accounting,plan_raw,private_database=private_database)
+    except FileNotFoundError:
+        require(private_database is not None,'missing original public accounting')
+        observed=readback(accounting,plan_raw);database_missing=True
+    plan=strict(plan_raw,d.MAX_PLAN_BYTES)['plan']
+    require(n==plan['configuredDemand']==accounting['configuredDemand']
+            and type(run.get('requestedOfferedTPS')) is int and run['requestedOfferedTPS']==plan['requestedOfferedTPS']
+            and type(conditions.get('seconds')) is int and 1<=conditions['seconds']<=60
+            and conditions['seconds']*1_000_000_000==plan['windowNs']
+            and type(conditions.get('tailSeconds')) is int and 1<=conditions['tailSeconds']<=120
+            and conditions['tailSeconds']*1_000_000_000==plan['tailNs']
+            and type(conditions.get('accounts')) is int and conditions['accounts']==len(plan['accounts'])
+            and type(conditions.get('perAccountCapacity')) is int and all(owner['capacity']==conditions['perAccountCapacity'] for owner in plan['accounts'])
+            and (conditions['accounts']+4)*conditions['perAccountCapacity']<=10000,
+            'original finite plan and requested profile differ')
+    require(accounting['loadStarted']==run['loadExecuted'],'original driver/load start differs')
+    load=run.get('loadResult')
+    if run['loadExecuted']:
+        require(type(load) is dict and type(load.get('configuredDemand')) is int and load['configuredDemand']==n and load.get('mode')=='online'
+                and load.get('durableAccountingComplete') is accounting['accountingComplete']
+                and type(load.get('observationCutoffNs')) is type(accounting['observationCutoffNs'])
+                and load.get('observationCutoffNs')==accounting['observationCutoffNs'],
+                'original driver and accounting observation differ')
+        for key in (*COUNTS,*d.INTERVALS):
+            expected=accounting['counts'][key] if key in COUNTS else accounting['intervals'][key]
+            require(d.encoded(load.get(key))==d.encoded(expected),'original driver and accounting counts or intervals differ')
+        expected_cause=load.get('firstCause') or run.get('firstCause')
+    else:
+        require(load is None,'preparation-only original cannot contain a load result')
+        expected_cause=run.get('firstCause')
+    require(accounting['firstCause']==expected_cause,'original first cause differs between driver and accounting')
+    result['originalPins'].update(publicPlanSHA256=run['planSHA256'],accountingSidecarSHA256=reference['sha256'])
+    result['privateOriginalStatus']=observed['privateOriginalStatus']
+    if database_missing:result['missingEvidence'].append('privateDatabase')
+    if not accounting['accountingComplete']:result['missingEvidence'].append('completeOriginalAccounting')
+    if not result['missingEvidence']:
+        result.update(status='READ_ONLY_ORIGINAL_ACCOUNTING_OBSERVED',counts=accounting['counts'],intervals=accounting['intervals'])
+    return result
+
+
 def main(argv=None):
     import argparse
     parser=argparse.ArgumentParser(description=__doc__,allow_abbrev=False)
     for key in ('receipt','receipt-sha256','plan','plan-sha256','output'):parser.add_argument('--'+key,required=True)
     parser.add_argument('--database',help='optional same stopped private original; audit only, never reopen writable')
+    for key in ('run-receipt','run-receipt-sha256','source-tools-binding','source-tools-binding-sha256'):
+        parser.add_argument('--'+key,help='all four opt-in arguments required for the original outer receipt join')
     args=parser.parse_args(argv)
     def original(path,expected,limit):
         fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
@@ -347,9 +453,20 @@ def main(argv=None):
             raw=source.read(limit+1)
         require(len(raw)<=limit and hashlib.sha256(raw).hexdigest()==expected,'original JSON bytes/pin differ')
         return raw
-    raw=original(args.receipt,args.receipt_sha256,1<<20)
-    plan_raw=original(args.plan,args.plan_sha256,d.MAX_PLAN_BYTES)
-    result=readback(strict(raw),plan_raw,private_database=args.database)
+    joined=(args.run_receipt,args.run_receipt_sha256,args.source_tools_binding,args.source_tools_binding_sha256)
+    if any(value is not None for value in joined):
+        require(all(value is not None for value in joined),'complete original outer receipt binding required')
+        def optional_original(path,expected,limit):
+            try:return original(path,expected,limit)
+            except FileNotFoundError:return None
+        binding=strict(original(args.source_tools_binding,args.source_tools_binding_sha256,16<<10))
+        result=join_run(optional_original(args.run_receipt,args.run_receipt_sha256,8<<20),args.run_receipt_sha256,
+            binding=binding,plan_raw=optional_original(args.plan,args.plan_sha256,d.MAX_PLAN_BYTES),
+            accounting_raw=optional_original(args.receipt,args.receipt_sha256,1<<20),private_database=args.database)
+    else:
+        raw=original(args.receipt,args.receipt_sha256,1<<20)
+        plan_raw=original(args.plan,args.plan_sha256,d.MAX_PLAN_BYTES)
+        result=readback(strict(raw),plan_raw,private_database=args.database)
     fd=os.open(args.output,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
     with os.fdopen(fd,'w') as output:json.dump(result,output,sort_keys=True);output.write('\n');output.flush();os.fsync(output.fileno())
     return 0

@@ -1282,6 +1282,13 @@ def close_load_journal(journal,work,result,*,durable=False):
         result['firstCause']=result.get('firstCause') or module('original_durable_driver_accounting','pq-durable-load-accounting.py').failure_message(error)
 
 
+def retain_durable_accounting(accounting,work,result):
+    result['durableAccounting']=accounting.receipt(result['planSHA256'],result['firstCause'])
+    path=work/'public/durable-accounting.json'
+    lab.write_new(path,result['durableAccounting'])
+    result['durableAccountingArtifact']=dict(path=path.name,bytes=path.stat().st_size,sha256=lab.guard.digest(path))
+
+
 def validate_escalation(args):
     if args.rate==100:return
     lab.require(args.prior_result and args.prior_result_sha256,"higher load requires the actual preceding level's pinned original result")
@@ -1590,8 +1597,7 @@ def run(args):
                 result['firstCause']=result['firstCause'] or str(error)
         result['loadCompletionDiagnostics']=completion_diagnostics(result)
         if durable_accounting is not None:
-            result['durableAccounting']=durable_accounting.receipt(result['planSHA256'],result['firstCause'])
-            lab.write_new(work/'public/durable-accounting.json',result['durableAccounting'])
+            retain_durable_accounting(durable_accounting,work,result)
         lab.write_new(work/"public/receipt.json",result);print(json.dumps(dict(publicArtifacts=str(work/"public"),firstCause=result["firstCause"],loadExecuted=result["loadExecuted"])))
     return result
 

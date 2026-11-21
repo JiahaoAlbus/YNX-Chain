@@ -66,6 +66,26 @@ class DurableDriverControls(unittest.TestCase):
         receipt=accounting.receipt(hashlib.sha256(raw).hexdigest())
         return receipt,raw
 
+    def joined_case(self):
+        root,w,monitor,stop,_,_=self.case(count=1)
+        owners=[dict(ownerIndex=4,address='UNIT-ONLY',nextNonce=2,capacity=100)]
+        plan=a.staged.configure_durable(a.d.make_plan('a'*64,'b'*64,'online',owners,100,1_000_000_000,1_000_000_000,enabled=True),enabled=True)
+        class OneOriginal(controls.StructuralBackend):
+            def finalize(self,handle,notify,cancel):
+                result=super().finalize(handle,notify,cancel);cancel.set();return result
+        accounting=a.DriverAccounting(w,monitor,stop,plan)
+        result=driver.run_load_window(plan,a.StopOnce(OneOriginal()),SimpleNamespace(emit=lambda event:None),monitor,stop,durable_accounting=accounting)
+        binding=dict(source=dict(commit='1'*40,tree='2'*40,forkTree='3'*40),
+                     tools=dict(commit='4'*40,tree='5'*40,driverSHA256='6'*64,resourceGuardSHA256='7'*64))
+        plan_raw=json.dumps(a.public_plan(plan)).encode()
+        run=dict(schema=a.RUN_SCHEMA,source=binding['source'],toolIdentity=binding['tools'],configuredDemand=100,
+                 mode='online',requestedOfferedTPS=100,loadConditions=driver.load_conditions(self.args()),
+                 loadExecuted=True,loadResult=result,firstCause=result['firstCause'],planSHA256=hashlib.sha256(plan_raw).hexdigest())
+        # The real driver producer creates the exact sidecar and raw pin.
+        driver.retain_durable_accounting(accounting,root,run)
+        sidecar=(root/'public/durable-accounting.json').read_bytes();run_raw=json.dumps(run).encode()
+        return accounting,binding,run,run_raw,plan_raw,sidecar
+
     def test_opt_in_is_explicit_and_old_finite_conditions_stay_unchanged(self):
         args=self.args(durable_accounting=False)
         self.assertNotIn('durableAccounting',driver.load_conditions(args))
@@ -422,6 +442,75 @@ class DurableDriverControls(unittest.TestCase):
         self.assertEqual(completed.returncode,0,completed.stderr.decode())
         self.assertEqual(json.loads(output.read_bytes())['privateOriginalStatus'],'READ_ONLY_ORIGINAL_ACCOUNTING_OBSERVED')
         self.assertEqual(a.pin(accounting.path,a.DB_LIMIT),before)
+
+    def test_outer_original_join_audits_same_db_and_missing_evidence_stays_unknown(self):
+        accounting,binding,run,run_raw,plan_raw,sidecar=self.joined_case()
+        digest=hashlib.sha256(run_raw).hexdigest();before=a.pin(accounting.path,a.DB_LIMIT)
+        detached=a.source_tools_binding(binding);detached['tools']['tree']='0'*40
+        self.assertEqual(binding['tools']['tree'],'5'*40)
+        options=dict(binding=binding,plan_raw=plan_raw,accounting_raw=sidecar)
+        joined=a.join_run(run_raw,digest,private_database=accounting.path,**options)
+        self.assertEqual(joined['status'],'READ_ONLY_ORIGINAL_ACCOUNTING_OBSERVED')
+        self.assertEqual(joined['counts'],run['durableAccounting']['counts'])
+        self.assertEqual(joined['configuredDemand'],100)
+        self.assertEqual(a.pin(accounting.path,a.DB_LIMIT),before)
+        self.assertFalse(joined['independentTransactionFinality'] or joined['sourceCIIndependentlyVerified']
+                         or joined['sourceQualificationGranted'] or joined['pressureAuthorized'] or joined['privateDataExported'])
+        self.assertNotIn(str(accounting.directory),json.dumps(joined))
+        for missing in ('runReceipt','publicPlan','accountingSidecar','accountingSidecarBinding','privateDatabase','absentDatabasePath'):
+            with self.subTest(missing=missing):
+                current=dict(options);raw=run_raw;database=accounting.path
+                if missing=='runReceipt':raw=None
+                elif missing=='publicPlan':current['plan_raw']=None
+                elif missing=='accountingSidecar':current['accounting_raw']=None
+                elif missing=='accountingSidecarBinding':
+                    old=copy.deepcopy(run);old.pop('durableAccountingArtifact');raw=json.dumps(old).encode()
+                elif missing=='privateDatabase':database=None
+                else:database=accounting.directory/'absent.sqlite'
+                observed=a.join_run(raw,digest if raw is None else hashlib.sha256(raw).hexdigest(),private_database=database,**current)
+                self.assertEqual(observed['status'],'UNKNOWN');self.assertIsNone(observed['counts'])
+                self.assertTrue(observed['missingEvidence'])
+
+    def test_outer_join_rejects_rebound_schema_identity_sidecar_denominator_and_clock(self):
+        accounting,binding,run,raw,plan,sidecar=self.joined_case()
+        changes=[lambda v:v.update(schema='YNX-PQ-INDEPENDENT-NORMAL-RUN/v1'),
+                 lambda v:v['source'].update(commit='0'*40),lambda v:v['toolIdentity'].update(driverSHA256='0'*64),
+                 lambda v:v.update(planSHA256='0'*64),lambda v:v['durableAccountingArtifact'].update(path='../accounting.sqlite'),
+                 lambda v:v['durableAccountingArtifact'].update(sha256='0'*64),
+                 lambda v:v['durableAccounting'].update(pressureAuthorized=True),
+                 lambda v:v['loadResult'].update(qualified=float(v['loadResult']['qualified'])),
+                 lambda v:v['loadResult'].update(observationCutoffNs=True),lambda v:v.update(configuredDemand=99),
+                 lambda v:v.update(requestedOfferedTPS=100.0),lambda v:v.update(loadConditions=None),
+                 lambda v:v['loadConditions'].update(seconds=600),lambda v:v['loadConditions'].update(durableAccounting=False),
+                 lambda v:v.update(firstCause='a new failure not retained in accounting')]
+        for change in changes:
+            value=copy.deepcopy(run);change(value);changed=json.dumps(value).encode()
+            with self.subTest(value=value),self.assertRaises(ValueError):
+                a.join_run(changed,hashlib.sha256(changed).hexdigest(),binding=binding,plan_raw=plan,accounting_raw=sidecar,private_database=accounting.path)
+        for changed,expected in ((raw+b' ',hashlib.sha256(raw).hexdigest()),(raw.replace(b'{',b'{"schema":0,',1),None)):
+            with self.assertRaises(ValueError):
+                a.join_run(changed,expected or hashlib.sha256(changed).hexdigest(),binding=binding,plan_raw=plan,accounting_raw=sidecar)
+
+    def test_outer_readback_cli_binds_original_public_bytes_without_exporting_private_db(self):
+        accounting,binding,run,run_raw,plan_raw,sidecar=self.joined_case()
+        values={'run':run_raw,'binding':json.dumps(binding).encode(),'plan':plan_raw,'receipt':sidecar}
+        paths={}
+        for name,raw in values.items():
+            paths[name]=self.root/(name+'.json');paths[name].write_bytes(raw)
+        command=[sys.executable,'-B',a.__file__,'--database',str(accounting.path)]
+        for name,flag in (('run','run-receipt'),('binding','source-tools-binding'),('plan','plan'),('receipt','receipt')):
+            command.extend(['--'+flag,str(paths[name]),'--'+flag+'-sha256',hashlib.sha256(values[name]).hexdigest()])
+        output=self.root/'outer-readback.json';before=a.pin(accounting.path,a.DB_LIMIT)
+        completed=subprocess.run([*command,'--output',str(output)],capture_output=True,timeout=10)
+        self.assertEqual(completed.returncode,0,completed.stderr.decode())
+        observed=json.loads(output.read_bytes());self.assertEqual(observed['status'],'READ_ONLY_ORIGINAL_ACCOUNTING_OBSERVED')
+        self.assertNotIn('rows',observed);self.assertNotIn(str(accounting.directory),output.read_text())
+        self.assertEqual(a.pin(accounting.path,a.DB_LIMIT),before)
+        paths['receipt'].unlink() # This synthetic missing-public-input control only.
+        missing=self.root/'outer-missing.json'
+        completed=subprocess.run([*command,'--output',str(missing)],capture_output=True,timeout=10)
+        self.assertEqual(completed.returncode,0,completed.stderr.decode())
+        self.assertEqual(json.loads(missing.read_bytes())['status'],'UNKNOWN')
 
 
 if __name__=='__main__':unittest.main(verbosity=2)
