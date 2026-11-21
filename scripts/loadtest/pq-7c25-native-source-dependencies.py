@@ -36,7 +36,12 @@ HELD_SOURCE_TREES={HELD_SOURCE:HELD_TREE, HELD_CI_SOURCE:HELD_CI_TREE,
                    _held.STREAM_SOURCE:_held.STREAM_TREE,
                    _held.PREPARED_SOURCE:_held.PREPARED_TREE,
                    _held.SOURCE:_held.TREE}
-SOURCE_TREES={SOURCE:TREE, **HELD_SOURCE_TREES}
+# This successor is admitted only for original source materialization. It is
+# deliberately separate from historical held runtime/source-CI qualifications.
+SIGNER_SOURCE_ONLY='027c23d8a4b2af4dbd9e0ff126bacddc02ad663f'
+SIGNER_SOURCE_ONLY_TREE='d11c0d073e88649093008c042e2d4e86204accc9'
+SOURCE_TREES={SOURCE:TREE, **HELD_SOURCE_TREES,
+              SIGNER_SOURCE_ONLY:SIGNER_SOURCE_ONLY_TREE}
 FILES={'packages/wallet-auth/go/sourceparentprofile/canonical.cpp': {'mode': '100644',
                                                                'gitBlob': 'b5bdced61b6754b088980d736bc9ca027592a9b7',
                                                                'bytes': 62,

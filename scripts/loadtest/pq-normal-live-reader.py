@@ -22,6 +22,38 @@ VERSION = 'YNX-OPERATOR-LIVE-WIRE/v1'
 BUILD_TAG = 'ynx_live_wire_observation'
 NORMAL_LIVE_SOURCE_QUALIFICATION = {'commit': '9081f14654a48f4fe14e57696ec33527869da353', 'tree': '8c12ec07479bf6664cf279adb6395c704ead33e1', 'forkTree': '54e88e6aba735eaceeb2d00bb40731248c673bd7', 'optionalForkCommit': '54b104fb1cdf3d7d2e89e3bc40eafc6d61f8f076', 'optionalForkTree': 'b1e9a83ab11ed141fda90bc47521faa412176caa', 'buildTag': 'ynx_live_wire_observation', 'compositionScriptSHA256': 'f9c83d7a7d7dc1c2ccbbd15795ba22b1d54e28a81d9084a813a8fb71c4b55839', 'ciEvidenceSHA256': '86e7ad98116af984eeb145c3bcf7b48d7a96da8ad897b3603cdd984527bf7f17', 'sourceCI': {'run': 41323073659, 'job': 124897263752, 'artifact': 13089839088}, 'scope': 'original normal online finite wire/TCP baseline only', 'pressureAuthorized': False}
 LIMIT = 128 << 10
+HELD_SIGNER_COMPOSITION = dict(
+    commit=native_source_dependencies.SIGNER_SOURCE_ONLY,
+    tree=native_source_dependencies.SIGNER_SOURCE_ONLY_TREE,
+    forkTree='47d7cfeee7cd178cb897eda57a4674677fac7e67',
+    optionalForkCommit='5a49f5c91452604dffb910df736702b3b9df2562',
+    optionalForkTree='08747364c24c065bf2b13527c210625d7ec95fba',
+    compositionScriptSHA256='6127446317b29b361aee1f741fb38493e5f0214e67db3a62bb37359390bf192c',
+    ciEvidenceSHA256=None)
+SIGNER_RETAINED = ('node/observer_node_test.go', 'rpc/core/observer_status_test.go',
+                   'rpc/core/status.go', 'node/ynx_proof_source.go',
+                   'privval/ynx_context_server.go', 'privval/ynx_context_wire.go',
+                   'privval/ynx_remote_terminal_test.go')
+
+
+def verify_signer_source_retained(source, build_source, selection):
+    """Re-read the original and composed bytes, not just the composer's claim."""
+    require(selection.get('sourceOnly') is True and not (build_source/'.git').exists(),
+            'signer composition must remain source-only without a VCS identity')
+    for key, prefix, names in (
+        ('retainedProductionSHA256', 'third_party/cometbft', SIGNER_RETAINED),
+        ('moduleDescriptorSHA256', '', ('go.mod', 'go.sum',
+                                        'third_party/cometbft/go.mod', 'third_party/cometbft/go.sum'))):
+        hashes = selection.get(key)
+        require(type(hashes) is dict and set(hashes) == set(names),
+                'original signer retained source receipt differs')
+        for name in names:
+            original, composed = source/prefix/name, build_source/prefix/name
+            require(not original.is_symlink() and not composed.is_symlink(),
+                    'original signer retained source must be regular bytes')
+            raw = original.read_bytes()
+            require(composed.read_bytes() == raw and hashes[name] == hashlib.sha256(raw).hexdigest(),
+                    'original signer retained source bytes differ')
 
 
 def require(value, message):
@@ -56,21 +88,28 @@ def verify_qualification_evidence(q):
 def prepare_matching_source(source, destination, *, held_source_only=False):
     """Reuse Core's exact source composer in a supervised private helper."""
     def git(*args):
-        return subprocess.check_output(['git','-C',str(source),*args],timeout=5).decode().strip()
+        return subprocess.check_output(['git','-C',str(source),*args],timeout=5,
+                                       env=dict(os.environ,GIT_NO_LAZY_FETCH='1')).decode().strip()
     require(source.resolve(strict=True)==source and not git('status','--porcelain','--untracked-files=normal'),
             'original source must remain clean and canonical')
     identity=dict(commit=git('rev-parse','HEAD'),tree=git('rev-parse','HEAD^{tree}'),
                   forkTree=git('rev-parse','HEAD:third_party/cometbft'))
     held_tree = native_source_dependencies.HELD_SOURCE_TREES.get(identity['commit'])
     held = held_tree is not None
+    signer = identity['commit'] == HELD_SIGNER_COMPOSITION['commit']
     if held_source_only:
-        require(held and identity['tree'] == held_tree
-                and identity['forkTree'] == '5a128880d14bfc73de4334cba23218859ad3473c',
-                'exact held-session source identity required')
-        q = dict(optionalForkCommit='5a49f5c91452604dffb910df736702b3b9df2562',
-                 optionalForkTree='08747364c24c065bf2b13527c210625d7ec95fba',
-                 compositionScriptSHA256='e35ff39c10090e9200bdabf7b265c1fd211fd2ae4d227ffaae52054c6dbc2fac',
-                 ciEvidenceSHA256=None)
+        if signer:
+            require(all(identity[k] == HELD_SIGNER_COMPOSITION[k] for k in ('commit','tree','forkTree')),
+                    'exact held signer source identity required')
+            q = dict(HELD_SIGNER_COMPOSITION)
+        else:
+            require(held and identity['tree'] == held_tree
+                    and identity['forkTree'] == '5a128880d14bfc73de4334cba23218859ad3473c',
+                    'exact held-session source identity required')
+            q = dict(optionalForkCommit='5a49f5c91452604dffb910df736702b3b9df2562',
+                     optionalForkTree='08747364c24c065bf2b13527c210625d7ec95fba',
+                     compositionScriptSHA256='e35ff39c10090e9200bdabf7b265c1fd211fd2ae4d227ffaae52054c6dbc2fac',
+                     ciEvidenceSHA256=None)
     else:
         q=qualify(identity)
     path=source/'scripts/verify/wire-live-matching-source-ci.py'
@@ -80,7 +119,7 @@ def prepare_matching_source(source, destination, *, held_source_only=False):
     core=importlib.util.module_from_spec(spec);spec.loader.exec_module(core)
     require(git('rev-parse',q['optionalForkCommit']+':third_party/cometbft')==q['optionalForkTree'],
             'actual selected matching module object differs')
-    if not held and identity['commit'] != '7c25cbcc7d31b10743e26ae1ddca745085ee1b0b':
+    if not held and not signer and identity['commit'] != '7c25cbcc7d31b10743e26ae1ddca745085ee1b0b':
         require(core.PRODUCTION_TREE==identity['forkTree'] and core.FORK_COMMIT==q['optionalForkCommit'] and
                 core.FORK_TREE==q['optionalForkTree'], 'original legacy source/module identities differ')
     prepared=core.prepare_wire_live_source(source,destination,identity['commit'],identity['tree'])
@@ -101,6 +140,8 @@ def prepare_matching_source(source, destination, *, held_source_only=False):
             'original Core source-selection identity or scope differs')
     for name in ('go.mod','go.sum'):
         require((build_source/name).read_bytes()==(source/name).read_bytes(),'original module descriptor changed')
+    if signer:
+        verify_signer_source_retained(source,build_source,selection)
     require(not git('status','--porcelain','--untracked-files=normal') and git('rev-parse','HEAD')==identity['commit'],
             'original source changed during composition')
     result=dict(schema='YNX-PERF-NORMAL-LIVE-BUILD-SOURCE/v1',source=identity,
@@ -109,7 +150,8 @@ def prepare_matching_source(source, destination, *, held_source_only=False):
                 buildTag=BUILD_TAG,buildSource=str(build_source),originalSourceUnchanged=True,
                 originalCoreSelection=prepared,carrierEnabled=False,actualNetworkWindow=False)
     if held_source_only:
-        result.update(sourceCompositionOnly=True, pressureAuthorized=False)
+        result.update(sourceCompositionOnly=True, pressureAuthorized=False,
+                      runtimeAuthorized=False, sourceCIQualified=False)
     if identity['commit'] in native_source_dependencies.SOURCE_TREES:
         result['originalNativeSourceDependencies']=native_source_dependencies.materialize(source,build_source,destination/'SOURCE-NATIVE-DEPENDENCIES.json')
     return result
