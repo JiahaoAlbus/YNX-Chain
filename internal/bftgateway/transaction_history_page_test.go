@@ -155,6 +155,12 @@ func newTransactionHistoryPageFixture(t *testing.T) *transactionHistoryPageFixtu
 			}
 			if view.Limit == 0 {
 				m.metadataHeight = response.Height
+				if m.mode == "simulated-large-source" {
+					view.Total = 100000
+				}
+				if m.mode == "simulated-over-capacity" {
+					view.Total = uint64(int(^uint(0)>>1)) + 100
+				}
 				if m.mode == "metadata-overflow" {
 					view.Total = math.MaxUint64
 				}
@@ -163,6 +169,22 @@ func newTransactionHistoryPageFixture(t *testing.T) *transactionHistoryPageFixtu
 				}
 			} else {
 				switch m.mode {
+				case "simulated-large-source":
+					// Transport simulation only: the two rows are original fixture
+					// rows, but their deep offsets and total are synthetic.
+					view.Total = 100000
+					firstOffset := uint64(99999 - len(m.rows))
+					switch view.Offset {
+					case firstOffset:
+						view.Records = []consensus.MigrationHistoryPageEntry{m.source[0]}
+					case firstOffset + 1:
+						view.Records = []consensus.MigrationHistoryPageEntry{m.source[1]}
+					default:
+						t.Error("unexpected synthetic large source offset", view.Offset)
+					}
+				case "simulated-over-capacity":
+					view.Total = uint64(int(^uint(0)>>1)) + 100
+					view.Records = []consensus.MigrationHistoryPageEntry{m.source[0]}
 				case "source-total":
 					view.Total++
 				case "source-anchor":
@@ -268,6 +290,101 @@ func (m *transactionHistoryPageFixture) read(page, limit int) *httptest.Response
 	w := httptest.NewRecorder()
 	m.gateway.Handler().ServeHTTP(w, httptest.NewRequest(http.MethodGet, fmt.Sprintf("/txs?page=%d&limit=%d", page, limit), nil))
 	return w
+}
+
+func TestGatewayTransactionHistoryLargePageContinuation(t *testing.T) {
+	m := newTransactionHistoryPageFixture(t)
+	if len(m.source) < 2 {
+		t.Fatal("fixture needs two original source rows")
+	}
+	m.mode = "simulated-large-source"
+	first := m.read(100000, 1)
+	var got TransactionList
+	if first.Code != http.StatusOK || json.Unmarshal(first.Body.Bytes(), &got) != nil || len(got.Transactions) != 1 || got.Transactions[0].Hash != m.source[0].Transaction.Hash || got.NextPage == nil || *got.NextPage != 100001 || got.NextPageURL == "" {
+		t.Fatal("deep synthetic source first page failed", first.Code, first.Body.String())
+	}
+	cold, err := consensus.NewPersistentApplicationWithBootstrap(m.f.migration, m.f.statePath, m.f.bootstrap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.f.app = cold
+	next := httptest.NewRecorder()
+	m.gateway.Handler().ServeHTTP(next, httptest.NewRequest(http.MethodGet, got.NextPageURL, nil))
+	var after TransactionList
+	if next.Code != http.StatusOK || json.Unmarshal(next.Body.Bytes(), &after) != nil || len(after.Transactions) != 1 || after.Transactions[0].Hash != m.source[1].Transaction.Hash || after.CometHistoryUpperHeight != got.CometHistoryUpperHeight {
+		t.Fatal("deep synthetic source continuation failed after cold restart", next.Code, next.Body.String())
+	}
+}
+
+func TestGatewayTransactionHistoryPageIntegerBounds(t *testing.T) {
+	m := newTransactionHistoryPageFixture(t)
+	maxInt := int(^uint(0) >> 1)
+	for _, limit := range []int{1, 2, 100} {
+		maximum := maxInt / limit
+		if limit > 1 {
+			maximum++
+		}
+		if response := m.read(maximum, limit); response.Code != http.StatusOK {
+			t.Fatalf("safe page limit=%d page=%d rejected: %d %s", limit, maximum, response.Code, response.Body.String())
+		}
+		if limit > 1 {
+			response := m.read(maximum+1, limit)
+			if response.Code != http.StatusBadRequest || len(m.searches) != 0 || len(m.sourcePaths) != 0 {
+				t.Fatalf("overflowing offset reached upstream: limit=%d status=%d", limit, response.Code)
+			}
+		}
+	}
+	for _, target := range []string{"/txs?page=0", "/txs?page=-1", "/txs?page=999999999999999999999999999", "/txs?limit=101"} {
+		response := httptest.NewRecorder()
+		m.gateway.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, target, nil))
+		if response.Code != http.StatusBadRequest {
+			t.Fatalf("invalid pagination accepted: %s %d", target, response.Code)
+		}
+	}
+	m.mode = "simulated-over-capacity"
+	if response := m.read(maxInt, 1); response.Code != http.StatusBadGateway {
+		t.Fatalf("unrepresentable continuation emitted: %d %s", response.Code, response.Body.String())
+	}
+}
+
+func TestGatewayTransactionHistoryNonMigrationIntegerBounds(t *testing.T) {
+	requests := 0
+	total := strconv.FormatUint(math.MaxUint64, 10)
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		if r.URL.Path != "/tx_search" {
+			t.Errorf("unexpected request %s", r.URL.Path)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"txs": []any{}, "total_count": total}})
+	}))
+	defer upstream.Close()
+	gateway, err := New(Config{CometRPCURL: upstream.URL})
+	if err != nil {
+		t.Fatal(err)
+	}
+	maxInt := int(^uint(0) >> 1)
+	for _, test := range []struct{ page, limit int }{{maxInt, 1}, {maxInt/100 + 1, 100}} {
+		response := httptest.NewRecorder()
+		gateway.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, fmt.Sprintf("/txs?page=%d&limit=%d", test.page, test.limit), nil))
+		if response.Code != http.StatusBadGateway {
+			t.Fatalf("unrepresentable Comet continuation emitted: %d %s", response.Code, response.Body.String())
+		}
+	}
+	before := requests
+	response := httptest.NewRecorder()
+	gateway.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, fmt.Sprintf("/txs?page=%d&limit=100", maxInt/100+2), nil))
+	if response.Code != http.StatusBadRequest || requests != before {
+		t.Fatal("overflowing Comet offset reached upstream", response.Code, requests, before)
+	}
+	total = "100001"
+	response = httptest.NewRecorder()
+	gateway.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/txs?page=100001&limit=1", nil))
+	var got TransactionList
+	if response.Code != http.StatusOK || json.Unmarshal(response.Body.Bytes(), &got) != nil || got.NextPage != nil {
+		t.Fatal("representable Comet last page was rejected", response.Code, response.Body.String())
+	}
 }
 
 func TestGatewayTransactionHistoryPageCrossesOriginalBoundaryAndColdRead(t *testing.T) {

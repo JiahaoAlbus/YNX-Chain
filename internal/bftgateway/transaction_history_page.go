@@ -194,6 +194,9 @@ func (g *Gateway) transactionHistoryPage(ctx context.Context, page, limit int, r
 	result.ImportedHistory, result.CometHistoryUpperHeight = &metadata.MigrationHistoryAnchor, upper
 	result.Page, result.Limit, result.Total, result.TruthfulStatus = page, limit, total, "cometbft-and-imported-source-history-backed"
 	if offset+uint64(limit) < total {
+		if page >= maxTransactionHistoryPage(limit) {
+			return TransactionList{}, errors.New("transaction history continuation exceeds the supported offset")
+		}
 		next := page + 1
 		result.NextPage = &next
 		result.NextPageURL = "/txs?" + url.Values{"page": {strconv.Itoa(next)}, "limit": {strconv.Itoa(limit)}, "cometHistoryUpperHeight": {strconv.FormatInt(upper, 10)}}.Encode()

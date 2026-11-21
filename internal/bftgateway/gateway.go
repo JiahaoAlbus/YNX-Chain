@@ -1298,14 +1298,18 @@ func (g *Gateway) handleTransaction(w http.ResponseWriter, r *http.Request) {
 }
 
 func (g *Gateway) handleTransactions(w http.ResponseWriter, r *http.Request) {
-	page, ok := boundedPositiveInt(r.URL.Query().Get("page"), 1, 100000)
+	page, ok := boundedPositiveInt(r.URL.Query().Get("page"), 1, int(^uint(0)>>1))
 	if !ok {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "page must be between 1 and 100000"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "page must be a positive integer within the platform range"})
 		return
 	}
 	limit, ok := boundedPositiveInt(r.URL.Query().Get("limit"), 25, 100)
 	if !ok {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "limit must be between 1 and 100"})
+		return
+	}
+	if page > maxTransactionHistoryPage(limit) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "page and limit exceed the supported transaction offset"})
 		return
 	}
 	var historyUpper int64
@@ -1365,12 +1369,28 @@ func (g *Gateway) handleTransactions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var nextPage *int
-	if uint64(page*limit) < total {
+	if uint64(page)*uint64(limit) < total {
+		if page >= maxTransactionHistoryPage(limit) {
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "transaction history continuation exceeds the supported offset"})
+			return
+		}
 		next := page + 1
 		nextPage = &next
 	}
 	result.Page, result.Limit, result.Total, result.NextPage, result.TruthfulStatus = page, limit, total, nextPage, "cometbft-tx-search-backed"
 	writeJSON(w, http.StatusOK, result)
+}
+
+// Comet's page offset uses int arithmetic: (page - 1) * limit. The last
+// partially filled page is valid when the offset itself fits. Limit one must
+// not add one to MaxInt while computing the bound.
+func maxTransactionHistoryPage(limit int) int {
+	maxInt := int(^uint(0) >> 1)
+	maxPage := maxInt / limit
+	if limit > 1 {
+		maxPage++
+	}
+	return maxPage
 }
 
 func (g *Gateway) mapCometTransaction(ctx context.Context, upstream cometTx) (chain.Transaction, error) {
