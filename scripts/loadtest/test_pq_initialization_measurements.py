@@ -119,7 +119,7 @@ class OriginalDriverInitializationControls(unittest.TestCase):
                 window.assert_not_called();ports.assert_not_called()
             files=list(parent.glob('pq-independent-load-*/public/fresh-resource-admission.json'));self.assertEqual(len(files),1);record=json.loads(files[0].read_bytes());self.assertEqual(record['freeDiskBytes'],15<<30);self.assertEqual(record['availableMemoryBytes'],7<<30);self.assertEqual(record['caps']['initialDiskBytes'],16<<30);self.assertEqual(record['ownedPIDLimit'],16)
 
-    def mocked_initialization(self,census_error=None,cleanup=True):
+    def mocked_initialization(self,census_error=None,cleanup=True,receipt_error=None):
         from types import SimpleNamespace
         import contextlib,io
         d=self.driver
@@ -137,6 +137,7 @@ class OriginalDriverInitializationControls(unittest.TestCase):
                     p=c.root/str(i)/'application.json';p.parent.mkdir();p.write_text(json.dumps(state));nodes.append(dict(index=i,statePath=str(p)))
                 c.plan=dict(nodes=nodes)
                 w=SimpleNamespace(storage_roots=[],started=d.time.monotonic(),peak_rss=1,peak_bytes=1,samples=[dict(processes=1,rssBytes=1,newBytes=1)],retired_samples=[],rss_fallback_samples=[],process_receipt=lambda:[dict(name=phase+'-node-'+str(i),pid=100+4*j+i,startTicks=1,rawReturnCode=0,exitCode=0,signal=None,exited=True) for j,phase in enumerate(('bootstrap','pq')) for i in range(4)],sample=mock.Mock(),stop=mock.Mock(return_value=cleanup),wait=mock.Mock())
+                if receipt_error is not None:w.process_receipt=mock.Mock(side_effect=receipt_error)
                 def launch(name,*a,**k):
                     if name=='create-original':(work/'public/create-original.log').write_text('{}')
                     return object()
@@ -169,6 +170,10 @@ class OriginalDriverInitializationControls(unittest.TestCase):
             self.assertEqual(result['processRSSObservation']['records'],[])
             self.assertFalse(result['processRSSObservation']['individualLifetimePeakMeasured'])
             work_holder['window'].stop.assert_called_once();self.assertTrue((work_holder['path']/'public/receipt.json').is_file())
+            if receipt_error is not None:
+                persisted=json.loads((work_holder['path']/'public/receipt.json').read_bytes())
+                for key in ('firstCause','processes','processReceiptStatus','processReceiptCleanupDebt','cleanupComplete','normalNodeCleanExit'):
+                    self.assertEqual(persisted[key],result[key])
             return result
     def test_full_mocked_original_driver_initializes_then_cleans_without_business_lanes(self):
             r=self.mocked_initialization()
@@ -178,6 +183,13 @@ class OriginalDriverInitializationControls(unittest.TestCase):
     def test_failed_census_preserves_original_failure_cleans_and_never_qualifies(self):
         r=self.mocked_initialization(RuntimeError('original missing owner499'))
         self.assertEqual(r['firstCause'],'original missing owner499');self.assertTrue(r['cleanupComplete']);self.assertNotIn('initializationOnlyComplete',r);self.assertFalse(r['loadExecuted']);self.assertNotIn('loadResult',r);self.assertEqual(r['preparationOnlyDemandAccounting']['notQualified'],500)
+
+    def test_driver_finally_preserves_cause_and_unknown_process_receipt(self):
+        r=self.mocked_initialization(RuntimeError('original missing owner499'),receipt_error=RuntimeError('original lifecycle lock unavailable'))
+        self.assertEqual(r['firstCause'],'original missing owner499')
+        self.assertIsNone(r['processes']);self.assertEqual(r['processReceiptStatus'],'UNKNOWN')
+        self.assertTrue(r['processReceiptCleanupDebt']);self.assertFalse(r['cleanupComplete'])
+        self.assertIsNone(r['normalNodeCleanExit']);self.assertFalse(r['loadExecuted'])
     def test_successful_census_with_cleanup_debt_cannot_be_accepted(self):
         r=self.mocked_initialization(cleanup=False)
         self.assertFalse(r['cleanupComplete']);self.assertFalse(r['loadExecuted']);self.assertEqual(r['preparationOnlyDemandAccounting']['notReleased'],500)
