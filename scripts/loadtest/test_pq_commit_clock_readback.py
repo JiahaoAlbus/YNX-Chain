@@ -148,12 +148,12 @@ class CommitClockReadbackControls(unittest.TestCase):
         for retired in (False,True):
             with self.subTest(retired=retired):
                 window=lab.Window.__new__(lab.Window);window.lock=threading.RLock()
-                anchor=mock.Mock();child=SimpleNamespace(returncode=0 if retired else None,_ynx_clock_pidfd=anchor)
+                anchor=mock.Mock();anchor.close_bounded.return_value=True;child=SimpleNamespace(returncode=0 if retired else None,_ynx_clock_pidfd=anchor)
                 window.children=[dict(name='pq-node-0',process=child)];window._stop_locked=lambda:True
                 result=window.stop()
                 self.assertEqual(result,retired)
                 self.assertEqual(window.commit_clock_cleanup_debt,[] if retired else ['pq-node-0'])
-                self.assertEqual(anchor.close.call_count,1 if retired else 0)
+                self.assertEqual(anchor.close_bounded.call_count,1 if retired else 0)
 
     def test_failed_original_node_pidfd_binding_retains_original_child(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -178,12 +178,23 @@ class CommitClockReadbackControls(unittest.TestCase):
 
     def test_node_anchor_close_failure_never_replaces_original_stop_error(self):
         window=lab.Window.__new__(lab.Window);window.lock=threading.RLock()
-        anchor=mock.Mock();anchor.close.side_effect=OSError('secondary identity close')
+        anchor=mock.Mock();anchor.close_bounded.side_effect=OSError('secondary identity close')
         window.children=[dict(name='pq-node-0',process=SimpleNamespace(returncode=0,_ynx_clock_pidfd=anchor))]
         def original_failure():raise RuntimeError('original stop failure')
         window._stop_locked=original_failure
         with self.assertRaisesRegex(RuntimeError,'original stop failure'):window.stop()
         self.assertEqual(window.commit_clock_cleanup_debt,['pq-node-0'])
+
+    def test_busy_original_pidfd_lock_returns_cleanup_debt(self):
+        spec=importlib.util.spec_from_file_location('bounded_clock_pidfd',Path(__file__).with_name('pq-experimental-owner-pidfd.py'))
+        identity=importlib.util.module_from_spec(spec);spec.loader.exec_module(identity)
+        anchor=identity.OriginalOwnerPidfd.__new__(identity.OriginalOwnerPidfd)
+        anchor.lock=threading.Lock();anchor.fd=os.open(os.devnull,os.O_RDONLY);anchor.pid=123
+        anchor.lock.acquire()
+        try:
+            started=__import__('time').monotonic();self.assertFalse(anchor.close_bounded(timeout=.01))
+            self.assertLess(__import__('time').monotonic()-started,1);self.assertIsNotNone(anchor.fd)
+        finally:anchor.lock.release();anchor.close()
 
     @unittest.skipUnless(sys.platform=='linux','real original pidfd and /proc require Linux')
     def test_real_linux_parent_clock_and_original_process_executable(self):

@@ -27,3 +27,15 @@ class OriginalOwnerPidfd:
             if self.fd is not None:
                 os.close(self.fd)
                 self.fd=None
+
+    def close_bounded(self, timeout=0.05):
+        """Retain identity debt if another original operation holds the lock."""
+        if type(timeout) not in (int,float) or not 0<=timeout<=1:
+            raise ValueError('bounded original pidfd close wait required')
+        if not self.lock.acquire(timeout=timeout):return False
+        try:
+            if self.fd is not None:
+                os.close(self.fd)
+                self.fd=None
+            return True
+        finally:self.lock.release()

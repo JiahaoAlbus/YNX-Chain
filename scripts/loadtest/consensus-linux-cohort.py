@@ -657,7 +657,8 @@ class Window:
                     if anchor is not None:
                         if process.returncode is None:self.commit_clock_cleanup_debt.append(row['name'])
                         else:
-                            try:anchor.close()
+                            try:
+                                if anchor.close_bounded() is not True:self.commit_clock_cleanup_debt.append(row['name'])
                             except OSError:self.commit_clock_cleanup_debt.append(row['name'])
             return result and not self.commit_clock_cleanup_debt
         finally:
