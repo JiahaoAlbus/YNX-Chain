@@ -513,7 +513,7 @@ jobs:
         run: |
           set -euo pipefail
           bash apps/shop/native/android/gradlew -p apps/shop/native/android --no-daemon \
-            :app:assembleDebug :app:testDebugUnitTest --tests com.ynxweb4.shop.NativeIntentObservationTest --tests com.ynxweb4.shop.NativeInvoiceJourneyTest --tests com.ynxweb4.shop.OriginalOrderLinkTest
+            :app:assembleDebug :app:testDebugUnitTest --tests com.ynxweb4.shop.NativeIntentObservationTest --tests com.ynxweb4.shop.NativeInvoiceJourneyTest --tests com.ynxweb4.shop.OriginalOrderLinkTest --tests com.ynxweb4.shop.NativeCartTest
       - uses: actions/upload-artifact@v4
         with:
           name: ynx-shop-android-debug

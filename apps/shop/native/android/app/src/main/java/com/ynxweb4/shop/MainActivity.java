@@ -173,7 +173,9 @@ public final class MainActivity extends Activity {
         try{syncCartContext();}catch(Exception error){status.setText(getString(R.string.security_error));return;}
         content.removeAllViews();content.addView(text(getString(R.string.order_review),24,true));
         boolean recoveryRequired=checkoutRecoveryRequired();
-        if(hasSession()){Button sync=action(getString(R.string.cart_sync_button),()->runCartTask((sender,session,generation)->NativeCart.sync(secure,sender,session,generation),this::showCart));sync.setEnabled(!recoveryRequired);content.addView(sync);content.addView(action(getString(R.string.cart_recover_checkout),this::recoverCheckout));}
+        if(hasSession()){Button sync=action(getString(R.string.cart_sync_button),()->runCartTask((sender,session,generation)->NativeCart.sync(secure,sender,session,generation),this::showCart));sync.setEnabled(!recoveryRequired);content.addView(sync);content.addView(action(getString(R.string.cart_recover_checkout),this::recoverCheckout));
+            try{String raw=secure.get("cart:guest");if(!raw.isEmpty()&&new JSONArray(raw).length()>0){Button guest=action(getString(R.string.cart_import_guest),this::confirmGuestCartImport);guest.setEnabled(!recoveryRequired);content.addView(guest);}}catch(Exception error){status.setText(getString(R.string.security_error));}
+        }
         if(recoveryRequired)content.addView(text(getString(R.string.cart_checkout_unconfirmed),14,false));
         if(cart.length()==0){content.addView(text(getString(R.string.cart_empty),15,false));return;}
         long total=0;for(int i=0;i<cart.length();i++){
@@ -196,11 +198,20 @@ public final class MainActivity extends Activity {
         Button checkout=primary(getString(R.string.checkout));checkout.setEnabled(!recoveryRequired);checkout.setOnClickListener(v->checkout());content.addView(checkout);
     }
 
+    private void confirmGuestCartImport(){
+        if(cartWork!=null)return;
+        showDialog(new AlertDialog.Builder(this).setTitle(getString(R.string.cart_import_guest)).setMessage(getString(R.string.cart_import_guest_confirm)).setNegativeButton(getString(R.string.cancel),null).setPositiveButton(getString(R.string.cart_import_guest),(dialog,which)->runCartTask((sender,session,generation)->{
+            NativeCart.refresh(secure,sender,session,generation);
+            NativeCart.importGuest(secure,sender,session,generation);
+            NativeCart.sync(secure,sender,session,generation);
+        },this::showCart)).create());
+    }
+
     private void recoverCheckout(){
         runCartTask((sender,session,generation)->{String raw; synchronized(secure){raw=secure.get("checkout:"+session.account);}if(raw.isEmpty())throw new IllegalStateException("CART_NO_CHECKOUT");JSONObject intent=new JSONObject(raw);if(!session.account.equals(intent.optString("account")))throw new SecurityException("Foreign checkout");JSONObject order=sender.request("POST","/orders/intent-lookup",json("IdempotencyKey",intent.getString("key")),session,generation);JSONObject body=new JSONObject(intent.getString("fingerprint")).put("IdempotencyKey",intent.getString("key"));synchronized(secure){if(!isCurrent(session,generation))throw new SecurityException("Session changed");BuyerOrderReadback.validate(order,session);CheckoutIntent.confirmedReceipt(secure,session.account,body,order);}},this::showOrders);
     }
 
-    private String cartError(Exception error){String text=error.getMessage();if("CART_NO_CHECKOUT".equals(text))return getString(R.string.cart_no_checkout);if("CART_SYNC_REQUIRED".equals(text))return getString(R.string.cart_sync_required);if("CHECKOUT_UNRESOLVED".equals(text))return getString(R.string.cart_checkout_unconfirmed);return message(error);}
+    private String cartError(Exception error){String text=error.getMessage();if("CART_NO_CHECKOUT".equals(text))return getString(R.string.cart_no_checkout);if("CART_SYNC_REQUIRED".equals(text))return getString(R.string.cart_sync_required);if("CART_IMPORT_ACCOUNT_NOT_EMPTY".equals(text))return getString(R.string.cart_import_account_not_empty);if("CART_IMPORT_GUEST_EMPTY".equals(text))return getString(R.string.cart_import_guest_empty);if("CHECKOUT_UNRESOLVED".equals(text))return getString(R.string.cart_checkout_unconfirmed);return message(error);}
     private void removeCart(String productID,String variantID){
         if(cartWork!=null)return;
         try{if(!hasSession()||!isOnline()){synchronized(secure){syncCartContext();JSONArray next=withoutCartItem(cart,productID,variantID);ProductSession session=api.session();if(session==null)secure.put("cart:guest",next.toString());else NativeCart.edit(secure,session.account,next);restoreCart();showCart();}return;}

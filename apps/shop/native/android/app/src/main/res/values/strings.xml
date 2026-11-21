@@ -21,6 +21,10 @@
     <string name="add_cart">Add to cart</string>
     <string name="inventory">available</string>
     <string name="cart_empty">Your cart is empty.</string>
+    <string name="cart_import_guest">Import guest cart</string>
+    <string name="cart_import_guest_confirm">Copy the saved guest cart into this account and sync it? Your guest cart remains on this device. An existing account cart is not replaced.</string>
+    <string name="cart_import_account_not_empty">Your account cart is not empty or has an unresolved update. Review it before importing.</string>
+    <string name="cart_import_guest_empty">The guest cart is empty.</string>
     <string name="order_review">Order review</string>
     <string name="recipient">Recipient</string>
     <string name="address">Address</string>

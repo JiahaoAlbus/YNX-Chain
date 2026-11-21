@@ -37,6 +37,18 @@ final class NativeCart {
     static void edit(Storage store,String account,JSONArray next)throws Exception{
         synchronized(store){PrivacyLifecycle.requireWritable(store,account);requireEditable(store,account);JSONObject state=state(store,account);state.put("stamp",UUID.randomUUID().toString()).put("dirty",true);store.putAll(Map.of("cart:"+account,next.toString(),key(account),state.toString()));}
     }
+    // Copy only after the current account's remote cart was refreshed. Preserve
+    // the guest draft and never replace an account draft or an uncertain write.
+    static void importGuest(Storage store,Sender sender,ProductSession expected,long generation)throws Exception{
+        synchronized(store){
+            current(store,sender,expected,generation);
+            JSONObject state=state(store,expected.account);
+            if(!state.optBoolean("ready")||state.optBoolean("dirty")||state.has("pending")||items(store,expected.account).length()!=0||state.optJSONArray("base")==null||state.getJSONArray("base").length()!=0)throw new IllegalStateException("CART_IMPORT_ACCOUNT_NOT_EMPTY");
+            String raw=store.get("cart:guest");JSONArray guest=raw.isEmpty()?new JSONArray():new JSONArray(raw);
+            if(guest.length()==0)throw new IllegalStateException("CART_IMPORT_GUEST_EMPTY");
+            edit(store,expected.account,guest);
+        }
+    }
     // Repeated or restarted sends use the same immutable body/key. The receipt
     // records the original write, while refresh separately reads today's cart.
     private static void finishPending(Storage store,Sender sender,ProductSession expected,long generation)throws Exception{

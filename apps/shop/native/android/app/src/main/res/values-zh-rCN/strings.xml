@@ -44,4 +44,8 @@
     <string name="native_net_atoms">净额（YNXT 原子单位）</string>
     <string name="native_history_pending">原付款历史尚未完整。请仅刷新，不要重发。</string>
     <string name="native_reconcile_required">原付款需要对账。</string>
+    <string name="cart_import_guest">导入访客购物车</string>
+    <string name="cart_import_guest_confirm">将设备上保存的访客购物车复制到当前账户并同步？访客购物车会保留，现有账户购物车不会被覆盖。</string>
+    <string name="cart_import_account_not_empty">账户购物车不为空或存在未完成的更新，请先检查。</string>
+    <string name="cart_import_guest_empty">访客购物车为空。</string>
 </resources>

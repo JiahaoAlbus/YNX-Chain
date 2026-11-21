@@ -31,6 +31,26 @@ public final class NativeCartTest {
     }
     private Memory memory()throws Exception{Memory store=new Memory();store.login(A);return store;}
     private ProductSession session(Memory store)throws Exception{return ProductSession.parse(store.get("commerce_session"),Instant.now());}
+    @Test public void guestCartIsCopiedOnlyAfterRemoteRefreshAndCanBeSynced()throws Exception{
+        Memory store=memory();store.put("cart:guest",items(2).toString());Server server=new Server(store);ProductSession expected=session(store);
+        assertThrows(IllegalStateException.class,()->NativeCart.importGuest(store,server,expected,0));
+        NativeCart.refresh(store,server,expected,0);NativeCart.importGuest(store,server,expected,0);
+        assertEquals(items(2).toString(),store.get("cart:guest"));assertEquals(items(2).toString(),store.get("cart:"+A));
+        assertThrows(IllegalStateException.class,()->NativeCart.importGuest(store,server,expected,0));
+        NativeCart.sync(store,server,expected,0);assertEquals(2,server.cloud.getJSONObject(0).getInt("Quantity"));assertEquals(1,server.updates);assertEquals(items(2).toString(),store.get("cart:guest"));
+    }
+    @Test public void guestImportPreservesExistingAccountAndUnknownCheckout()throws Exception{
+        Memory store=memory();store.put("cart:guest",items(2).toString());Server server=new Server(store);server.otherDevice(3);ProductSession expected=session(store);
+        NativeCart.refresh(store,server,expected,0);Map<String,String> before=new HashMap<>(store.values);
+        assertThrows(IllegalStateException.class,()->NativeCart.importGuest(store,server,expected,0));assertEquals(before,store.values);assertEquals(0,server.updates);
+        store.put("checkout:"+A,new JSONObject().put("account",A).put("phase","unknown").put("key","original").toString());before=new HashMap<>(store.values);
+        assertThrows(CheckoutIntent.UnresolvedException.class,()->NativeCart.importGuest(store,server,expected,0));assertEquals(before,store.values);
+    }
+    @Test public void guestImportRejectsAccountSwitchAndFailedAtomicWrite()throws Exception{
+        Memory store=memory();store.put("cart:guest",items(2).toString());Server server=new Server(store);ProductSession expected=session(store);NativeCart.refresh(store,server,expected,0);
+        store.login(B);Map<String,String> before=new HashMap<>(store.values);assertThrows(SecurityException.class,()->NativeCart.importGuest(store,server,expected,0));assertEquals(before,store.values);
+        store.login(A);before=new HashMap<>(store.values);store.failBatch=true;assertThrows(IOException.class,()->NativeCart.importGuest(store,server,expected,0));assertEquals(before,store.values);assertEquals(0,server.updates);
+    }
     @Test public void lostReplyRestartResendsSameKeyWithoutOverwritingLaterRemoteEdit()throws Exception{
         Memory store=memory();Server server=new Server(store);ProductSession expected=session(store);NativeCart.refresh(store,server,expected,0);NativeCart.edit(store,A,items(1));server.loseNext=true;
         assertThrows(IOException.class,()->NativeCart.sync(store,server,expected,0));String preserved=store.get(NativeCart.key(A));assertTrue(new JSONObject(preserved).has("pending"));server.otherDevice(3);
