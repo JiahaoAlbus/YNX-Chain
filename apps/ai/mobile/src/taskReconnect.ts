@@ -44,7 +44,9 @@ export class OriginalRunReconnect{
    const run=readTaskRun(await this.api.runView(this.task.id,this.runId,abort.signal),page,this.runId);current();
    if(page.recoveryOnly){if(run.content)throw Error('ORIGINAL_RUN_HISTORY_CANNOT_RELEASE_ANSWER');run.recoveryOnly=true;}
    if(previous.recordId!==null&&run.id!==previous.recordId)throw Error('ORIGINAL_RUN_RECORD_CHANGED');
-   if(run.status==='COMPLETED'&&run.steps.some(id=>{const step=nextSteps.get(id);return !!step&&needsOriginalTaskQuery(step)}))throw Error('ORIGINAL_RUN_UNRESOLVED_STEP');
+   if(run.status==='COMPLETED'&&!page.recoveryOnly&&!run.recoveryOnly){
+    for(const id of run.steps){const step=nextSteps.get(id);if(!step)throw Error('ORIGINAL_RUN_STEP_NOT_RETURNED');if(needsOriginalTaskQuery(step))throw Error('ORIGINAL_RUN_UNRESOLVED_STEP')}
+   }
    const retainedSteps=new Set(run.steps);if(nextSteps.size>256)for(const [key,step] of nextSteps){if(!retainedSteps.has(key)&&['COMPLETED','CANCELLED'].includes(step.status))nextSteps.delete(key)}
    if(nextSteps.size>256)throw Error('ORIGINAL_RUN_STEP_CACHE_FULL');
    page.steps=[...nextSteps.values()].map(copyStep);
