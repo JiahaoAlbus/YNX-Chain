@@ -34,6 +34,7 @@ class HostedSyntheticReservationControls(unittest.TestCase):
         self.source=self.base/'source';self.source.mkdir()
         self.events=[];self.fail_step=None;self.stop_error=None;self.failure_snapshot=None
         self.sample_error=None;self.callee_result=None;self.stop_result=True
+        self.stop_while_observer_live=False
 
     def controls(self):
         outer=self
@@ -67,7 +68,7 @@ class HostedSyntheticReservationControls(unittest.TestCase):
                 self.children.append(dict(name=name,process=proc));return proc
             def stop(self):
                 outer.events.append('original-window-stop')
-                outer.assertFalse(self._pq_resource_monitor.thread.is_alive())
+                if not outer.stop_while_observer_live:outer.assertFalse(self._pq_resource_monitor.thread.is_alive())
                 outer.assertIsNotNone(self.launch_cleanup_deadline)
                 if outer.stop_error:raise outer.stop_error
                 return outer.stop_result
@@ -180,6 +181,84 @@ class HostedSyntheticReservationControls(unittest.TestCase):
         self.assertEqual(self.events,['original-window-stop'])
         self.assertEqual(result['resourceFailureType'],'RuntimeError')
         self.assertIn('owned RSS',result['firstCause']['message']);self.assertTrue(result['monitorRetired'])
+
+    def test_run_finally_failure_lock_contention_still_stops_and_retains_original_receipt(self):
+        entered=threading.Event();release=threading.Event();holders=[]
+        original_close=m.driver.Monitor.close
+        original_snapshot=m.driver.Monitor.failure_snapshot
+        def close(observer):
+            original_close(observer)
+            def hold():
+                with observer.failure_lock:entered.set();release.wait(.4)
+            thread=threading.Thread(target=hold);holders.append(thread);thread.start()
+            self.assertTrue(entered.wait(1))
+        try:
+            with self.controls(),mock.patch.object(m.driver.Monitor,'close',close), \
+                 mock.patch.object(m.driver.Monitor,'failure_snapshot',autospec=True,side_effect=original_snapshot) as old:
+                result=m.run(self.source,self.parent,enabled=True)
+            old.assert_not_called()
+            self.assertTrue(result['cleanupDebt']);self.assertFalse(result['cleanupComplete'])
+            self.assertIn('original-window-stop',self.events)
+            self.assertIn('privateProcessReceiptSHA256',result)
+            self.assertEqual(result['firstCause']['type'],'ValueError')
+            self.assertFalse(result['nonceReleased'])
+            retained=json.loads((self.window.work/'.private/readback.json').read_bytes())
+            self.assertEqual(retained['firstCause'],result['firstCause']);self.assertTrue(retained['cleanupDebt'])
+        finally:
+            release.set()
+            for thread in holders:thread.join(1);self.assertFalse(thread.is_alive())
+
+    def test_run_finally_latched_resource_failure_precedes_close_error(self):
+        original_close=m.driver.Monitor.close
+        def close(observer):
+            observer.latch(OSError('UNIT earlier original RSS failure'),'UNIT original resource sampler')
+            original_close(observer)
+            raise ValueError('UNIT later monitor close failure')
+        with self.controls(),mock.patch.object(m.driver.Monitor,'close',close):
+            result=m.run(self.source,self.parent,enabled=True)
+        self.assertEqual(result['firstCause']['type'],'OSError')
+        self.assertEqual(result['resourceFailureType'],'OSError')
+        self.assertEqual(result['cleanupErrors'][0]['type'],'ValueError')
+        self.assertTrue(result['cleanupDebt']);self.assertFalse(result['monitorRetired'])
+        self.assertIn('original-window-stop',self.events)
+        self.assertIn('privateProcessReceiptSHA256',result)
+        retained=json.loads((self.window.work/'.private/readback.json').read_bytes())
+        self.assertEqual(retained['firstCause']['type'],'OSError');self.assertTrue(retained['cleanupDebt'])
+
+    def test_run_finally_monitor_cleanup_cannot_replace_existing_business_failure(self):
+        self.fail_step='original-cli-build';original_close=m.driver.Monitor.close
+        def close(observer):
+            observer.latch(OSError('UNIT later RSS failure'),'UNIT original resource sampler')
+            original_close(observer);raise ValueError('UNIT still later close failure')
+        with self.controls(),mock.patch.object(m.driver.Monitor,'close',close):
+            result=m.run(self.source,self.parent,enabled=True)
+        self.assertEqual(result['firstCause']['type'],'ValueError')
+        self.assertIn('original-cli-build failed',result['firstCause']['message'])
+        self.assertEqual(result['resourceFailureType'],'OSError')
+        self.assertTrue(result['cleanupDebt']);self.assertFalse(result['nonceReleased'])
+        self.assertNotIn('sole-private-callee',self.events)
+
+    def test_run_finally_live_monitor_keeps_original_window_in_strong_custody(self):
+        self.stop_while_observer_live=True
+        observer=None
+        try:
+            with self.controls(),mock.patch.object(m.driver.Monitor,'close',return_value=None) as close:
+                result=m.run(self.source,self.parent,enabled=True)
+            observer=self.window._pq_resource_monitor
+            close.assert_called_once();self.assertTrue(observer.thread.is_alive())
+            self.assertTrue(any(owner is observer for owner in m._JOB_MONITOR_DEBT))
+            self.assertIs(observer.w,self.window)
+            self.assertFalse(result['monitorRetired'] or result['cleanupComplete'] or result['nonceReleased'])
+            self.assertTrue(result['cleanupDebt']);self.assertIn('retirement not proven',result['firstCause']['message'])
+            self.assertEqual(self.events.count('original-window-stop'),1)
+            self.assertNotIn('AssertionError',[error['type'] for error in result['cleanupErrors']])
+            self.assertIn('privateProcessReceiptSHA256',result)
+        finally:
+            if observer is not None:
+                # Test-owned retirement only; production keeps uncertain debt.
+                observer.finished.set();observer.thread.join(1)
+                self.assertFalse(observer.thread.is_alive())
+                if observer in m._JOB_MONITOR_DEBT:m._JOB_MONITOR_DEBT.remove(observer)
 
     def test_public_projection_excludes_paths_payload_error_text_and_process_argv(self):
         value=m.initial_report();secret='PRIVATE-CONTROL-NOT-FOR-PUBLIC'
@@ -335,7 +414,7 @@ class HostedSyntheticReservationControls(unittest.TestCase):
         self.assertEqual(job.count('actions/upload-artifact@'),1)
         self.assertIn('path: ${{ runner.temp }}/pq-enrollment-public-summary/SUMMARY.json',job)
         self.assertNotIn('path: ${{ runner.temp }}/\n',job)
-        self.assertIn("'test_pq_enrollment_linux_private.py': 22",text)
+        self.assertIn("'test_pq_enrollment_linux_private.py': 26",text)
         self.assertIsNone(m.r.NORMAL_RESERVATION_PRODUCER)
         self.assertEqual(m.r.SYNTHETIC_FIXTURE_BINARIES,{})
 

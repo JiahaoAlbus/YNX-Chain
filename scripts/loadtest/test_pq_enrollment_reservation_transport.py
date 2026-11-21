@@ -271,10 +271,31 @@ def line():
         self.assertEqual(stored['firstCause']['type'],'KeyboardInterrupt');self.assertEqual(stored['ackBytesSent'],0)
         self.assert_pending(exchange)
 
+    def test_audit_fixture_failure_retains_original_frames_and_typed_cause_after_cleanup(self):
+        with mock.patch.object(m.d.DurableLedger,'prepare_enrollment_pair',side_effect=TimeoutError('UNIT original fixture interrupted')):
+            with self.assertRaisesRegex(AssertionError,'TimeoutError'):self.audit_case()
+        self.assertTrue(self.retain_originals)
+        path=self.base/'case-1/frames/result.json';before=path.read_bytes()
+        observed=json.loads(before)
+        self.assertEqual(observed['firstCause']['type'],'TimeoutError')
+        self.assertEqual(observed['ackBytesSent'],0);self.assertFalse(observed['nonceReleased'])
+        self.doCleanups()
+        self.assertEqual(path.read_bytes(),before)
+        self.assertTrue((self.base/'case-1/original.sqlite').is_file())
+
     def audit_case(self):
         exchange,peer,ready=self.case();child=self.child(peer,ready);out=exchange.run()
         stdout,stderr=child.communicate(timeout=3)
-        self.assertEqual(child.returncode,0,(stdout,stderr));self.assertIsNone(out['firstCause'])
+        if child.returncode!=0 or out['firstCause'] is not None:
+            # Keep this ORIGINAL controlled operation and its private frames;
+            # a later fresh fixture is not a retry or evidence it succeeded.
+            self.retain_originals=True
+            cause=out['firstCause']
+            self.fail(dict(childExit=child.returncode,
+                firstCauseType=None if cause is None else cause['type'],
+                firstCauseSHA256=None if cause is None else sha(raw(cause)),
+                ackBytesSent=out['ackBytesSent'],originalFramesRetained=out['originalFramesRetained'],
+                cleanupDebt=out['cleanupDebt'],controlledOriginalsRetained=True))
         exchange.ledger.close();artifact=exchange.ledger.artifact()
         def write(path,value):
             path.parent.mkdir(mode=0o700,parents=True,exist_ok=True);path.write_bytes(value);path.chmod(0o600)

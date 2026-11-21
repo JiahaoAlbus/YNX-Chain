@@ -53,6 +53,7 @@ PUBLIC_NAME='SUMMARY.json'
 _CUSTODY=vars(sys).setdefault('_ynx_enrollment_fixture_custody_v1',
                             dict(lock=threading.Lock(),owners={}))
 _READ_SCOPE_DEBT=[] # Strong custody of uncertain observer/FD shutdown; never retry.
+_JOB_MONITOR_DEBT=vars(sys).setdefault('_ynx_enrollment_job_monitor_debt_v1',[])
 
 
 def identity():
@@ -450,6 +451,47 @@ class PendingFixtureLaunch:
 def failure(error):return dict(type=type(error).__name__,message=r.d.failure_message(error))
 
 
+def retire_original_job_monitor(monitor,out):
+    """One original close attempt, bounded error reads and retained debt.
+
+    The existing close has its original join timeout. Never call the original
+    unbounded failure_snapshot in this job's finally: cleanup must still reach
+    Window.stop, private receipt retention and the original lease close.
+    """
+    previous_first=out['firstCause'];local_first_ns=None
+    def secondary(error):
+        nonlocal local_first_ns
+        try:observed=time.monotonic_ns()
+        except BaseException:observed=None
+        value=failure(error);out['cleanupErrors'].append(value);out['cleanupDebt']=True
+        if out['firstCause'] is None:out['firstCause']=value;local_first_ns=observed
+    def snapshot():
+        require(monitor.failure_lock.acquire(timeout=.05),'original job observer failure snapshot unavailable')
+        try:value=None if monitor.first_failure is None else dict(monitor.first_failure)
+        finally:monitor.failure_lock.release()
+        if value is not None:
+            out['resourceFailureType']=value['errorType']
+            observed=value['observedMonotonicNs']
+            if out['firstCause'] is None or (previous_first is None and type(observed) is int
+                    and type(local_first_ns) is int and observed<local_first_ns):
+                out['firstCause']=dict(type=value['errorType'],message=value['originalError'])
+    try:snapshot()
+    except BaseException as error:secondary(error)
+    closed=False;retired=False
+    try:monitor.close();closed=True
+    except BaseException as error:secondary(error)
+    try:retired=closed and not monitor.thread.is_alive()
+    except BaseException as error:secondary(error)
+    # The observer may have latched its original failure during close. Compare
+    # only observed monotonic clocks; never replace a prior business failure.
+    try:snapshot()
+    except BaseException as error:secondary(error)
+    out['monitorRetired']=retired
+    if not retired:
+        secondary(RuntimeError('original job observer retirement not proven'))
+        if not any(owner is monitor for owner in _JOB_MONITOR_DEBT):_JOB_MONITOR_DEBT.append(monitor)
+
+
 def public_projection(value):
     # Deliberately constructed whitelist. Do not upload process argv, error
     # text, raw logs, private paths, credentials, requests, DB, or Go fixture.
@@ -599,15 +641,7 @@ def run(source,parent,*,enabled=False,stop=None):
             previous=getattr(window,'launch_cleanup_deadline',None)
             window.launch_cleanup_deadline=until if previous is None else min(previous,until)
         if monitor is not None:
-            try:monitor.close()
-            except BaseException as error:
-                out['cleanupErrors'].append(failure(error));out['firstCause']=out['firstCause'] or failure(error);out['cleanupDebt']=True
-            out['monitorRetired']=not monitor.thread.is_alive()
-            snapshot=monitor.failure_snapshot()
-            if snapshot is not None:
-                out['resourceFailureType']=snapshot['errorType']
-                out['firstCause']=out['firstCause'] or dict(type=snapshot['errorType'],message=snapshot['originalError'])
-            if not out['monitorRetired']:out['cleanupDebt']=True
+            retire_original_job_monitor(monitor,out)
         if window is not None:
             try:
                 retired=window.stop()
