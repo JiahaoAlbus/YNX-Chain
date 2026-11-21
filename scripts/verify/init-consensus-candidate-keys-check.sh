@@ -396,7 +396,7 @@ run_caller no
 for role in primary singapore silicon-valley seoul; do
   [[ $(count_events "KEY|create|$role") == 1 && -s $case_root/work/public/$role.json && -s $case_root/work/public/$role.json.partial ]] || fail 'fresh public evidence incomplete'
 done
-[[ $(find "$case_root/remote" -name public-record.json | wc -l) == 4 ]] || fail 'successful public remote evidence was deleted'
+[[ $(find "$case_root/remote" -name public-record.json | awk 'END { print NR+0 }') == 4 ]] || fail 'successful public remote evidence was deleted'
 
 new_case resume
 seed_custody
@@ -419,9 +419,9 @@ for stage in copy ceremony; do
     [[ $stage == ceremony && -s $case_root/work/intent.txt && $(count_events 'SSH|primary|') == 4 && ! -e $case_root/work/public/primary.json ]] || fail 'lost ACK retried or published a false result'
   }
   if [[ $stage == ceremony ]]; then
-    [[ $(count_events 'KEY|create|primary') == 1 && -s $case_root/work/public/primary.json.partial && $(find "$case_root/remote/primary/stage" -name public-record.json | wc -l) == 1 ]] || fail 'post-create UNKNOWN lost original public/custody evidence'
+    [[ $(count_events 'KEY|create|primary') == 1 && -s $case_root/work/public/primary.json.partial && $(find "$case_root/remote/primary/stage" -name public-record.json | awk 'END { print NR+0 }') == 1 ]] || fail 'post-create UNKNOWN lost original public/custody evidence'
   else
-    [[ $(count_events 'KEY|') == 0 && -s $case_root/work/primary.copy.stderr && $(find "$case_root/remote/primary/stage" -name ynx-consensus-key-init | wc -l) == 1 ]] || fail 'copy UNKNOWN was not retained'
+    [[ $(count_events 'KEY|') == 0 && -s $case_root/work/primary.copy.stderr && $(find "$case_root/remote/primary/stage" -name ynx-consensus-key-init | awk 'END { print NR+0 }') == 1 ]] || fail 'copy UNKNOWN was not retained'
   fi
   events_before="$(sha256sum "$case_root/events")"
   refused no 'UNKNOWN work was reused'
