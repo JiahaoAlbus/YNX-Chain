@@ -154,6 +154,8 @@ class D24ControllerControls(unittest.TestCase):
 
     def test_old_jobs_and_1b_wrapper_are_unchanged_new_job_is_dispatch_only(self):
         workflow=(HERE.parents[1]/'.github/workflows/pq-normal-process.yml').read_text()
+        if 'first100-held-public-owner-sequential-pair' in workflow:
+            workflow=module('pair_legacy_workflow',HERE/'same-runner/pq-same-runner-workflow-legacy.py').original_workflow(workflow)
         workflow=workflow.replace(', first100-held-public-owner, first100-held-public-owner-business]',']',1).replace(" && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-held-public-owner')",'',1)
         original=workflow.split('jobs:\n',1)[1].split('\n  first100-d24-controller-controls:',1)[0]
         # The exact new-only guard cannot change any existing profile route.

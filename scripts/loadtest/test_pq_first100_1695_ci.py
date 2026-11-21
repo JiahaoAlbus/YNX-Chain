@@ -64,6 +64,8 @@ class Fixed1695(unittest.TestCase):
             with contextlib.redirect_stderr(io.StringIO()),self.assertRaises((RuntimeError,SystemExit)):entry.main(argv)
     def test_old_workflow_bytes_preserved_and_new_jobs_dispatch_only(self):
         workflow=(HERE.parents[1]/'.github/workflows/pq-normal-process.yml').read_text()
+        if 'first100-held-public-owner-sequential-pair' in workflow:
+            workflow=module('pair_legacy_workflow',HERE/'same-runner/pq-same-runner-workflow-legacy.py').original_workflow(workflow)
         workflow=workflow.replace(', first100-held-public-owner, first100-held-public-owner-business]',']',1).replace(" && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-held-public-owner')",'',1)
         # Project only the exact additive 7c25 choice and its new-only fallback guard.
         legacy=workflow.replace(', first100-7c25-public-owner]',']',1)
