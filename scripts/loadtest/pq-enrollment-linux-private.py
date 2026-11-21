@@ -108,6 +108,7 @@ class PendingFixtureLaunch:
     """
     def __init__(self,window,stop):
         self.window=window;self.stop=stop;self.token=object();self.locked=False;self.registered=False
+        self.process=None;self.pidfd=None;self.pending=None;self.pidfd_close_error=None
     def begin(self):
         w=self.window
         require(w.launch_lock.acquire(timeout=1),'original launch serialization unavailable')
@@ -116,9 +117,29 @@ class PendingFixtureLaunch:
             w.sample()
             require(not self.stop.is_set() and not w.closed_for_launch and not w.launches_closed
                     and not w.launch_cleanup_debt,'original Window refused private fixture admission')
-            w.pending_launches[self.token]=dict(name='original-enrollment-handshake',requestedNs=time.monotonic_ns(),
-                                                process=None,log=None)
+            self.pending=dict(name='original-enrollment-handshake',requestedNs=time.monotonic_ns(),
+                              process=None,log=None)
+            w.pending_launches[self.token]=self.pending
+    def retain(self,proc,argv,*,pidfd=None):
+        # Sole constructor thread updates this already-published record, before
+        # it can block on Window.lock. Both owners retain the SAME real handle;
+        # no second constructor, numeric-PID recovery or re-admission is added.
+        if proc is None:return
+        require(self.pending is not None and (self.process is None or self.process is proc),'original pending process identity differs')
+        self.process=proc;self.pending['process']=proc;self.pending['command']=list(argv)
+        if pidfd is not None:
+            require(self.pidfd_close_error is None,'original pidfd close unknown; cannot replace its identity')
+            require(self.pidfd in (None,pidfd),'original pending pidfd identity differs')
+            self.pidfd=pidfd;self.pending['pidfd']=pidfd
+    def _debt(self,error):
+        self.stop.set();self.window.closed_for_launch=True;self.window.launches_closed=True
+        if self.pending is not None:
+            self.pending['cleanupDebt']=True;self.pending.setdefault('firstErrorType',type(error).__name__)
     def publish(self,proc,argv):
+        self.retain(proc,argv)
+        try:self._publish(proc,argv)
+        except BaseException as error:self._debt(error);raise
+    def _publish(self,proc,argv):
         w=self.window
         with lab.bounded_original_lifecycle(w.lock):
             require(self.token in w.pending_launches,'original pending constructor missing')
@@ -143,6 +164,16 @@ class PendingFixtureLaunch:
     def finish(self,proc,argv=()):
         w=self.window
         try:
+            self.retain(proc,argv)
+            if self.pidfd_close_error is not None:raise self.pidfd_close_error
+            if self.pidfd is not None and proc.poll() is not None:
+                # close may release the numeric descriptor BEFORE reporting an
+                # error. Consume responsibility once; never touch a reused FD.
+                owned=self.pidfd;self.pidfd=None;self.pending['pidfd']=None
+                self.pending['pidfdCloseStatus']='UNKNOWN'
+                try:os.close(owned)
+                except BaseException as error:self.pidfd_close_error=error;raise
+                self.pending['pidfdCloseStatus']='CLOSED'
             with lab.bounded_original_lifecycle(w.lock,w._cleanup_wait_remaining()):
                 if proc is not None and not self.registered:
                     # Binding/registration failed after a REAL Popen returned.
@@ -160,6 +191,7 @@ class PendingFixtureLaunch:
                         w.launches_closed=True
                         w.launch_cleanup_debt.append(dict(name=pending['name'],errorType='UnretiredOriginalProcess',
                             meaning='original private constructor remains pending; preserve UNKNOWN'))
+        except BaseException as error:self._debt(error);raise
         finally:self._unlock()
 
 

@@ -227,6 +227,60 @@ class HostedSyntheticReservationControls(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'unmanaged'):m.lab.signal_original_child(proc,signal.SIGTERM)
             kill.assert_not_called();group.assert_not_called()
 
+    def test_real_child_is_retained_when_publish_and_finish_cannot_acquire_window_lock(self):
+        window=SimpleNamespace(lock=threading.RLock(),launch_lock=threading.Lock(),sample=mock.Mock(),
+            closed_for_launch=False,launches_closed=False,launch_cleanup_debt=[],pending_launches={},children=[],known={},
+            launch_guard_failure=None,_cleanup_wait_remaining=lambda:.05)
+        stop=threading.Event();pending=m.PendingFixtureLaunch(window,stop);pending.begin()
+        proc=subprocess.Popen([sys.executable,'-I','-c','import time;time.sleep(30)'],
+                              stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+        held=threading.Event();release=threading.Event()
+        def holder():
+            with window.lock:held.set();release.wait(5)
+        thread=threading.Thread(target=holder);thread.start()
+        try:
+            self.assertTrue(held.wait(1))
+            with self.assertRaisesRegex(RuntimeError,'lifecycle lock unavailable'):
+                pending.publish(proc,['ORIGINAL CONTROL'])
+            with self.assertRaisesRegex(RuntimeError,'lifecycle lock unavailable'):
+                pending.finish(proc,['ORIGINAL CONTROL'])
+            self.assertIsNone(proc.poll()) # The real child has NOT retired.
+            self.assertIs(window.pending_launches[pending.token]['process'],proc)
+            self.assertIs(pending.process,proc)
+            self.assertTrue(stop.is_set() and window.closed_for_launch)
+            self.assertTrue(window.pending_launches[pending.token]['cleanupDebt'])
+            self.assertTrue(window.launch_lock.acquire(blocking=False));window.launch_lock.release()
+        finally:
+            release.set();thread.join(2)
+            # Test-owned original handle only; no numeric-PID recovery/replay.
+            proc.kill();proc.wait(timeout=2)
+
+    def test_pidfd_close_error_cannot_close_a_reused_descriptor_on_second_finish(self):
+        window=SimpleNamespace(lock=threading.RLock(),launch_lock=threading.Lock(),sample=mock.Mock(),
+            closed_for_launch=False,launches_closed=False,launch_cleanup_debt=[],pending_launches={},children=[],known={},
+            launch_guard_failure=None,_cleanup_wait_remaining=lambda:.05)
+        pending=m.PendingFixtureLaunch(window,threading.Event());pending.begin()
+        proc=SimpleNamespace(pid=123,returncode=0,poll=lambda:0)
+        # Real descriptor reuse tests close responsibility, not Linux pidfd identity.
+        original=os.open(os.devnull,os.O_RDONLY);replacement=[];calls=[];close=os.close
+        pending.retain(proc,['CONTROL'],pidfd=original)
+        def closed_then_error(fd):
+            calls.append(fd);close(fd)
+            replacement.append(os.open(os.devnull,os.O_RDONLY))
+            self.assertEqual(replacement[0],original)
+            raise OSError('CONTROL close result unknown after descriptor released')
+        try:
+            with mock.patch.object(m.os,'close',side_effect=closed_then_error):
+                for _ in range(2):
+                    with self.assertRaisesRegex(OSError,'close result unknown'):pending.finish(proc,['CONTROL'])
+            self.assertEqual(calls,[original]);os.fstat(replacement[0])
+            self.assertIsNone(pending.pidfd);self.assertIsNone(pending.pending['pidfd'])
+            self.assertEqual(pending.pending['pidfdCloseStatus'],'UNKNOWN')
+            self.assertTrue(pending.pending['cleanupDebt']);self.assertFalse(window.children)
+        finally:
+            if replacement:close(replacement[0])
+            elif pending.pidfd is not None:close(pending.pidfd)
+
     def test_original_workflow_is_opt_in_after_controls_and_uploads_one_public_file(self):
         text=(Path(__file__).parents[2]/'.github/workflows/chain-core.yml').read_text()
         self.assertIn('default: false',text)
@@ -236,7 +290,7 @@ class HostedSyntheticReservationControls(unittest.TestCase):
         self.assertEqual(job.count('actions/upload-artifact@'),1)
         self.assertIn('path: ${{ runner.temp }}/pq-enrollment-public-summary/SUMMARY.json',job)
         self.assertNotIn('path: ${{ runner.temp }}/\n',job)
-        self.assertIn("'test_pq_enrollment_linux_private.py': 16",text)
+        self.assertIn("'test_pq_enrollment_linux_private.py': 19",text)
         self.assertIsNone(m.r.NORMAL_RESERVATION_PRODUCER)
         self.assertEqual(m.r.SYNTHETIC_FIXTURE_BINARIES,{})
 
@@ -333,6 +387,43 @@ finally:
         result=subprocess.run([sys.executable,'-B','-c',script,str(Path(__file__).parent)],capture_output=True,timeout=10)
         self.assertEqual(result.returncode,0,result.stderr.decode())
         self.assertEqual(result.stdout.strip(),b'ORIGINAL_CALLEE_AND_WINDOW_RETIRED')
+
+    @unittest.skipUnless(sys.platform=='linux','real Linux pidfd and unreaped original child required; no Mac substitute')
+    def test_actual_invoke_keeps_pidfd_and_strong_handle_after_both_lock_failures(self):
+        t=module('test_pq_enrollment_reservation_driver.py')
+        x=t.EnrollmentReservationDriverControls();x.setUp();self.addCleanup(x.doCleanups)
+        w=SimpleNamespace(lock=threading.RLock(),launch_lock=threading.Lock(),sample=mock.Mock(),
+            closed_for_launch=False,launches_closed=False,launch_cleanup_debt=[],pending_launches={},children=[],known={},
+            launch_guard_failure=None,_cleanup_wait_remaining=lambda:.05)
+        entered=threading.Event();release=threading.Event();threads=[]
+        class LockedPending(m.PendingFixtureLaunch):
+            def begin(self):
+                super().begin()
+                def hold():
+                    with w.lock:entered.set();release.wait(10)
+                thread=threading.Thread(target=hold);threads.append(thread);thread.start()
+                if not entered.wait(1):raise RuntimeError('test lock holder missing')
+        pending=LockedPending(w,threading.Event());binary=x.binary(before='import time;time.sleep(30)')
+        args=x.args(binary);args.pop('enabled')
+        original_signal=signal.pidfd_send_signal
+        try:
+            with x.bound(binary),mock.patch.object(signal,'pidfd_send_signal',side_effect=PermissionError('CONTROL retirement denied')):
+                binding=t.m.SYNTHETIC_FIXTURE_BINARIES[(t.m.INSPECTED_SYNTHETIC_HANDSHAKE,t.m.original.platform.system(),t.m.original.platform.machine())]
+                out=t.m._run_synthetic_fixture(binding=binding,launch_lifecycle=pending,**args)
+            self.assertFalse(out['normalFixtureTestPassed'] or out['originalProcess']['processReaped'])
+            self.assertTrue(out['cleanupDebt']);self.assertEqual(out['firstCause']['type'],'RuntimeError')
+            self.assertIn('lifecycle lock unavailable',out['firstCause']['message'])
+            self.assertTrue(any(e['type']=='PermissionError' for e in out['originalProcess']['cleanupErrors']))
+            self.assertIs(w.pending_launches[pending.token]['process'],pending.process)
+            self.assertIsNone(pending.process.poll());self.assertIsNotNone(pending.pidfd)
+            self.assertEqual(select.select([pending.pidfd],[],[],0)[0],[]) # Still the LIVE original child.
+        finally:
+            release.set()
+            for thread in threads:thread.join(2)
+            if pending.pidfd is not None:
+                original_signal(pending.pidfd,signal.SIGKILL);pending.process.wait(timeout=2)
+                pending.finish(pending.process)
+        self.assertIsNone(pending.pidfd)
 
 
 if __name__=='__main__':unittest.main(verbosity=2)

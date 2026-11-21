@@ -101,14 +101,57 @@ s.close()
 
     def test_actual_driver_dispatch_uses_original_resource_callback_and_control_process(self):
         binary=self.binary();args=self.args(binary)
+        code,out,console=self.dispatch(binary,args)
+        self.assertEqual(code,2);self.assert_driver_pass(out,args)
+        self.assertNotIn(str(self.root),console);self.assertGreater(len(self.resources),1)
+
+    def dispatch(self,binary,args):
         argv=['enrollment-reserve-synthetic','--synthetic','--execute']
         for key in ('source','source_directory','test_binary','cli_binary','root','plan_sha256','workload_sha256','credential_fd','output','timeout'):
             argv.extend(['--'+key.replace('_','-'),str(args[key])])
         loader=driver.module
         with self.bound(binary),mock.patch.object(driver,'module',side_effect=lambda name,file:m if file=='pq-enrollment-reservation-transport.py' else loader(name,file)),contextlib.redirect_stdout(io.StringIO()) as stdout:
             code=driver.main(argv,enrollment_resource_observer=args['check_resources'])
-        out=json.loads(stdout.getvalue());self.assertEqual(code,2);self.assertTrue(out['normalFixtureTestPassed'],out)
-        self.assertNotIn(str(self.root),stdout.getvalue());self.assertGreater(len(self.resources),1)
+        return code,json.loads(stdout.getvalue()),stdout.getvalue()
+
+    def assert_driver_pass(self,out,args):
+        if out.get('normalFixtureTestPassed') is True:return
+        # Keep this ORIGINAL synthetic control tree at its original path on
+        # failure. No private payload/path is copied to the public CI log.
+        self.fixture.retain_originals=True
+        detail=dict(public=out,privateOriginalsRetained=True,originalDirectoryName=self.base.name)
+        try:
+            raw=m.c.read(args['output']/'readback.json',2<<20);saved=json.loads(raw)
+            detail['originalReadbackSHA256']=sha(raw)
+            cause=saved.get('firstCause');detail['firstCauseType']=None if cause is None else cause['type']
+            detail['firstCauseSHA256']=None if cause is None else sha(m.original.canonical(cause))
+            process=saved.get('originalProcess') or {}
+            detail['process']={k:process[k] for k in ('elapsedNs','returnCode','processStarted','processReaped',
+                'outputComplete','outputTruncated','originalOutputRetained','stdoutSHA256','stderrSHA256') if k in process}
+            reservation=saved.get('reservation') or {}
+            detail['reservation']={k:reservation[k] for k in ('readyObserved','requestObserved','reservationReturnObserved',
+                'ackSendCompleted','cleanupDebt') if k in reservation}
+        except Exception as error:detail['diagnosticReadErrorType']=type(error).__name__
+        self.fail(json.dumps(detail,sort_keys=True))
+
+    def test_driver_expired_observation_after_ack_keeps_original_diagnostics_and_pending(self):
+        observed=self.base/'control-ack-observed'
+        binary=self.binary(after="from pathlib import Path\nPath("+repr(str(observed))+").write_text('ACK')\nimport time;time.sleep(30)\n")
+        args=self.args(binary);original_clock=time.monotonic
+        def clock():return original_clock()+(10 if observed.exists() else 0)
+        # Deterministic deadline crossing AFTER the real socket ACK. This is a
+        # new control, not a claimed explanation/replay of the earlier lost log.
+        with mock.patch.object(time,'monotonic',side_effect=clock):code,out,_=self.dispatch(binary,args)
+        self.assertEqual(code,2);self.assertEqual(out['firstCauseType'],'TimeoutError')
+        with self.assertRaises(AssertionError) as failure:self.assert_driver_pass(out,args)
+        detail=json.loads(str(failure.exception));self.assertEqual(detail['firstCauseType'],'TimeoutError')
+        self.assertTrue(detail['reservation']['ackSendCompleted'])
+        self.assertTrue(detail['process']['processReaped']);self.assertFalse(out['normalFixtureTestPassed'])
+        saved=json.loads((args['output']/'readback.json').read_bytes())
+        self.assertFalse(saved['nonceReleased'] or saved['automaticRetry'])
+        self.fixture.doCleanups() # Must preserve the SAME failed originals.
+        self.assertTrue((args['output']/'original.sqlite').is_file())
+        self.assertTrue((args['output']/'process/stdout.log').is_file())
 
     def test_known_binary_without_actual_resource_owner_stays_closed(self):
         binary=self.binary()

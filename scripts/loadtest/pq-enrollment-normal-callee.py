@@ -192,7 +192,7 @@ def _invoke(binary,fd,context_path,context_sha,request,output,timeout,stop=None,
                     'GOFLAGS','GOENV','GOTELEMETRY') for k in extra),'bounded original synthetic environment required')
         env.update(extra)
         lifecycle=synthetic_fixture['lifecycle']
-        require(lifecycle is None or all(callable(getattr(lifecycle,k,None)) for k in ('begin','publish','finish')),
+        require(lifecycle is None or all(callable(getattr(lifecycle,k,None)) for k in ('begin','retain','publish','finish')),
                 'original Window pending lifecycle required')
     output=Path(output);require(output.is_absolute() and not output.exists() and output.parent.resolve(strict=True)==output.parent,
                                 'fresh private verifier evidence directory required')
@@ -211,7 +211,7 @@ def _invoke(binary,fd,context_path,context_sha,request,output,timeout,stop=None,
     except BaseException:
         for stream in streams.values():stream.close()
         os.close(folder);os.close(parent);raise
-    linux=platform.system()=='Linux';process=None;pidfd=None;published=False;selector=selectors.DefaultSelector();start=time.monotonic_ns()
+    linux=platform.system()=='Linux';process=None;pidfd=None;pidfd_retained=False;published=False;selector=selectors.DefaultSelector();start=time.monotonic_ns()
     deadline=time.monotonic()+timeout;buffers={'stdout':bytearray(),'stderr':bytearray()};offset=0;cause=None;reaped=False
     eof=set();broken_pipe=False;truncated=False;retention_errors=[];cleanup_errors=[]
     def finish(action,target,*,retention=False):
@@ -252,7 +252,10 @@ def _invoke(binary,fd,context_path,context_sha,request,output,timeout,stop=None,
         process=subprocess.Popen(argv,executable='/proc/self/fd/%d'%fd if linux else str(binary),pass_fds=((fd,) if linux else ())+inherited_fds,
             stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,close_fds=True,bufsize=0,
             env=env,cwd=cwd,start_new_session=synthetic)
+        if synthetic and lifecycle is not None:lifecycle.retain(process,argv)
         if synthetic and linux:pidfd=os.pidfd_open(process.pid,0) # Before publication to the owning Window.
+        if synthetic and lifecycle is not None and pidfd is not None:
+            lifecycle.retain(process,argv,pidfd=pidfd);pidfd_retained=True
         if synthetic and lifecycle is not None:lifecycle.publish(process,argv)
         for name in ('stdin','stdout','stderr'):
             stream=getattr(process,name);os.set_blocking(stream.fileno(),False)
@@ -277,7 +280,7 @@ def _invoke(binary,fd,context_path,context_sha,request,output,timeout,stop=None,
             # pre-publication pidfd; descendant retirement remains Window work.
             try:
                 if process.poll() is None:
-                    if synthetic and linux and published:
+                    if synthetic and linux and (published or lifecycle is not None):
                         require(pidfd is not None,'original synthetic leader identity missing; retain cleanup debt')
                         try:signal.pidfd_send_signal(pidfd,signal.SIGKILL)
                         except ProcessLookupError:pass # Same handle has already exited; still reap the original Popen.
@@ -287,7 +290,9 @@ def _invoke(binary,fd,context_path,context_sha,request,output,timeout,stop=None,
                 failure=dict(type=type(error).__name__,message=b.accounting.d.failure_message(error),target='original child retirement')
                 cleanup_errors.append(failure)
                 if cause is None:cause=failure
-        if pidfd is not None:finish(lambda:os.close(pidfd),'original child pidfd close')
+        # Once transferred, the lifecycle retains the pidfd until this SAME
+        # Popen is observed reaped. Lock failure cannot discard its capability.
+        if pidfd is not None and not pidfd_retained:finish(lambda:os.close(pidfd),'original child pidfd close')
         if synthetic and lifecycle is not None:finish(lambda:lifecycle.finish(process,argv),'original pending launch retirement')
         finish(selector.close,'selector close')
         if process is not None:

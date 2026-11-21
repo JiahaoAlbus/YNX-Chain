@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import socket
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -22,8 +23,9 @@ raw=m.original.canonical;sha=m.b.sha
 
 class EnrollmentReservationTransportControls(unittest.TestCase):
     def setUp(self):
-        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
-        self.base=Path(self.temp.name).resolve();self.root=self.base/'original';self.root.mkdir(mode=0o700)
+        self.base=Path(tempfile.mkdtemp()).resolve();self.retain_originals=False
+        self.addCleanup(lambda:None if self.retain_originals else shutil.rmtree(self.base))
+        self.root=self.base/'original';self.root.mkdir(mode=0o700)
         (self.root/'workload').mkdir(mode=0o700)
         self.source=m.INSPECTED_SYNTHETIC_HANDSHAKE
         self.plan=dict(version='YNX-PQ-LOOPBACK-NETWORK/v1',syntheticOnly=True,publicNetwork=False,
