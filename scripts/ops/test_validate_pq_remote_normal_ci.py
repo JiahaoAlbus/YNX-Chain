@@ -2643,7 +2643,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             with self.subTest(mode=mode), self.assertRaises(AssertionError):
                 assert_workflow_contract(raw.replace('bash scripts/verify/offline-pq-copy-ci.sh ' + mode, 'true', 1))
         script = (root / 'scripts/verify/offline-pq-copy-ci.sh').read_text()
-        for required in ('set -euo pipefail', 'go test -json -p 1 -count=1 -timeout=90s', 'qualify_offline_pq_copy_ci.py chain', 'qualify_offline_pq_copy_ci.py chaind', 'test_qualify_offline_pq_copy_ci.py'):
+        for required in ('set -euo pipefail', 'go test -json -p 1 -count=1 -timeout=90s', 'qualify_offline_pq_copy_ci.py chain', 'qualify_offline_pq_copy_ci.py chaind', 'test_qualify_offline_pq_copy_ci.py', 'GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -p 1 ./internal/chain'):
             self.assertIn(required, script)
 
     def test_extracted_controls_trigger_push_and_pull_request(self):

@@ -12,6 +12,9 @@ case "$1" in
     fi
     python3 -B scripts/verify/qualify_offline_pq_copy_ci.py chaind "$events"
     python3 -B scripts/verify/test_qualify_offline_pq_copy_ci.py
+    # The private copy remains unavailable without Unix owner metadata, but
+    # adding it must not break unrelated Windows builds of the Chain package.
+    GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -p 1 ./internal/chain
     ;;
   *) exit 2 ;;
 esac
