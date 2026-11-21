@@ -37,7 +37,7 @@ type Source struct {
 	h                                                    handle
 	active                                               sync.WaitGroup
 	retired, joinSelected, joined, closeSelected, closed bool
-	joinDone, closeDone                                  chan struct{}
+	retireDone, joinDone, closeDone                      chan struct{}
 	joinResult, closeResult                              drain
 	first                                                error
 }
@@ -191,12 +191,15 @@ func (s *Source) Retire() error {
 		return nil
 	}
 	s.retired = true
+	s.retireDone = make(chan struct{})
+	retireDone := s.retireDone
 	s.mu.Unlock()
 	err := s.abi.retire(s.h)
 	s.mu.Lock()
 	if s.first == nil {
 		s.first = err
 	}
+	close(retireDone)
 	s.mu.Unlock()
 	return err
 }
@@ -232,7 +235,9 @@ func (s *Source) Join(ctx context.Context) (bool, error) {
 	if !s.joinSelected {
 		s.joinSelected = true
 		s.joinDone = make(chan struct{})
+		retireDone := s.retireDone
 		go func() {
+			<-retireDone
 			s.active.Wait()
 			result := s.abi.join(s.h)
 			s.mu.Lock()
