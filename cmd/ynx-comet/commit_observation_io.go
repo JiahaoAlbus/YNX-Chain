@@ -130,9 +130,11 @@ func (o *operatorCommitObservation) writeCommitAfterStop() error {
 	}
 	o.attempted = true // partial/uncertain writes are never repeated
 	o.result.FinalCheckpoint, _ = commitPoint(o.app)
-	latest, ok := o.app.LastCommitTiming()
+	latest, ok, reason := observedCommitAttempt(o.app)
 	o.result.LatestTimingAvailable = ok
-	if ok && latest.Durable {
+	if reason != "" {
+		o.reject(reason)
+	} else if ok && latest.Durable {
 		point, reason := observedCommitSample(o.app, latest.Height)
 		if reason != "" {
 			o.reject(reason)
@@ -178,8 +180,5 @@ func (o *operatorCommitObservation) close() error {
 	if o.app != nil {
 		o.app.SetCommitTimingEnabled(false)
 	}
-	if o.finalize == nil {
-		return o.file.close()
-	}
-	return errors.Join(o.finalize.close(), o.file.close())
+	return errors.Join(o.monotonic.close(), o.finalize.close(), o.file.close())
 }

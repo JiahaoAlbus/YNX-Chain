@@ -107,8 +107,8 @@ def job_if(name):
         raise RuntimeError('original job predicate missing: ' + name)
     return ' '.join(found[0].split())
 
-expected_verify = "github.ref != 'refs/heads/main' && github.ref != 'refs/heads/codex/ynx-pq-public-upgrade' && github.ref != 'refs/heads/codex/ynx-pq-perf-integration' && github.ref != 'refs/heads/codex/ynx-pq-perf-source-20261108' && !startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') && !(github.event_name == 'workflow_dispatch' && (inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))"
-expected_focused = "(github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/codex/ynx-pq-perf-source-20261108' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))"
+expected_verify = "github.ref != 'refs/heads/main' && github.ref != 'refs/heads/codex/ynx-pq-public-upgrade' && github.ref != 'refs/heads/codex/ynx-pq-perf-integration' && github.ref != 'refs/heads/codex/ynx-pq-perf-source-20261108' && github.ref != 'refs/heads/codex/perf-before59-clock-20261121' && !startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') && !(github.event_name == 'workflow_dispatch' && (inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))"
+expected_focused = "(github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108') || (github.event_name == 'push' && github.ref == 'refs/heads/codex/perf-before59-clock-20261121') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/codex/ynx-pq-perf-source-20261108' && github.ref != 'refs/heads/codex/perf-before59-clock-20261121' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))"
 sha = 'a123456789abcdef0123456789abcdef01234567'
 other_sha = 'b123456789abcdef0123456789abcdef01234567'
 frozen = 'refs/heads/codex/ynx-pq-remote-' + sha[:9]
@@ -226,6 +226,9 @@ for mode in ('remote', 'paired', 'local', 'retained', 'process'):
 for value in ('True', 'TRUE', '1', 'true_extra', 'unknown'):
     invoke('fresh-malformed-selection', False, ref=main, remote='false', fresh=value, marker=False)
 
+invoke('before59-observation-ref-refuses-remote', False, ref='refs/heads/codex/perf-before59-clock-20261121')
+invoke('before59-observation-ref-refuses-fresh', False, ref='refs/heads/codex/perf-before59-clock-20261121', remote='false', fresh='true', marker=False)
+
 if job_if('verify') != expected_verify or job_if('focused-go') != expected_focused:
     raise RuntimeError('wrong-ref remote selection must enter identity and never the unrelated generic job')
 # The production driver requires a clean, real main checkout whose full commit
@@ -236,12 +239,13 @@ push_branches = text.split('  push:\n', 1)[1].split('    paths:\n', 1)[0]
 if push_branches.splitlines().count("      - 'main'") != 1:
     raise RuntimeError('normal production main push trigger missing')
 normal_push = "github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')"
+candidate_push = normal_push[:-1] + " || github.ref == 'refs/heads/codex/perf-before59-clock-20261121')"
 for name in ('caddy-source', 'artifact-release-cabi'):
-    if job_if(name) != normal_push:
+    if job_if(name) != (candidate_push if name == 'caddy-source' else normal_push):
         raise RuntimeError('same-source normal main producer route missing: ' + name)
-if job_if('protocol-delivery') != normal_push + " && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success'":
+if job_if('protocol-delivery') != candidate_push + " && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success'":
     raise RuntimeError('normal production runtime must retain both same-run source gates')
-if job_if('proof-verifier-macos') != "github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')":
+if job_if('proof-verifier-macos') != "github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' || github.ref == 'refs/heads/codex/perf-before59-clock-20261121')":
     raise RuntimeError('normal production proof verifier route missing')
 if any(path.read_bytes() != raw for path, raw in originals.items()):
     raise RuntimeError('readonly actual-caller controls changed original source bytes')

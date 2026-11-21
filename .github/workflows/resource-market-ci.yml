@@ -7,6 +7,7 @@ on:
       - 'codex/ynx-pq-public-upgrade'
       - 'codex/ynx-pq-perf-integration'
       - 'codex/ynx-pq-perf-source-20261108'
+      - 'codex/perf-before59-clock-20261121'
     paths:
       - 'packages/ynx-batch-v01/**'
       - 'internal/ynxbatch/**'
@@ -319,7 +320,7 @@ jobs:
   verify:
     # Frozen protocol refs have their own fail-closed identity gate below;
     # they must never fall through into unrelated product build/test jobs.
-    if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/codex/ynx-pq-public-upgrade' && github.ref != 'refs/heads/codex/ynx-pq-perf-integration' && github.ref != 'refs/heads/codex/ynx-pq-perf-source-20261108' && !startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') && !(github.event_name == 'workflow_dispatch' && (inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))
+    if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/codex/ynx-pq-public-upgrade' && github.ref != 'refs/heads/codex/ynx-pq-perf-integration' && github.ref != 'refs/heads/codex/ynx-pq-perf-source-20261108' && github.ref != 'refs/heads/codex/perf-before59-clock-20261121' && !startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') && !(github.event_name == 'workflow_dispatch' && (inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -604,7 +605,7 @@ jobs:
           JS
 
   caddy-source:
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' || github.ref == 'refs/heads/codex/perf-before59-clock-20261121')
     runs-on: ubuntu-24.04
     timeout-minutes: 6
     steps:
@@ -1536,7 +1537,7 @@ jobs:
           retention-days: 7
 
   focused-go:
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/codex/ynx-pq-perf-source-20261108' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108') || (github.event_name == 'push' && github.ref == 'refs/heads/codex/perf-before59-clock-20261121') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/codex/ynx-pq-perf-source-20261108' && github.ref != 'refs/heads/codex/perf-before59-clock-20261121' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))
     outputs:
       inputs-artifact-id: ${{ steps.stageupload.outputs.artifact-id }}
       inputs-manifest-sha256: ${{ steps.stagepack.outputs.manifest-sha256 }}
@@ -1550,7 +1551,7 @@ jobs:
     # Remote windows retain their independent 12-minute admission below.
     # Source verification grows with real regressions; actual windows retain
     # their original independent deadlines and resource admission.
-    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || (inputs.paired_n1 || inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history || inputs.remote_signer_process) && 15 || (github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108') && 40 || 25 }}
+    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || (inputs.paired_n1 || inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history || inputs.remote_signer_process) && 15 || (github.event_name == 'push' && (github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' || github.ref == 'refs/heads/codex/perf-before59-clock-20261121')) && 40 || 25 }}
     env:
       GOMAXPROCS: '2'
       GOGC: '50'
@@ -1597,7 +1598,7 @@ jobs:
           go version
           git status --porcelain
           bash scripts/verify/pq-remote-window-entry-check.sh
-          if [ "$YNX_ENTRY_REF" = 'refs/heads/codex/ynx-pq-perf-source-20261108' ]; then
+          if [[ "$YNX_ENTRY_REF" == 'refs/heads/codex/ynx-pq-perf-source-20261108' || "$YNX_ENTRY_REF" == 'refs/heads/codex/perf-before59-clock-20261121' ]]; then
             test "$YNX_ENTRY_EVENT" = 'push'
           fi
           if [ "$YNX_ENTRY_EVENT" = 'workflow_dispatch' ]; then
@@ -2237,7 +2238,7 @@ jobs:
           PY
       - name: Verify prepared signing and held proof sessions on original inputs
         id: pqheldsessions
-        if: ${{ !cancelled() && steps.identity.outcome == 'success' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' && github.event_name == 'push' }}
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' && (github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' || github.ref == 'refs/heads/codex/perf-before59-clock-20261121') && github.event_name == 'push' }}
         timeout-minutes: 7
         run: bash scripts/verify/pq-held-sessions-ci.sh "$GITHUB_WORKSPACE" "$RUNNER_TEMP/ynx-pq-held-sessions"
       - name: Retain original held session public test evidence
@@ -2251,7 +2252,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - name: Acquire only the immutable optional supplier object
-        if: ${{ !cancelled() && steps.identity.outcome == 'success' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' && github.event_name == 'push' }}
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' && (github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' || github.ref == 'refs/heads/codex/perf-before59-clock-20261121') && github.event_name == 'push' }}
         env:
           WIRE_SUPPLIER_READ_TOKEN: ${{ github.token }}
         run: |
@@ -2282,10 +2283,10 @@ jobs:
           print('YNX_WIRE_SUPPLIER_OBJECT_RECEIVED commit=' + commit + ' forkTree=' + tree)
           PY
       - name: Verify exact optional live getter composition without enabling a carrier
-        if: ${{ !cancelled() && steps.identity.outcome == 'success' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' && github.event_name == 'push' }}
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' && (github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' || github.ref == 'refs/heads/codex/perf-before59-clock-20261121') && github.event_name == 'push' }}
         run: python3 -B scripts/verify/wire-live-matching-source-ci.py
       - name: Preserve only public optional live source evidence
-        if: ${{ !cancelled() && steps.identity.outcome == 'success' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' && github.event_name == 'push' }}
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' && (github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' || github.ref == 'refs/heads/codex/perf-before59-clock-20261121') && github.event_name == 'push' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: normal-live-wire-source-${{ github.sha }}
@@ -2741,6 +2742,110 @@ jobs:
               raise RuntimeError('observer stream failed or an observer child skipped')
           print('YNX_PQ_OBSERVER_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=observer_required, nodeStarted=False, liveSyncVerified=False, independentFinalityVerified=False, nativeGrant=False), sort_keys=True))
           PY
+      - name: Verify before59 original observer-only source
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/codex/perf-before59-clock-20261121' && !cancelled() && steps.identity.outcome == 'success' }}
+        run: python3 -B scripts/verify/before59-observer-source-check.py
+      - name: Verify before59 original transfer and height equivalence
+        id: before59equivalence
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/codex/perf-before59-clock-20261121' && !cancelled() && steps.identity.outcome == 'success' }}
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run '^TestBefore59(AllObserverStagesPreserveOriginalBlockExecutor|ObserverAllStagesPreserveOriginalStateEveryHeight)$' ./cmd/ynx-comet > "$RUNNER_TEMP/ynx-before59-observer-equivalence.jsonl"
+          cat "$RUNNER_TEMP/ynx-before59-observer-equivalence.jsonl"
+          python3 -B - <<'PYCI'
+          import json, os
+          from pathlib import Path
+          raw=(Path(os.environ['RUNNER_TEMP'])/'ynx-before59-observer-equivalence.jsonl').read_bytes()
+          if not raw or len(raw)>8*1024*1024: raise RuntimeError('before59 original event size differs')
+          events=[json.loads(line) for line in raw.splitlines()]
+          package='github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet'
+          names=('TestBefore59ObserverAllStagesPreserveOriginalStateEveryHeight','TestBefore59AllObserverStagesPreserveOriginalBlockExecutor')
+          if any(event.get('Action') in ('fail','skip','build-fail') for event in events): raise RuntimeError('before59 test failed or skipped')
+          if [e.get('Action') for e in events if e.get('Package')==package and not e.get('Test') and e.get('Action') in ('start','pass','fail','skip')]!=['start','pass']: raise RuntimeError('before59 original package incomplete')
+          for name in names:
+              if [(e.get('Package'),e.get('Action')) for e in events if e.get('Test')==name and e.get('Action') in ('run','pass','fail','skip')]!=[(package,'run'),(package,'pass')]: raise RuntimeError('before59 original equivalence test missing or repeated')
+          print('YNX_BEFORE59_OBSERVER_EQUIVALENCE_DATA_ONLY tests=2 skipped=0 source='+os.environ['GITHUB_SHA']+' nodeStarted=false runtimeAuthorized=false')
+          PYCI
+      - name: Retain original before59 equivalence events
+        if: ${{ !cancelled() && steps.before59equivalence.outcome != 'skipped' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-before59-observer-equivalence-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ynx-before59-observer-equivalence.jsonl
+          if-no-files-found: error
+          retention-days: 7
+      - name: Verify synthetic local Commit monotonic boundary
+        id: syntheticclock
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          set +e
+          go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run '^(TestCommitMonotonic.*|TestCommitValidation.*|TestOperatorFinalizeObservation.*|TestFinalizeTiming.*|TestABCIPublicTraceFullStateAndAppHashEveryHeight)$' ./cmd/ynx-comet ./internal/consensus > "$RUNNER_TEMP/ynx-commit-finalize-clock-tests.jsonl"
+          YNX_CLOCK_GO_STATUS=$?
+          set -e
+          printf '%s%s\n' 'YNX-COMMIT-CLOCK-TEST-JSON-' 'BEGIN/v1'
+          cat "$RUNNER_TEMP/ynx-commit-finalize-clock-tests.jsonl"
+          printf '%s%s\n' 'YNX-COMMIT-CLOCK-TEST-JSON-' 'END/v1'
+          if [ "$YNX_CLOCK_GO_STATUS" -ne 0 ]; then
+            exit "$YNX_CLOCK_GO_STATUS"
+          fi
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-commit-finalize-clock-tests.jsonl').read_text().splitlines()]
+          def qualify_clock(events):
+              base = 'github.com/JiahaoAlbus/YNX-Chain/'
+              required = {
+                  'cmd/ynx-comet': ['TestCommitMonotonicRequiresDistinctSyntheticOriginal', 'TestCommitMonotonicRealBlockExecutorSyntheticTransfer', 'TestCommitMonotonicMissingSourceIsUnknown', 'TestCommitMonotonicDeclaredSourceValidation', 'TestCommitMonotonicSameKernelChild', 'TestCommitValidationObservationOriginalBlockAndOptIn', 'TestCommitValidationObservationSyntheticOptInCost', 'TestCommitValidationRequiresSyntheticCommitObservation', 'TestCommitValidationPhaseContractRejectsAmbiguousDetail', 'TestOperatorFinalizeObservationDefaultAndClosedFlags', 'TestOperatorFinalizeObservationActualCallerAndFailureProjection', 'TestOperatorFinalizeObservationRetainsFailureAndDropDebt'],
+                  'internal/consensus': ['TestFinalizeTimingDefaultAndCanonicalEquivalence', 'TestFinalizeTimingFailuresAndBoundedKnownClock', 'TestFinalizeTimingMaterializationOriginalOwnership', 'TestCommitValidationTimingTracksSameRealAttemptAndOriginalWire', 'TestCommitValidationTimingOptInPreservesErrorsAndHashWithDeterministicClock', 'TestABCIPublicTraceFullStateAndAppHashEveryHeight'],
+              }
+              if any(e.get('Action') in ('skip', 'fail', 'build-fail') for e in events):
+                  raise RuntimeError('original clock/Finalize stream failed or skipped')
+              for package, names in required.items():
+                  package = base + package
+                  if [e['Action'] for e in events if e.get('Package') == package and not e.get('Test') and e.get('Action') in ('start', 'pass', 'fail', 'skip')] != ['start', 'pass']:
+                      raise RuntimeError('original clock/Finalize package incomplete')
+                  for name in names:
+                      actions = [(e.get('Package'), e['Action']) for e in events if e.get('Test') == name and e.get('Action') in ('run', 'pass', 'fail', 'skip')]
+                      if actions != [(package, 'run'), (package, 'pass')]:
+                          raise RuntimeError('original clock/Finalize test missing, repeated or foreign: ' + name)
+              return sorted(name for names in required.values() for name in names)
+          print('YNX_SYNTHETIC_CLOCK_FINALIZE_DATA_ONLY ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=qualify_clock(events), independentFinality=False, runtimeAuthorized=False), sort_keys=True))
+          PY
+          go build -mod=readonly -p 1 -trimpath -buildvcs=false -ldflags "-X main.operatorCommitBuildSource=$GITHUB_SHA" -o "$RUNNER_TEMP/ynx-comet-monotonic-build" ./cmd/ynx-comet
+          "$RUNNER_TEMP/ynx-comet-monotonic-build" synthetic-commit-clock-build-identity --synthetic > "$RUNNER_TEMP/ynx-comet-monotonic-buildinfo.json"
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          data = json.loads((Path(os.environ['RUNNER_TEMP']) / 'ynx-comet-monotonic-buildinfo.json').read_text())
+          if data.get('status') != 'DECLARED' or data.get('sourceRevision') != os.environ['GITHUB_SHA'] or data.get('runtimeAuthorized') is not False or data.get('nodeStarted') is not False:
+              raise RuntimeError('original trimpath linked declaration missing')
+          PY
+          cat "$RUNNER_TEMP/ynx-comet-monotonic-buildinfo.json"
+      - name: Retain original synthetic Commit clock test events
+        if: ${{ !cancelled() && steps.syntheticclock.outcome != 'skipped' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-commit-clock-tests-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ynx-commit-finalize-clock-tests.jsonl
+          if-no-files-found: error
+          retention-days: 7
+      - name: Measure original synthetic Commit and Finalize observation cost
+        id: syntheticclockab
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 3
+        run: bash scripts/verify/pq-clock-ab-ci.sh
+      - name: Retain original synthetic clock A B test events
+        if: ${{ !cancelled() && steps.syntheticclockab.outcome != 'skipped' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-commit-clock-ab-tests-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ynx-clock-ab-tests.jsonl
+          if-no-files-found: error
+          retention-days: 7
       - name: Qualify original Finalize phase observation tests
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         run: |
@@ -4379,7 +4484,7 @@ jobs:
   # same run/source. Only the closed public fixture catalog crosses runners.
   protocol-delivery:
     needs: [focused-go, caddy-source]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108') && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' || github.ref == 'refs/heads/codex/perf-before59-clock-20261121') && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     env:
@@ -5934,7 +6039,7 @@ jobs:
 
   proof-verifier-macos:
     needs: protocol-delivery
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' || github.ref == 'refs/heads/codex/perf-before59-clock-20261121')
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     env:
