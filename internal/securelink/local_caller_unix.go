@@ -106,9 +106,15 @@ func localIdentityHeader(h http.Header) bool {
 
 type localCallerConn struct {
 	*net.UnixConn
-	closed        atomic.Bool
-	continuation  *taskReadContinuationConn
-	proofV4Header *localCallerProductSessionProofV4HeaderReader
+	closed          atomic.Bool
+	continuation    *taskReadContinuationConn
+	proofV4Header   *localCallerProductSessionProofV4HeaderReader
+	v4Mu            sync.Mutex
+	v4CloseStarted  bool
+	v4CloseReturned bool
+	v4CloseErr      error
+	v4Owner         *originalV4ResponseLease
+	v4Server        *LocalCallerServer
 }
 
 func (c *localCallerConn) Read(p []byte) (int, error) {
@@ -122,6 +128,9 @@ func (c *localCallerConn) Read(p []byte) (int, error) {
 }
 
 func (c *localCallerConn) Close() error {
+	if c.proofV4Header != nil {
+		return c.closeOriginalV4()
+	}
 	c.closed.Store(true)
 	if c.continuation != nil {
 		return c.continuation.closeData()
@@ -132,16 +141,21 @@ func (c *localCallerConn) Close() error {
 type localCallerConnKey struct{}
 
 type localCallerState struct {
-	request      *http.Request
-	ctx          context.Context
-	conn         *localCallerConn
-	server       *LocalCallerServer
-	material     LocalCallerMaterial
-	proofV2      localCallerProductSessionProofV2
-	proofV4      *localCallerProductSessionProofV4
-	handle       *LocalCaller
-	active       atomic.Bool
-	continuation *taskReadContinuationState
+	request              *http.Request
+	ctx                  context.Context
+	conn                 *localCallerConn
+	server               *LocalCallerServer
+	material             LocalCallerMaterial
+	proofV2              localCallerProductSessionProofV2
+	proofV4              *localCallerProductSessionProofV4
+	handle               *LocalCaller
+	active               atomic.Bool
+	continuation         *taskReadContinuationState
+	responseMu           sync.Mutex
+	responseStarted      bool
+	responseOwner        *originalV4ResponseLease
+	responseUses         int
+	responseHandlerEnded bool
 }
 
 func (s *localCallerState) currentOriginalCaller(r *http.Request) error {
@@ -210,6 +224,11 @@ type LocalCallerServer struct {
 	drainClosed           bool
 	taskReadContinuations map[*taskReadContinuationConn]struct{}
 	proofV4Required       bool
+	v4Owners              map[*originalV4ResponseLease]struct{}
+	v4Connections         map[*localCallerConn]struct{}
+	v4Accepting           int
+	v4RejectedUnknown     int
+	v4FirstError          error
 }
 
 func NewLocalCallerServer(cfg LocalCallerServerConfig) (*LocalCallerServer, error) {
@@ -250,6 +269,9 @@ func newLocalCallerServerProfile(cfg LocalCallerServerConfig, routes map[string]
 	if !localService(cfg.Service) || cfg.PeerUID == 0 || cfg.PeerPID <= 0 || cfg.Handler == nil {
 		return nil, ErrDenied
 	}
+	if cfg.RequireOriginalV4ResponseOwner && !proofV4 {
+		return nil, ErrDenied
+	}
 	if cfg.MaxHeaderBytes == 0 {
 		cfg.MaxHeaderBytes = 16 << 10
 		if proofV4 {
@@ -273,7 +295,7 @@ func newLocalCallerServerProfile(cfg LocalCallerServerConfig, routes map[string]
 	}
 	// Registration is copied, so operator mutation cannot retarget live handles.
 	cfg.Routes = nil
-	s := &LocalCallerServer{cfg: cfg, routes: routes, active: make(map[*localCallerState]context.CancelFunc), drained: make(chan struct{}), proofV4Required: proofV4}
+	s := &LocalCallerServer{cfg: cfg, routes: routes, active: make(map[*localCallerState]context.CancelFunc), drained: make(chan struct{}), proofV4Required: proofV4, v4Owners: make(map[*originalV4ResponseLease]struct{}), v4Connections: make(map[*localCallerConn]struct{})}
 	s.http = &http.Server{Handler: http.HandlerFunc(s.serveHTTP), ReadHeaderTimeout: cfg.ReadHeaderTimeout, ReadTimeout: cfg.ReadTimeout, WriteTimeout: cfg.WriteTimeout, IdleTimeout: cfg.IdleTimeout, MaxHeaderBytes: cfg.MaxHeaderBytes,
 		ConnContext: func(ctx context.Context, conn net.Conn) context.Context {
 			c, ok := conn.(*localCallerConn)
@@ -294,22 +316,70 @@ type localCallerListener struct {
 
 func (l *localCallerListener) Accept() (net.Conn, error) {
 	for {
+		if l.server.proofV4Required {
+			l.server.mu.Lock()
+			if l.server.closed.Load() {
+				l.server.mu.Unlock()
+				return nil, net.ErrClosed
+			}
+			l.server.v4Accepting++
+			l.server.mu.Unlock()
+		}
 		c, err := l.Listener.Accept()
 		if err != nil {
+			if l.server.proofV4Required {
+				l.server.mu.Lock()
+				l.server.v4Accepting--
+				l.server.finishDrainLocked()
+				l.server.mu.Unlock()
+			}
 			return nil, err
 		}
 		u, ok := c.(*net.UnixConn)
+		if ok && l.server.proofV4Required {
+			conn := &localCallerConn{UnixConn: u, proofV4Header: &localCallerProductSessionProofV4HeaderReader{}, v4Server: l.server}
+			l.server.mu.Lock()
+			l.server.v4Connections[conn] = struct{}{}
+			originalV4Connections.Lock()
+			originalV4Connections.live[conn] = struct{}{}
+			originalV4Connections.Unlock()
+			l.server.v4Accepting--
+			closed := l.server.closed.Load()
+			l.server.mu.Unlock()
+			// Keep both original UID and independent live UID/PID checks. The
+			// accepted connection is retained before either can reject it, so an
+			// uncertain close on the rejection path cannot disappear.
+			if closed || checkPeerUID(u, l.server.cfg.PeerUID) != nil || localPeer(u, l.server.cfg.PeerUID, l.server.cfg.PeerPID) != nil {
+				_ = conn.Close()
+				continue
+			}
+			return conn, nil
+		}
+		if l.server.proofV4Required {
+			closeErr := c.Close()
+			l.server.mu.Lock()
+			l.server.v4Accepting--
+			if closeErr != nil {
+				if l.server.v4FirstError == nil {
+					l.server.v4FirstError = closeErr
+				}
+				l.server.v4RejectedUnknown++
+				originalV4Rejected.Lock()
+				originalV4Rejected.live[&originalV4RejectedConn{conn: c, server: l.server}] = struct{}{}
+				originalV4Rejected.Unlock()
+			}
+			l.server.finishDrainLocked()
+			l.server.mu.Unlock()
+			continue
+		}
 		if ok && localPeer(u, l.server.cfg.PeerUID, l.server.cfg.PeerPID) == nil {
 			conn := &localCallerConn{UnixConn: u}
-			if l.server.proofV4Required {
-				conn.proofV4Header = &localCallerProductSessionProofV4HeaderReader{}
-			}
 			if l.server.taskReadContinuations != nil {
 				p := newTaskReadContinuationConn(u, l.server)
 				l.server.mu.Lock()
 				if l.server.closed.Load() {
 					l.server.mu.Unlock()
-					_ = u.Close()
+					_ = conn.Close()
 					continue
 				}
 				l.server.taskReadContinuations[p] = struct{}{}
@@ -340,6 +410,11 @@ func (s *LocalCallerServer) Serve(l net.Listener) error {
 	}
 	s.serving = true
 	s.mu.Unlock()
+	if s.proofV4Required {
+		// The same private Unix listener is used, with its UID check performed
+		// inside localCallerListener after the original connection is retained.
+		return s.http.Serve(&localCallerListener{Listener: private.Listener, server: s})
+	}
 	return s.http.Serve(&localCallerListener{Listener: l, server: s})
 }
 
@@ -350,7 +425,10 @@ func (s *LocalCallerServer) Close() error {
 	err := s.Retire()
 	select {
 	case <-s.drained:
-		return err
+		s.mu.Lock()
+		first := s.v4FirstError
+		s.mu.Unlock()
+		return errors.Join(err, first)
 	default:
 		return ErrLocalCallerDraining
 	}
@@ -380,7 +458,7 @@ func (s *LocalCallerServer) Retire() error {
 }
 
 func (s *LocalCallerServer) finishDrainLocked() {
-	if s.closed.Load() && len(s.active) == 0 && len(s.taskReadContinuations) == 0 && !s.drainClosed {
+	if s.closed.Load() && len(s.active) == 0 && len(s.taskReadContinuations) == 0 && len(s.v4Owners) == 0 && len(s.v4Connections) == 0 && s.v4Accepting == 0 && s.v4RejectedUnknown == 0 && !s.drainClosed {
 		s.drainClosed = true
 		close(s.drained)
 	}
@@ -394,7 +472,10 @@ func (s *LocalCallerServer) Join(ctx context.Context) error {
 	}
 	select {
 	case <-s.drained:
-		return nil
+		s.mu.Lock()
+		err := s.v4FirstError
+		s.mu.Unlock()
+		return err
 	case <-ctx.Done():
 		return ctx.Err()
 	}
@@ -449,6 +530,7 @@ func (s *LocalCallerServer) serveHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mu.Unlock()
 	defer func() {
 		state.active.Store(false)
+		state.finishOriginalV4Handler()
 		s.mu.Lock()
 		delete(s.active, state)
 		s.finishDrainLocked()
@@ -489,7 +571,13 @@ func (s *LocalCallerServer) serveHTTP(w http.ResponseWriter, r *http.Request) {
 	if _, err := handle.Current(bound.Context()); err != nil {
 		return
 	}
-	s.cfg.Handler.ServeHTTP(localResponseWriter{w}, bound)
+	if s.proofV4Required {
+		writer := &originalV4ResponseWriter{ResponseWriter: w, state: state}
+		s.cfg.Handler.ServeHTTP(writer, bound)
+		writer.finish()
+	} else {
+		s.cfg.Handler.ServeHTTP(localResponseWriter{w}, bound)
+	}
 }
 
 // LocalCallerClient has one registered socket, service and finite route set.

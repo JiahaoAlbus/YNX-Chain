@@ -111,7 +111,7 @@ jobs:
           fs.writeFileSync(process.env.YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE+'/SOURCE-BEFORE.json',JSON.stringify(pins,null,2)+'\n',{flag:'wx'});
           NODE
           set +e
-          go test -mod=readonly -race -p 1 -count=1 -timeout=120s -json -run '^TestOriginalLocalCaller(Exchange|Peer|ShopProofV[24])' ./internal/securelink > "$YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE/go.jsonl" 2> "$YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE/go.stderr"
+          go test -mod=readonly -race -p 1 -count=1 -timeout=120s -json -run '^(TestOriginalLocalCaller(Exchange|Peer|ShopProofV[24])|TestOriginalV4Response(Owner|UnknownConnection|RejectsWrongPeer))' ./internal/securelink > "$YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE/go.jsonl" 2> "$YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE/go.stderr"
           export YNX_LINK_OWNED_LOCAL_CLIENT_TEST_STATUS=$?
           set -e
           node --input-type=module <<'NODE'
@@ -129,7 +129,18 @@ jobs:
             'ShopProofV2Carrier','ShopProofV2OwnedWire','ShopProofV2Preflight','ShopProofV2RequestCurrent','ShopProofV2IncomingRejection',
             'ShopProofV4CarrierBounds','ShopProofV4RawHeaderReader','ShopProofV4ServerProfile','ShopProofV4OwnedWire',
             'ShopProofV4OwnedPrewriteCurrent','ShopProofV4BorrowLifecycle','ShopProofV4Preflight','ShopProofV4IncomingRejection','ShopProofV4RequestSnapshot','ShopProofV4RawHeaderBudget','ShopProofV4PartialResponse']
-            .map(n=>'TestOriginalLocalCaller'+n);
+            .map(n=>'TestOriginalLocalCaller'+n).concat([
+              'TestOriginalV4ResponseOwnerFencesRealConnectionAndDrains',
+              'TestOriginalV4ResponseOwnerRejectsImplicitSuccessAndRevokedWrite',
+              'TestOriginalV4ResponseOwnerCloseWaitsForHandlerAndExplicitDrain',
+              'TestOriginalV4ResponseOwnerUnknownTransportNeverReleases',
+              'TestOriginalV4ResponseUnknownConnectionIsRetainedWithoutOwner',
+              'TestOriginalV4ResponseRejectsWrongPeerAndDrainsConnection',
+              'TestOriginalV4ResponseOwnerCloseWaitsForInFlightFence',
+              'TestOriginalV4ResponseOwnerReentrantFenceDoesNotDeadlock',
+              'TestOriginalV4ResponseOwnerDrainDoesNotRetireInFlightCallback',
+              'TestOriginalV4ResponseOwnerDrainRetainsJoinedPhysicalError',
+              'TestOriginalV4ResponseOwnerNilPanicIsUnknown']);
           const result={exit:Number(process.env.YNX_LINK_OWNED_LOCAL_CLIENT_TEST_STATUS),required:names,
             run:names.filter(n=>rows.filter(r=>r.Test===n&&r.Action==='run').length===1),
             pass:names.filter(n=>rows.filter(r=>r.Test===n&&r.Action==='pass').length===1),
@@ -605,6 +616,11 @@ jobs:
           for v4_test in CarrierBounds RawHeaderReader ServerProfile OwnedWire OwnedPrewriteCurrent BorrowLifecycle Preflight IncomingRejection RequestSnapshot RawHeaderBudget PartialResponse; do
             for evidence_log in native-check.log unavailable-check.log; do
               test "$(grep -c "^--- PASS: TestOriginalLocalCallerShopProofV4$v4_test " "$RUNNER_TEMP/securelink-evidence/$evidence_log")" = 1
+            done
+          done
+          for owner_test in OwnerFencesRealConnectionAndDrains OwnerRejectsImplicitSuccessAndRevokedWrite OwnerCloseWaitsForHandlerAndExplicitDrain OwnerUnknownTransportNeverReleases UnknownConnectionIsRetainedWithoutOwner RejectsWrongPeerAndDrainsConnection OwnerCloseWaitsForInFlightFence OwnerReentrantFenceDoesNotDeadlock OwnerDrainDoesNotRetireInFlightCallback OwnerDrainRetainsJoinedPhysicalError OwnerNilPanicIsUnknown; do
+            for evidence_log in native-check.log unavailable-check.log; do
+              test "$(grep -c "^--- PASS: TestOriginalV4Response$owner_test " "$RUNNER_TEMP/securelink-evidence/$evidence_log")" = 1
             done
           done
       - name: Exercise the normal command through private IPC and actual PQ TLS
