@@ -247,5 +247,5 @@ jobs:
           cache: pnpm
           cache-dependency-path: apps/ai/mobile/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec tsx --test src/taskColdRestore.test.ts src/taskResultFlow.test.ts src/taskReconnect.test.ts src/tasks.test.ts src/taskV6.test.ts src/sessionSignOut.test.ts
+      - run: pnpm exec tsx --test src/taskColdRestore.test.ts src/taskResultFlow.test.ts src/taskReconnect.test.ts src/tasks.test.ts src/taskV6.test.ts src/sessionSignOut.test.ts src/walletCallbackGate.test.ts
       - run: pnpm run typecheck && pnpm run product-check
