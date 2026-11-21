@@ -79,6 +79,14 @@ func TestPaymentFlowUnknownColdReadNeverResubmitsAndLateFundsNeedReview(t *testi
 	}
 	p.ready = true
 	p.settlement = chain.PaySettlement{ID: "original-settlement-receipt", IntentID: invoice.IntentID, InvoiceID: invoice.CentralID, Merchant: m.CentralMerchantID, PayoutAddress: m.PayoutAddress, Payer: account, Amount: 100, Currency: NativeAsset, TransactionHash: result.TransactionHash, BlockNumber: 100, Status: "paid", IdempotencyKey: "original-payment-operation", AuditHash: strings.Repeat("a", 64), CreatedAt: now}
+	p.settlement.IdempotencyKey = "different-original-operation"
+	if _, err = s.ReconcilePaymentOutcome(context.Background(), session, invoice.ID); err == nil {
+		t.Fatal("foreign settlement idempotency was accepted for original payment")
+	}
+	if p.writes != 1 {
+		t.Fatal("mismatched receipt caused another dispatch")
+	}
+	p.settlement.IdempotencyKey = "original-payment-operation"
 	outcome, err = s.ReconcilePaymentOutcome(context.Background(), session, invoice.ID)
 	if err != nil || outcome.Status != "late_payment_review" || outcome.Invoice.Settlement == nil || p.writes != 1 {
 		t.Fatal("late money was resubmitted or silently fulfilled", err, outcome.Status)

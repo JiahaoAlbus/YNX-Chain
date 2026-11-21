@@ -507,7 +507,7 @@ func (s *Service) acceptSettlement(invoice Invoice, merchant Merchant, v chain.P
 			return err
 		}
 		if found {
-			if pending.Payer != v.Payer || pending.TransactionHash != v.TransactionHash {
+			if pending.Payer != v.Payer || pending.TransactionHash != v.TransactionHash || pending.Key != v.IdempotencyKey {
 				return errors.New("settlement does not match original payment operation")
 			}
 			invoice.Settlement.IntentDigest = pending.IntentDigest
