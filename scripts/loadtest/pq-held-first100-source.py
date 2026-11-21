@@ -47,7 +47,14 @@ def validate(run, job):
                 sourceOnlyQualified=True, runtimePermissionGranted=False)
 
 
-def qualification():
+def qualification(*, metadata_reader=None):
+    if metadata_reader is not None:
+        # A pair controller supplies only original bounded GET transport. Run
+        # the SAME fixed source validator on every call; no cached permission,
+        # source override, environment fallback or retry on reader failure.
+        if not callable(metadata_reader):
+            raise RuntimeError('original held source metadata reader required')
+        return validate(metadata_reader(f'runs/{RUN}'), metadata_reader(f'jobs/{JOB}'))
     class NoRedirect(urllib.request.HTTPRedirectHandler):
         def redirect_request(self, req, fp, code, msg, headers, newurl):
             raise RuntimeError('held first100 CI metadata redirect refused')
