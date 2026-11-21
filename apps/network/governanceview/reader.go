@@ -223,6 +223,15 @@ func (r *Reader) read(ctx context.Context, route string, detail bool) (any, Meta
 		return fail("UNAVAILABLE")
 	}
 	defer response.Body.Close()
+	if ctx.Err() != nil {
+		return fail("UNAVAILABLE")
+	}
+	switch response.StatusCode {
+	case http.StatusUnauthorized, http.StatusForbidden:
+		return fail("ACCESS_RESTRICTED")
+	case http.StatusMethodNotAllowed:
+		return fail("METHOD_NOT_ALLOWED")
+	}
 	raw, err := io.ReadAll(io.LimitReader(response.Body, MaxBodyBytes+1))
 	if err != nil {
 		return fail("UNAVAILABLE")
@@ -233,7 +242,7 @@ func (r *Reader) read(ctx context.Context, route string, detail bool) (any, Meta
 	if ctx.Err() != nil {
 		return fail("UNAVAILABLE")
 	}
-	unsupported := response.StatusCode == 404 || response.StatusCode == 405 || response.StatusCode == 501
+	unsupported := response.StatusCode == http.StatusNotFound || response.StatusCode == http.StatusNotImplemented
 	if response.StatusCode != 200 && !unsupported {
 		return fail("UNAVAILABLE")
 	}

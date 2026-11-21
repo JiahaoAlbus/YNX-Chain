@@ -28,3 +28,5 @@ jobs:
           grep -Eq '^--- PASS: TestParticipationUsesFixedGovernancePrefix \(' "$RUNNER_TEMP/p09-part.log"
           go test -mod=readonly -race -p 1 -count=1 ./cmd/ynx-network-helper -run '^TestParticipationGovernancePrefixedAssembly$' -v | tee "$RUNNER_TEMP/p09-helper.log"
           grep -Eq '^--- PASS: TestParticipationGovernancePrefixedAssembly \(' "$RUNNER_TEMP/p09-helper.log"
+          go test -mod=readonly -race -p 1 -count=1 ./apps/network/governanceview -run '^TestGovernanceUpstreamAccessAndMethodStatus$' -v | tee "$RUNNER_TEMP/p09-status.log"
+          grep -Eq '^--- PASS: TestGovernanceUpstreamAccessAndMethodStatus \(' "$RUNNER_TEMP/p09-status.log"
