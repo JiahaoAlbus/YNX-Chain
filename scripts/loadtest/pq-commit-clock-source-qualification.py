@@ -123,7 +123,7 @@ def validate_original_log(binding,requirements,original):
     begin,end=lines.index(LOG_BEGIN),lines.index(LOG_END)
     require(begin<end,'original test stream markers out of order')
     wanted={tuple(pair) for pair in expected};packages={p for p,_ in wanted}
-    seen={test:[] for _,test in wanted};package_events={p:[] for p in packages}
+    seen={test:[] for _,test in wanted};package_events={p:[] for p in packages};package_state={p:0 for p in packages}
     for line in lines[begin+1:end]:
         event=strict(line.encode('utf-8'))
         require(type(event) is dict and event.get('Action') in
@@ -132,8 +132,13 @@ def validate_original_log(binding,requirements,original):
         action=event['Action'];require(action not in ('skip','fail'),'original test was skipped or failed')
         package=event['Package'];test=event.get('Test')
         require(test is None or type(test) is str,'malformed original test identity')
+        if package in package_state and test is not None:
+            require(package_state[package]==1,'original test outside its package lifetime')
         if test in seen and action in ('run','pass'):seen[test].append((package,action))
         if package in package_events and test is None and action in ('start','pass'):
+            require(package_state[package]==(0 if action=='start' else 1),
+                    'original package start/pass out of order')
+            package_state[package]=1 if action=='start' else 2
             package_events[package].append(action)
     require(all(seen[test]==[(package,'run'),(package,'pass')] for package,test in wanted)
             and all(events==['start','pass'] for events in package_events.values()),

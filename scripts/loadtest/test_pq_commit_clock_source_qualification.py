@@ -106,6 +106,14 @@ class ClockSourceQualificationControls(unittest.TestCase):
             req,raw=self.original_log(binding,events+[additional])
             with self.assertRaises(RuntimeError):m.validate_original_log(binding,req,raw)
 
+        # Even matching run/pass pairs do not count outside their own package.
+        moved=copy.deepcopy(events)
+        index=next(i for i,e in enumerate(moved) if e.get('Test')==test and e['Action']=='run')
+        event=moved.pop(index);moved.insert(0,event)
+        req,raw=self.original_log(binding,moved)
+        with self.assertRaisesRegex(RuntimeError,'outside its package lifetime'):
+            m.validate_original_log(binding,req,raw)
+
     def test_wrong_source_run_attempt_or_job_cannot_borrow_evidence(self):
         for case in ('source','tree','fork','run_id','source_sha','branch','dispatch','attempt','workflow','repo','run_failure','focus_id','job_run','job_sha','job_branch','job_attempt','job_failure','duplicate_job','focus_copy','delivery_id','missing_verifier','skipped_caddy','job_url'):
             with self.subTest(case=case):
