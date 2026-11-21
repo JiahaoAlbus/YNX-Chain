@@ -84,6 +84,40 @@ jobs:
           PYLINUX
           python3 -B scripts/loadtest/test_linux_owned_rss.py -v
           python3 -B scripts/loadtest/test_linux_thread_group_exit.py -v
+      - name: Execute original durable accounting and resource first cause controls
+        run: |
+          python3 -B - <<'PYDURABLE'
+          import contextlib, hashlib, importlib.util, io, json, os, pathlib, sys
+          assert sys.platform == 'linux', 'actual source CI Linux control must not skip'
+          destination = pathlib.Path(os.environ['RUNNER_TEMP']) / 'pq-durable-driver-controls'
+          destination.mkdir(mode=0o700)
+          path = pathlib.Path('scripts/loadtest/pq-staged-harness-controls.py')
+          spec = importlib.util.spec_from_file_location('original_durable_ci_hook', path)
+          hook = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(hook)
+          required = {'test_pq_durable_demand_ledger.py': 21, 'test_pq_durable_staged_scheduler.py': 19,
+                      'test_pq_durable_load_accounting.py': 23, 'test_pq_resource_first_cause.py': 6,
+                      'test_resource_guard_sampling.py': 11}
+          hook.GROUPS = [entry for entry in hook.GROUPS if entry[0] in required]
+          assert {name: count for name, _, count in hook.GROUPS} == required, 'original exact control selection differs'
+          output = io.StringIO()
+          passed = False
+          try:
+              with contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
+                  assert hook.main(['--run']) == 0
+              passed = True
+          finally:
+              raw = output.getvalue().encode()
+              (destination / 'original-controls.log').write_bytes(raw)
+              value = dict(sourceCommit=os.environ['GITHUB_SHA'], runID=os.environ['GITHUB_RUN_ID'],
+                           platform=sys.platform, declaredCases=required, declaredTotal=80,
+                           allDeclaredActuallyPassedWithoutSkip=passed, logSHA256=hashlib.sha256(raw).hexdigest(),
+                           controlCalleeAndResourceInputs=True, nodeStarted=False, businessLoadExecuted=False,
+                           realChainFinalityProven=False, physicalRSSLimitQualified=False,
+                           meaning='Original CI hook requires every selected test to execute, exact counts, zero skips and success. Controlled primitives do not qualify original chain execution or sustained throughput.')
+              (destination / 'RESULT.json').write_text(json.dumps(value, sort_keys=True) + '\n')
+              print(raw.decode(), end='')
+          PYDURABLE
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v5
         with:
           go-version: "1.25"
@@ -312,5 +346,13 @@ jobs:
         with:
           name: pq-post-ready-linux-controls-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/pq-post-ready-linux-controls/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Preserve original durable accounting and resource controls
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pq-durable-driver-controls-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pq-durable-driver-controls/
           if-no-files-found: error
           retention-days: 90
