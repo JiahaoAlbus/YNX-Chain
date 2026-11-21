@@ -13,6 +13,7 @@ from pathlib import Path
 import platform
 import re
 import selectors
+import signal
 import stat
 import subprocess
 import time
@@ -164,17 +165,32 @@ def bind_operation(context_raw,context_sha256,role,*,original=None,durable=None,
     return report
 
 
-def _invoke(binary,fd,context_path,context_sha,request,output,timeout,stop=None,*,original_argv=None,inherited_fds=()):
+def _invoke(binary,fd,context_path,context_sha,request,output,timeout,stop=None,*,original_argv=None,inherited_fds=(),synthetic_fixture=None):
     """One unreplayed original Popen; finite nonblocking IO and exact raw logs."""
-    require(type(timeout) in (int,float) and 0.05<=timeout<=10,'bounded normal verifier deadline required')
+    synthetic=synthetic_fixture is not None
+    require(type(timeout) in (int,float) and 0.05<=timeout<=(240 if synthetic else 10),'bounded normal verifier deadline required')
     argv=[str(binary),'enrollment','--trust-context',str(context_path),'--trust-context-sha256',context_sha]
     if original_argv is not None:
         require(type(original_argv) is list and original_argv and original_argv[0]==str(binary)
                 and all(type(item) is str for item in original_argv),'exact original callee argv required')
         argv=original_argv
-    require(type(inherited_fds) is tuple and len(inherited_fds)<=1
+    require(type(inherited_fds) is tuple and len(inherited_fds)<=(3 if synthetic else 1) and len(set(inherited_fds))==len(inherited_fds)
             and all(type(item) is int and item>=3 and item!=fd for item in inherited_fds),
             'one independent original credential descriptor required')
+    env={'PATH':os.defpath,'LANG':'C'};cwd=None
+    if synthetic:
+        b.closed(synthetic_fixture,('cwd','env','exchange','check_resources'),'closed original synthetic fixture transport required')
+        cwd=Path(synthetic_fixture['cwd'])
+        require(cwd.is_absolute() and cwd.resolve(strict=True)==cwd and callable(synthetic_fixture['exchange'])
+                and callable(synthetic_fixture['check_resources'])
+                and argv==[str(binary),'-test.run','^TestPQLabEnrollmentOriginalCLIConfirmAndRestart$',
+                           '-test.count=1','-test.timeout=240s','-test.v'],'exact original synthetic fixture entry required')
+        extra=synthetic_fixture['env']
+        require(type(extra) is dict and all(type(k) is str and type(v) is str for k,v in extra.items())
+                and all(k.startswith('YNX_PQ_ENROLLMENT_') or k in ('PATH','HOME','TMPDIR','GOTMPDIR','GOCACHE',
+                    'GOMODCACHE','GOPATH','GOTOOLCHAIN','GOMAXPROCS','GOMEMLIMIT','GOGC','GOPROXY','GOSUMDB',
+                    'GOFLAGS','GOENV','GOTELEMETRY') for k in extra),'bounded original synthetic environment required')
+        env.update(extra)
     output=Path(output);require(output.is_absolute() and not output.exists() and output.parent.resolve(strict=True)==output.parent,
                                 'fresh private verifier evidence directory required')
     parent=os.open(output.parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
@@ -192,7 +208,7 @@ def _invoke(binary,fd,context_path,context_sha,request,output,timeout,stop=None,
     except BaseException:
         for stream in streams.values():stream.close()
         os.close(folder);os.close(parent);raise
-    linux=platform.system()=='Linux';process=None;selector=selectors.DefaultSelector();start=time.monotonic_ns()
+    linux=platform.system()=='Linux';process=None;pidfd=None;published=False;selector=selectors.DefaultSelector();start=time.monotonic_ns()
     deadline=time.monotonic()+timeout;buffers={'stdout':bytearray(),'stderr':bytearray()};offset=0;cause=None;reaped=False
     eof=set();broken_pipe=False;truncated=False;retention_errors=[];cleanup_errors=[]
     def finish(action,target,*,retention=False):
@@ -201,50 +217,72 @@ def _invoke(binary,fd,context_path,context_sha,request,output,timeout,stop=None,
             failure=dict(type=type(error).__name__,message=b.accounting.d.failure_message(error),target=target)
             cleanup_errors.append(failure)
             if retention:retention_errors.append(failure)
+    def pump(wait):
+        nonlocal offset,broken_pipe,truncated
+        if synthetic:synthetic_fixture['check_resources']()
+        if stop is not None and stop.is_set():raise InterruptedError('normal verifier cancelled; preserve original inputs')
+        if time.monotonic()>=deadline:raise TimeoutError('normal enrollment verifier deadline exceeded')
+        for key,_ in selector.select(wait):
+            name=key.data;stream=key.fileobj
+            if name=='stdin':
+                try:written=os.write(stream.fileno(),memoryview(request)[offset:offset+65536])
+                except BrokenPipeError:
+                    broken_pipe=True;selector.unregister(stream);stream.close();continue
+                offset+=written
+                if offset==len(request):selector.unregister(stream);stream.close()
+            else:
+                part=os.read(stream.fileno(),65536)
+                if not part:eof.add(name);selector.unregister(stream);stream.close();continue
+                room=RESULT_LIMIT-len(buffers[name]);retained=part[:max(room,0)]
+                buffers[name].extend(retained);pending=memoryview(retained)
+                while pending:
+                    written=streams[name].write(pending);require(written>0,'original output short write');pending=pending[written:]
+                if len(part)>room:
+                    truncated=True;raise ValueError('normal enrollment verifier output exceeded bound')
     try:
+        if synthetic:
+            synthetic_fixture['check_resources']()
+            require(not linux or hasattr(os,'pidfd_open') and hasattr(signal,'pidfd_send_signal'),
+                    'Linux original synthetic child pidfd required before launch')
         if stop is not None and stop.is_set():raise InterruptedError('normal verifier cancelled before original process start')
         process=subprocess.Popen(argv,executable='/proc/self/fd/%d'%fd if linux else str(binary),pass_fds=((fd,) if linux else ())+inherited_fds,
             stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,close_fds=True,bufsize=0,
-            env={'PATH':os.defpath,'LANG':'C'})
+            env=env,cwd=cwd,start_new_session=synthetic)
+        if synthetic and linux:pidfd=os.pidfd_open(process.pid,0) # Before publication to the owning Window.
         for name in ('stdin','stdout','stderr'):
             stream=getattr(process,name);os.set_blocking(stream.fileno(),False)
             selector.register(stream,selectors.EVENT_WRITE if name=='stdin' else selectors.EVENT_READ,name)
+        if synthetic:
+            published=True
+            synthetic_fixture['exchange'](lambda:pump(0),process)
         while selector.get_map():
-            if stop is not None and stop.is_set():raise InterruptedError('normal verifier cancelled; preserve original inputs')
-            left=deadline-time.monotonic()
-            if left<=0:raise TimeoutError('normal enrollment verifier deadline exceeded')
-            for key,_ in selector.select(min(left,0.05)):
-                name=key.data;stream=key.fileobj
-                if name=='stdin':
-                    try:written=os.write(stream.fileno(),memoryview(request)[offset:offset+65536])
-                    except BrokenPipeError:
-                        broken_pipe=True;selector.unregister(stream);stream.close();continue
-                    offset+=written
-                    if offset==len(request):selector.unregister(stream);stream.close()
-                else:
-                    part=os.read(stream.fileno(),65536)
-                    if not part:eof.add(name);selector.unregister(stream);stream.close();continue
-                    room=RESULT_LIMIT-len(buffers[name]);retained=part[:max(room,0)]
-                    buffers[name].extend(retained);pending=memoryview(retained)
-                    while pending:
-                        written=streams[name].write(pending);require(written>0,'original output short write');pending=pending[written:]
-                    if len(part)>room:
-                        truncated=True;raise ValueError('normal enrollment verifier output exceeded bound')
+            pump(min(max(0,deadline-time.monotonic()),0.05))
+        if synthetic:synthetic_fixture['check_resources']()
         if stop is not None and stop.is_set():raise InterruptedError('normal verifier cancelled; preserve original inputs')
+        if synthetic:
+            while process.poll() is None:
+                pump(0);time.sleep(.05) # Keep the original resource observer live after pipe EOF.
         process.wait(timeout=max(0.001,deadline-time.monotonic()));reaped=True
     except Exception as error:
         cause=dict(type=type(error).__name__,message=b.accounting.d.failure_message(error))
     finally:
         if process is not None and not reaped:
-            # This Popen is private to this one callee and is never published
-            # to another reaper. No process is selected from a numeric inventory.
+            # The same-job Window observes this child but retires only AFTER
+            # this call returns. A published Linux leader is signalled via its
+            # pre-publication pidfd; descendant retirement remains Window work.
             try:
-                if process.poll() is None:process.kill()
+                if process.poll() is None:
+                    if synthetic and linux and published:
+                        require(pidfd is not None,'original synthetic leader identity missing; retain cleanup debt')
+                        try:signal.pidfd_send_signal(pidfd,signal.SIGKILL)
+                        except ProcessLookupError:pass # Same handle has already exited; still reap the original Popen.
+                    else:process.kill() # Still private/unpublished, or original non-synthetic callee.
                 process.wait(timeout=1);reaped=True
             except Exception as error:
                 failure=dict(type=type(error).__name__,message=b.accounting.d.failure_message(error),target='original child retirement')
                 cleanup_errors.append(failure)
                 if cause is None:cause=failure
+        if pidfd is not None:finish(lambda:os.close(pidfd),'original child pidfd close')
         finish(selector.close,'selector close')
         if process is not None:
             for name in ('stdin','stdout','stderr'):
@@ -275,6 +313,8 @@ def _invoke(binary,fd,context_path,context_sha,request,output,timeout,stop=None,
     return dict(argv=argv,returnCode=process.returncode if process is not None else None,
         elapsedNs=time.monotonic_ns()-start,firstCause=cause,processStarted=process is not None,processReaped=reaped,
         cleanupDebt=(process is not None and not reaped) or bool(cleanup_errors),cleanupErrors=cleanup_errors,
+        descendantCleanupRequired=synthetic and process is not None,descendantRetirementObserved=False,
+        leaderPidfdUsed=synthetic and linux and pidfd is not None,
         requestBytesWritten=offset,requestBytes=len(request),
         requestPipeClosedEarly=broken_pipe,outputTruncated=truncated,outputComplete=eof=={'stdout','stderr'} and not truncated,
         originalOutputRetained=not retention_errors,retentionErrors=retention_errors,

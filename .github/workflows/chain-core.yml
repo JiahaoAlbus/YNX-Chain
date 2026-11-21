@@ -39,6 +39,12 @@ on:
       - "scripts/verify/chain-core-release-check.mjs"
       - "scripts/verify/streambft-candidate-check.sh"
   workflow_dispatch:
+    inputs:
+      enrollment_private_synthetic:
+        description: "One fresh hosted Linux synthetic pre-sign reservation integration; no nodes or business load"
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -101,7 +107,9 @@ jobs:
                       'test_pq_enrollment_normal_callee.py': 16, 'test_pq_enrollment_original_pair.py': 12,
                       'test_pq_durable_enrollment_reservation.py': 13, 'test_pq_enrollment_original_command.py': 14,
                       'test_pq_enrollment_original_transport.py': 13, 'test_pq_enrollment_original_dispatch.py': 9,
-                      'test_pq_enrollment_reservation_transport.py': 23}
+                      'test_pq_enrollment_reservation_transport.py': 23,
+                      'test_pq_enrollment_reservation_driver.py': 8,
+                      'test_pq_enrollment_linux_private.py': 12}
           hook.GROUPS = [entry for entry in hook.GROUPS if entry[0] in required]
           assert {name: count for name, _, count in hook.GROUPS} == required, 'original exact control selection differs'
           output = io.StringIO()
@@ -114,7 +122,7 @@ jobs:
               raw = output.getvalue().encode()
               (destination / 'original-controls.log').write_bytes(raw)
               value = dict(sourceCommit=os.environ['GITHUB_SHA'], runID=os.environ['GITHUB_RUN_ID'],
-                           platform=sys.platform, declaredCases=required, declaredTotal=196,
+                           platform=sys.platform, declaredCases=required, declaredTotal=216,
                            allDeclaredActuallyPassedWithoutSkip=passed, logSHA256=hashlib.sha256(raw).hexdigest(),
                            controlCalleeAndResourceInputs=True, nodeStarted=False, businessLoadExecuted=False,
                            realChainFinalityProven=False, physicalRSSLimitQualified=False,
@@ -358,5 +366,47 @@ jobs:
         with:
           name: pq-durable-driver-controls-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/pq-durable-driver-controls/
+          if-no-files-found: error
+          retention-days: 90
+
+  enrollment-private-synthetic:
+    name: One original private synthetic enrollment reservation
+    needs: verify
+    if: github.event_name == 'workflow_dispatch' && inputs.enrollment_private_synthetic == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          path: tools
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Resolve frozen original synthetic source
+        id: original-source
+        run: |
+          original_source="$(python3 -B tools/scripts/loadtest/pq-enrollment-linux-private.py --print-source)"
+          test "${#original_source}" -eq 40
+          echo "commit=$original_source" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          path: core
+          ref: ${{ steps.original-source.outputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v5
+        with:
+          go-version-file: core/go.mod
+          cache: false
+      - name: Run sole original private create reservation and normal CLI test
+        run: |
+          python3 -B tools/scripts/loadtest/pq-enrollment-linux-private.py --execute \
+            --source-directory "$GITHUB_WORKSPACE/core" --work-parent "$RUNNER_TEMP" \
+            --public-output "$RUNNER_TEMP/pq-enrollment-public-summary"
+      - name: Preserve only closed public synthetic summary
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pq-enrollment-private-summary-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pq-enrollment-public-summary/SUMMARY.json
           if-no-files-found: error
           retention-days: 90

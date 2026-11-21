@@ -12,7 +12,9 @@ from pathlib import Path
 import select
 import socket
 import stat
+import threading
 import time
+import re
 
 
 def module(name):
@@ -23,7 +25,8 @@ original=module('pq-enrollment-original-command.py')
 d=module('pq-durable-demand-ledger.py')
 b=original.b;c=original.c;require=b.require
 NORMAL_RESERVATION_PRODUCER=None
-INSPECTED_SYNTHETIC_HANDSHAKE='95b16ee7e21b8bc37dc7871f16919fc879a79a0c'
+SYNTHETIC_FIXTURE_BINARIES={}
+INSPECTED_SYNTHETIC_HANDSHAKE='9ae8c53359f5513c693d0820d79bd8d94b6a66a0'
 # Exact test-only frames were inspected at this source. This is NOT a normal
 # callee, binary allowlist, CI qualification or permission to spawn a producer.
 FRAME_LIMIT=32<<10
@@ -203,8 +206,10 @@ class ReservationExchange:
         self.out=unknown();self.out.update(sourceCommit=pins.source,planSHA256=pins.plan_pin,workloadSHA256=pins.workload_pin)
         self.origin=None;self.row=None;self.deadline=None
         self.partial=None
+        self.observe_io=None
 
     def check(self):
+        if self.observe_io is not None:self.observe_io()
         if self.stop is not None and self.stop.is_set():raise InterruptedError('original reservation cancelled; preserve pending')
         if time.monotonic()>=self.deadline:raise TimeoutError('original reservation socket deadline exceeded')
         self.ledger.check_resources()
@@ -317,6 +322,158 @@ def normal_reservation(*,enabled=False,**unused):
     out=unknown();out['missingEvidence']=['fixedNormalSyntheticProducerAndSameSourceBinary',
         'completeSameSourceCI','originalOwnedProcessAndIndependentCreatePins']
     return out
+
+
+def run_synthetic_fixture(*,enabled=False,source=None,source_directory=None,test_binary=None,cli_binary=None,
+                          root=None,plan_sha256=None,workload_sha256=None,credential_fd=None,
+                          output=None,check_resources=None,timeout=240,stop=None):
+    """One normal Core TEST process joined to the real private reservation.
+
+    Static test-binary identity is separate from the closed production gate.
+    No fixture is created here, no caller can add a binary to the registry,
+    and a failed/partial attempt is never retried. The original resource owner
+    supplies its actual guard; this helper invents no RSS/process authority.
+    """
+    require(enabled is True,'synthetic reservation fixture is explicitly opt-in')
+    binding=SYNTHETIC_FIXTURE_BINARIES.get((source,original.platform.system(),original.platform.machine()))
+    return _run_synthetic_fixture(binding=binding,source=source,source_directory=source_directory,
+        test_binary=test_binary,cli_binary=cli_binary,root=root,plan_sha256=plan_sha256,
+        workload_sha256=workload_sha256,credential_fd=credential_fd,output=output,
+        check_resources=check_resources,timeout=timeout,stop=stop)
+
+
+def _run_synthetic_fixture(*,binding,source,source_directory,test_binary,cli_binary,root,
+                           plan_sha256,workload_sha256,credential_fd,output,check_resources,
+                           timeout=240,stop=None,register_process=None):
+    # Internal same-job owner bridge. Its caller must create the Linux binaries
+    # using the frozen source and original Window before supplying their pins.
+    # No public CLI/env option can supply this binding or open production gates.
+    out=unknown();out.update(normalFixtureProcessInvoked=False,normalFixtureTestPassed=False,
+        normalCoreCLIProcessProof=False,physicalResourceCapsQualified=False,originalProcess=None)
+    if binding is None:
+        out['missingEvidence']=['ownerPinnedSameSourceSyntheticTestAndCLIBinaries'];return out
+    b.closed(binding,('testSHA256','cliSHA256'),'closed owner-pinned synthetic binaries required')
+    require(source==INSPECTED_SYNTHETIC_HANDSHAKE and all(b.hex_pin(v) for v in binding.values()),
+            'exact inspected synthetic source and binary bytes required')
+    if not callable(check_resources):
+        out['missingEvidence']=['actualOriginalOwningResourceObserver'];return out
+    require(type(timeout) in (int,float) and math.isfinite(timeout) and .05<=timeout<=240,
+            'bounded complete synthetic process observation required')
+    stop=threading.Event() if stop is None else stop
+    if stop.is_set():out['missingEvidence']=['cancelledBeforeOriginalFixture'];return out
+    check_resources();pins=PinnedOriginals(root,source,plan_sha256,workload_sha256)
+    lab=module('pq-normal-process-lab.py').lab
+    source_directory=Path(source_directory);identity=lab.check_source(source_directory,source)
+    out['sourceIdentity']=identity
+    for name in ('SYNTHETIC-ENROLLMENT-ATTEMPT.json','SYNTHETIC-ENROLLMENT-PEER-ACK.json'):
+        require(not os.path.lexists(pins.root/name),'original synthetic attempt exists; never retry UNKNOWN')
+    output=Path(output)
+    require(output.is_absolute() and output.parent.resolve(strict=True)==output.parent
+            and not os.path.lexists(output) and not output.is_relative_to(pins.root)
+            and not output.is_relative_to(source_directory),'fresh private observer output outside original source/root required')
+    parent_info=output.parent.stat()
+    require(parent_info.st_uid==os.geteuid() and not parent_info.st_mode&0o077,'private original observer parent required')
+    output.mkdir(mode=0o700);directory=os.open(output.parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+    try:os.fsync(directory)
+    finally:os.close(directory)
+    ledger=None;transcript=None;peer=None;child_peer=None;process_result=None;exchange_result=None
+    def cause(error):return dict(type=type(error).__name__,message=d.failure_message(error))
+    try:
+        transcript=PrivateTranscript(output/'frames')
+        ledger=d.DurableLedger(pins.plan(),output/'original.sqlite',lambda event:None,check_resources,enabled=True)
+        with c.held(test_binary,64<<20,executable=True) as (test_raw,test_fd), \
+             c.held(cli_binary,64<<20,executable=True) as (cli_raw,cli_fd), \
+             original.inherited_credential(credential_fd,pins.root) as original_credential:
+            require(b.sha(test_raw)==binding['testSHA256'] and b.sha(cli_raw)==binding['cliSHA256'],
+                    'same-source original synthetic executable bytes differ')
+            peer,child_peer=socket.socketpair();require(len({test_fd,cli_fd,original_credential,child_peer.fileno()})==4
+                and all(3<=fd<=4096 for fd in (test_fd,cli_fd,original_credential,child_peer.fileno())),
+                'distinct bounded original executable/credential/reservation descriptors required')
+            exchange=ReservationExchange(peer,ledger,pins,transcript,timeout=min(timeout,90),stop=stop,enabled=True)
+            env=dict(YNX_PQ_ENROLLMENT_PRIVATE_FIXTURE_MODE='synthetic-perf-handshake',
+                YNX_PQ_ENROLLMENT_PRIVATE_FIXTURE_ROOT=str(pins.root),YNX_PQ_ENROLLMENT_SOURCE_COMMIT=source,
+                YNX_PQ_ENROLLMENT_PLAN_SHA256=plan_sha256,YNX_PQ_ENROLLMENT_WORKLOAD_SHA256=workload_sha256,
+                YNX_PQ_ENROLLMENT_CREDENTIAL_FD=str(original_credential),YNX_PQ_ENROLLMENT_RESERVATION_FD=str(child_peer.fileno()),
+                YNX_PQ_ENROLLMENT_CLI_FD=str(cli_fd),YNX_PQ_ENROLLMENT_CLI_SHA256=binding['cliSHA256'],
+                GOMAXPROCS='1',GOMEMLIMIT='512MiB',GOTOOLCHAIN='local',GOPROXY='off',GOSUMDB='off',
+                GOENV='off',GOTELEMETRY='off',TMPDIR=str(output))
+            def connected(pump,process):
+                nonlocal exchange_result
+                if register_process is not None:register_process(process,argv)
+                child_peer.close();exchange.observe_io=pump
+                out['normalFixtureProcessInvoked']=True
+                exchange_result=exchange.run()
+                if exchange_result['firstCause'] is not None:raise RuntimeError('original pre-sign reservation failed; preserve its first cause')
+            argv=[str(test_binary),'-test.run','^TestPQLabEnrollmentOriginalCLIConfirmAndRestart$',
+                  '-test.count=1','-test.timeout=240s','-test.v']
+            process_result=c._invoke(test_binary,test_fd,None,None,b'',output/'process',timeout,stop,
+                original_argv=argv,inherited_fds=(original_credential,child_peer.fileno(),cli_fd),
+                synthetic_fixture=dict(cwd=str(source_directory/'internal/consensus'),env=env,
+                    exchange=connected,check_resources=check_resources))
+            out['originalProcess']={key:value for key,value in process_result.items() if key not in ('stdout','stderr')}
+            out['normalFixtureProcessInvoked']=process_result['processStarted']
+            out['originalProcess'].update(stdoutSHA256=b.sha(process_result['stdout']),stderrSHA256=b.sha(process_result['stderr']))
+            if exchange_result is not None:out['reservation']=exchange_result;out['firstCause']=exchange_result['firstCause']
+            out['firstCause']=out['firstCause'] or process_result['firstCause']
+            out['cleanupDebt']=process_result['cleanupDebt'] or bool(exchange_result and exchange_result['cleanupDebt'])
+            out['descendantCleanupRequired']=process_result['descendantCleanupRequired']
+            out['descendantRetirementObserved']=False
+            if out['firstCause'] is None:
+                require(process_result['returnCode']==0 and process_result['processReaped'] and process_result['outputComplete']
+                    and process_result['originalOutputRetained'],'original synthetic fixture process did not complete')
+                text=process_result['stdout']
+                name=b'TestPQLabEnrollmentOriginalCLIConfirmAndRestart'
+                require(len(re.findall(rb'^=== RUN   '+name+rb'$',text,re.M))==1
+                    and len(re.findall(rb'^--- PASS: '+name+rb' \(',text,re.M))==1
+                    and not re.search(rb'^--- (?:SKIP|FAIL):',text,re.M),'one actual original synthetic test must pass, not zero/skip')
+                require(lab.check_source(source_directory,source)==identity,'original fixture source changed')
+                pins.check();out['normalFixtureTestPassed']=True
+    except BaseException as error:
+        out['firstCause']=out['firstCause'] or cause(error)
+        if not isinstance(error,Exception):stop.set();raise
+    finally:
+        for resource in (peer,child_peer,ledger,transcript):
+            if resource is not None:
+                try:resource.close()
+                except Exception as error:
+                    out['cleanupErrors'].append(cause(error));out['cleanupDebt']=True;out['firstCause']=out['firstCause'] or cause(error)
+        if ledger is not None and ledger.closed:
+            try:out['database']=ledger.artifact()
+            except Exception as error:out['firstCause']=out['firstCause'] or cause(error);out['cleanupDebt']=True
+        try:original._retain_readback(output,out)
+        except Exception as error:out['firstCause']=out['firstCause'] or cause(error);out['cleanupDebt']=True
+    return out
+
+
+def main(argv=None,*,check_resources=None):
+    """Explicit driver dispatch; the caller cannot create a source/guard grant."""
+    import argparse
+    import json
+    parser=argparse.ArgumentParser(description=__doc__,allow_abbrev=False)
+    parser.add_argument('--synthetic',action='store_true');parser.add_argument('--execute',action='store_true')
+    for key in ('source','source-directory','test-binary','cli-binary','root','plan-sha256','workload-sha256','output'):
+        parser.add_argument('--'+key,required=True)
+    parser.add_argument('--credential-fd',type=int,required=True);parser.add_argument('--timeout',type=float,default=240)
+    args=parser.parse_args(argv)
+    if not args.synthetic or not args.execute:
+        out=unknown();out['missingEvidence']=['explicitSyntheticExecutionRequested']
+    else:
+        try:
+            with original.original_dispatch_signals() as stop:
+                out=run_synthetic_fixture(enabled=True,source=args.source,source_directory=args.source_directory,
+                    test_binary=args.test_binary,cli_binary=args.cli_binary,root=args.root,plan_sha256=args.plan_sha256,
+                    workload_sha256=args.workload_sha256,credential_fd=args.credential_fd,output=args.output,
+                    timeout=args.timeout,stop=stop,check_resources=check_resources)
+        except Exception as error:
+            out=unknown();out['firstCause']=dict(type=type(error).__name__,message=d.failure_message(error))
+    # Console is public projection only. Original raw frames, paths and failure
+    # text remain in the private observer directory; no public fixture archive.
+    keys=('schema','status','normalFixtureProcessInvoked','normalFixtureTestPassed','sourceCIQualified',
+          'signingAuthorized','nonceReleased','automaticRetry','cleanupDebt','missingEvidence')
+    public={key:out[key] for key in keys if key in out}
+    public['firstCauseType']=None if out.get('firstCause') is None else out['firstCause']['type']
+    print(json.dumps(public,separators=(',',':')))
+    return 2 # Even a normal synthetic test pass is not account/runtime admission.
 
 
 def audit_private_reservation(*,pins,transcript,database,database_pin,file_pins,enabled=False):

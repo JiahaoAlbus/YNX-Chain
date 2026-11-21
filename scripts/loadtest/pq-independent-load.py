@@ -1602,10 +1602,13 @@ def run(args):
     return result
 
 
-def main(argv=None):
+def main(argv=None,*,enrollment_resource_observer=None):
     argv=list(sys.argv[1:] if argv is None else argv)
     if argv and argv[0]=='enrollment-original':
         return module('original_enrollment_dispatch','pq-enrollment-original-command.py').main(argv[1:])
+    if argv and argv[0]=='enrollment-reserve-synthetic':
+        return module('synthetic_enrollment_reservation_dispatch','pq-enrollment-reservation-transport.py').main(
+            argv[1:],check_resources=enrollment_resource_observer)
     p=argparse.ArgumentParser(description=__doc__);p.add_argument("--source",required=True);p.add_argument("--commit",required=True);p.add_argument("--mode",choices=("online","pre-signed"),required=True)
     p.add_argument("--rate",type=int,choices=(100,500,1000),default=100);p.add_argument("--seconds",type=int,required=True);p.add_argument("--tail-seconds",type=int,default=30);p.add_argument("--accounts",type=int,required=True);p.add_argument("--per-account",type=int,required=True);p.add_argument("--proof-timeout",type=int,default=30);p.add_argument("--wire-observation",action="store_true");p.add_argument("--prior-result");p.add_argument("--prior-result-sha256");p.add_argument("--execute",action="store_true")
     p.add_argument("--commit-observation",action="store_true",help="explicit final qualified normal Commit consumer only; no signer fsync/finality or whole replay claim")
