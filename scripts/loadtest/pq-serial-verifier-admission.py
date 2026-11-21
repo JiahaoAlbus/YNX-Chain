@@ -95,6 +95,8 @@ class SerialVerifierAdmission:
                     observationOriginMonotonicNs=self.origin,plannedObservationDeadlineMonotonicNs=self.deadline,
                     actualCutoffSource='original loadResult.observationCutoffNs; same origin, may be earlier',
                     actualCutoffStatus='UNKNOWN',actualObservationCutoffMonotonicNs=None,
+                    releaseWorkerClosureObserved=False,originalWorkerRetirementObservedNs=None,
+                    snapshotFinal=False,
                     timingMeaning='queue/admission, original helper launch/wait and cleanup are separate parent boundaries; launch-to-cleanup is not verifier compute or window-qualified time',
                     status='UNKNOWN',attempted=None,admitted=None,released=None,queued=None,
                     active=None,peakQueued=None,cleanupDebt=None)
@@ -104,15 +106,35 @@ class SerialVerifierAdmission:
                     and 0<=cutoff<=self.deadline-self.origin):
                 result.update(actualCutoffStatus='ORIGINAL_SCHEDULER_OBSERVED',
                               actualObservationCutoffMonotonicNs=self.origin+cutoff)
+                pipeline=load_result.get('pipeline')
+                if type(pipeline) is dict:
+                    retired=pipeline.get('workerRetirementObservedNs')
+                    if (self.stop.is_set() and pipeline.get('stageWorkers')==dict(publish=2,observe=2,finalize=4)
+                            and pipeline.get('workerThreadsRetired') is True
+                            and type(pipeline.get('workerRetirementTimeouts')) is list
+                            and not pipeline['workerRetirementTimeouts']
+                            and type(retired) is int and cutoff<=retired<(1<<63)-self.origin):
+                        # The normal finite scheduler checks each actual
+                        # worker's is_alive after its original join. All
+                        # verifier release callers run in those workers.
+                        result.update(releaseWorkerClosureObserved=True,
+                                      originalWorkerRetirementObservedNs=retired)
         if not self.condition.acquire(timeout=.05):
             # Counters remain unobserved, but an already known retirement
             # failure is not erased merely because the queue lock is busy.
             if self.debt:result['cleanupDebt']=True
             return result
         try:
+            result.update(attempted=self.attempted,admitted=self.admitted,released=self.released,
+                queued=len(self.queue),active=int(self.owner is not None),peakQueued=self.peak_waiters)
+            # A condition-held counter snapshot is NOT worker retirement:
+            # retain_retirement_debt deliberately never waits for this lock.
+            # Without the original scheduler's completed worker lifecycle,
+            # no read of False can establish a final absence of cleanup debt.
+            final=(result['releaseWorkerClosureObserved'] and result['active']==0
+                   and result['queued']==0 and result['admitted']==result['released'])
             debt=self.debt
-            result.update(status='OBSERVED' if self.bound and not debt else 'UNKNOWN',
-                attempted=self.attempted,admitted=self.admitted,released=self.released,
-                queued=len(self.queue),active=int(self.owner is not None),peakQueued=self.peak_waiters,cleanupDebt=debt)
+            result.update(snapshotFinal=final,status='OBSERVED' if final and not debt else 'UNKNOWN',
+                          cleanupDebt=True if debt else False if final else None)
             return result
         finally:self.condition.release()

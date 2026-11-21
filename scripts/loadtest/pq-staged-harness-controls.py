@@ -7,7 +7,7 @@ import sys
 import unittest
 
 GROUPS=[
- ('test_pq_serial_verifier_admission.py',None,19),
+ ('test_pq_serial_verifier_admission.py',None,21),
  ('test_pq_durable_demand_ledger.py',None,21),
  ('test_pq_durable_staged_scheduler.py',None,19),
  ('test_pq_durable_load_accounting.py',None,26),

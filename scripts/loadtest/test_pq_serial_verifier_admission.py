@@ -168,6 +168,73 @@ class SerialVerifierControls(unittest.TestCase):
         self.assertEqual((report['status'],report['active'],report['released'],report['cleanupDebt']),('UNKNOWN',0,1,True))
         with self.assertRaisesRegex(RuntimeError,'cleanup unresolved'):self.invoke(1)
         self.assertEqual(len(self.w.children),1)
+    def test_real_release_failure_during_report_cannot_be_final_no_debt(self):
+        self.enable();(self.root/'release').touch()
+        ready=threading.Event();allow_exit=threading.Event();finished=threading.Event()
+        real_wait=self.w.wait
+        def wait(proc):
+            real_wait(proc);ready.set();self.assertTrue(allow_exit.wait(2))
+        def invoke():
+            try:return self.invoke(0)
+            finally:finished.set()
+        test=self
+        class BarrierQueue(type(self.b.verifier_admission.queue)):
+            once=False
+            def __len__(self):
+                if not self.once:
+                    self.once=True;allow_exit.set();test.assertTrue(finished.wait(2))
+                return super().__len__()
+        with mock.patch.object(self.w,'wait',side_effect=wait):
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                future=pool.submit(invoke)
+                try:
+                    self.assertTrue(ready.wait(2))
+                    # The report holds the real condition while the original
+                    # helper finishes and its release times out on that lock.
+                    self.b.verifier_admission.queue=BarrierQueue(self.b.verifier_admission.queue)
+                    report=self.b.verifier_admission.report()
+                    with self.assertRaisesRegex(RuntimeError,'retirement lock unavailable'):future.result(2)
+                    self.assertEqual(report['status'],'UNKNOWN');self.assertIs(report['cleanupDebt'],True)
+                    self.assertEqual(report['active'],1)
+                finally:allow_exit.set()
+    def test_actual_staged_unjoined_worker_has_no_final_no_debt_snapshot(self):
+        controls=module('test_pq_staged_independent_scheduler.py');structural=controls.StructuralBackend()
+        plan=controls.plan(count=1,accounts=1,tail_ns=1_000_000_000)
+        self.b.configure_serial_verifier();self.b.publish=structural.publish;self.b.observe=structural.observe
+        self.b.stop=structural.stop
+        def final(handle,notify,stop):
+            row=handle.row
+            self.b.helper('load-%05d-normal-verifier'%row['index'],
+                [str(self.control),str(self.root/'ready-0'),str(self.root/'release')],
+                original_verifier=dict(index=row['index'],logicalId=row['id'],operationId=row['operationId']))
+            raise RuntimeError('CONTROL late result remains UNKNOWN')
+        self.b.finalize=final
+        def resource_check():
+            if (self.root/'ready-0').exists():raise helpers.OriginalWaitFailure('UNIT original resource cutoff')
+        original_join=threading.Thread.join;owned=[]
+        def bounded_join(thread,timeout=None):
+            if thread.name.startswith('normal-staged-'):
+                owned.append(thread);return original_join(thread,min(.005,timeout or .005))
+            return original_join(thread,timeout)
+        try:
+            # Only shorten this control's join budget. Run the actual original
+            # scheduler with a real live verifier CONTROL child and worker.
+            with mock.patch.object(threading.Thread,'join',bounded_join):
+                result=d.run_load_window(plan,self.b,SimpleNamespace(emit=lambda _:None),SimpleNamespace(check=resource_check),
+                                         self.b.stop_event,staged_scheduler=controls.staged)
+            self.assertFalse(result['pipeline']['workerThreadsRetired'])
+            self.assertTrue(any(t.is_alive() for t in owned))
+            self.assertEqual(result['firstCause'],'UNIT original resource cutoff')
+            report=self.b.verifier_admission.report(result)
+            self.assertEqual(report['status'],'UNKNOWN');self.assertIsNone(report['cleanupDebt'])
+            self.assertEqual(report['active'],1);self.assertEqual(result['qualified'],0)
+        finally:
+            (self.root/'release').touch()
+            for thread in owned:original_join(thread,2)
+        self.assertFalse(any(t.is_alive() for t in owned))
+        # That immutable original result never proved retirement; later
+        # cleanup does not retrospectively upgrade its snapshot or operation.
+        self.assertIsNone(self.b.verifier_admission.report(result)['cleanupDebt'])
     def test_unreaped_real_control_keeps_permit_and_original_failure(self):
         self.enable();original=helpers.OriginalWaitFailure('UNIT original wait failed before retirement')
         launch=self.w.launch
@@ -302,6 +369,15 @@ class SerialVerifierControls(unittest.TestCase):
         self.assertLessEqual(result['observationCutoffNs'],plan['windowNs']+plan['tailNs'])
         self.assertEqual(self.b.verifier_admission.report()['released'],4)
         self.assertTrue(all(row['process'].returncode==0 for row in self.w.children))
+        snapshot=self.b.verifier_admission.report(result)
+        self.assertTrue(snapshot['releaseWorkerClosureObserved']);self.assertTrue(snapshot['snapshotFinal'])
+        self.assertEqual(snapshot['status'],'OBSERVED');self.assertIs(snapshot['cleanupDebt'],False)
+        for field,value in (('workerThreadsRetired',False),('workerThreadsRetired',1),
+                            ('workerRetirementTimeouts',[{'worker':'CONTROL'}]),('workerRetirementObservedNs',True)):
+            incomplete=copy.deepcopy(result);incomplete['pipeline'][field]=value
+            snapshot=self.b.verifier_admission.report(incomplete)
+            self.assertEqual(snapshot['status'],'UNKNOWN');self.assertIsNone(snapshot['cleanupDebt'])
+            self.assertFalse(snapshot['snapshotFinal'])
     def test_earlier_resource_cutoff_keeps_late_structural_reply_unknown(self):
         controls=module('test_pq_staged_independent_scheduler.py');structural=controls.StructuralBackend()
         plan=controls.plan(count=1,accounts=1,tail_ns=800_000_000)
