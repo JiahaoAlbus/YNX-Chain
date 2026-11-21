@@ -336,4 +336,32 @@ class PoisonControls(unittest.TestCase):
                 spawn.assert_not_called()
             self.assertEqual(w.logs,[])
 
+    def test_backend_stalled_window_lock_preserves_debt_and_never_signals(self):
+        w=SimpleNamespace(lock=threading.Lock(),stopping=False,closed_for_launch=False,children=[])
+        backend=driver.NormalBackend.__new__(driver.NormalBackend)
+        backend.stop_event=threading.Event();backend.w=w;backend.sessions={}
+        held=threading.Event();release=threading.Event()
+        def holder():
+            with w.lock:held.set();release.wait(5)
+        thread=threading.Thread(target=holder);thread.start();self.assertTrue(held.wait(1))
+        result=dict(firstCause='original transaction UNKNOWN')
+        try:
+            with mock.patch.object(driver.os,'killpg',side_effect=AssertionError('unsafe signal')):
+                started=__import__('time').monotonic()
+                driver.stop_backend_preserving_cause(backend,result)
+                self.assertLess(__import__('time').monotonic()-started,2)
+            self.assertEqual(result['firstCause'],'original transaction UNKNOWN')
+            self.assertEqual(result['backendStopError']['errorType'],'RuntimeError')
+            self.assertTrue(result['backendStopError']['cleanupDebt'])
+            self.assertTrue(w.closed_for_launch);self.assertTrue(backend.stop_event.is_set())
+        finally:release.set();thread.join(2)
+
+    def test_backend_stop_error_retains_first_failure_and_allows_next_cleanup(self):
+        backend=SimpleNamespace(stop=mock.Mock(side_effect=RuntimeError('owned cleanup failed')))
+        for existing in ('first original rejection',None):
+            result=dict(firstCause=existing)
+            driver.stop_backend_preserving_cause(backend,result)
+            self.assertEqual(result['firstCause'],existing or 'owned cleanup failed')
+            self.assertTrue(result['backendStopError']['cleanupDebt'])
+
 if __name__=='__main__':unittest.main()

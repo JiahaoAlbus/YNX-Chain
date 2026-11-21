@@ -1032,7 +1032,11 @@ class NormalBackend:
         self.finalize(self.observe(self.publish(row,account,notify,stop),notify,stop),notify,stop)
     def stop(self):
         self.stop_event.set();self.w.stopping=True
-        with self.w.lock:children=list(self.w.children)
+        self.w.closed_for_launch=True
+        if not self.w.lock.acquire(timeout=1):
+            raise RuntimeError('original backend cleanup lock did not retire; preserve cleanup debt')
+        try:children=list(self.w.children)
+        finally:self.w.lock.release()
         for child in children:
             if child["name"].startswith("load-") and child["process"].poll() is None:
                 try:lab.signal_original_child(child["process"],signal.SIGTERM)
@@ -1063,6 +1067,13 @@ class NormalBackend:
             if process.stdin is not None and not process.stdin.closed:
                 try:process.stdin.close()
                 except (OSError,ValueError):pass
+
+
+def stop_backend_preserving_cause(backend,result):
+    try:backend.stop()
+    except BaseException as error:
+        result['backendStopError']=dict(errorType=type(error).__name__,reason=str(error),cleanupDebt=True)
+        result['firstCause']=result['firstCause'] or str(error)
 
 
 def attach_live_reader(ceremony, live_module):
@@ -1423,7 +1434,7 @@ def run(args):
     finally:
         stop.set()
         if backend is not None:
-            backend.stop()
+            stop_backend_preserving_cause(backend,result)
             if getattr(backend, "pool_ready", None) is not None:
                 # A later lane can fail before the whole pool returns. Keep
                 # the successful earlier READY frames and their elapsed times.
