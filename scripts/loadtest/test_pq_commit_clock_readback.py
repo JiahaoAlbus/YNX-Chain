@@ -38,12 +38,12 @@ class CommitClockReadbackControls(unittest.TestCase):
         argv=['go','build','-mod=readonly','-p','1','-trimpath','-buildvcs=false','-ldflags',
               '-X main.operatorCommitBuildSource='+source,'-tags','ynx_live_wire_observation','-o',binary_path,'./cmd/ynx-comet']
         parent=dict(processID=100,bootID='00000000-0000-0000-0000-000000000000',timeNamespace='1:2',clock='CLOCK_MONOTONIC',observedStartNs='800',observedEndNs='900')
-        receipt=dict(source=identity,configuredDemand=1,binaries={'ynx-comet':binary},commitClockParent=parent,
+        receipt=dict(source=identity,configuredDemand=1,binaries={'ynx-comet':binary},commitClockParent=parent,sameHost=True,physicalFaultDomains=1,
             normalLiveBuildProvenance={'ynx-comet':dict(binarySHA256=binary,originalSource=identity,sourceSelectionSHA256=r.sha(selection),
                 sourceDependenciesReceiptSHA256=r.sha(deps),buildArgv=argv,buildCwd='/synthetic/source',selectedOptionalForkTree='e'*40)},
-            normalLiveSourceDependencies={'sourceDependencies':json.loads(deps)},commitClockBuildIdentity=dict(pid=99,**descriptor(declaration)),
+            normalLiveSourceDependencies={'sourceDependencies':json.loads(deps)},commitClockBuildIdentity=dict(path='commit-clock-build-identity.log',pid=99,**descriptor(declaration)),
             commitClockBuiltBinary=dict(path=binary_path,sha256=binary,device=1,inode=44,size=1024),
-            activation=dict(networkPlanSHA256=r.sha(network)),loadResult=dict(originProcessID=100,originMonotonicNs='1000',rows=[dict(index=0,id='9'*64,hash=tx,submittedNs=100)]),
+            activation=dict(syntheticOnly=True,networkPlanSHA256=r.sha(network)),loadResult=dict(originProcessID=100,originMonotonicNs='1000',rows=[dict(index=0,id='9'*64,hash=tx,submittedNs=100)]),
             normalCommitObservation=dict(originalSnapshots=[]),commitMonotonicObservation=dict(originalSnapshots=[]),
             commitClockProcessProbes=[],processes=[dict(name='commit-clock-build-identity',pid=99,exitCode=0,command=[binary_path,'synthetic-commit-clock-build-identity','--synthetic'])],commitClockInclusions=[])
         evidence=[]
@@ -64,13 +64,14 @@ class CommitClockReadbackControls(unittest.TestCase):
                 captureBoundary=r.BOUNDARY,samples=[dict(height=5,appHash=app,monotonicNs=str(1300+node))]))
             probe=dict(pid=pid,startTicks='19',binarySHA256=binary,binaryPath=binary_path,device=1,inode=44,size=1024,timeNamespace='1:2',observedStartNs='940',observedEndNs='950',
                        identity='original-unpublished-pidfd-and-live-proc-exe')
-            receipt['normalCommitObservation']['originalSnapshots'].append(dict(node=node,pid=pid,**descriptor(commit)))
-            receipt['commitMonotonicObservation']['originalSnapshots'].append(dict(node=node,pid=pid,**descriptor(clock)))
+            common=dict(node=node,pid=pid,processName='pq-node-%d'%node,sourceStopped=True,usable=True)
+            receipt['normalCommitObservation']['originalSnapshots'].append(dict(common,path='commit-observation-node-%d-original.json'%node,**descriptor(commit)))
+            receipt['commitMonotonicObservation']['originalSnapshots'].append(dict(common,path='commit-monotonic-node-%d-original.json'%node,**descriptor(clock)))
             receipt['commitClockProcessProbes'].append(dict(node=node,probe=probe))
             receipt['processes'].append(dict(name='pq-node-%d'%node,pid=pid,startTicks=19,command=['original-shim',binary_path]))
             evidence.append(dict(processProbe=probe,commitOriginal=commit,clockOriginal=clock))
         inclusion=raw(dict(observedMonotonicNs=1500,rows=[dict(hash=tx.upper(),height='5',tx_result=dict(code=0)) for _ in range(4)]))
-        receipt['commitClockInclusions'].append(dict(index=0,**descriptor(inclusion)))
+        receipt['commitClockInclusions'].append(dict(index=0,path='load-operations/00000/four-node-inclusion.json',**descriptor(inclusion)))
         kwargs=dict(expected_source=source,parent=parent,node_evidence=evidence,inclusion={0:inclusion},selection_raw=selection,
                     dependencies_raw=deps,build_identity_raw=declaration,network_plan_raw=network)
         return receipt,kwargs

@@ -170,7 +170,8 @@ def _source_binding(receipt, source, selection_raw, dependencies_raw, build_iden
             and all(type(physical.get(key)) is int and physical[key]>0 for key in ('device','inode','size')),
             'original physical built binary identity differs')
     reference=receipt['commitClockBuildIdentity']
-    require(len(build_identity_raw)==reference['bytes'] and sha(build_identity_raw)==reference['sha256'], 'original binary identity bytes differ')
+    require(reference['path']=='commit-clock-build-identity.log' and len(build_identity_raw)==reference['bytes']
+            and sha(build_identity_raw)==reference['sha256'], 'original binary identity bytes differ')
     identity_processes=[p for p in receipt['processes'] if p['name']=='commit-clock-build-identity']
     require(len(identity_processes)==1 and type(identity_processes[0]['pid']) is int and identity_processes[0]['pid']==reference['pid']
             and type(identity_processes[0]['exitCode']) is int and identity_processes[0]['exitCode']==0
@@ -206,6 +207,8 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
     try:
         require(COMMIT_CLOCK_SOURCE is not None and expected_source==COMMIT_CLOCK_SOURCE,
                 'exact reviewed original Commit clock source/CI NOT_SUPPLIED')
+        require(receipt.get('sameHost') is True and type(receipt.get('physicalFaultDomains')) is int and receipt['physicalFaultDomains']==1
+                and receipt['activation'].get('syntheticOnly') is True, 'original synthetic same-host receipt required')
         binary,binary_path,physical=_source_binding(receipt,expected_source,selection_raw,dependencies_raw,build_identity_raw)
         require(sha(network_plan_raw)==receipt['activation']['networkPlanSHA256'], 'original network plan bytes differ')
         network=strict(network_plan_raw,1<<20)
@@ -237,6 +240,11 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
             olds=[x for x in descriptors if x['node']==i]; news=[x for x in clock_descriptors if x['node']==i]
             require(len(olds)==len(news)==1, 'duplicate or absent original snapshot binding')
             old,new=olds[0],news[0]
+            require(old.get('path')=='commit-observation-node-%d-original.json'%i
+                    and new.get('path')=='commit-monotonic-node-%d-original.json'%i
+                    and old.get('processName')==new.get('processName')=='pq-node-%d'%i
+                    and old.get('sourceStopped') is True and new.get('sourceStopped') is True
+                    and old.get('usable') is True and new.get('usable') is True, 'original stopped node snapshots required')
             require(sha(raw)==old['sha256'] and len(raw)==old['bytes'] and sha(clock_raw)==new['sha256'] and len(clock_raw)==new['bytes'], 'original snapshot bytes differ')
             commit=strict(raw,512<<10); clock=strict(clock_raw,512<<10)
             probes=[x for x in receipt['commitClockProcessProbes'] if x['node']==i]
@@ -277,7 +285,8 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
         entry=dict(index=row['index'],id=row['id'],nodesNs=[None]*4,fourNodeUpperBoundNs=None,status='CENSORED')
         try:
             inc_raw=inclusion[row['index']]; references=[x for x in receipt['commitClockInclusions'] if x['index']==row['index']]
-            require(len(references)==1 and len(inc_raw)==references[0]['bytes'] and sha(inc_raw)==references[0]['sha256'], 'original inclusion bytes differ')
+            require(len(references)==1 and references[0].get('path')=='load-operations/%05d/four-node-inclusion.json'%row['index']
+                    and len(inc_raw)==references[0]['bytes'] and sha(inc_raw)==references[0]['sha256'], 'original inclusion bytes differ')
             inc=strict(inc_raw,4<<20); rr=inc['rows']; tx=row['hash']; sent=row['submittedNs']
             require(pin(tx,64) and type(sent) is int and sent>=0 and type(rr) is list and len(rr)==4, 'original submitted operation unavailable')
             heights=[decimal(r['height'],positive=True) for r in rr]
