@@ -2286,7 +2286,8 @@ def assert_workflow_contract(raw):
     need(all(caddy_steps.index(step) < caddy_steps.index(control_seals[0]) for step in qualified_caddy_steps))
     need(caddy_steps.index(control_seals[0]) < caddy_steps.index(control_uploads[0]))
     need(raw.count("bash scripts/verify/public-bft-gateway-ingress-check.sh") == 1)
-    need("    needs: protocol-delivery\n" in mac_job and "    timeout-minutes: 12\n" in mac_job)
+    need(re.findall(r"(?m)^    needs: (.+)$", mac_job) == ["focused-go"] and "    timeout-minutes: 12\n" in mac_job)
+    need("needs.protocol-delivery" not in mac_job and "download-artifact" not in mac_job and "artifact-ids:" not in mac_job)
     need("    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')\n" in mac_job)
     need("          ref: ${{ github.sha }}\n" in delivery_job and "          ref: ${{ github.sha }}\n" in mac_job)
     detached_job, detached_steps = workflow_steps(raw, 'detached-source-checks')
@@ -3925,7 +3926,8 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("          merge-multiple: true\n", "          merge-multiple: false\n"),
             ("      - name: Prepare same-source compiled contract inputs for delivery callers\n", "      - name: Silently omitted delivery compiler inputs\n"),
             ("bash scripts/verify/public-bft-gateway-ingress-check.sh", "# skipped public-bft-gateway-ingress-check.sh"),
-            ("    needs: protocol-delivery\n", "    needs: focused-go\n"),
+            ("    needs: focused-go\n", "    needs: protocol-delivery\n"),
+            ("    needs: focused-go\n", "    needs: detached-source-checks\n"),
             ("artifact-ids: ${{ needs.focused-go.outputs.inputs-artifact-id }}", "name: old-same-name-artifact"),
             ('--manifest-sha256 "$YNX_STAGE_MANIFEST_SHA256"', '--manifest-sha256 "0000000000000000000000000000000000000000000000000000000000000000"'),
             ("      - name: Verify original public cutover caller preserves independent operator and runtime pins\n", "      - name: Silently skipped original caller\n"),

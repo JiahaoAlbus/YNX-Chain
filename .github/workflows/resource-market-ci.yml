@@ -6154,7 +6154,7 @@ jobs:
           retention-days: 7
 
   proof-verifier-macos:
-    needs: protocol-delivery
+    needs: focused-go
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')
     runs-on: ubuntu-24.04
     timeout-minutes: 12
