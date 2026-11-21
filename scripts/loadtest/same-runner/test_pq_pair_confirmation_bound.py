@@ -47,17 +47,18 @@ class ConfirmationBoundControls(unittest.TestCase):
         clock_rows=[dict(index=i,id=row['id'],status='CENSORED') for i,row in enumerate(rows)]
         clock_rows[0].update(status='OBSERVED',nodesNs=[1,2,3,4],fourNodeUpperBoundNs=4)
         clock=dict(status='OBSERVED_OR_CENSORED',configuredDemand=500,rows=clock_rows)
-        block=dict(chainId='CONTROL-chain',headerHeight='5',stateHeight='4',blockHash='a'*64,
+        block=dict(version='YNX-PQ-LIGHT-PROOF/v1',classification='data',chainId='CONTROL-chain',headerHeight='5',stateHeight='4',blockHash='a'*64,
             stateAppHash='c'*64,genesisSha256='9'*64,commitVerified=True,lightTransitionVerified=True)
-        successor=dict(chainId='CONTROL-chain',headerHeight='6',stateHeight='5',blockHash='b'*64,
+        successor=dict(version='YNX-PQ-LIGHT-PROOF/v1',classification='data',chainId='CONTROL-chain',headerHeight='6',stateHeight='5',blockHash='b'*64,
             stateAppHash='d'*64,genesisSha256='9'*64,commitVerified=True,lightTransitionVerified=True)
-        result=dict(height='5',index='0',block=block,successor=successor,transactionHash=outer,nativeWireHash=native,
+        result=dict(version='YNX-PQ-TRANSACTION-PROOF/v1',classification='data',transactionType='pq_transfer',outcome='succeeded',
+            height='5',index='0',block=block,successor=successor,transactionHash=outer,nativeWireHash=native,
             included=True,finalized=True,executionSuccessful=True,executionCode='0',nativeGrant=False)
         expected=dict(block={k:block[k] for k in ('chainId','headerHeight','stateHeight','blockHash','stateAppHash')},
             successor={k:successor[k] for k in ('chainId','headerHeight','stateHeight','blockHash','stateAppHash')},
             transactionType='pq_transfer',transactionHash=outer,nativeWireHash=native,index='0',
             envelope=base64.b64encode(abci).decode(),nativeWire=base64.b64encode(wire).decode())
-        proof=dict(version='CONTROL synthetic original proof')
+        proof=dict(version='YNX-PQ-TRANSACTION-PROOF/v1')
         request=dict(version='YNX-CONSENSUS-TRANSACTION-PROOF-VERIFY-REQUEST/v1',expected=expected,proof=proof)
         context=dict(version='YNX-CONSENSUS-TRANSACTION-PROOF-TRUST/v1',expectedTransaction=copy.deepcopy(expected),
             lightTrust=dict(chainId='CONTROL-chain',originalGenesisHash='8'*64,consensusGenesisSHA256='9'*64))
@@ -65,9 +66,11 @@ class ConfirmationBoundControls(unittest.TestCase):
                               for name in ('request','context','proof')})
         final=dict(id=row['id'],operationId=row['operationId'],mode='online',
             transaction=dict(abciHash=outer,nativeHash=native,ownerIndex=4,firstNonce='2',members='1',type='pq_transfer'),
-            normalLiveResult=dict(transactionHash=outer,nativeWireHash=native),
+            normalLiveResult=dict(version='YNX-PQ-LAB-LIVE-MATERIALS-RESULT/v1',transactionHash=outer,nativeWireHash=native,
+                outcome='verified_transaction_data',sourceKind='original-node-owning-stores',syntheticOnly=True,
+                sourceReadOnly=True,authorityGranted=False,fourNodeAgreementClaim=False),
             originalPublicProofClosure=dict(path='load-operations/00000/original-public-proof-manifest.json'),
-            normalVerifier=dict(code='VERIFIED_TRANSACTION_DATA',result=result),
+            normalVerifier=dict(version='YNX-CONSENSUS-TRANSACTION-PROOF-VERIFY-RESULT/v1',code='VERIFIED_TRANSACTION_DATA',result=result),
             normalConfirm=dict(version='YNX-PQ-LAB-PUBLIC-OWNER-REPLY/v1',ownerIndex=4,operationId=row['operationId'],
                 code='PROOF_CONFIRMED_DATA',result=dict(result=copy.deepcopy(result))))
         files={prefix+'load-events-00000.jsonl':journal,
@@ -94,7 +97,8 @@ class ConfirmationBoundControls(unittest.TestCase):
                          or result['independentCryptographicReverification'] or result['runtimeAuthorized'])
 
     def test_wrong_operation_or_clock_domain_never_qualifies(self):
-        for defect in ('id','operation','reply-owner','reply-operation','owner','owner-missing','nonce','nonce-missing','status','hash','parent','pid','clock','node'):
+        for defect in ('id','operation','reply-owner','reply-operation','owner','owner-missing','nonce','nonce-missing',
+                       'version','proof-version','light-version','outcome','source-kind','status','hash','parent','pid','clock','node'):
             with self.subTest(defect=defect):
                 receipt,files,prefix,clock,qualified=self.fixture()
                 if defect=='id':receipt['loadResult']['rows'][0]['id']='e'*64
@@ -105,6 +109,13 @@ class ConfirmationBoundControls(unittest.TestCase):
                 elif defect=='owner-missing':del qualified[0]['transaction']['ownerIndex']
                 elif defect=='nonce':qualified[0]['transaction']['firstNonce']='3'
                 elif defect=='nonce-missing':del qualified[0]['transaction']['firstNonce']
+                elif defect=='version':qualified[0]['normalVerifier']['version']='OTHER'
+                elif defect in ('proof-version','light-version','outcome'):
+                    for result in (qualified[0]['normalVerifier']['result'],qualified[0]['normalConfirm']['result']['result']):
+                        if defect=='proof-version':result['version']='OTHER'
+                        elif defect=='light-version':result['block']['version']='OTHER'
+                        else:result['outcome']='OTHER'
+                elif defect=='source-kind':qualified[0]['normalLiveResult']['sourceKind']='OTHER'
                 elif defect=='status':receipt['loadResult']['rows'][0]['status']='unknown'
                 elif defect=='hash':receipt['loadResult']['rows'][0]['nativeHash']='e'*64
                 elif defect=='parent':receipt['commitClockParent']['clock']='CLOCK_REALTIME'

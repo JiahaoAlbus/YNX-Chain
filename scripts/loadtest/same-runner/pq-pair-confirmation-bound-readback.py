@@ -175,11 +175,21 @@ def project(receipt,files,prefix,clock,qualified):
                     and original['transaction']['nativeHash'].removeprefix('0x').lower()==row['nativeHash']
                     and original['normalLiveResult']['transactionHash'].removeprefix('0x').lower()==row['hash']
                     and original['normalLiveResult']['nativeWireHash'].removeprefix('0x').lower()==row['nativeHash']
+                    and original['normalLiveResult'].get('version')=='YNX-PQ-LAB-LIVE-MATERIALS-RESULT/v1'
+                    and original['normalLiveResult'].get('outcome')=='verified_transaction_data'
+                    and original['normalLiveResult'].get('sourceKind')=='original-node-owning-stores'
+                    and original['normalLiveResult'].get('syntheticOnly') is True
+                    and original['normalLiveResult'].get('sourceReadOnly') is True
+                    and original['normalLiveResult'].get('authorityGranted') is False
+                    and original['normalLiveResult'].get('fourNodeAgreementClaim') is False
+                    and verifier.get('version')=='YNX-CONSENSUS-TRANSACTION-PROOF-VERIFY-RESULT/v1'
                     and verifier['code']=='VERIFIED_TRANSACTION_DATA' and confirm['code']=='PROOF_CONFIRMED_DATA'
                     and confirm.get('version')=='YNX-PQ-LAB-PUBLIC-OWNER-REPLY/v1'
                     and type(confirm.get('ownerIndex')) is int and confirm['ownerIndex']==row['ownerIndex']
                     and confirm.get('operationId')==row['operationId']
-                    and same(confirm['result']['result'],proof) and proof['included'] is True and proof['finalized'] is True
+                    and same(confirm['result']['result'],proof) and proof.get('version')=='YNX-PQ-TRANSACTION-PROOF/v1'
+                    and proof.get('classification')=='data' and proof.get('transactionType')=='pq_transfer'
+                    and proof.get('outcome')=='succeeded' and proof['included'] is True and proof['finalized'] is True
                     and proof['executionSuccessful'] is True and proof['nativeGrant'] is False
                     and proof['transactionHash'].removeprefix('0x').lower()==row['hash']
                     and proof['nativeWireHash'].removeprefix('0x').lower()==row['nativeHash'],
@@ -189,7 +199,8 @@ def project(receipt,files,prefix,clock,qualified):
                     and decimal(block['stateHeight'])==h-1 and decimal(successor['headerHeight'])==h+1
                     and decimal(successor['stateHeight'])==h and block['chainId']==successor['chainId']
                     and pin(block['blockHash']) and pin(successor['blockHash']) and pin(successor['stateAppHash'])
-                    and all(part.get('commitVerified') is True and part.get('lightTransitionVerified') is True
+                    and all(part.get('version')=='YNX-PQ-LIGHT-PROOF/v1' and part.get('classification')=='data'
+                            and part.get('commitVerified') is True and part.get('lightTransitionVerified') is True
                             for part in (block,successor)), 'original reported H/H+1 proof differs')
                 closure=strict(files[prefix+original['originalPublicProofClosure']['path']])
                 entries=closure['entries']
@@ -200,6 +211,7 @@ def project(receipt,files,prefix,clock,qualified):
                 require(request['version']=='YNX-CONSENSUS-TRANSACTION-PROOF-VERIFY-REQUEST/v1'
                     and context['version']=='YNX-CONSENSUS-TRANSACTION-PROOF-TRUST/v1'
                     and same(context['expectedTransaction'],expected) and same(request['proof'],original_proof)
+                    and original_proof.get('version')=='YNX-PQ-TRANSACTION-PROOF/v1'
                     and context['lightTrust']['chainId']==block['chainId']
                     and pin(context['lightTrust']['originalGenesisHash'])
                     and pin(context['lightTrust']['consensusGenesisSHA256'])
