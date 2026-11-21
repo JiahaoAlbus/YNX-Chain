@@ -44,6 +44,17 @@ REQUIRED_TESTS=tuple((_PKG+'cmd/ynx-comet',name) for name in (
     'TestCommitValidationTimingOptInPreservesErrorsAndHashWithDeterministicClock',
     'TestABCIPublicTraceFullStateAndAppHashEveryHeight'))
 EXTRA_FOCUSED_STEPS=('Verify synthetic local Commit monotonic boundary',)
+# This metadata-only candidate cannot authorize a run.  Its raw original test
+# event contract must be frozen separately after the Core owner fixes it.
+HISTORY_JOB_NAME='source-history-counterexamples'
+LEGACY_FOUR_JOB_SOURCE='c697abae262c3be7859f235f45e9e8447bbccf63'
+HISTORY_STEPS=(
+    'Verify original key ceremony retains partial custody and never creates during resume',
+    'Reproduce signed-history overwrite and unsafe rollback callers',
+    'Reproduce source-authority initialization coupling and verify independent execution',
+    'Reproduce JSON-only signing source and verify real journal recovery',
+    'Reproduce atomic-only Comet operator startup and verify normal journal selection',
+)
 CADDY_STEPS=('Record exact original Caddy source identity',
     'Verify original Caddy JSON consumer without changing services',
     'Verify independently prepared original Caddy baseline DATA',
@@ -86,11 +97,18 @@ def strict(raw):
 
 def binding_identity(binding,identity):
     fields={'source','tree','forkTree','branch','run','focusedJob','caddyJob','deliveryJob','verifierJob'}
-    require(type(binding) is dict and set(binding)==fields and all(hex40(binding[k]) for k in ('source','tree','forkTree'))
+    require(type(binding) is dict and set(binding) in (fields,fields|{'historyJob'}) and all(hex40(binding[k]) for k in ('source','tree','forkTree'))
             and type(binding['branch']) is str and re.fullmatch(r'codex/[a-z0-9][a-z0-9-]{1,96}',binding['branch'])
             and all(type(binding[k]) is int and binding[k]>0 for k in ('run','focusedJob','caddyJob','deliveryJob','verifierJob'))
             and len({binding[k] for k in ('focusedJob','caddyJob','deliveryJob','verifierJob')})==4,
             'closed frozen clock source/CI tuple required')
+    if 'historyJob' in binding:
+        require(type(binding['historyJob']) is int and binding['historyJob']>0
+                and binding['historyJob'] not in {binding[k] for k in ('focusedJob','caddyJob','deliveryJob','verifierJob')},
+                'distinct original source-history job identity required')
+    else:
+        require(binding['source']==LEGACY_FOUR_JOB_SOURCE,
+                'successor original source-history job NOT_SUPPLIED')
     require(type(identity) is dict and all(identity.get(k)==binding[name] for k,name in
             (('commit','source'),('tree','tree'),('forkTree','forkTree'))),'exact original source/tree/fork differs')
 
@@ -213,13 +231,24 @@ def validate(binding,identity,run,focused,jobs):
     steps(caddy,CADDY_STEPS)
     steps(delivery,held.DELIVERY_STEPS)
     steps(verifier,VERIFIER_STEPS)
-    return dict(source=binding['source'],sourceTree=binding['tree'],forkTree=binding['forkTree'],
+    history=None
+    if 'historyJob' in binding:
+        history=original_job(HISTORY_JOB_NAME,binding['historyJob'])
+        steps(history,HISTORY_STEPS)
+        positions=[next(i for i,step in enumerate(history['steps']) if step.get('name')==name) for name in HISTORY_STEPS]
+        require(positions==sorted(positions),'original source-history step order differs')
+    result=dict(source=binding['source'],sourceTree=binding['tree'],forkTree=binding['forkTree'],
         run=binding['run'],focusedJob=binding['focusedJob'],caddyJob=binding['caddyJob'],
         deliveryJob=binding['deliveryJob'],verifierJob=binding['verifierJob'],
         focusedSteps=[*held.REQUIRED_STEPS,*EXTRA_FOCUSED_STEPS],caddySteps=list(CADDY_STEPS),
         deliverySteps=list(held.DELIVERY_STEPS),verifierSteps=list(VERIFIER_STEPS),
         sourceOnlyEvidence=True,focusedOriginalLogVerified=False,binaryAndLiveProcessIndependentlyBound=False,runtimePermissionGranted=False,
         independentFinality=False,pressureAuthorized=False)
+    if history is not None:
+        result['historyJob']=history['id'];result['historySteps']=list(HISTORY_STEPS)
+        result['historyOriginalExecutionVerified']=False
+        result['sourceOnlyEvidence']=False
+    return result
 
 
 def qualification(identity,*,metadata_reader=None,focused_log_reader=None):
@@ -246,6 +275,10 @@ def qualification(identity,*,metadata_reader=None,focused_log_reader=None):
             and type(inventory.get('jobs')) is list and inventory['total_count']==len(inventory['jobs'])
             and len(inventory['jobs'])<=100,'complete bounded original CI job inventory required')
     result=validate(BINDING,identity,run,focused,inventory['jobs'])
+    if 'historyJob' in BINDING:
+        # Five successful Actions labels may conceal the old historical-reuse
+        # early return. Never treat metadata as actual current test execution.
+        raise RuntimeError('same-job source-history original test event contract NOT_SUPPLIED')
     require(LOG_REQUIREMENTS is not None and focused_log_reader is not None,
             'same-job original test log and fixed inventory NOT_SUPPLIED')
     original_log_identity(BINDING,LOG_REQUIREMENTS)

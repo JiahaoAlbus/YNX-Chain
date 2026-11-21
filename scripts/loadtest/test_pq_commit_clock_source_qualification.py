@@ -14,6 +14,47 @@ m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 
 
 class ClockSourceQualificationControls(unittest.TestCase):
+    def test_same_run_history_job_metadata_never_implies_current_execution(self):
+        binding,identity,run,focused,jobs=self.fixture();binding['historyJob']=106
+        history=copy.deepcopy(focused);history.update(id=106,name=m.HISTORY_JOB_NAME,
+            steps=[dict(name=name,status='completed',conclusion='success') for name in m.HISTORY_STEPS])
+        jobs.append(history)
+        result=m.validate(binding,identity,run,focused,jobs)
+        self.assertEqual(result['historyJob'],106);self.assertFalse(result['historyOriginalExecutionVerified'] or result['sourceOnlyEvidence'])
+        requirements,raw=self.original_log(binding);calls=[]
+        def metadata(endpoint):
+            return {'runs/101':run,'jobs/102':focused,'runs/101/jobs?per_page=100':dict(total_count=5,jobs=jobs)}[endpoint]
+        with mock.patch.object(m,'BINDING',binding),mock.patch.object(m,'LOG_REQUIREMENTS',requirements):
+            with self.assertRaisesRegex(RuntimeError,'history original test event contract NOT_SUPPLIED'):
+                m.qualification(identity,metadata_reader=metadata,focused_log_reader=lambda *args:calls.append(args))
+        self.assertEqual(calls,[])
+
+    def test_history_job_rejects_cross_run_missing_duplicate_or_skipped(self):
+        binding,identity,run,focused,jobs=self.fixture();binding['historyJob']=106
+        history=copy.deepcopy(focused);history.update(id=106,name=m.HISTORY_JOB_NAME,
+            steps=[dict(name=name,status='completed',conclusion='success') for name in m.HISTORY_STEPS])
+        for change in ('missing','duplicate','foreign_run','foreign_source','wrong_attempt','wrong_job','wrong_name','wrong_url','skipped','failed','duplicate_step','reordered'):
+            candidate=copy.deepcopy(jobs);item=copy.deepcopy(history)
+            if change=='foreign_run':item['run_id']=999
+            if change=='foreign_source':item['head_sha']='f'*40
+            if change=='wrong_attempt':item['run_attempt']=2
+            if change=='wrong_job':item['id']=107
+            if change=='wrong_name':item['name']='unrelated-history-job'
+            if change=='wrong_url':item['run_url']='https://api.github.com/repos/'+m.REPOSITORY+'/actions/runs/999'
+            if change=='skipped':item['steps'][0]['conclusion']='skipped'
+            if change=='failed':item['conclusion']='failure'
+            if change=='duplicate_step':item['steps'].append(copy.deepcopy(item['steps'][0]))
+            if change=='reordered':item['steps'][0],item['steps'][1]=item['steps'][1],item['steps'][0]
+            if change!='missing':candidate.append(item)
+            if change=='duplicate':candidate.append(copy.deepcopy(item))
+            with self.subTest(change=change),self.assertRaises(RuntimeError):m.validate(binding,identity,run,focused,candidate)
+        changed=dict(binding,historyJob=binding['focusedJob'])
+        with self.assertRaisesRegex(RuntimeError,'distinct original source-history'):m.binding_identity(changed,identity)
+        binding.pop('historyJob');binding['source']='f'*40;identity['commit']=binding['source'];calls=[]
+        with mock.patch.object(m,'BINDING',binding),self.assertRaisesRegex(RuntimeError,'source-history job NOT_SUPPLIED'):
+            m.qualification(identity,metadata_reader=calls.append)
+        self.assertEqual(calls,[])
+
     def original_log(self,binding,events=None):
         if events is None:
             events=[]
@@ -29,7 +70,7 @@ class ClockSourceQualificationControls(unittest.TestCase):
         return requirements,raw
 
     def fixture(self):
-        binding=dict(source='a'*40,tree='b'*40,forkTree='c'*40,branch='codex/clock-fixture',run=101,focusedJob=102,deliveryJob=103,caddyJob=104,verifierJob=105)
+        binding=dict(source=m.LEGACY_FOUR_JOB_SOURCE,tree='b'*40,forkTree='c'*40,branch='codex/clock-fixture',run=101,focusedJob=102,deliveryJob=103,caddyJob=104,verifierJob=105)
         identity=dict(commit=binding['source'],tree=binding['tree'],forkTree=binding['forkTree'])
         run=dict(id=101,head_sha=binding['source'],head_branch=binding['branch'],event='push',run_attempt=1,
             workflow_id=m.WORKFLOW_ID,repository=dict(full_name=m.REPOSITORY),path=m.WORKFLOW_PATH,status='completed',conclusion='success')
