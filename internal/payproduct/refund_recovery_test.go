@@ -16,6 +16,71 @@ type refundReadRacePay struct {
 	*fakeAuthorizedRefundPay
 	during func()
 }
+type refundSubmitRacePay struct {
+	*fakeAuthorizedRefundPay
+	during func()
+}
+
+func (p *refundSubmitRacePay) CreateAuthorizedRefund(ctx context.Context, input AuthorizedRefundSubmission) (chain.RefundRecord, error) {
+	result, err := p.fakeAuthorizedRefundPay.CreateAuthorizedRefund(ctx, input)
+	p.during()
+	return result, err
+}
+
+func TestRefundSubmitKeepsUnknownWhenOriginalChangesDuringDispatch(t *testing.T) {
+	for _, change := range []string{"invoice", "request", "dispatch"} {
+		t.Run(change, func(t *testing.T) {
+			s, m, invoice, v := settlementClaimFixture(t)
+			if _, err := s.acceptSettlement(invoice, m, v); err != nil {
+				t.Fatal(err)
+			}
+			request, err := s.CreateRefundRequest(WalletSession{Account: v.Payer}, invoice.ID, 30, "original refund", "race-refund-request")
+			if err != nil {
+				t.Fatal(err)
+			}
+			actor := MerchantPrincipal{Merchant: m, Account: m.PayoutAddress, Role: "finance"}
+			auth := signedRefundAuthorization(s.now(), request, invoice, actor, secp256k1.PrivKeyFromBytes(bytes32(5)), "0x"+strings.Repeat("c", 64))
+			base := &fakeAuthorizedRefundPay{fakePay: s.pay.(*fakePay), created: chain.RefundRecord{ID: "central-refund-race", IntentID: invoice.IntentID, Amount: request.Amount, Currency: invoice.Asset, Status: "submitted", IdempotencyKey: "race-refund-submit"}}
+			p := &refundSubmitRacePay{fakeAuthorizedRefundPay: base, during: func() {
+				if err := s.store.Update(func(data *Snapshot) error {
+					switch change {
+					case "invoice":
+						current := data.Invoices[invoice.ID]
+						current.MerchantID = "other-merchant"
+						data.Invoices[invoice.ID] = current
+					case "request":
+						current := data.Refunds[request.ID]
+						current.Reason = "changed while awaiting provider"
+						data.Refunds[request.ID] = current
+					case "dispatch":
+						slot := hashString("YNX_PAY_ORIGINAL_REFUND_DISPATCH_V1", request.ID)
+						current := data.BusinessDispatches[slot]
+						current.IdempotencyKey = "different-key"
+						data.BusinessDispatches[slot] = current
+					}
+					return nil
+				}); err != nil {
+					t.Fatal(err)
+				}
+			}}
+			s.pay = p
+			if _, err := s.SubmitRefundAuthorization(context.Background(), actor, request.ID, auth, "race-refund-submit"); err == nil {
+				t.Fatal("changed original was accepted")
+			}
+			if err := s.store.View(func(data Snapshot) error {
+				if data.Refunds[request.ID].Status != "unknown" || data.Refunds[request.ID].CentralRefundID != "" {
+					t.Fatal("unknown original overwritten")
+				}
+				return nil
+			}); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := s.SubmitRefundAuthorization(context.Background(), actor, request.ID, auth, "replacement-refund"); err == nil || base.createCalls != 1 {
+				t.Fatal("unknown original was resent")
+			}
+		})
+	}
+}
 
 func (p *refundReadRacePay) RefundEvidence(ctx context.Context, id string) (AuthoritativeRefundEvidence, error) {
 	p.during()

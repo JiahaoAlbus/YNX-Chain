@@ -130,6 +130,7 @@ func (s *Service) SubmitRefundAuthorization(ctx context.Context, actor MerchantP
 		return RefundRequest{}, errors.New("submitted refund authorization does not match the idempotent replay")
 	}
 	submission := AuthorizedRefundSubmission{RequestID: request.ID, InvoiceID: invoice.CentralID, IntentID: invoice.IntentID, MerchantID: actor.Merchant.CentralMerchantID, MerchantAccount: actor.Account, Payer: request.Payer, Amount: request.Amount, Asset: invoice.Asset, Reason: request.Reason, TransactionHash: strings.ToLower(authorization.TransactionHash), AuthorizationDigest: digest, IdempotencyKey: key}
+	originalRequestHash, originalInvoiceHash := hashJSON(request), hashJSON(invoice)
 	// Durable reservation precedes the first external effect. An unknown result
 	// cannot be reopened by a new key, authorization or process restart.
 	now := s.now().UTC()
@@ -139,7 +140,7 @@ func (s *Service) SubmitRefundAuthorization(ctx context.Context, actor MerchantP
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		if data.Refunds[request.ID].Status != "requested" {
+		if hashJSON(data.Refunds[request.ID]) != originalRequestHash || hashJSON(data.Invoices[invoice.ID]) != originalInvoiceHash {
 			return errors.New("original refund outcome requires recovery")
 		}
 		for id, candidate := range data.Refunds {
@@ -159,6 +160,7 @@ func (s *Service) SubmitRefundAuthorization(ctx context.Context, actor MerchantP
 	}); err != nil {
 		return RefundRequest{}, err
 	}
+	reservedRequestHash := hashJSON(request)
 	central, err := api.CreateAuthorizedRefund(ctx, submission)
 	if err != nil {
 		return RefundRequest{}, err
@@ -170,8 +172,12 @@ func (s *Service) SubmitRefundAuthorization(ctx context.Context, actor MerchantP
 	request.Status, request.ApprovedBy, request.AuthorizationDigest, request.RefundTransactionHash, request.CentralRefundID, request.SubmittedAt, request.UpdatedAt = "submitted", actor.Account, digest, strings.ToLower(authorization.TransactionHash), central.ID, &now, now
 	err = s.store.Update(func(data *Snapshot) error {
 		current := data.Refunds[request.ID]
-		if current.Status != "unknown" || current.AuthorizationDigest != digest || current.RefundTransactionHash != submission.TransactionHash {
+		if hashJSON(current) != reservedRequestHash || hashJSON(data.Invoices[invoice.ID]) != originalInvoiceHash {
 			return errors.New("refund request state changed")
+		}
+		record, exists := data.BusinessDispatches[slot]
+		if !exists || record.Phase != "unknown" || record.RequestHash != hashJSON(submission) || record.IdempotencyKey != key || record.Account != actor.Account || record.MerchantID != request.MerchantID || record.Operation != "refund.submit" {
+			return errors.New("original refund dispatch changed")
 		}
 		for id, candidate := range data.Refunds {
 			if id != request.ID && candidate.AuthorizationDigest == digest {
@@ -181,7 +187,6 @@ func (s *Service) SubmitRefundAuthorization(ctx context.Context, actor MerchantP
 				return errors.New("refund transaction replay rejected")
 			}
 		}
-		record := data.BusinessDispatches[slot]
 		record.Phase = "submitted"
 		record.UpdatedAt = now
 		data.BusinessDispatches[slot] = record
