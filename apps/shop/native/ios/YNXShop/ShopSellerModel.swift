@@ -94,6 +94,9 @@ import SwiftUI
     func canShip(_ order:SellerOrder)->Bool {
         !busy && exactCurrentOrder(order) && can("fulfillment.write") && !hasPending(order.ID) && order.Status=="paid" && order.hasOriginalPaidRecord && (!order.PayIntentID.hasPrefix("npi_") || ["native_paid","native_partial_refund"].contains(order.paymentDisplayState))
     }
+    func canDecideReturn(_ order:SellerOrder)->Bool {
+        !busy && exactCurrentOrder(order) && can("returns.resolve") && !hasPending(order.ID) && order.Status=="return_requested" && order.originalReturnID.map(validID)==true
+    }
     func refundableOriginalEvent(_ order:SellerOrder)->SellerTimelineEvent? {
         guard exactCurrentOrder(order),storeRole=="owner",can("finance.read"),can("refund.approve"),
               order.validatedNetPaidAtoms != nil,let id=order.originalRefundRequestID else{return nil}

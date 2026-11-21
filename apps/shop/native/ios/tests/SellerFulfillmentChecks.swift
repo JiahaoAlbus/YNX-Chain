@@ -205,6 +205,10 @@ final class FulfillmentHTTP:URLProtocol,@unchecked Sendable {
         model.recoverOriginals(for:"order_second");let shipLookup=try await take("seller/mutations/lookup");try lookup(shipLookup,shipping,second);try await until{!model.busy}
         try check(try journal.records(account)[shipping.key]?.phase=="confirmed","lost shipment acknowledgement recovers original after buyer delivery without another shipment")
         second["Status"]="return_requested";second["Timeline"]=[event("new_return_second","return_requested")];model.refresh();try await until{!model.busy}
+        let reviewedReturn=model.orders.first(where:{$0.ID=="order_second"})!
+        try check(model.canDecideReturn(reviewedReturn),"current original return permits review")
+        second["LogisticsStatus"]="changed-during-return-review";model.refresh();try await until{!model.busy}
+        try check(!model.canDecideReturn(reviewedReturn) && model.canDecideReturn(model.orders.first(where:{$0.ID=="order_second"})!),"changed original order invalidates old return decision")
         model.perform(.returnDecision(orderID:"order_second",returnID:"new_return_second",approve:true,explanation:"Reviewed original return"));let approve=try await take("seller/orders/order_second/transition")
         let approveInput=try JSONSerialization.jsonObject(with:approve.body()) as! [String:Any]
         try check(approveInput["OriginalReturnID"] as? String=="new_return_second" && approveInput["Action"] as? String=="return_approved","normal return approval binds the server original return event")
