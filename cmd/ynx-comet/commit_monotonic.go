@@ -4,9 +4,37 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"runtime/debug"
 	"strings"
+
+	"github.com/spf13/cobra"
 )
+
+// Set only by the synthetic held build's explicit -ldflags. This value is a
+// declaration, not source attestation: the reader must independently bind the
+// source manifest, build argv, binary digest and original owning process.
+var operatorCommitBuildSource string
+
+func newCommitMonotonicBuildIdentityCommand() *cobra.Command {
+	var synthetic bool
+	command := &cobra.Command{Use: "synthetic-commit-clock-build-identity", Args: cobra.NoArgs,
+		Short: "read synthetic clock build declaration without starting a node",
+		RunE: func(command *cobra.Command, _ []string) error {
+			if !synthetic {
+				return errors.New("explicit synthetic scope required")
+			}
+			source := binarySourceRevision()
+			status := "DECLARED"
+			if source == "" {
+				status = "UNKNOWN"
+			}
+			return json.NewEncoder(command.OutOrStdout()).Encode(map[string]interface{}{
+				"version": "YNX-COMET-COMMIT-CLOCK-BUILD/v1", "status": status,
+				"sourceRevision": source, "sourceBinding": "linker-declared-requires-original-manifest-build-binary-and-process-proof",
+				"syntheticOnly": true, "runtimeAuthorized": false, "nodeStarted": false})
+		}}
+	command.Flags().BoolVar(&synthetic, "synthetic", false, "explicit synthetic-only inspection")
+	return command
+}
 
 // This projection is independent of the existing v1 Commit and Finalize
 // outputs. It never changes their schema or grants a runtime/finality claim.
@@ -39,20 +67,8 @@ type operatorCommitMonotonic struct {
 }
 
 func binarySourceRevision() string {
-	info, ok := debug.ReadBuildInfo()
-	if !ok {
-		return ""
-	}
-	var revision, modified string
-	for _, setting := range info.Settings {
-		switch setting.Key {
-		case "vcs.revision":
-			revision = setting.Value
-		case "vcs.modified":
-			modified = setting.Value
-		}
-	}
-	if len(revision) != 40 || modified != "false" {
+	revision := operatorCommitBuildSource
+	if len(revision) != 40 {
 		return ""
 	}
 	for _, c := range revision {
@@ -124,6 +140,7 @@ func (o *operatorCommitMonotonic) writeAfterStop(parent *operatorCommitObservati
 		ChainID             string                  `json:"chainID"`
 		OriginalGenesisHash string                  `json:"originalGenesisHash"`
 		SourceRevision      string                  `json:"sourceRevision,omitempty"`
+		SourceBinding       string                  `json:"sourceBinding"`
 		BootID              string                  `json:"bootID,omitempty"`
 		TimeNamespace       string                  `json:"timeNamespace,omitempty"`
 		Clock               string                  `json:"clock"`
@@ -131,7 +148,7 @@ func (o *operatorCommitMonotonic) writeAfterStop(parent *operatorCommitObservati
 		IndependentFinality bool                    `json:"independentFinality"`
 		Samples             []commitMonotonicSample `json:"samples"`
 	}{"YNX-COMET-COMMIT-MONOTONIC/v1", status, reason, parent.result.Scope, os.Getpid(), parent.result.ChainID, parent.result.OriginalGenesisHash,
-		o.clock.source, o.clock.boot, o.clock.namespace, "CLOCK_MONOTONIC", "local-persistent-ABCI-Commit-return-upper-bound-before-mempool-update;not-consensus-vote-or-finality", false, o.samples}
+		o.clock.source, "linker-declared-requires-original-manifest-build-binary-and-process-proof", o.clock.boot, o.clock.namespace, "CLOCK_MONOTONIC", "local-persistent-ABCI-Commit-return-upper-bound-before-mempool-update;not-consensus-vote-or-finality", false, o.samples}
 	raw, err := json.Marshal(result)
 	if err != nil {
 		return err

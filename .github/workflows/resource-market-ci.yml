@@ -2820,13 +2820,22 @@ jobs:
           import json, os
           from pathlib import Path
           events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'commit-monotonic-tests.jsonl').read_text().splitlines()]
-          required = ('TestCommitMonotonicRequiresDistinctSyntheticOriginal', 'TestCommitMonotonicRealBlockExecutorSyntheticTransfer', 'TestCommitMonotonicMissingSourceIsUnknown', 'TestCommitMonotonicSameKernelChild')
+          required = ('TestCommitMonotonicRequiresDistinctSyntheticOriginal', 'TestCommitMonotonicRealBlockExecutorSyntheticTransfer', 'TestCommitMonotonicMissingSourceIsUnknown', 'TestCommitMonotonicDeclaredSourceValidation', 'TestCommitMonotonicSameKernelChild')
           for name in required:
               outcomes = [e['Action'] for e in events if e.get('Test') == name and e['Action'] in ('run', 'pass', 'skip', 'fail')]
               if outcomes != ['run', 'pass']:
                   raise RuntimeError('Linux original clock case did not run and pass: ' + name)
           if any(e['Action'] in ('skip', 'fail', 'build-fail') for e in events):
               raise RuntimeError('Linux original clock stream failed or skipped')
+          PY
+          go build -mod=readonly -p 1 -trimpath -buildvcs=false -ldflags "-X main.operatorCommitBuildSource=$GITHUB_SHA" -o "$RUNNER_TEMP/ynx-comet-monotonic-build" ./cmd/ynx-comet
+          "$RUNNER_TEMP/ynx-comet-monotonic-build" synthetic-commit-clock-build-identity --synthetic > "$RUNNER_TEMP/ynx-comet-monotonic-buildinfo.json"
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          data = json.loads((Path(os.environ['RUNNER_TEMP']) / 'ynx-comet-monotonic-buildinfo.json').read_text())
+          if data.get('status') != 'DECLARED' or data.get('sourceRevision') != os.environ['GITHUB_SHA'] or data.get('runtimeAuthorized') is not False or data.get('nodeStarted') is not False:
+              raise RuntimeError('original trimpath buildvcs=false linked runtime declaration missing')
           PY
       - name: Qualify pinned bootstrap registration and normal block restoration
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}

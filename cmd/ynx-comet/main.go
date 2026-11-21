@@ -545,6 +545,7 @@ func main() {
 	root.AddCommand(newInspectOperatorCheckpointCommand(), newEncodeValidatorRegistrationCommand(), newApproveFirstValidatorRegistrationCommand())
 	root.AddCommand(newInspectWalletPolicyCommand())
 	root.AddCommand(newObserverCommand())
+	root.AddCommand(newCommitMonotonicBuildIdentityCommand())
 	root.AddCommand(newRequestHeightHaltCommand())
 	root.AddCommand(newExportProofHostSourceCommand())
 	root.AddCommand(newExportLightSourceCommand())

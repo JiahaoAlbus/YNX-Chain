@@ -37,7 +37,8 @@ func TestCommitMonotonicRealBlockExecutorSyntheticTransfer(t *testing.T) {
 		t.Fatal(err)
 	}
 	// A synthetic revision is supplied only to this test fixture. Production
-	// reads the actual unmodified binary's VCS metadata and otherwise UNKNOWN.
+	// requires a synthetic linker declaration and otherwise reports UNKNOWN;
+	// the reader must separately prove the manifest, binary and process binding.
 	observer.monotonic.clock = newCommitMonotonicClock(strings.Repeat("a", 40))
 	before := observer.monotonic.capture()
 	next, _, err := executeObservedEngineCommit(t, f, app, wrapOperatorCommitLogger(log.NewNopLogger(), observer), cmttypes.Txs{f.transfer})
@@ -89,5 +90,20 @@ func TestCommitMonotonicMissingSourceIsUnknown(t *testing.T) {
 	reading := clock.read()
 	if reading.NS != "" || reading.Reason == "" {
 		t.Fatal("missing source supplied a usable clock", reading)
+	}
+}
+
+func TestCommitMonotonicDeclaredSourceValidation(t *testing.T) {
+	old := operatorCommitBuildSource
+	defer func() { operatorCommitBuildSource = old }()
+	for _, value := range []string{"", strings.Repeat("a", 39), strings.Repeat("G", 40), strings.Repeat("a", 41)} {
+		operatorCommitBuildSource = value
+		if binarySourceRevision() != "" {
+			t.Fatal("malformed build declaration accepted", value)
+		}
+	}
+	operatorCommitBuildSource = strings.Repeat("a", 40)
+	if binarySourceRevision() != operatorCommitBuildSource {
+		t.Fatal("exact linker declaration not retained")
 	}
 }

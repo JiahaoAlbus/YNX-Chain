@@ -24,7 +24,7 @@ func currentTimeNamespace() (string, error) {
 func newCommitMonotonicClock(source string) commitMonotonicClock {
 	c := commitMonotonicClock{source: source}
 	if source == "" {
-		c.reason = "binary source revision unavailable or modified"
+		c.reason = "synthetic build source declaration unavailable"
 		return c
 	}
 	boot, err := os.ReadFile("/proc/sys/kernel/random/boot_id")
