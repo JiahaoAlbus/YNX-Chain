@@ -133,15 +133,32 @@ cat >"$tmp/bin/systemctl" <<'SH'
 #!/usr/bin/env bash
 [[ $# == 2 && $1 == is-active && $2 == ynx-chaind ]]
 SH
+cat >"$tmp/bin/realpath" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+[[ $# == 2 && $1 == -e && $2 == "$FIXTURE_ROOT/remote/"* ]]
+# The remote service is Linux; resolve the same existing fixture path on the
+# operator host without relaxing the original no-symlink checks.
+if [[ $(/usr/bin/uname -s) == Darwin ]]; then
+  exec /bin/realpath "$2"
+fi
+exec /bin/realpath -e "$2"
+SH
 cat >"$tmp/bin/stat" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
 [[ $# == 3 && $1 == -c && $3 == "$FIXTURE_ROOT/remote/"* ]]
 case "$2" in
-  %U:%a) printf '%s:%s\n' "${FIXTURE_METADATA_OWNER:-ynx}" "$(/usr/bin/stat -c %a "$3")" ;;
-  %U:%a:%h) printf '%s:%s\n' "${FIXTURE_METADATA_OWNER:-ynx}" "$(/usr/bin/stat -c %a:%h "$3")" ;;
+  %U:%a) fmt_linux='%a'; fmt_darwin='%Lp' ;;
+  %U:%a:%h) fmt_linux='%a:%h'; fmt_darwin='%Lp:%l' ;;
   *) exit 94 ;;
 esac
+if [[ $(/usr/bin/uname -s) == Darwin ]]; then
+  metadata=$(/usr/bin/stat -f "$fmt_darwin" "$3")
+else
+  metadata=$(/usr/bin/stat -c "$fmt_linux" "$3")
+fi
+printf '%s:%s\n' "${FIXTURE_METADATA_OWNER:-ynx}" "$metadata"
 SH
 cat >"$tmp/bin/chown" <<'SH'
 #!/usr/bin/env bash
