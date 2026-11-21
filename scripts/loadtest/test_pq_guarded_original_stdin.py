@@ -136,4 +136,36 @@ class GuardedOriginalStdinControls(unittest.TestCase):
             self.assertEqual(retired,[process]);self.assertEqual(backend.helper_cleanup_debt,[])
         finally:os.close(reader)
 
+    def test_blocked_original_owner_records_fd_debt_and_signals_only_its_handle(self):
+        m=load()
+        spec=importlib.util.spec_from_file_location('owner_original',Path(__file__).with_name('pq-public-owner-transport.py'))
+        owner=importlib.util.module_from_spec(spec);spec.loader.exec_module(owner)
+        entered=threading.Event();release=threading.Event()
+        class BlockingWriter:
+            closed=False
+            def write(self,value):entered.set();release.wait(3);return len(value)
+        raw=BlockingWriter();stream=m.GuardedOriginalStdin(raw)
+        class Original:
+            pid=12345
+            stdin=stream
+            code=None
+            def poll(self):return self.code
+            def wait(self,timeout):return self.code
+        proc=Original();signals=[]
+        def send(signum):signals.append(signum);proc.code=-signum
+        proc._ynx_original_pidfd=SimpleNamespace(send=send)
+        Session=owner.session_class(object,None,SimpleNamespace(require=lambda value,message:None))
+        session=Session.__new__(Session);session.proc=proc;session.require_guarded_stream=True
+        worker=threading.Thread(target=lambda:stream.write(b'unknown-owner-command'));worker.start();self.assertTrue(entered.wait(1))
+        try:
+            with mock.patch.object(m.os,'dup2',side_effect=AssertionError('busy original must not be cut')):
+                report=session.retire_poisoned_original()
+            self.assertFalse(report['stdinCut']);self.assertTrue(report['stdinRetirement']['cleanupDebt'])
+            self.assertEqual(report['stdinRetirement']['status'],'UNKNOWN')
+            self.assertTrue(report['terminateRequested']);self.assertTrue(signals)
+            self.assertFalse(report['lateRepliesRead']);self.assertFalse(report['originalOperationReplayed'])
+            self.assertFalse(raw.closed)
+        finally:release.set();worker.join(2)
+        self.assertFalse(worker.is_alive());self.assertEqual(stream.cut_once(timeout=.1)['status'],'UNKNOWN')
+
 if __name__=='__main__':unittest.main()
