@@ -216,7 +216,9 @@ func TestPQLabSenderPUBLICOperationParentFailurePreservesUnknown(t *testing.T) {
 		})
 	}
 	t.Run("attempted-mkdir-preserves-existing-original", func(t *testing.T) {
-		parent := t.TempDir()
+		// macOS TempDir may pass through /var -> /private/var; this test
+		// exercises an existing original, not path alias rejection.
+		parent := pqLabWorkloadTemp(t)
 		if err := os.Chmod(parent, 0700); err != nil {
 			t.Fatal(err)
 		}

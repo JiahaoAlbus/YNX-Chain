@@ -880,15 +880,18 @@ type PQLabSenderResult struct {
 // There is no background queue or batch assembly: callers supply a complete
 // legal count and receive its original immediately after durable publication.
 type PQLabSender struct {
-	mu                  sync.Mutex
-	directory           string
-	manifest            PQLabWorkloadManifest
-	owner               PQLabWorkloadOwner
-	key                 *ynxbatch.PrivateKey
-	public              ynxbatch.PublicKey
-	lease               *ApplicationStateWriterLease
-	historyKey          []byte
-	operationParentSync func(*os.File) error // private fault seam, normal constructor nil
+	mu                               sync.Mutex
+	directory                        string
+	manifest                         PQLabWorkloadManifest
+	owner                            PQLabWorkloadOwner
+	key                              *ynxbatch.PrivateKey
+	public                           ynxbatch.PublicKey
+	lease                            *ApplicationStateWriterLease
+	historyKey                       []byte
+	operationParentSync              func(*os.File) error // private fault seam, normal constructor nil
+	enrollmentConfirmedSync          func(string) error   // private fault seam, normal constructor nil
+	enrollmentConfirmedFileSync      func(*os.File) error // private fault seam, normal constructor nil
+	enrollmentConfirmedDirectorySync func(*os.File) error // private fault seam, normal constructor nil
 }
 
 func OpenPQLabSender(directory, pin string, index int, credential []byte) (*PQLabSender, error) {
@@ -1068,6 +1071,33 @@ func (s *PQLabSender) readRecord(path string) ([]byte, error) {
 	var record pqLabSenderRecord
 	if err = pqLabDecode(raw, &record); err != nil || !hmac.Equal(record.MAC, s.recordMAC(path, record.Body)) {
 		return nil, ErrPQLabSenderUnknown
+	}
+	if filepath.Base(path) == "CONFIRMED.json" {
+		var identity struct {
+			Version string `json:"version"`
+		}
+		if json.Unmarshal(record.Body, &identity) != nil {
+			return nil, ErrPQLabSenderUnknown
+		}
+		if identity.Version == "YNX-PQ-LAB-ENROLLMENT-CONFIRMED/v1" {
+			before, statErr := os.Lstat(path)
+			if statErr != nil || !before.Mode().IsRegular() {
+				return nil, ErrPQLabSenderUnknown
+			}
+			syncRecord := s.enrollmentConfirmedSync
+			if syncRecord == nil {
+				syncRecord = syncPQLabEnrollmentConfirmed
+			}
+			if err = syncRecord(path); err != nil {
+				return nil, errors.Join(ErrPQLabSenderUnknown, err)
+			}
+			// No file that changed during the barrier can release a nonce.
+			after, e := pqLabRead(path, 2<<20)
+			afterInfo, statErr := os.Lstat(path)
+			if e != nil || statErr != nil || !afterInfo.Mode().IsRegular() || !os.SameFile(before, afterInfo) || !bytes.Equal(raw, after) {
+				return nil, ErrPQLabSenderUnknown
+			}
+		}
 	}
 	return record.Body, nil
 }

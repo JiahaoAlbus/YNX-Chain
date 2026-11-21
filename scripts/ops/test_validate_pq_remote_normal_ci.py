@@ -1572,7 +1572,7 @@ def assert_state_math_required_workflow_contract(step):
             raise AssertionError("public owner core requires exact original cases and whole-stream closure")
     if step.count("          required += ['TestABCIPublicTraceFullStateAndAppHashEveryHeight']\n") != 1:
         raise AssertionError("fixed public trace regression must execute once and pass")
-    if step.count("          required += ['TestPQLabEnrollmentOriginalProofsSameChain', 'TestPQLabEnrollmentOriginalLegacyFundingProof', 'TestPQLabEnrollmentCLIPublicFixture', 'TestPQLabEnrollmentLegacyCLIPublicFixture']\n") != 1:
+    if step.count("          required += ['TestPQLabEnrollmentOriginalProofsSameChain', 'TestPQLabEnrollmentOriginalLegacyFundingProof', 'TestPQLabEnrollmentCLIPublicFixture', 'TestPQLabEnrollmentLegacyCLIPublicFixture', 'TestPQLabEnrollmentOriginalDurableSameChainAndCold', 'TestPQLabEnrollmentOriginalUnknownPreservesCrashWindows', 'TestPQLabEnrollmentOriginalRequestAndResultTampering', 'TestPQLabEnrollmentOriginalPostSignCheckpointChangeUnknown', 'TestPQLabEnrollmentOriginalConfirmationSameChainAndCold', 'TestPQLabEnrollmentOriginalRejectedABCIStateSemantics']\n") != 1:
         raise AssertionError("both original enrollment proof cases must execute and pass")
     for block in (SENDER_PARENT_PERSISTENCE_BLOCK, SENDER_PARENT_PERSISTENCE_CALL, SENDER_PARENT_PERSISTENCE_REQUIRED):
         if step.count("".join("          " + line + "\n" for line in block.splitlines())) != 1:
@@ -4376,7 +4376,7 @@ class CompleteStatePartitionControls(unittest.TestCase):
         caller = next(group for group in scope["state_partitions"] if group[0] == "lab-caller")
         mutations = [
             step.replace("          required += ['TestABCIPublicTraceFullStateAndAppHashEveryHeight']\n", "", 1),
-            step.replace("          required += ['TestPQLabEnrollmentOriginalProofsSameChain', 'TestPQLabEnrollmentOriginalLegacyFundingProof', 'TestPQLabEnrollmentCLIPublicFixture', 'TestPQLabEnrollmentLegacyCLIPublicFixture']\n", "", 1),
+            step.replace("          required += ['TestPQLabEnrollmentOriginalProofsSameChain', 'TestPQLabEnrollmentOriginalLegacyFundingProof', 'TestPQLabEnrollmentCLIPublicFixture', 'TestPQLabEnrollmentLegacyCLIPublicFixture', 'TestPQLabEnrollmentOriginalDurableSameChainAndCold', 'TestPQLabEnrollmentOriginalUnknownPreservesCrashWindows', 'TestPQLabEnrollmentOriginalRequestAndResultTampering', 'TestPQLabEnrollmentOriginalPostSignCheckpointChangeUnknown', 'TestPQLabEnrollmentOriginalConfirmationSameChainAndCold', 'TestPQLabEnrollmentOriginalRejectedABCIStateSemantics']\n", "", 1),
             step.replace("-run '" + caller[1] + "'", "-run '^TestPQLabSenderMissing$'", 1),
             step.replace("-run '" + caller[1] + "'", "-run '^TestPQLab'", 1),
             step.replace("-timeout=180s -run '" + caller[1], "-timeout=181s -run '" + caller[1], 1),
@@ -5102,7 +5102,7 @@ class ChainLabSplitCIControls(unittest.TestCase):
         live_large = "-run '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$' ./internal/consensus > \"$RUNNER_TEMP/pq-lab-live-large-tests.jsonl\""
         command = "./cmd/ynx-consensus-pq-lab > \"$RUNNER_TEMP/pq-lab-command-tests.jsonl\""
         streams = "('pq-lab-core-tests.jsonl', 'pq-lab-export-tests.jsonl', 'pq-lab-checkpoint-tests.jsonl', 'pq-lab-caller-tests.jsonl', 'pq-lab-live-tests.jsonl', 'pq-lab-live-large-tests.jsonl', 'pq-lab-command-tests.jsonl', 'pq-proof-history-tests.jsonl')"
-        enrollment = "enrollment_required = ['TestPQLabEnrollmentOriginalProofsSameChain', 'TestPQLabEnrollmentOriginalLegacyFundingProof', 'TestPQLabEnrollmentCLIPublicFixture', 'TestPQLabEnrollmentLegacyCLIPublicFixture']\n          required += enrollment_required\n          for name in enrollment_required:\n              matching = [row['Action'] for row in rows if row.get('Package') == 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus' and row.get('Test') == name and row['Action'] in ('run', 'pass', 'fail', 'skip')]\n              if matching != ['run', 'pass'] or any(row.get('Test', '').startswith(name + '/') and row.get('Action') in ('skip', 'fail') for row in rows):\n                  raise RuntimeError('same-chain enrollment proof or child did not execute and pass: ' + name)"
+        enrollment = "enrollment_required = ['TestPQLabEnrollmentOriginalProofsSameChain', 'TestPQLabEnrollmentOriginalLegacyFundingProof', 'TestPQLabEnrollmentCLIPublicFixture', 'TestPQLabEnrollmentLegacyCLIPublicFixture', 'TestPQLabEnrollmentOriginalDurableSameChainAndCold', 'TestPQLabEnrollmentOriginalUnknownPreservesCrashWindows', 'TestPQLabEnrollmentOriginalRequestAndResultTampering', 'TestPQLabEnrollmentOriginalPostSignCheckpointChangeUnknown', 'TestPQLabEnrollmentOriginalConfirmationSameChainAndCold', 'TestPQLabEnrollmentOriginalRejectedABCIStateSemantics']\n          required += enrollment_required\n          for name in enrollment_required:\n              matching = [row['Action'] for row in rows if row.get('Package') == 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus' and row.get('Test') == name and row['Action'] in ('run', 'pass', 'fail', 'skip')]\n              if matching != ['run', 'pass'] or any(row.get('Test', '').startswith(name + '/') and row.get('Action') in ('skip', 'fail') for row in rows):\n                  raise RuntimeError('same-chain enrollment proof or child did not execute and pass: ' + name)"
         for part in (core, export, checkpoint, caller, live, live_large, command, streams, enrollment, "if terminal != ['pass']:", 'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"'):
             if step.count(part) != 1:
                 raise AssertionError('original lab command, stream or required receipt changed')
@@ -5162,7 +5162,7 @@ class ChainLabSplitCIControls(unittest.TestCase):
         end = step.index('          for name in required:', start)
         code = compile(textwrap.dedent(step[start:end]), '<actual-enrollment-receipt>', 'exec')
         package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
-        names = ['TestPQLabEnrollmentOriginalProofsSameChain', 'TestPQLabEnrollmentOriginalLegacyFundingProof', 'TestPQLabEnrollmentCLIPublicFixture', 'TestPQLabEnrollmentLegacyCLIPublicFixture']
+        names = ['TestPQLabEnrollmentOriginalProofsSameChain', 'TestPQLabEnrollmentOriginalLegacyFundingProof', 'TestPQLabEnrollmentCLIPublicFixture', 'TestPQLabEnrollmentLegacyCLIPublicFixture', 'TestPQLabEnrollmentOriginalDurableSameChainAndCold', 'TestPQLabEnrollmentOriginalUnknownPreservesCrashWindows', 'TestPQLabEnrollmentOriginalRequestAndResultTampering', 'TestPQLabEnrollmentOriginalPostSignCheckpointChangeUnknown', 'TestPQLabEnrollmentOriginalConfirmationSameChainAndCold', 'TestPQLabEnrollmentOriginalRejectedABCIStateSemantics']
         rows = [dict(Package=package, Test=name, Action=action) for name in names for action in ('run', 'pass')]
         exec(code, {'rows': rows, 'required': []})
         bad = [rows[:-1], rows + [rows[0]], [dict(row, Package='foreign') if i == 0 else row for i,row in enumerate(rows)]]
