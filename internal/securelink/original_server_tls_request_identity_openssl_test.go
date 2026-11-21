@@ -312,7 +312,10 @@ func testOriginalServerTLSOriginalRequestIdentity(t *testing.T, fixture tlsFixtu
 		if callCtx != r.Context() {
 			return callCtx.Err()
 		}
-		if issuerCalls.Add(1) == 3 {
+		// Source current is single-flight. Pause the first actual observation
+		// while the other two wait; all three must still validate independently
+		// after close selection, with the SAME live original request context.
+		if issuerCalls.Add(1) == 1 {
 			close(issuerEntered)
 		}
 		<-resumeIssuer
@@ -337,6 +340,22 @@ func testOriginalServerTLSOriginalRequestIdentity(t *testing.T, fixture tlsFixtu
 	conn.mu.Unlock()
 	start()
 	waitOriginalRequestIdentityTest(t, ctx, issuerEntered)
+	// Each of the three readers holds its request observation and its
+	// queued Current call. Confirm all six debts before selecting close;
+	// scheduling a reader after close would test an earlier refusal instead.
+	for {
+		owner.state.mu.Lock()
+		calls, changed := owner.state.calls, owner.state.changed
+		owner.state.mu.Unlock()
+		if calls == 6 {
+			break
+		}
+		select {
+		case <-changed:
+		case <-ctx.Done():
+			t.Fatal("original request observations did not all enter issuer queue")
+		}
+	}
 	connectionClosed := make(chan error, 1)
 	if closeFromNative {
 		if nativeConn == nil {

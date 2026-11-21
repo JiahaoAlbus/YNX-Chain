@@ -1,0 +1,86 @@
+//go:build (darwin || linux) && securelink_public_server_tls_test
+
+package authservertls
+
+import (
+	"context"
+	"errors"
+	"net"
+	"sync"
+	"sync/atomic"
+	"testing"
+	"time"
+)
+
+// PUBLICPendingServerTLSForLINK is compiled only into the original LINK test
+// composition. It exercises the real Source busy/refusal and concrete lease
+// methods. It supplies no Source files, credentials, listener or successful
+// qualification. Releasing the barrier leaves the Source permanently denied.
+func PUBLICPendingServerTLSForLINK(t testing.TB) (*ReviewedServerTLSLease, *ServerTLSBorrow, net.Listener, func()) {
+	t.Helper()
+	q := &QualifiedServerTLSSource{&tlsSourceState{busy: true, expires: time.Now().Add(time.Minute), changed: make(chan struct{})}}
+	s := &leaseState{qualification: q, borrows: 1, changed: make(chan struct{})}
+	l := &ReviewedServerTLSLease{s}
+	b := &ServerTLSBorrow{&borrowState{owner: s}}
+	listener := &originalListener{b.state}
+	var once sync.Once
+	release := func() {
+		once.Do(func() {
+			q.state.mu.Lock()
+			q.state.busy = false
+			q.state.retired = true
+			q.state.wake()
+			q.state.mu.Unlock()
+		})
+	}
+	t.Cleanup(func() {
+		release()
+		if done, err := b.Release(); !done {
+			t.Errorf("PUBLIC pending Auth borrow not released: %v", err)
+		}
+		l.Retire()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		if err := l.Join(ctx); err != nil {
+			t.Errorf("PUBLIC pending Auth lease did not join: %v", err)
+		}
+		if done, err := l.Close(); !done {
+			t.Errorf("PUBLIC pending Auth lease not physically closed: %v", err)
+		}
+	})
+	return l, b, listener, release
+}
+
+type publicUnknownAcceptedConn struct {
+	net.Conn
+	calls *atomic.Int32
+}
+
+func (c *publicUnknownAcceptedConn) Close() error {
+	c.calls.Add(1)
+	return errors.New("PUBLIC accepted connection close failure")
+}
+
+// This invokes the actual Auth accepted-connection failure core with a fixed
+// PUBLIC close fault. It creates no accepted principal or successful Source.
+func PUBLICUnknownServerTLSLeaseForLINK(t testing.TB) (*ReviewedServerTLSLease, *atomic.Int32) {
+	t.Helper()
+	a, b := net.Pipe()
+	calls := &atomic.Int32{}
+	s := &leaseState{acceptChecks: 1, changed: make(chan struct{})}
+	l := &originalListener{borrow: &borrowState{owner: s}}
+	if conn, err := l.finishAccepted(&publicUnknownAcceptedConn{Conn: a, calls: calls},
+		func() error { return ErrPending }); conn != nil || !errors.Is(err, ErrUnknown) {
+		t.Fatal("PUBLIC actual Auth unknown close was not retained", err)
+	}
+	t.Cleanup(func() {
+		// Close only the test pipe's underlying endpoints. Never repeat the
+		// selected accepted-connection Close or clear the owner's UNKNOWN.
+		_ = a.Close()
+		_ = b.Close()
+		if calls.Load() != 1 || len(s.acceptedCloseDebt) != 1 {
+			t.Error("PUBLIC accepted close was retried or debt was dropped")
+		}
+	})
+	return &ReviewedServerTLSLease{s}, calls
+}

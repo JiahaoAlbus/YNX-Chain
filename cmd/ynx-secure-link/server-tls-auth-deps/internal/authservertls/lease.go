@@ -26,6 +26,20 @@ var ErrDenied = errors.New("AUTH_REVIEWED_SERVER_TLS_DENIED")
 var ErrPending = errors.New("AUTH_REVIEWED_SERVER_TLS_CHILDREN_PENDING")
 var ErrUnknown = errors.New("AUTH_REVIEWED_SERVER_TLS_CLEANUP_UNKNOWN")
 
+// An ambiguous physical close is process-lifetime debt. There is deliberately
+// no clear or retry operation: even if callers drop the lease, a finalizer must
+// not regain ownership of a connection whose first close was unconfirmed.
+var acceptedCloseQuarantine struct {
+	sync.Mutex
+	connections []net.Conn
+}
+
+func retainAcceptedCloseDebt(c net.Conn) {
+	acceptedCloseQuarantine.Lock()
+	acceptedCloseQuarantine.connections = append(acceptedCloseQuarantine.connections, c)
+	acceptedCloseQuarantine.Unlock()
+}
+
 type identity struct{ Device, Inode, UID, GID, Mode, Nlink, Bytes uint64 }
 type reviewedFile struct {
 	Path     string
@@ -41,6 +55,7 @@ type reviewedServerRelease struct {
 	// public resources. These are not a caller JSON approval/new signature domain.
 	IssuerOriginal, SourceOriginal, CurrentOriginal, Certificate, PrivateKey, CA reviewedFile
 	TargetOrigin, CertificateSHA256, SPKISHA256                                  string
+	ServerID                                                                     string // independently reviewed exact signed server locator
 }
 
 func reviewedServerReleases() []reviewedServerRelease { return nil }
@@ -75,10 +90,14 @@ type leaseState struct {
 	borrows                                uint64
 	retired, closed, listenerCloseSelected bool
 	listenerCloseError                     error
+	acceptedCloseDebt                      []net.Conn
+	acceptedCloseErrors                    []error
+	acceptChecks                           uint64
 	first                                  error
 	wallFloor                              int64
 	deadline                               time.Time
 	changed                                chan struct{}
+	qualification                          *QualifiedServerTLSSource
 }
 type ReviewedServerTLSLease struct{ state *leaseState }
 type borrowState struct {
@@ -89,14 +108,51 @@ type borrowState struct {
 type ServerTLSBorrow struct{ state *borrowState }
 type originalListener struct{ borrow *borrowState }
 
+type originalAcceptRetrySafe struct{ cause error }
+
+func (e *originalAcceptRetrySafe) Error() string { return e.cause.Error() }
+func (e *originalAcceptRetrySafe) Unwrap() error { return e.cause }
+
+// IsOriginalAcceptRetrySafe identifies only the two owned Accept cases where
+// no connection was obtained or the obtained connection closed successfully.
+func IsOriginalAcceptRetrySafe(err error) bool {
+	var safe *originalAcceptRetrySafe
+	return !errors.Is(err, ErrUnknown) && errors.As(err, &safe)
+}
+
+func acceptRetrySafe(err error) error {
+	if errors.Is(err, ErrPending) {
+		return &originalAcceptRetrySafe{cause: err}
+	}
+	return err
+}
+
+func originalLeaseOpenError(first error, releases int) error {
+	if errors.Is(first, ErrSourceNotSupplied) && releases != 1 {
+		return errors.Join(ErrNotSupplied, first)
+	}
+	return first
+}
+
 func OpenOriginalServerTLSLease(ctx context.Context) (*ReviewedServerTLSLease, error) {
-	return openReviewedServerTLS(ctx, reviewedServerReleases(), 0)
+	q, e := AcquireOriginalServerTLSQualification(ctx)
+	if e != nil || q == nil {
+		s := &leaseState{qualification: q, changed: make(chan struct{}), retired: true, first: e}
+		if s.first == nil {
+			s.first = ErrSourceDenied
+		}
+		// Preserve the previous missing-release classification only when both
+		// independently reviewed selections are absent. The owner's first
+		// failure and close result remain the exact original Source failure.
+		return &ReviewedServerTLSLease{s}, originalLeaseOpenError(s.first, len(reviewedServerReleases()))
+	}
+	return openReviewedServerTLS(ctx, reviewedServerReleases(), 0, q)
 }
 
 // Private test seam passes PUBLIC identity UID/resources. There is no exported
 // setter or constructor accepting rows, credentials, listener, callback or URL.
-func openReviewedServerTLS(ctx context.Context, rows []reviewedServerRelease, rootUID uint32) (*ReviewedServerTLSLease, error) {
-	s := &leaseState{changed: make(chan struct{})}
+func openReviewedServerTLS(ctx context.Context, rows []reviewedServerRelease, rootUID uint32, q *QualifiedServerTLSSource) (*ReviewedServerTLSLease, error) {
+	s := &leaseState{changed: make(chan struct{}), qualification: q}
 	out := &ReviewedServerTLSLease{s}
 	fail := func(e error) (*ReviewedServerTLSLease, error) { s.first = e; s.retired = true; return out, e }
 	if ctx == nil || ctx.Err() != nil {
@@ -107,6 +163,12 @@ func openReviewedServerTLS(ctx context.Context, rows []reviewedServerRelease, ro
 	}
 	s.row = rows[0]
 	r := s.row
+	if q == nil {
+		return fail(ErrSourceDenied)
+	}
+	if e := q.matchResource(r); e != nil {
+		return fail(e)
+	}
 	epoch, e := strconv.ParseUint(r.CredentialEpoch, 10, 64)
 	host, port, pe := net.SplitHostPort(r.ListenAddress)
 	n, ne := strconv.ParseUint(port, 10, 16)
@@ -141,6 +203,17 @@ func openReviewedServerTLS(ctx context.Context, rows []reviewedServerRelease, ro
 		if e != nil {
 			return fail(e)
 		}
+	}
+	if e = s.currentLocked(ctx); e != nil {
+		return fail(e)
+	}
+	// Actual full Source/issuer/current revalidation OUTSIDE lease mutex and
+	// before this first listener effect. Resource pins alone are not authority.
+	if e = q.Current(ctx); e != nil {
+		return fail(e)
+	}
+	if e = q.matchResource(r); e != nil {
+		return fail(e)
 	}
 	if e = s.currentLocked(ctx); e != nil {
 		return fail(e)
@@ -193,8 +266,11 @@ func rootDirectory(p string, uid uint32) (os.FileInfo, error) {
 	return i, nil
 }
 func holdReviewedFile(pin reviewedFile, uid uint32) (*heldFile, error) {
+	return holdReviewedFileBounded(pin, uid, 1048576)
+}
+func holdReviewedFileBounded(pin reviewedFile, uid uint32, maximum uint64) (*heldFile, error) {
 	h := &heldFile{pin: pin}
-	if !filepath.IsAbs(pin.Path) || filepath.Clean(pin.Path) != pin.Path || pin.Identity.UID != uint64(uid) || pin.Identity.Nlink != 1 || pin.Identity.Bytes == 0 || pin.Identity.Bytes > 1048576 || pin.Identity.Mode&0022 != 0 {
+	if !filepath.IsAbs(pin.Path) || filepath.Clean(pin.Path) != pin.Path || pin.Identity.UID != uint64(uid) || pin.Identity.Nlink != 1 || pin.Identity.Bytes == 0 || pin.Identity.Bytes > maximum || pin.Identity.Mode&0022 != 0 {
 		return h, ErrDenied
 	}
 	canonical, e := filepath.EvalSymlinks(pin.Path)
@@ -344,17 +420,52 @@ func (l *ReviewedServerTLSLease) Current(ctx context.Context) error {
 	}
 	s := l.state
 	s.mu.Lock()
+	q := s.qualification
+	retired := s.retired || s.closed
+	s.mu.Unlock()
+	if retired || q == nil {
+		return ErrSourceDenied
+	}
+	// Source math may invoke Node/network and MUST NOT run under lease lock.
+	if e := q.Current(ctx); e != nil {
+		if ctx != nil && ctx.Err() != nil {
+			return ctx.Err()
+		}
+		if errors.Is(e, ErrPending) {
+			return e
+		}
+		s.mu.Lock()
+		s.retireLocked(e)
+		s.mu.Unlock()
+		return e
+	}
+	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.qualification != q {
+		return ErrSourceDenied
+	}
+	if e := q.matchResource(s.row); e != nil {
+		return e
+	}
 	return s.currentLocked(ctx)
 }
 func (l *ReviewedServerTLSLease) BorrowOriginal(ctx context.Context) (*ServerTLSBorrow, error) {
 	if l == nil || l.state == nil {
 		return nil, ErrDenied
 	}
+	if e := l.Current(ctx); e != nil {
+		return nil, e
+	}
 	s := l.state
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if e := s.currentLocked(ctx); e != nil {
+		return nil, e
+	}
+	if s.qualification == nil {
+		return nil, ErrSourceDenied
+	}
+	if e := s.qualification.matchResource(s.row); e != nil {
 		return nil, e
 	}
 	if s.borrows == ^uint64(0) {
@@ -370,6 +481,9 @@ func (b *ServerTLSBorrow) Current(ctx context.Context) error {
 		return ErrDenied
 	}
 	s := b.state.owner
+	if e := (&ReviewedServerTLSLease{s}).Current(ctx); e != nil {
+		return e
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if b.state.released {
@@ -383,6 +497,9 @@ func (b *ServerTLSBorrow) OriginalCredentials(ctx context.Context) (ServerTLSOri
 		return zero, ErrDenied
 	}
 	s := b.state.owner
+	if e := b.Current(ctx); e != nil {
+		return zero, e
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if b.state.released {
@@ -446,7 +563,11 @@ func (l *ReviewedServerTLSLease) Join(ctx context.Context) error {
 	s := l.state
 	for {
 		s.mu.Lock()
-		if s.retired && s.borrows == 0 {
+		if s.retired && s.borrows == 0 && s.acceptChecks == 0 {
+			if len(s.acceptedCloseDebt) != 0 {
+				s.mu.Unlock()
+				return ErrUnknown
+			}
 			s.mu.Unlock()
 			return nil
 		}
@@ -470,8 +591,11 @@ func (l *ReviewedServerTLSLease) Close() (bool, error) {
 	if s.closed {
 		return true, s.first
 	}
-	if s.borrows != 0 {
+	if s.borrows != 0 || s.acceptChecks != 0 {
 		return false, ErrPending
+	}
+	if len(s.acceptedCloseDebt) != 0 {
+		return false, ErrUnknown
 	}
 	if s.listenerCloseError != nil {
 		return false, ErrUnknown
@@ -481,6 +605,17 @@ func (l *ReviewedServerTLSLease) Close() (bool, error) {
 			if s.first == nil {
 				s.first = e
 			}
+			return false, e
+		}
+	}
+	// Credential/listener children are physically done before Source parent.
+	// This cleanup-only method performs no Source/network current callback.
+	if s.qualification != nil {
+		done, e := s.qualification.Close()
+		if e != nil && s.first == nil {
+			s.first = e
+		}
+		if !done {
 			return false, e
 		}
 	}
@@ -527,18 +662,72 @@ func (l *originalListener) Accept() (net.Conn, error) {
 		return nil, net.ErrClosed
 	}
 	b := &ServerTLSBorrow{l.borrow}
-	if e := b.Current(context.Background()); e != nil {
-		return nil, e
+	return l.acceptWithCurrent(func() error { return b.Current(context.Background()) })
+}
+
+func (l *originalListener) acceptWithCurrent(current func() error) (net.Conn, error) {
+	if e := current(); e != nil {
+		return nil, acceptRetrySafe(e)
 	}
-	c, e := l.borrow.owner.listener.Accept()
+	s := l.borrow.owner
+	s.mu.Lock()
+	if s.retired || s.closed || l.borrow.released {
+		s.mu.Unlock()
+		return nil, ErrDenied
+	}
+	s.acceptChecks++
+	s.mu.Unlock()
+	c, e := s.listener.Accept()
 	if e != nil {
+		if c != nil {
+			return l.finishAccepted(c, func() error { return e })
+		}
+		s.mu.Lock()
+		s.acceptChecks--
+		s.wake()
+		s.mu.Unlock()
 		return c, e
 	}
-	if e = b.Current(context.Background()); e != nil {
-		_ = c.Close()
-		return nil, e
+	return l.finishAccepted(c, current)
+}
+
+// finishAccepted owns the accepted connection until current succeeds or one
+// physical close is confirmed. A failed close is never retried or discarded.
+func (l *originalListener) finishAccepted(c net.Conn, current func() error) (net.Conn, error) {
+	s := l.borrow.owner
+	err := current()
+	if err == nil {
+		s.mu.Lock()
+		if s.retired || s.closed || l.borrow.released {
+			err = ErrDenied
+		} else {
+			s.acceptChecks--
+			s.wake()
+			s.mu.Unlock()
+			return c, nil
+		}
+		s.mu.Unlock()
 	}
-	return c, nil
+	if err != nil {
+		closeErr := c.Close()
+		s.mu.Lock()
+		if closeErr != nil {
+			retainAcceptedCloseDebt(c)
+			s.acceptedCloseDebt = append(s.acceptedCloseDebt, c)
+			s.acceptedCloseErrors = append(s.acceptedCloseErrors, closeErr)
+			s.retireLocked(err)
+		}
+		s.acceptChecks--
+		s.wake()
+		s.mu.Unlock()
+		if closeErr != nil {
+			// Do not expose ErrPending as a retryable classification when a
+			// connection's physical closure is unknown.
+			return nil, errors.Join(err, ErrUnknown, closeErr)
+		}
+		return nil, acceptRetrySafe(err)
+	}
+	panic("unreachable")
 }
 func (l *originalListener) Addr() net.Addr {
 	if l == nil || l.borrow == nil || l.borrow.owner.listener == nil {

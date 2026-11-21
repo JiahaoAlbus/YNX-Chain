@@ -89,13 +89,36 @@ func (a *originalAuthServerTLSCredential) originalServerTLSBorrowHeld() bool {
 }
 
 func (a *originalAuthServerTLSCredential) currentOriginalServerTLSCredential(ctx context.Context) error {
-	if a == nil || a.lease == nil || a.borrow == nil {
+	if a == nil || a.lease == nil || a.borrow == nil || ctx == nil {
 		return ErrUnavailable
 	}
-	if e := a.lease.Current(ctx); e != nil {
-		return e
+	for {
+		if e := ctx.Err(); e != nil {
+			return e
+		}
+		e := a.lease.Current(ctx)
+		if e == nil {
+			e = a.borrow.Current(ctx)
+		}
+		if !a.originalServerTLSCurrentPending(e) {
+			return e
+		}
+		// ErrPending performed no Source math. Wait briefly, then obtain this
+		// caller's own complete observation; never reuse another call's result.
+		timer := time.NewTimer(5 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return ctx.Err()
+		case <-timer.C:
+		}
 	}
-	return a.borrow.Current(ctx)
+}
+func (*originalAuthServerTLSCredential) originalServerTLSCurrentPending(e error) bool {
+	return e == authservertls.ErrPending
+}
+func (*originalAuthServerTLSCredential) originalServerTLSAcceptRetrySafe(e error) bool {
+	return authservertls.IsOriginalAcceptRetrySafe(e)
 }
 func (a *originalAuthServerTLSCredential) originalServerTLSProfile(ctx context.Context) (originalServerTLSProfile, error) {
 	if a == nil || a.borrow == nil {
@@ -152,6 +175,13 @@ func (a *originalAuthServerTLSCredential) releaseOriginalServerTLSCredential(con
 	probe, cancel := context.WithCancel(context.Background())
 	cancel()
 	if e := a.lease.Join(probe); e != nil {
+		if errors.Is(e, authservertls.ErrUnknown) {
+			a.closeUnknown = true
+			if a.firstCleanup == nil {
+				a.firstCleanup = e
+			}
+			return a.released, false, a.firstCleanup
+		}
 		return a.released, false, fmt.Errorf("%w: %w", errOriginalServerTLSPending, e)
 	}
 	done, e := a.lease.Close()

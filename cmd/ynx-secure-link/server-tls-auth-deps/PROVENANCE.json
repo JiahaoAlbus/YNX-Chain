@@ -1,0 +1,74 @@
+{
+  "schema": "YNX-LINK-AUTH-SERVER-TLS-PUBLIC-PROVENANCE/v1",
+  "supplier": {
+    "name": "Auth server TLS source qualification and error compatibility",
+    "scope": "source-only-not-Root-admission",
+    "baseHandoff": {
+      "bytes": 5023,
+      "sha256": "f1d8fbd0059a61f75dca9137a83e98f383c4d3dbd83a23bc0bf4e7b03116100f"
+    },
+    "baseGoCAS": {
+      "bytes": 2945,
+      "sha256": "12f2474e9aeffdcef5d0e83717f560d879852ff2b0f9daac9bb16a62c12fb9dc"
+    },
+    "baseSourceManifest": {
+      "bytes": 11615,
+      "sha256": "9ed82b51b24877c7bee3f7a334c68c22c3b25837cb5838b416b5e054fba5b1e9"
+    },
+    "compatibilityHandoff": {
+      "bytes": 3225,
+      "sha256": "8c7e6f187e2ec7e103eb7a37838ae853e64072c58d1eaa7ac82a90c6b0318739"
+    },
+    "productionRootRows": 0,
+    "sourceCommit": "f278dfcdf67fc16683bc53f81ec5f538f326c465",
+    "sourceTree": "c2c8be03e39d9c845351fdfe5176f5f1c33b7d33",
+    "predecessorSourceManifest": {
+      "bytes": 2322,
+      "sha256": "99aba4bd1fb36aedd0e3cf12cfbddd2fe99f12f12655878e7430d86351dd1d96"
+    }
+  },
+  "sources": [
+    {
+      "path": "internal/authservertls/lease.go",
+      "bytes": 21984,
+      "sha256": "6d61316883ac8c3ab84da7649fbd1eb03f1da35b2afeaa0113874c551d8ab7de",
+      "gitBlob": "14e66e1545c5074278b8dd97a245671255654cc9",
+      "mode": "100644"
+    },
+    {
+      "path": "internal/authservertls/parent_linux.go",
+      "bytes": 429,
+      "sha256": "96ad86046ee79cd9b9be5ca9893a7eb958a426459e0e63e4a1deee7d02134882",
+      "gitBlob": "b6858541da3160d56f2477f9ac46b72b239108d2",
+      "mode": "100644"
+    },
+    {
+      "path": "internal/authservertls/parent_darwin.go",
+      "bytes": 427,
+      "sha256": "a04f8058d0e8068a0c0271b114d74481fd445e6b3ed80934295f7859a75eff26",
+      "gitBlob": "a491f1aeb4e38a64f4537b11ef78352e51ae668c",
+      "mode": "100644"
+    },
+    {
+      "path": "internal/authservertls/qualification.go",
+      "bytes": 16282,
+      "sha256": "37264cee7e607292c4b5641ad41ba4fe58be86617f637f903e99fefa7c0089e2",
+      "gitBlob": "de64acaddd8338ba5273c1a6878b91a8ddd43985",
+      "mode": "100644"
+    },
+    {
+      "path": "internal/authservertls/qualification_test.go",
+      "bytes": 7217,
+      "sha256": "f977c1d43db5bd4406755f4a0bdb2bf11dd50261ca54a54bf12e488be9b59c06",
+      "gitBlob": "db148107ed341e5a23d8548f19669bd504b181f4",
+      "mode": "100644"
+    },
+    {
+      "path": "internal/authservertls/accept_close_test.go",
+      "bytes": 3434,
+      "sha256": "ddf969a3fb2f8b7fe69eeae2b1234411ea2d7025958b52863872c18d1341b252",
+      "gitBlob": "65a342bc9574bb04b29d1391300b2f328cbe14bb",
+      "mode": "100644"
+    }
+  ]
+}

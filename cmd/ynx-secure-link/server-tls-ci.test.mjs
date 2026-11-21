@@ -5,7 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {verifyAuthSnapshot, prepareServerTLSComposite, verifyCompositeUnchanged, ownedEmptyRoot,
-  qualifyServerTLSTestEvents, SERVER_TLS_REQUIRED_TESTS, runServerTLSCI} from './server-tls-ci.mjs';
+  qualifyServerTLSTestEvents, qualifyAuthServerTLSTestEvents, SERVER_TLS_REQUIRED_TESTS,
+  AUTH_SERVER_TLS_REQUIRED_TESTS, runServerTLSCI} from './server-tls-ci.mjs';
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const dependencies = path.join(directory, 'server-tls-auth-deps');
@@ -17,7 +18,9 @@ function scratch(t) {
 function fixture(t) {
   const root = scratch(t), repo = path.join(root, 'PUBLIC-repo'); fs.mkdirSync(repo);
   const files = {'go.mod': 'module github.com/JiahaoAlbus/YNX-Chain\n\ngo 1.26.10\n\nreplace github.com/cometbft/cometbft => ./third_party/cometbft\n',
-    'go.sum': 'PUBLIC sum fixture\n', 'cmd/ynx-secure-link-caller/private_client_v1.h': '/* PUBLIC original CGO header metadata */\n', 'third_party/cometbft/go.mod': 'module github.com/cometbft/cometbft\ngo 1.26.10\n',
+    'go.sum': 'PUBLIC sum fixture\n', 'cmd/ynx-secure-link-caller/private_client_v1.h': '/* PUBLIC original CGO header metadata */\n',
+    'cmd/ynx-secure-link/server-tls-auth-test-support/pending.go.in': '//go:build securelink_public_server_tls_test\n\npackage authservertls\n// PUBLIC graph metadata only.\n',
+    'third_party/cometbft/go.mod': 'module github.com/cometbft/cometbft\ngo 1.26.10\n',
     'third_party/cometbft/go.sum': 'PUBLIC original replacement descriptors\n',
     'internal/securelink/PUBLIC.go': 'package securelink\n// PUBLIC metadata only; no business authority or real Go execution.\n',
     'internal/securelink/native/PUBLIC.c': '/* PUBLIC source graph metadata, no compilation */\n'};
@@ -28,16 +31,18 @@ const prepare = f => prepareServerTLSComposite({repositoryRoot: f.repo, privateR
 function copyDependencies(root) {
   const dest = path.join(root, 'deps'); fs.cpSync(dependencies, dest, {recursive: true}); return dest;
 }
-function goEvents(names = SERVER_TLS_REQUIRED_TESTS) {
-  const Package = 'github.com/JiahaoAlbus/YNX-Chain/internal/securelink';
+function goEvents(names = SERVER_TLS_REQUIRED_TESTS, Package = 'github.com/JiahaoAlbus/YNX-Chain/internal/securelink') {
   return [...names.flatMap(Test => [JSON.stringify({Action: 'run', Package, Test}), JSON.stringify({Action: 'pass', Package, Test})]),
     JSON.stringify({Action: 'pass', Package})].join('\n');
 }
 
-test('server TLS driver snapshots exact actual3 Auth public source without owner release or Root', () => {
-  const verified = verifyAuthSnapshot(); assert.equal(verified.sources.length, 3);
-  assert.equal(verified.sources.find(row => row.repositoryPath.endsWith('/lease.go')).descriptor.bytes, 16311);
-  assert.ok(verified.sources.every(row => row.originalSupplierPath.includes('/listener-identity-successor/source/internal/authservertls/')));
+test('server TLS driver snapshots exact qualified Auth source and supplier CAS without Root', () => {
+  const verified = verifyAuthSnapshot(); assert.equal(verified.sources.length, 6);
+  assert.equal(verified.supplierInputs.length, 1);
+  assert.equal(verified.sources.find(row => row.repositoryPath.endsWith('/lease.go')).descriptor.bytes, 21984);
+  assert.ok(verified.sources.every(row => row.originalSupplier.relativePath === row.repositoryPath));
+  const publicFiles = ['ORIGINALS.json', 'PROVENANCE.json'];
+  for (const name of publicFiles) assert.doesNotMatch(fs.readFileSync(path.join(dependencies, name), 'utf8'), /\/Volumes\/|\/Users\/|\/home\//);
   // Importing this driver and verifying public bytes executes no Go/native work.
 });
 
@@ -46,17 +51,22 @@ test('server TLS driver rejects changed missing duplicate or extra Auth snapshot
     j => {j.sources.pop();}, j => {j.sources.push({...j.sources[0], path: 'internal/authservertls/extra.go'});},
     j => {j.sources[1] = {...j.sources[0]};}, j => {j.sources[0].sha256 = 'f'.repeat(64);},
     j => {j.RootAdmission = true;}, j => {j.SourceAdmission = true;}, j => {j.copiedSourceOnly = false;},
+    j => {j.qualificationSupplier.provenance.sha256 = 'f'.repeat(64);},
   ]) {
     const root = scratch(t), deps = copyDependencies(root), file = path.join(deps, 'ORIGINALS.json'), manifest = JSON.parse(fs.readFileSync(file));
     change(manifest); fs.writeFileSync(file, JSON.stringify(manifest)); assert.throws(() => verifyAuthSnapshot(deps));
   }
   const deps = copyDependencies(scratch(t)); fs.appendFileSync(path.join(deps, 'internal/authservertls/lease.go'), '\n// changed\n');
   assert.throws(() => verifyAuthSnapshot(deps));
+  for (const name of ['PROVENANCE.json']) {
+    const deps = copyDependencies(scratch(t)); fs.appendFileSync(path.join(deps, name), '\n');
+    assert.throws(() => verifyAuthSnapshot(deps), /exact Auth qualification supplier/);
+  }
 });
 
 test('server TLS driver creates byte-preserving private graph plus public-only source evidence without editing repo', t => {
   const f = fixture(t), before = fs.readFileSync(path.join(f.repo, 'go.mod')), composite = prepare(f);
-  assert.equal(composite.sources.length, 10); assert.equal(composite.completeSourceGraphNotJustGitHead, true);
+  assert.equal(composite.sources.length, 14); assert.equal(composite.completeSourceGraphNotJustGitHead, true);
   assert.equal(composite.RootAdmission, false); assert.equal(composite.SourceAdmission, false);
   assert.equal(fs.readFileSync(path.join(f.privateRoot, 'go.mod')).equals(before), true);
   assert.equal(fs.readFileSync(path.join(f.repo, 'go.mod')).equals(before), true);
@@ -73,6 +83,9 @@ test('server TLS driver refuses copied input or evidence drift, source symlink, 
   assert.throws(() => prepare(other), /explicit owner rebind/);
   const linked = fixture(t); fs.symlinkSync('PUBLIC.go', path.join(linked.repo, 'internal/securelink/fake.go'));
   assert.throws(() => prepare(linked), /symlink/);
+  const supplier = fixture(t), supplied = prepare(supplier);
+  fs.appendFileSync(supplied.supplierInputs[0].publishedSource, '\n');
+  assert.throws(() => verifyCompositeUnchanged(supplied));
 });
 
 test('server TLS driver requires fresh owned disjoint evidence/private roots and preserves first outputs', t => {
@@ -87,7 +100,7 @@ test('server TLS driver requires fresh owned disjoint evidence/private roots and
 
 test('server TLS driver requires actual normal empty-Root and PUBLIC consumer tests without skip zero-hit or opaque false green', () => {
   const qualified = qualifyServerTLSTestEvents(goEvents(), 0, null, null);
-  assert.equal(qualified.pass, 3); assert.equal(qualified.actualAuthEmptyRootRefused, true); assert.equal(qualified.actualPUBLICConsumerFixture, true); assert.equal(qualified.RootAdmission, false);
+  assert.equal(qualified.pass, 4); assert.equal(qualified.actualAuthEmptyRootRefused, true); assert.equal(qualified.actualPUBLICConsumerFixture, true); assert.equal(qualified.RootAdmission, false);
   for (const [text, exit, signal, error] of [
     [goEvents().replace('"pass"', '"skip"'), 0, null, null], [goEvents(SERVER_TLS_REQUIRED_TESTS.slice(1)), 0, null, null],
     [goEvents([...SERVER_TLS_REQUIRED_TESTS, SERVER_TLS_REQUIRED_TESTS[0]]), 0, null, null], ['', 0, null, null],
@@ -97,7 +110,25 @@ test('server TLS driver requires actual normal empty-Root and PUBLIC consumer te
     [goEvents().split('\n').filter(line => JSON.parse(line).Test).join('\n'), 0, null, null],
     [goEvents().replaceAll('github.com/JiahaoAlbus/YNX-Chain/internal/securelink', 'PUBLIC/wrong-package'), 0, null, null],
     [goEvents() + '\n' + JSON.stringify({Action: 'run', Test: SERVER_TLS_REQUIRED_TESTS[0], Package: 'github.com/JiahaoAlbus/YNX-Chain/internal/securelink'}), 0, null, null],
+    [goEvents() + '\n' + JSON.stringify({Action: 'skip', Test: SERVER_TLS_REQUIRED_TESTS[0] + '/hidden', Package: 'github.com/JiahaoAlbus/YNX-Chain/internal/securelink'}), 0, null, null],
   ]) assert.throws(() => qualifyServerTLSTestEvents(text, exit, signal, error));
+});
+
+test('server TLS driver requires all eleven Auth qualification, error and accepted close controls from their actual package', () => {
+  const pkg = 'github.com/JiahaoAlbus/YNX-Chain/internal/authservertls';
+  const raw = goEvents(AUTH_SERVER_TLS_REQUIRED_TESTS, pkg);
+  const qualified = qualifyAuthServerTLSTestEvents(raw, 0, null, null);
+  assert.equal(qualified.pass, 11); assert.equal(qualified.productionRootRows, 0);
+  assert.equal(qualified.SourceAdmission, false);
+  for (const bad of [
+    goEvents(AUTH_SERVER_TLS_REQUIRED_TESTS.slice(1), pkg),
+    goEvents([...AUTH_SERVER_TLS_REQUIRED_TESTS, AUTH_SERVER_TLS_REQUIRED_TESTS[0]], pkg),
+    raw.replaceAll(pkg, 'github.com/JiahaoAlbus/YNX-Chain/internal/securelink'),
+    raw.replace('"pass"', '"skip"'),
+    raw.split('\n').filter(line => JSON.parse(line).Action !== 'run').join('\n'),
+    raw.split('\n').filter(line => JSON.parse(line).Test).join('\n'),
+    raw + '\n' + JSON.stringify({Action: 'skip', Package: pkg, Test: AUTH_SERVER_TLS_REQUIRED_TESTS[0] + '/hidden'}),
+  ]) assert.throws(() => qualifyAuthServerTLSTestEvents(bad, 0, null, null));
 });
 
 test('server TLS driver fails before any child process outside original CI context', () => {

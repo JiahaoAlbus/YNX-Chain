@@ -58,6 +58,15 @@ type originalServerTLSProfile struct {
 // this transport body provides no alternate public material constructor.
 type OriginalServerTLS struct{ state *originalServerTLSState }
 
+// Partial and UNKNOWN owners keep their native context, connection and Auth
+// lease reachable even if the last caller drops its handle. Only a confirmed
+// physical close removes custody; GC must not perform an ambiguous second
+// descriptor close or release the original credential parent.
+var originalServerTLSCustody = struct {
+	sync.Mutex
+	owners map[*originalServerTLSState]struct{}
+}{owners: make(map[*originalServerTLSState]struct{})}
+
 type ServerTLSLifetime struct {
 	Retired, ServeStarted, ServeExited, ListenerClosed    bool
 	Connections, Requests, IssuerCalls                    int
@@ -68,6 +77,7 @@ type ServerTLSLifetime struct {
 type originalServerTLSState struct {
 	mu                                                          sync.Mutex
 	changed                                                     chan struct{}
+	issuerCurrent                                               chan struct{}
 	ctx                                                         context.Context
 	cancel                                                      context.CancelCauseFunc
 	stopParent                                                  func() bool
@@ -149,6 +159,9 @@ func matchOriginalServerTLSProfile(p originalServerTLSProfile, i native.ServerId
 func newOriginalServerTLS(parent context.Context, base *HTTPServer, l net.Listener, lease originalServerTLSCredentialBorrow, acquisitionErr error) (out *OriginalServerTLS, err error) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	s := &originalServerTLSState{changed: make(chan struct{}), ctx: ctx, cancel: cancel, base: base, listener: l, lease: lease, connections: make(map[*originalServerTLSConn]struct{})}
+	originalServerTLSCustody.Lock()
+	originalServerTLSCustody.owners[s] = struct{}{}
+	originalServerTLSCustody.Unlock()
 	if !originalServerTLSNil(lease) {
 		s.borrowed = lease.originalServerTLSBorrowHeld()
 	}
@@ -220,11 +233,43 @@ func (o *OriginalServerTLS) Current(ctx context.Context) error {
 		return e
 	}
 	s.calls++
+	if s.issuerCurrent == nil {
+		s.issuerCurrent = make(chan struct{}, 1)
+	}
+	s.notifyLocked()
+	gate := s.issuerCurrent
 	lease, base, p, expected := s.lease, s.base, s.profile, s.identity
 	s.mu.Unlock()
+	defer func() {
+		s.mu.Lock()
+		s.calls--
+		s.notifyLocked()
+		s.mu.Unlock()
+	}()
+	// Every caller performs its own full issuer observation. Queue only this
+	// owner's work; cancellation and retirement can interrupt a queued caller.
+	select {
+	case gate <- struct{}{}:
+		defer func() { <-gate }()
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-s.ctx.Done():
+		return context.Cause(s.ctx)
+	}
+	if e := ctx.Err(); e != nil {
+		return e
+	}
+	select {
+	case <-s.ctx.Done():
+		return context.Cause(s.ctx)
+	default:
+	}
 	e := lease.currentOriginalServerTLSCredential(ctx)
 	// A caller's request timeout is not evidence of issuer revocation. Never
 	// let one disconnected HTTP client permanently retire unrelated requests.
+	// The issuer received this exact caller context. Owner retirement cancels
+	// only s.ctx and must not erase a real error returned by in-flight issuer
+	// work whose own context is still live.
 	operationCancelled := e != nil && ctx.Err() != nil
 	if e == nil {
 		var i native.ServerIdentity
@@ -241,7 +286,6 @@ func (o *OriginalServerTLS) Current(ctx context.Context) error {
 		operationCancelled = e != nil
 	}
 	s.mu.Lock()
-	s.calls--
 	if e != nil && !operationCancelled {
 		s.rememberLocked(e)
 	}
@@ -635,6 +679,16 @@ func (l *originalServerTLSListener) Accept() (net.Conn, error) {
 	}
 	raw, e := s.listener.Accept()
 	if e != nil {
+		if s.ctx.Err() != nil {
+			return nil, net.ErrClosed
+		}
+		// Only the original concrete issuer can identify its exact busy error.
+		// http.Server backs off on Temporary and retries Accept, which repeats
+		// the full issuer check. A busy observation never admits a connection.
+		if issuer, ok := s.lease.(interface{ originalServerTLSAcceptRetrySafe(error) bool }); ok &&
+			issuer.originalServerTLSAcceptRetrySafe(e) {
+			return nil, originalServerTLSAcceptPending{cause: e}
+		}
 		return nil, e
 	}
 	c := &originalServerTLSConn{state: s}
@@ -650,6 +704,13 @@ func (l *originalServerTLSListener) Accept() (net.Conn, error) {
 	s.mu.Unlock()
 	return c, nil
 }
+
+type originalServerTLSAcceptPending struct{ cause error }
+
+func (e originalServerTLSAcceptPending) Error() string   { return e.cause.Error() }
+func (e originalServerTLSAcceptPending) Unwrap() error   { return e.cause }
+func (e originalServerTLSAcceptPending) Timeout() bool   { return false }
+func (e originalServerTLSAcceptPending) Temporary() bool { return true }
 
 // The actual accepted transport's FIRST close is recorded once. Legacy
 // pendingConn ignored that result and retried through native.Conn.Close; this
@@ -982,6 +1043,11 @@ func (o *OriginalServerTLS) Close() error {
 	s.mu.Unlock()
 	if closed && stop != nil {
 		stop()
+	}
+	if closed {
+		originalServerTLSCustody.Lock()
+		delete(originalServerTLSCustody.owners, s)
+		originalServerTLSCustody.Unlock()
 	}
 	return first
 }

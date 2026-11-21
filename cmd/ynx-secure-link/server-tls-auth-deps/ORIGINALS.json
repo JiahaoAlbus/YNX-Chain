@@ -4,26 +4,44 @@
   "sources": [
     {
       "path": "internal/authservertls/lease.go",
-      "originalPath": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/ide-cloud-deployment-caller-successor/receiver-principal-r5/listener-identity-successor/source/internal/authservertls/lease.go",
-      "bytes": 16311,
-      "sha256": "119e448e87e16ef2690b7dbf4c37a6778ce88a4bba4e90fc89f7eef59ba7e7a2",
-      "gitBlob": "c179ce4f8ab7929d775a6bef7b328e9c9f10ae55",
+      "bytes": 21984,
+      "sha256": "6d61316883ac8c3ab84da7649fbd1eb03f1da35b2afeaa0113874c551d8ab7de",
+      "gitBlob": "14e66e1545c5074278b8dd97a245671255654cc9",
+      "mode": "100644"
+    },
+    {
+      "path": "internal/authservertls/parent_linux.go",
+      "bytes": 429,
+      "sha256": "96ad86046ee79cd9b9be5ca9893a7eb958a426459e0e63e4a1deee7d02134882",
+      "gitBlob": "b6858541da3160d56f2477f9ac46b72b239108d2",
       "mode": "100644"
     },
     {
       "path": "internal/authservertls/parent_darwin.go",
-      "originalPath": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/ide-cloud-deployment-caller-successor/receiver-principal-r5/listener-identity-successor/source/internal/authservertls/parent_darwin.go",
       "bytes": 427,
       "sha256": "a04f8058d0e8068a0c0271b114d74481fd445e6b3ed80934295f7859a75eff26",
       "gitBlob": "a491f1aeb4e38a64f4537b11ef78352e51ae668c",
       "mode": "100644"
     },
     {
-      "path": "internal/authservertls/parent_linux.go",
-      "originalPath": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/ide-cloud-deployment-caller-successor/receiver-principal-r5/listener-identity-successor/source/internal/authservertls/parent_linux.go",
-      "bytes": 429,
-      "sha256": "96ad86046ee79cd9b9be5ca9893a7eb958a426459e0e63e4a1deee7d02134882",
-      "gitBlob": "b6858541da3160d56f2477f9ac46b72b239108d2",
+      "path": "internal/authservertls/qualification.go",
+      "bytes": 16282,
+      "sha256": "37264cee7e607292c4b5641ad41ba4fe58be86617f637f903e99fefa7c0089e2",
+      "gitBlob": "de64acaddd8338ba5273c1a6878b91a8ddd43985",
+      "mode": "100644"
+    },
+    {
+      "path": "internal/authservertls/qualification_test.go",
+      "bytes": 7217,
+      "sha256": "f977c1d43db5bd4406755f4a0bdb2bf11dd50261ca54a54bf12e488be9b59c06",
+      "gitBlob": "db148107ed341e5a23d8548f19669bd504b181f4",
+      "mode": "100644"
+    },
+    {
+      "path": "internal/authservertls/accept_close_test.go",
+      "bytes": 3434,
+      "sha256": "ddf969a3fb2f8b7fe69eeae2b1234411ea2d7025958b52863872c18d1341b252",
+      "gitBlob": "65a342bc9574bb04b29d1391300b2f328cbe14bb",
       "mode": "100644"
     }
   ],
@@ -33,5 +51,13 @@
   "RootAdmission": false,
   "SourceAdmission": false,
   "V4PrincipalAdmission": false,
-  "deployed": false
+  "deployed": false,
+  "qualificationSupplier": {
+    "provenance": {
+      "path": "PROVENANCE.json",
+      "bytes": 2624,
+      "sha256": "d0bdbfe614958d58014107f3df4290db3e019fad919093b00105b2e5f317629c"
+    },
+    "productionRootRows": 0
+  }
 }
