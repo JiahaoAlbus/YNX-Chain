@@ -7,6 +7,7 @@ on:
       - 'codex/ynx-pq-public-upgrade'
       - 'codex/ynx-pq-perf-integration'
       - 'codex/ynx-pq-perf-source-20261108'
+      - 'codex/chain-commit-monotonic-20261121'
     paths:
       - 'packages/ynx-batch-v01/**'
       - 'internal/ynxbatch/**'
@@ -319,7 +320,7 @@ jobs:
   verify:
     # Frozen protocol refs have their own fail-closed identity gate below;
     # they must never fall through into unrelated product build/test jobs.
-    if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/codex/ynx-pq-public-upgrade' && github.ref != 'refs/heads/codex/ynx-pq-perf-integration' && github.ref != 'refs/heads/codex/ynx-pq-perf-source-20261108' && !startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') && !(github.event_name == 'workflow_dispatch' && (inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))
+    if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/codex/ynx-pq-public-upgrade' && github.ref != 'refs/heads/codex/ynx-pq-perf-integration' && github.ref != 'refs/heads/codex/ynx-pq-perf-source-20261108' && github.ref != 'refs/heads/codex/chain-commit-monotonic-20261121' && !startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') && !(github.event_name == 'workflow_dispatch' && (inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -1536,7 +1537,7 @@ jobs:
           retention-days: 7
 
   focused-go:
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/codex/ynx-pq-perf-source-20261108' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'push' && (github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' || github.ref == 'refs/heads/codex/chain-commit-monotonic-20261121')) || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/codex/ynx-pq-perf-source-20261108' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))
     outputs:
       inputs-artifact-id: ${{ steps.stageupload.outputs.artifact-id }}
       inputs-manifest-sha256: ${{ steps.stagepack.outputs.manifest-sha256 }}
@@ -1550,7 +1551,7 @@ jobs:
     # Remote windows retain their independent 12-minute admission below.
     # Source verification grows with real regressions; actual windows retain
     # their original independent deadlines and resource admission.
-    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || (inputs.paired_n1 || inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history || inputs.remote_signer_process) && 15 || (github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108') && 40 || 25 }}
+    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || (inputs.paired_n1 || inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history || inputs.remote_signer_process) && 15 || (github.event_name == 'push' && (github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' || github.ref == 'refs/heads/codex/chain-commit-monotonic-20261121')) && 40 || 25 }}
     env:
       GOMAXPROCS: '2'
       GOGC: '50'
@@ -1599,6 +1600,12 @@ jobs:
           bash scripts/verify/pq-remote-window-entry-check.sh
           if [ "$YNX_ENTRY_REF" = 'refs/heads/codex/ynx-pq-perf-source-20261108' ]; then
             test "$YNX_ENTRY_EVENT" = 'push'
+          fi
+          if [ "$YNX_ENTRY_REF" = 'refs/heads/codex/chain-commit-monotonic-20261121' ]; then
+            test "$YNX_ENTRY_EVENT" = 'push'
+            for selection in "$YNX_ENTRY_PAIRED" "$YNX_ENTRY_LOCAL" "$YNX_ENTRY_LOCAL_RETAINED" "$YNX_ENTRY_REMOTE_RETAINED" "$YNX_ENTRY_REMOTE_PROCESS" "$YNX_ENTRY_FRESH_BUSINESS"; do
+              case "$selection" in ''|false) ;; *) exit 1 ;; esac
+            done
           fi
           if [ "$YNX_ENTRY_EVENT" = 'workflow_dispatch' ]; then
             test "$YNX_ENTRY_CANDIDATE_SHA" = "$YNX_ENTRY_GITHUB_SHA"
