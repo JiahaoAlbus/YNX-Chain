@@ -200,9 +200,13 @@ public final class MainActivity extends Activity {
 
     private void confirmGuestCartImport(){
         if(cartWork!=null)return;
+        final ProductSession expected;final long shownGeneration,shownView=viewRevision;final String guestSnapshot;
+        try{expected=api.session();if(expected==null)throw new SecurityException("Session changed");shownGeneration=PrivacyLifecycle.requireWritable(secure,expected.account);guestSnapshot=secure.get("cart:guest");if(guestSnapshot.isEmpty()||new JSONArray(guestSnapshot).length()==0)throw new IllegalStateException("CART_IMPORT_GUEST_EMPTY");}catch(Exception error){status.setText(cartError(error));return;}
         showDialog(new AlertDialog.Builder(this).setTitle(getString(R.string.cart_import_guest)).setMessage(getString(R.string.cart_import_guest_confirm)).setNegativeButton(getString(R.string.cancel),null).setPositiveButton(getString(R.string.cart_import_guest),(dialog,which)->runCartTask((sender,session,generation)->{
+            if(shownView!=viewRevision||generation!=shownGeneration||!expected.same(session))throw new SecurityException("Cart presentation changed");
             NativeCart.refresh(secure,sender,session,generation);
-            NativeCart.importGuest(secure,sender,session,generation);
+            if(shownView!=viewRevision)throw new SecurityException("Cart presentation changed");
+            NativeCart.importGuest(secure,sender,session,generation,guestSnapshot);
             NativeCart.sync(secure,sender,session,generation);
         },this::showCart)).create());
     }

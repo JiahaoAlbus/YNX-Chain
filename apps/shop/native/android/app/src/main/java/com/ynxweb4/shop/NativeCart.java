@@ -39,13 +39,14 @@ final class NativeCart {
     }
     // Copy only after the current account's remote cart was refreshed. Preserve
     // the guest draft and never replace an account draft or an uncertain write.
-    static void importGuest(Storage store,Sender sender,ProductSession expected,long generation)throws Exception{
+    static void importGuest(Storage store,Sender sender,ProductSession expected,long generation,String shownGuest)throws Exception{
         synchronized(store){
             current(store,sender,expected,generation);
             JSONObject state=state(store,expected.account);
             if(!state.optBoolean("ready")||state.optBoolean("dirty")||state.has("pending")||items(store,expected.account).length()!=0||state.optJSONArray("base")==null||state.getJSONArray("base").length()!=0)throw new IllegalStateException("CART_IMPORT_ACCOUNT_NOT_EMPTY");
             String raw=store.get("cart:guest");JSONArray guest=raw.isEmpty()?new JSONArray():new JSONArray(raw);
             if(guest.length()==0)throw new IllegalStateException("CART_IMPORT_GUEST_EMPTY");
+            if(shownGuest==null||!same(guest,new JSONArray(shownGuest)))throw new SecurityException("Guest cart changed during review");
             edit(store,expected.account,guest);
         }
     }
