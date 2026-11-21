@@ -11,7 +11,7 @@ PROFILE = 'first100-held-public-owner-sequential-pair'
 ORIGINAL_WORKFLOW_SHA256 = '90141a02cf15fc96a2513198b428d0ea1c403bffa74623bf6f1e68187b3d5f6d'
 # Source-owned only; the original controller must bind both exact arms and CI.
 # There is deliberately no environment, CLI or caller-provided enable switch.
-WORKFLOW_PAIR_ENABLED = False
+WORKFLOW_PAIR_ENABLED = True
 PAIR_JOBS = ('first100-held-controller-controls', 'first100-held-public-owner')
 
 

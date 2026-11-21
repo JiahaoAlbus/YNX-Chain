@@ -882,7 +882,7 @@ jobs:
 
   first100-held-controller-controls:
     name: Fixed held first100 controller controls
-    if: github.ref == 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (inputs.load_profile != 'first100-held-public-owner-sequential-pair' || false)
+    if: github.ref == 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (inputs.load_profile != 'first100-held-public-owner-sequential-pair' || true)
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -944,7 +944,7 @@ jobs:
 
   first100-held-public-owner:
     name: ${{ inputs.load_profile == 'first100-held-public-owner-sequential-pair' && 'Held public-owner normal504 sequential pair' || inputs.load_profile == 'first100-held-public-owner-business' && 'Held public-owner normal504 first100 business window' || 'Held public-owner normal504 four-proof readiness without business release' }}
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && github.run_attempt == 1 && (inputs.load_profile == 'first100-held-public-owner' || inputs.load_profile == 'first100-held-public-owner-business' || inputs.load_profile == 'first100-held-public-owner-sequential-pair') && inputs.signing_mode == 'online' && (inputs.load_profile != 'first100-held-public-owner-sequential-pair' || false)
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && github.run_attempt == 1 && (inputs.load_profile == 'first100-held-public-owner' || inputs.load_profile == 'first100-held-public-owner-business' || inputs.load_profile == 'first100-held-public-owner-sequential-pair') && inputs.signing_mode == 'online' && (inputs.load_profile != 'first100-held-public-owner-sequential-pair' || true)
     needs: first100-held-controller-controls
     runs-on: ubuntu-24.04
     timeout-minutes: ${{ inputs.load_profile == 'first100-held-public-owner-sequential-pair' && 45 || 18 }}
