@@ -1,7 +1,11 @@
 """Pure local reduction controls. Fixture callbacks grant no chain authority."""
 import copy
+import hashlib
 import importlib.util
+import json
+import os
 from pathlib import Path
+import tempfile
 import unittest
 from unittest import mock
 
@@ -283,6 +287,230 @@ class First100StageSummaryControls(unittest.TestCase):
         load['releaseToAccountClaim']['denominator'] = 2
         with self.assertRaisesRegex(RuntimeError, 'boundary denominator'):
             m.business(load)
+
+
+class VerifierResourceControls(unittest.TestCase):
+    def setUp(self):
+        for name in ('subprocess.Popen', 'urllib.request.urlopen', 'socket.create_connection'):
+            patch = mock.patch(name, side_effect=AssertionError('local reduction cannot run a process or network'))
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def receipt(self):
+        name = 'load-00000-normal-verifier'
+        record = dict(name=name, requestedMonotonicNs=10, slotAcquiredMonotonicNs=20,
+                      launchRequestedMonotonicNs=25, launchReturnedMonotonicNs=40,
+                      cleanupFinishedMonotonicNs=100, returnedMonotonicNs=110, errorType='RuntimeError')
+        waiting = dict(name='load-00001-normal-verifier', requestedMonotonicNs=30,
+                       returnedMonotonicNs=120, errorType='RuntimeError')
+        return dict(configuredDemand=500, loadResult=First100StageSummaryControls().load(),
+            source=dict(commit='a'*40, tree='b'*40), toolIdentity=dict(commit='c'*40, tree='d'*40),
+            caps=dict(rssBytes=4294967296), firstCause='original guard failure', cleanupComplete=True,
+            normalHelperLifecycle=dict(maxConcurrent=3, cleanupDebt=[], parentTiming=dict(
+                schema='YNX-PERF-PARENT-HELPER-BOUNDARIES/v1', clock='parent_monotonic_ns',
+                attempted=2, completed=2, inFlight=0, retained=2, omittedCompleted=0, recordLimit=2048,
+                records=[record, waiting])),
+            processes=[dict(name=name, pid=101, startTicks=7, rawReturnCode=-15, observedLaunchToExitNs=None)],
+            peakRSSBytes=350, peakRSSSample=dict(sampleMonotonicSeconds=80/1e9, rssBytes=350,
+                processes=[dict(name=name, pid=101, startTicks=7, rssBytes=200),
+                           dict(name='supervisor', pid=100, startTicks=1, rssBytes=150)]))
+
+    def bound(self, receipt):
+        raw = json.dumps(receipt, allow_nan=False).encode()
+        readback = dict(source=receipt['source'], tools=receipt['toolIdentity'], configuredDemand=500,
+            caps=receipt['caps'], firstCause=receipt['firstCause'], peakRSSSample=receipt['peakRSSSample'],
+            files={'fixture/public/receipt.json': dict(bytes=len(raw), sha256=hashlib.sha256(raw).hexdigest())},
+            archiveSHA256='e'*64, controller='f'*40, archiveOriginIndependentlyVerified=False)
+        return raw, copy.deepcopy(readback)
+
+    def test_exact_identity_joins_only_global_peak_and_preserves_original500(self):
+        receipt = self.receipt()
+        original = copy.deepcopy(receipt)
+        with mock.patch.object(m, 'helper_stages', wraps=m.helper_stages) as helper:
+            report = m.verifier_resources(receipt)
+        helper.assert_called_once()
+        self.assertEqual(receipt, original)
+        self.assertEqual(report['configuredDemand'], 500)
+        self.assertEqual(report['coverage'], dict(retainedVerifierRequests=2, registeredVerifierProcesses=1,
+            notRepresentedByRetainedVerifierRecords=498, rssAtGlobalPeakObserved=1,
+            rssAtGlobalPeakMissingOrUnbound=499, individualPeakObserved=0, individualPeakUnknown=500))
+        row = report['records'][0]
+        self.assertEqual(row['rssAtGlobalPeakBytes'], 200)
+        self.assertAlmostEqual(row['globalPeakOffsetFromLaunchReturnSeconds'], 40/1e9)
+        self.assertIsNone(row['individualPeakRSSBytes'])
+        self.assertIsNone(row['observedLaunchToExitNs'])
+        self.assertEqual(row['rawReturnCode'], -15)
+        self.assertFalse(row['childSuccessInferred'])
+        self.assertEqual(report['globalPeak']['groups']['verifier']['observedRSSSumBytes'], 200)
+        self.assertEqual(report['originalFirstCause'], 'original guard failure')
+
+    def test_pid_reuse_does_not_join_different_start_ticks(self):
+        receipt = self.receipt()
+        receipt['peakRSSSample']['processes'][0]['startTicks'] += 1
+        report = m.verifier_resources(receipt)
+        self.assertIsNone(report['records'][0]['rssAtGlobalPeakBytes'])
+        self.assertEqual(report['coverage']['rssAtGlobalPeakObserved'], 0)
+        self.assertNotIn('verifier', report['globalPeak']['groups'])
+        self.assertEqual(report['globalPeak']['groups']['unboundIdentity']['observedRSSSumBytes'], 350)
+
+    def test_missing_identity_rss_or_snapshot_stays_unknown(self):
+        for missing in ('registryTicks', 'peakTicks', 'rss', 'peak'):
+            receipt = self.receipt()
+            if missing == 'registryTicks': receipt['processes'][0]['startTicks'] = None
+            if missing == 'peakTicks': receipt['peakRSSSample']['processes'][0].pop('startTicks')
+            if missing == 'rss': receipt['peakRSSSample']['processes'][0]['rssBytes'] = None
+            if missing == 'peak': receipt.pop('peakRSSSample')
+            with self.subTest(missing=missing):
+                report = m.verifier_resources(receipt)
+                self.assertIsNone(report['records'][0]['rssAtGlobalPeakBytes'])
+                self.assertIsNone(report['records'][0]['individualPeakRSSBytes'])
+                self.assertEqual(report['coverage']['individualPeakUnknown'], 500)
+
+    def test_registered_child_without_launch_return_is_retained(self):
+        receipt = self.receipt()
+        receipt['normalHelperLifecycle']['parentTiming']['records'][0].pop('launchReturnedMonotonicNs')
+        receipt['peakRSSSample']['processes'][0]['name'] = 'owned-descendant'
+        row = m.verifier_resources(receipt)['records'][0]
+        self.assertEqual(row['registrationStatus'], 'REGISTERED_PROCESS_LAUNCH_RETURN_NOT_OBSERVED')
+        self.assertEqual(row['rssAtGlobalPeakBytes'], 200)
+        self.assertIsNone(row['parent']['stagesNs']['parentLaunch'])
+        self.assertIsNone(row['globalPeakOffsetFromLaunchReturnSeconds'])
+        receipt['normalHelperLifecycle']['parentTiming']['records'][0]['launchReturnedMonotonicNs'] = 90
+        pending = m.verifier_resources(receipt)['records'][0]
+        self.assertLess(pending['globalPeakOffsetFromLaunchReturnSeconds'], 0)
+        self.assertIsNone(pending['individualPeakRSSBytes'])
+
+    def test_unacquired_slot_is_censored_not_zero_or_completed_wait(self):
+        row = m.verifier_resources(self.receipt())['records'][1]
+        self.assertEqual(row['censoredNoSlotRequestToReturnNs'], 90)
+        self.assertEqual(row['slotWaitStatus'], 'UNKNOWN_ACQUISITION_NOT_OBSERVED')
+        self.assertIsNone(row['parent']['stagesNs']['helperSlotWait'])
+        self.assertIsNone(row['pid'])
+        self.assertIsNone(row['rssAtGlobalPeakBytes'])
+
+    def test_omitted_helper_history_cannot_remove_registered_verifier_or_shrink_cohort(self):
+        receipt = self.receipt()
+        report = receipt['normalHelperLifecycle']['parentTiming']
+        report.update(records=[], retained=0, omittedCompleted=2)
+        result = m.verifier_resources(receipt)
+        self.assertEqual(result['coverage']['retainedVerifierRequests'], 0)
+        self.assertEqual(result['coverage']['registeredVerifierProcesses'], 1)
+        self.assertIsNone(result['records'][0]['parent'])
+        self.assertEqual(result['business']['configuredDemand'], 500)
+
+    def test_duplicate_identity_name_and_conflicting_peak_identity_are_rejected(self):
+        for change in ('process', 'peak', 'name', 'conflict'):
+            receipt = self.receipt()
+            if change == 'process': receipt['processes'].append(copy.deepcopy(receipt['processes'][0]))
+            if change == 'peak': receipt['peakRSSSample']['processes'].append(copy.deepcopy(receipt['peakRSSSample']['processes'][0]))
+            if change == 'name': receipt['processes'].append(dict(receipt['processes'][0], pid=102))
+            if change == 'conflict': receipt['peakRSSSample']['processes'][0]['name'] = 'supervisor'
+            with self.subTest(change=change), self.assertRaises(RuntimeError):
+                m.verifier_resources(receipt)
+
+    def test_invalid_values_and_bounded_lists_are_rejected(self):
+        for change in ('pidbool', 'ticksfloat', 'rssnegative', 'clocknan', 'index500', 'demand', 'processBound', 'peakBound', 'sum', 'exitnan', 'exitbool'):
+            receipt = self.receipt()
+            if change == 'pidbool': receipt['processes'][0]['pid'] = True
+            if change == 'ticksfloat': receipt['processes'][0]['startTicks'] = 7.0
+            if change == 'rssnegative': receipt['peakRSSSample']['processes'][0]['rssBytes'] = -1
+            if change == 'clocknan': receipt['peakRSSSample']['sampleMonotonicSeconds'] = float('nan')
+            if change == 'index500': receipt['processes'][0]['name'] = 'load-00500-normal-verifier'
+            if change == 'demand': receipt['configuredDemand'] = 2
+            if change == 'processBound': receipt['processes'] *= m.PROCESS_RECORD_LIMIT + 1
+            if change == 'peakBound': receipt['peakRSSSample']['processes'] *= m.PROCESS_RECORD_LIMIT
+            if change == 'sum': receipt['peakRSSSample']['processes'][0]['rssBytes'] += 1
+            if change == 'exitnan': receipt['processes'][0]['observedLaunchToExitNs'] = float('nan')
+            if change == 'exitbool': receipt['processes'][0]['rawReturnCode'] = True
+            with self.subTest(change=change), self.assertRaises(RuntimeError):
+                m.verifier_resources(receipt)
+
+    def test_receipt_binding_preserves_origin_limit_and_rejects_cross_source_or_digest(self):
+        raw, readback = self.bound(self.receipt())
+        report = m.verifier_summary(raw, readback)
+        self.assertTrue(report['binding']['receiptDigestMatchesReadback'])
+        self.assertFalse(report['binding']['archiveReverified'])
+        self.assertFalse(report['binding']['originalArchiveOriginIndependentlyVerified'])
+        for change in ('digest', 'bytes', 'source', 'tools', 'peak', 'firstCause', 'demand'):
+            altered = copy.deepcopy(readback)
+            if change == 'digest': altered['files']['fixture/public/receipt.json']['sha256'] = '0'*64
+            if change == 'bytes': altered['files']['fixture/public/receipt.json']['bytes'] += 1
+            if change == 'source': altered['source']['commit'] = '0'*40
+            if change == 'tools': altered['tools']['commit'] = '0'*40
+            if change == 'peak': altered['peakRSSSample']['rssBytes'] += 1
+            if change == 'firstCause': altered['firstCause'] = None
+            if change == 'demand': altered['configuredDemand'] = 2
+            with self.subTest(change=change), self.assertRaises(RuntimeError):
+                m.verifier_summary(raw, altered)
+
+    def test_local_reader_bounds_and_no_follow_and_change_detection(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp).resolve() / 'receipt.json'
+            path.write_bytes(b'original')
+            self.assertEqual(m.read_local_bounded(path), b'original')
+            link = Path(tmp).resolve() / 'link'
+            link.symlink_to(path)
+            with self.assertRaises(OSError): m.read_local_bounded(link)
+            link.unlink()
+            os.link(path, link)
+            with self.assertRaises(RuntimeError): m.read_local_bounded(path)
+            link.unlink()
+            with path.open('wb') as out: out.truncate(m.RECEIPT_LIMIT + 1)
+            with mock.patch.object(m.os, 'read', side_effect=AssertionError('oversize read')):
+                with self.assertRaises(RuntimeError): m.read_local_bounded(path)
+            path.write_bytes(b'original')
+            read = m.os.read
+            def changed(fd, size):
+                result = read(fd, size)
+                path.write_bytes(b'replaced')
+                return result
+            with mock.patch.object(m.os, 'read', side_effect=changed):
+                with self.assertRaisesRegex(RuntimeError, 'changed during read'): m.read_local_bounded(path)
+
+    def test_missing_both_source_identities_cannot_claim_same_source_binding(self):
+        for missing in ('source', 'toolIdentity'):
+            receipt = self.receipt()
+            receipt[missing] = None
+            raw, readback = self.bound(receipt)
+            with self.subTest(missing=missing), self.assertRaisesRegex(RuntimeError, 'identity required'):
+                m.verifier_summary(raw, readback)
+
+    def test_parent_symlink_or_directory_replacement_cannot_redirect_local_read(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            parent = root / 'original'
+            parent.mkdir()
+            path = parent / 'receipt.json'
+            path.write_bytes(b'original')
+            link = root / 'redirect'
+            link.symlink_to(parent, target_is_directory=True)
+            with self.assertRaises(OSError): m.read_local_bounded(link / 'receipt.json')
+            read = m.os.read
+            replaced = False
+            def replace_parent(fd, size):
+                nonlocal replaced
+                result = read(fd, size)
+                if not replaced:
+                    replaced = True
+                    parent.rename(root / 'retained-original')
+                    parent.mkdir()
+                    (parent / 'receipt.json').write_bytes(b'original')
+                return result
+            with mock.patch.object(m.os, 'read', side_effect=replace_parent):
+                with self.assertRaisesRegex(RuntimeError, 'parent directory replaced'):
+                    m.read_local_bounded(path)
+
+    def test_cli_receipt_mode_is_local_exclusive_and_does_not_grant_archive_qualification(self):
+        raw, readback = self.bound(self.receipt())
+        with tempfile.TemporaryDirectory() as tmp:
+            receipt, result, output = [Path(tmp).resolve() / name for name in ('receipt.json', 'readback.json', 'out.json')]
+            receipt.write_bytes(raw)
+            result.write_text(json.dumps(readback))
+            with mock.patch.object(m, 'summarize', side_effect=AssertionError('not the D24 archive mode')):
+                self.assertEqual(m.main(['--verifier-receipt', str(receipt), '--readback', str(result), '--output', str(output)]), 0)
+            self.assertFalse(json.loads(output.read_bytes())['binding']['archiveReverified'])
+            with self.assertRaises(RuntimeError):
+                m.main(['--verifier-receipt', str(receipt), '--readback', str(result), '--old-readback', str(result), '--output', str(output)])
 
 
 if __name__ == '__main__':
