@@ -451,7 +451,7 @@ func TestToolLoopResumeDurableOriginalBatch(t *testing.T) {
 			admissions := 0
 			admit := func(_ context.Context, destination, model string, body []byte) error {
 				admissions++
-				if destination != s.cfg.ProviderURL || model != s.cfg.Model || !bytes.Contains(body, []byte("real-completed-b")) {
+				if destination != s.cfg.ProviderURL+"/chat/completions" || model != s.cfg.Model || !bytes.Contains(body, []byte("real-completed-b")) {
 					t.Error("resumed result disclosure did not get fresh exact-byte admission")
 				}
 				return nil

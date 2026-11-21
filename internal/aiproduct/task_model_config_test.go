@@ -91,7 +91,7 @@ func TestP08TaskModelConfigOriginalServiceHTTPAndAuthority(t *testing.T) {
 	admissions := 0
 	admit := func(_ context.Context, destination, model string, body []byte) error {
 		admissions++
-		if destination != peer.URL+"/provider/v1" || model != "PUBLIC-fixed-model" || !json.Valid(body) || bytes.Contains(body, []byte("PUBLIC-explicit-provider-key")) {
+		if destination != peer.URL+"/provider/v1/chat/completions" || model != "PUBLIC-fixed-model" || !json.Valid(body) || bytes.Contains(body, []byte("PUBLIC-explicit-provider-key")) {
 			t.Error("original disclosure operands/config pins changed or exposed credential")
 		}
 		return nil // Explicit PUBLIC per-call fixture, not an admitted Source.

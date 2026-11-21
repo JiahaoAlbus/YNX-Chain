@@ -36,7 +36,7 @@ func TestP08V6AdapterGetterAndActualObservationBodyBound(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			store.state.TaskRuns = map[string]taskModelRun{key: {ID: key, RunID: runID, TaskID: task.ID, Account: c.Account, Holder: task.Holder, Generation: 1, Status: "COMPLETED", ReturnState: taskModelReturnVerified, AnswerNonce: nonce, AnswerCipher: cipher}}
+			store.state.TaskRuns = map[string]taskModelRun{key: {ID: key, RunID: runID, TaskID: task.ID, Account: c.Account, Holder: task.Holder, SessionID: session.ID, TaskRevision: task.Revision, Generation: 1, Status: "COMPLETED", ReturnState: taskModelReturnVerified, AnswerNonce: nonce, AnswerCipher: cipher}}
 			observation, err := source.ObserveOriginalTaskRead(context.Background(), server, session, p08ReadCall("/api/tasks/"+task.ID+"/runs/"+runID))
 			if size > 1048576 {
 				if observation != nil || !errors.Is(err, ErrTaskV6ObservationBodyLimit) {

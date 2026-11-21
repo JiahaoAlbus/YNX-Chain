@@ -164,7 +164,11 @@ func TestP08CompleteNeverClosesPendingHandoffEffects(t *testing.T) {
 			}
 			task.Status = "READY"
 			s.state.Tasks[task.ID] = task
-			s.state.TaskRuns = map[string]taskModelRun{"run": {ID: "run", Account: task.Account, TaskID: task.ID, Holder: task.Holder, Generation: 1, Status: "COMPLETED", Steps: []string{"original"}}}
+			nonce, cipher, err := s.encrypt(task.Account, task.ID, "run:answer", "PUBLIC verified answer")
+			if err != nil {
+				t.Fatal(err)
+			}
+			s.state.TaskRuns = map[string]taskModelRun{"run": {ID: "run", Account: task.Account, TaskID: task.ID, Holder: task.Holder, TaskRevision: 1, Generation: 1, Status: "COMPLETED", ReturnState: taskModelReturnVerified, AnswerNonce: nonce, AnswerCipher: cipher, Steps: []string{"original"}}}
 			s.state.Actions["original"] = ActionRecord{ID: "original", Account: task.Account, Status: status, ToolStep: &ToolStepBinding{TaskID: task.ID, Holder: "holder-a", Generation: 1}}
 			if _, err := s.CompleteTask(task.Account, task.ID, 1, 1, task.Holder, "run"); !errors.Is(err, errTaskEffectUnresolved) {
 				t.Fatalf("completed over %s: %v", status, err)
