@@ -327,7 +327,7 @@ class PendingLaunchControls(unittest.TestCase):
 
 
     def test_unmanaged_registered_child_stays_unknown_without_numeric_cleanup(self):
-        child=mock.Mock(pid=987123,returncode=None)
+        child=SimpleNamespace(pid=987123,poll=mock.Mock(),wait=mock.Mock(),kill=mock.Mock())
         self.window.children.append(dict(name='unmanaged',process=child,startTicks=29))
         with mock.patch.object(lab.os,'killpg') as groups, mock.patch.object(lab.os,'kill') as kills:
             with self.assertRaisesRegex(RuntimeError,'unmanaged'):

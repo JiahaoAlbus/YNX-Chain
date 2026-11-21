@@ -557,6 +557,9 @@ class Window:
         with self.lock:
             self.sample()
             require(stop is None or not stop.is_set(), "normal helper cancelled before launch; preserve UNKNOWN")
+            verifier_deadline = getattr(stop, 'ynx_verifier_admission_deadline_ns', None) if name.endswith('-normal-verifier') else None
+            require(verifier_deadline is None or time.monotonic_ns() < verifier_deadline,
+                    "normal verifier admission deadline elapsed; preserve UNKNOWN")
             require(not self.launches_closed and not self.launch_cleanup_debt,
                     "original Window closed to new launches; preserve UNKNOWN")
             log = open(self.work / (".private" if private_log else "public") / (name + ".log"),
@@ -579,6 +582,8 @@ class Window:
         complete = False
         try:
             source_input = open(stdin_path, "rb") if stdin_path is not None else None
+            require(verifier_deadline is None or (not stop.is_set() and time.monotonic_ns() < verifier_deadline),
+                    "normal verifier admission deadline elapsed before Popen; preserve UNKNOWN")
             proc = subprocess.Popen(actual_command, cwd=self.source, env=self.env, stdin=subprocess.PIPE if stdin_pipe else source_input if source_input is not None else subprocess.DEVNULL,
                                     stdout=log, stderr=subprocess.STDOUT, start_new_session=True, preexec_fn=None if thread_safe else restrict,
                                     pass_fds=pass_fds)
@@ -606,6 +611,9 @@ class Window:
                         raise
                 if self.launch_guard_failure is not None:
                     raise self.launch_guard_failure
+                if verifier_deadline is not None and time.monotonic_ns() >= verifier_deadline:
+                    stop.set()
+                    raise RuntimeError("normal verifier launch crossed admission deadline; preserve UNKNOWN")
                 require(not self.launches_closed and not self.launch_cleanup_debt and (stop is None or not stop.is_set()),
                         'original launch cancelled before publication; preserve UNKNOWN')
                 # Cover the new child before its handle can reach business code.
@@ -764,7 +772,10 @@ class Window:
                         proc.kill();proc.wait(timeout=self._cleanup_wait_remaining())
                 except Exception as error:
                     errors.setdefault(proc.pid,[]).append(dict(operation="wait",errorType=type(error).__name__))
-                self.direct_cleanup_after_failure.append(dict(name=child["name"],pid=proc.pid,startTicks=child.get("startTicks"),rawReturnCode=proc.returncode,exited=proc.returncode is not None,**(dict(errors=errors[proc.pid]) if proc.pid in errors else {})))
+                # Even an unmanaged/partially registered handle must not
+                # replace the original refusal with a missing metadata error.
+                code=vars(proc).get('returncode')
+                self.direct_cleanup_after_failure.append(dict(name=child["name"],pid=proc.pid,startTicks=child.get("startTicks"),rawReturnCode=code,exited=code is not None,**(dict(errors=errors[proc.pid]) if proc.pid in errors else {})))
             with getattr(self, 'lock', contextlib.nullcontext()):
                 pending_logs = {v['log'] for v in getattr(self, 'pending_launches', {}).values()}
                 for _,log in self.logs:

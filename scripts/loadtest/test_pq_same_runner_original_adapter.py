@@ -33,6 +33,15 @@ fixtures = module('test_pq_same_runner_pair_readback')
 pair_controls = module('test_pq_same_runner_pair_producer')
 
 
+def completed_process(pid):
+    # Synthetic completed handle obeys the same lifecycle binding as the real
+    # Window.launch; no OS process or numeric-PID signal is fabricated.
+    proc=types.SimpleNamespace(pid=pid,returncode=0,kill=lambda:None)
+    proc.poll=lambda:proc.returncode
+    proc.wait=lambda timeout:proc.returncode
+    return original.lab.bind_process_lifecycle(proc)
+
+
 class OriginalAdapterControls(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -91,7 +100,7 @@ class OriginalAdapterControls(unittest.TestCase):
         receipt['resourceObserverRetired'] = True
         receipt['firstCause'] = receipt['loadResult']['firstCause'] = None
         window.children = [dict(name=row['name'], startTicks=row['startTicks'], persistent=False,
-            process=types.SimpleNamespace(pid=row['pid'], poll=lambda: 0, wait=lambda timeout: 0))
+            process=completed_process(row['pid']))
             for row in receipt['processes']]
         if stop:
             self.assertTrue(window.stop())
@@ -256,6 +265,7 @@ class OriginalAdapterControls(unittest.TestCase):
                 stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                 start_new_session=True)
             owned.append(child)
+            original.lab.bind_process_lifecycle(child)
             window.children.append(dict(name='python-cleanup-control', process=child, startTicks=None, persistent=False))
             raise error
         adapter = self.adapter(run)
@@ -404,7 +414,7 @@ class OriginalAdapterControls(unittest.TestCase):
                 receipt['firstCause'] = receipt['loadResult']['firstCause'] = None
                 receipt['resourceObserverRetired'] = True
                 window.children = [dict(name=row['name'], startTicks=row['startTicks'], persistent=False,
-                    process=types.SimpleNamespace(pid=row['pid'], poll=lambda: 0, wait=lambda timeout: 0))
+                    process=completed_process(row['pid']))
                     for row in receipt['processes']]
                 self.assertTrue(window.stop()); case.events.append(arm+':original-stopped')
                 if arm == 'before' and defect:

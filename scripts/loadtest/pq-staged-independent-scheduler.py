@@ -24,13 +24,16 @@ def configure(plan):
     value['pipeline']=dict(stageWorkers=dict(WORKERS),queueCapacity=dict(publish=4,observe=n,finalize=n),noAccountReleaseBeforeOriginalFinalConfirmation=True,automaticRetry=False)
     return value
 
-def run(plan,backend,emit,check_resources,stop,origin=None,ledger_module=None):
+def run(plan,backend,emit,check_resources,stop,origin=None,ledger_module=None,verifier_drain_seconds=0):
     s=original if ledger_module is None else ledger_module
     config=plan.get('pipeline',{});n=plan['configuredDemand']
     s.require(config.get('stageWorkers')==WORKERS and config.get('queueCapacity')==dict(publish=4,observe=n,finalize=n) and plan['workerLimit']==8,'exact bounded staged pipeline required')
+    s.require(verifier_drain_seconds in (0, 30), 'explicit bounded verifier drain required')
     ledger=s.Ledger(plan,emit);events=queue.Queue(maxsize=max(512,n*48));queues={k:queue.Queue(maxsize=config['queueCapacity'][k]) for k in STAGES}
     lock=threading.Lock();active={k:0 for k in STAGES};done={k:0 for k in STAGES};peak={k:0 for k in STAGES};retained={};samples=[];last_bucket=-1;failure=None;late_evidence=[];late_terminal=set()
     origin=time.monotonic_ns() if origin is None else origin;deadline=origin+plan['windowNs']+plan['tailNs'];clock=s.ArrivalClock(plan,origin,stop)
+    if verifier_drain_seconds:
+        stop.ynx_verifier_admission_deadline_ns=deadline
     def notify(row,payload):events.put(dict(payload,index=row['index'],id=row['id'],atNs=time.monotonic_ns()-origin))
     current_operations={}
     observation_deadline=deadline
@@ -110,13 +113,23 @@ def run(plan,backend,emit,check_resources,stop,origin=None,ledger_module=None):
             stop.wait(.001)
     except BaseException as error:failure=str(error)
     finally:
+        normal_cutoff = failure is None and not stop.is_set() and time.monotonic_ns() >= deadline
         observation_deadline=min(deadline,time.monotonic_ns())
+        queue_at_cutoff={k:q.qsize() for k,q in queues.items()}
+        drain_report=None
+        # Preserve the original immediate cancellation boundary even if the
+        # Window launch lock is busy; drain never reopens admission.
         stop.set()
+        if normal_cutoff and verifier_drain_seconds:
+            try:
+                drain_report=backend.drain_cutoff_verifiers(deadline, verifier_drain_seconds, check_resources)
+            except BaseException as error:
+                failure=failure or str(error)
+                stop.set()
         # The resource monitor may have set stop between iterations. Read its
         # original failure before cleanup can report a secondary timeout.
         try:check_resources()
         except BaseException as error:failure=failure or str(error)
-        queue_at_cutoff={k:q.qsize() for k,q in queues.items()}
         if clock.thread.ident is not None:clock.thread.join(timeout=1)
         if clock.thread.is_alive():failure=failure or 'original arrival clock did not retire'
         try:backend.stop()
@@ -143,4 +156,6 @@ def run(plan,backend,emit,check_resources,stop,origin=None,ledger_module=None):
     result=ledger.report(observation_deadline-origin,failure)
     result.update(originMonotonicNs=str(origin),offeredWindowEndMonotonicNs=str(origin+plan['windowNs']),clockMeaning='same original parent monotonic clock; publication/inclusion/final-proof queues separated')
     result['pipeline']=dict(stageWorkers=dict(WORKERS),queueCapacity=dict(config['queueCapacity']),queuePeak=peak,queueAtCutoff=queue_at_cutoff,queueAtRetirement={k:q.qsize() for k,q in queues.items()},completedByStage=done,completedByStageMeaning='worker calls returned or raised; not successful business counts',workerThreadsRetired=not worker_timeouts,workerRetirementTimeouts=worker_timeouts,workerRetirementObservedNs=retired_ns,retainedUnfinishedHandles=list(retained.values()),lateEvidence=late_evidence,lateEvidenceMeaning='original events observed at/after the actual observation cutoff; retained for same-operation reconciliation, never cutoff qualification or nonce release',queueSamples=samples,queueSamplingAtomic=False,extraNodeOrSignerPIDStartedByScheduler=False,fullDemandUnchanged=n,chainSaturationProven=False)
+    if verifier_drain_seconds:
+        result['pipeline']['postCutoffVerifierDrain']=drain_report
     return result

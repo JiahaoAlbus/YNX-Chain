@@ -123,6 +123,7 @@ class OriginalDriverInitializationControls(unittest.TestCase):
         from types import SimpleNamespace
         import contextlib,io
         d=self.driver
+        original_launch_report=d.lab.Window.launch_cleanup_report
         with tempfile.TemporaryDirectory() as tmp:
             parent=Path(tmp).resolve();source=parent/'source';source.mkdir();args=self.args();args.source=str(source)
             work_holder={};c=SimpleNamespace(commit_observation_enabled=False,measurements=SimpleNamespace(report=lambda:{}),wire_readback=lambda:{},prepare_network=lambda:{'original':'activation'},pending_owners=set(range(4)),live=[],pin='a'*64,workload_pin='b'*64,root=None)
@@ -138,6 +139,9 @@ class OriginalDriverInitializationControls(unittest.TestCase):
                 def launch(name,*a,**k):
                     if name=='create-original':(work/'public/create-original.log').write_text('{}')
                     return object()
+                w.pending_launches={};w.launches_closed=True
+                w.launch_cleanup_debt=[] if cleanup else [dict(operation='Window.stop',errorType='RuntimeError',meaning='synthetic unresolved cleanup control')]
+                w.launch_cleanup_report=lambda:original_launch_report(w)
                 w.sample_stage_report=lambda:dict(status='NOT_OBSERVED',stages={},runtimeMeasured=False)
                 w.launch=launch;work_holder['window']=w;return w
             def instrumented(base):
@@ -161,6 +165,7 @@ class OriginalDriverInitializationControls(unittest.TestCase):
     def test_full_mocked_original_driver_initializes_then_cleans_without_business_lanes(self):
             r=self.mocked_initialization()
             self.assertIsNone(r['firstCause']);self.assertTrue(r['initializationOnlyComplete'] and r['cleanupComplete']);self.assertFalse(r['loadExecuted']);self.assertNotIn('loadResult',r);self.assertEqual(r['initializedAccountReadback']['configuredLoadAccounts'],500);self.assertEqual(r['preparationOnlyDemandAccounting']['notReleased'],500)
+            self.assertEqual(r['launchLifecycle']['status'],'OBSERVED');self.assertEqual(r['launchLifecycle']['cleanupDebt'],[])
 
     def test_failed_census_preserves_original_failure_cleans_and_never_qualifies(self):
         r=self.mocked_initialization(RuntimeError('original missing owner499'))
@@ -168,6 +173,8 @@ class OriginalDriverInitializationControls(unittest.TestCase):
     def test_successful_census_with_cleanup_debt_cannot_be_accepted(self):
         r=self.mocked_initialization(cleanup=False)
         self.assertFalse(r['cleanupComplete']);self.assertFalse(r['loadExecuted']);self.assertEqual(r['preparationOnlyDemandAccounting']['notReleased'],500)
+        self.assertEqual(r['launchLifecycle']['status'],'UNKNOWN');self.assertTrue(r['launchLifecycle']['cleanupDebt']);self.assertFalse(r['launchLifecycle']['cleanupCompleteProven'])
+        with self.assertRaises(RuntimeError):m.require_complete_initialization(r)
 
     def test_finite_receipt_rejects_partial_accounts_caps_missing_spans_and_business_load(self):
         good=self.mocked_initialization();self.assertTrue(m.require_complete_initialization(good)['completeNormalInitializationObserved'])
