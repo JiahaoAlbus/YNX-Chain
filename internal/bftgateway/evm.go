@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/big"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ethnative"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
 	"golang.org/x/crypto/sha3"
 )
@@ -47,7 +49,9 @@ func evmFeeSuggestionResult(method string, raw json.RawMessage) (string, error) 
 		}
 	}
 	switch method {
-	case "eth_gasPrice", "eth_maxPriorityFeePerGas":
+	case "eth_gasPrice":
+		return ethnative.Quantity(big.NewInt(ethnative.GasPriceWei)), nil
+	case "eth_maxPriorityFeePerGas":
 		return hexEVMQuantity(consensus.EthereumMinimumGasPrice), nil
 	default:
 		return "", errors.New("unsupported EVM fee suggestion method")
@@ -266,7 +270,7 @@ func (g *Gateway) evmCommittedAccountResult(ctx context.Context, method string, 
 	}
 	switch method {
 	case "eth_getBalance":
-		return hexEVMQuantity(uint64(account.Balance)), nil
+		return ethnative.Quantity(ethnative.Wei(account.Balance)), nil
 	case "eth_getTransactionCount":
 		return hexEVMQuantity(account.Nonce), nil
 	default:
@@ -335,7 +339,7 @@ func (g *Gateway) evmCommittedContractCall(ctx context.Context, method string, r
 		return nil, -32602, fmt.Errorf("%s requires a call object and optional block tag", method)
 	}
 	if method == "eth_estimateGas" {
-		result, code, handled, err := g.evmEstimateValueTransfer(ctx, params)
+		result, code, handled, err := g.evmEstimateOriginalNativeTransfer(ctx, params)
 		if handled {
 			return result, code, err
 		}
@@ -700,6 +704,14 @@ func (g *Gateway) evmSendRawTransaction(ctx context.Context, raw json.RawMessage
 	payload, err := hex.DecodeString(encoded[2:])
 	if err != nil {
 		return nil, -32602, errors.New("signed transaction data must be hexadecimal")
+	}
+	// The existing 21k value envelopes sign an integer ledger amount but the
+	// standard Ethereum RPC represents quantities in wei.  The signed bytes
+	// carry no version that distinguishes those meanings.  Hold this standard
+	// gateway entry until a signed unit discriminator exists; do not change the
+	// existing consensus decoder, original bytes, or the PQ Member endpoint.
+	if tx, decodeErr := consensus.DecodeEthereumValueTransfer(payload); decodeErr == nil && tx.Verify(6423) == nil && !tx.OriginalAdapter {
+		return nil, -32004, errors.New("unversioned Ethereum value transfer units are ambiguous; standard RPC submission unavailable")
 	}
 	result, err := g.broadcastSignedTransaction(ctx, payload)
 	if err != nil {
@@ -1127,7 +1139,7 @@ func (g *Gateway) committedEthereumTransaction(ctx context.Context, hash string)
 		}
 		txResult := results.Result.TxsResults[index]
 		gasUsed, gasErr := parseCometGas(txResult.GasUsed)
-		if txResult.Code != 0 || gasErr != nil || gasUsed != ethereumTx.GasLimit {
+		if txResult.Code != 0 || gasErr != nil || gasUsed != ethereumTx.EthereumExecutionGas() {
 			return cometTx{}, chain.Transaction{}, false, errors.New("committed Ethereum receipt points to invalid CometBFT execution evidence")
 		}
 		cometHash := strings.ToUpper(strings.TrimPrefix(consensus.SignedTransactionHash(raw), "0x"))
@@ -1152,6 +1164,7 @@ func evmCommittedTransaction(t chain.Transaction, index uint32, raws ...[]byte) 
 	}
 	var to any = t.To
 	input, gas, gasPrice, txType := "0x", "0x1", "0x1", "0x0"
+	value := hexEVMQuantity(uint64(t.Amount))
 	nonce := t.Nonce
 	var raw []byte
 	var ethereumEnvelope *consensus.EthereumValueTransfer
@@ -1164,6 +1177,11 @@ func evmCommittedTransaction(t chain.Transaction, index uint32, raws ...[]byte) 
 		gas = hexEVMQuantity(ethereumTx.GasLimit)
 		gasPrice = hexEVMQuantity(ethereumTx.GasPrice)
 		txType = hexEVMQuantity(uint64(ethereumTx.TransactionType))
+		if ethereumTx.OriginalAdapter {
+			// The original adapter signs whole-YNXT values in wei. This is
+			// the original RLP value, not a rewritten signed transaction.
+			value = ethnative.Quantity(ethnative.Wei(ethereumTx.Value))
+		}
 	} else if action, err := consensus.DecodeSignedApplicationAction(raw); err == nil && action.Action == consensus.ActionIDEContractCall {
 		var payload consensus.IDEContractCallPayload
 		if json.Unmarshal(action.Payload, &payload) == nil {
@@ -1175,7 +1193,7 @@ func evmCommittedTransaction(t chain.Transaction, index uint32, raws ...[]byte) 
 	}
 	result := map[string]any{
 		"hash": t.Hash, "from": t.From, "to": to,
-		"value": hexEVMQuantity(uint64(t.Amount)), "nonce": hexEVMQuantity(nonce),
+		"value": value, "nonce": hexEVMQuantity(nonce),
 		"blockHash":   "0x" + strings.ToLower(strings.TrimPrefix(t.BlockHash, "0x")),
 		"blockNumber": hexEVMQuantity(t.BlockNum), "transactionIndex": hexEVMQuantity(uint64(index)),
 		"gas": gas, "gasPrice": gasPrice, "input": input, "type": txType,

@@ -411,6 +411,9 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 	if queryPQIdentity(response, req, a.committed, a.migration, a.bootstrap) {
 		return response, nil
 	}
+	if queryEthereumOriginalCapability(response, req, a.committed, a.migration, a.bootstrap) {
+		return response, nil
+	}
 	if queryPQConsensusGenesis(response, req, a.committed, a.migration, a.bootstrap) {
 		return response, nil
 	}
@@ -1284,6 +1287,11 @@ func (a *Application) applyEthereumValueTransfer(state executionState, payload [
 	if a.bootstrap.refusesInitialLegacyOwner(tx.From) {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, ynxauth.ErrPolicy)
 	}
+	// The old wire requires explicit policy state; missing policy must never
+	// turn into a classic-signature fallback for a migrated account.
+	if tx.OriginalAdapter && state.accountPolicy == nil {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, ynxauth.ErrPolicy)
+	}
 	if err := requireConsensusLegacy(state.accountPolicy, tx.From, height); err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
@@ -1294,7 +1302,7 @@ func (a *Application) applyEthereumValueTransfer(state executionState, payload [
 	return a.applyAuthorizedEthereumValueTransfer(state, authorizedEthereumValueTransfer{
 		EnvelopeType: tx.EnvelopeType, From: tx.From, To: tx.To, Hash: tx.Hash,
 		Nonce: tx.Nonce, GasLimit: tx.GasLimit, Value: tx.Value, Fee: tx.Fee,
-		MaximumGasFee: maximumGasFee,
+		MaximumGasFee: maximumGasFee, OriginalAdapter: tx.OriginalAdapter,
 	}, height, blockTime)
 }
 
@@ -1305,6 +1313,7 @@ type authorizedEthereumValueTransfer struct {
 	EnvelopeType, From, To, Hash string
 	Nonce, GasLimit              uint64
 	Value, Fee, MaximumGasFee    int64
+	OriginalAdapter              bool
 }
 
 func (a *Application) applyAuthorizedEthereumValueTransfer(state executionState, tx authorizedEthereumValueTransfer, height int64, blockTime time.Time) (executionState, transactionExecution, error) {
@@ -1314,8 +1323,25 @@ func (a *Application) applyAuthorizedEthereumValueTransfer(state executionState,
 	if tx.EnvelopeType != EthereumLegacyTransferType && tx.EnvelopeType != EthereumAccessListTransferType && tx.EnvelopeType != EthereumDynamicFeeTransferType && tx.EnvelopeType != PQEthereumValueType {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("unsupported authorized Ethereum business profile"))
 	}
-	if !IsNativeAddress(tx.From) || !IsNativeAddress(tx.To) || tx.From == tx.To || tx.Value <= 0 || tx.Fee <= 0 || tx.MaximumGasFee < tx.Fee || tx.GasLimit != EthereumTransferGasLimit {
+	if !IsNativeAddress(tx.From) || !IsNativeAddress(tx.To) || tx.From == tx.To || tx.Value <= 0 || tx.Fee <= 0 || tx.MaximumGasFee < tx.Fee {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("invalid authorized Ethereum business values"))
+	}
+	actualGas := tx.GasLimit
+	if tx.OriginalAdapter {
+		if tx.EnvelopeType != EthereumLegacyTransferType || tx.GasLimit < originalEthereumTransferGas || tx.GasLimit > 30_000_000 || tx.Fee != 1 || tx.MaximumGasFee != int64((tx.GasLimit+originalEthereumTransferGas-1)/originalEthereumTransferGas) {
+			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("invalid original Ethereum native adapter values"))
+		}
+		if _, found := bftContractIndex(state.contracts, tx.To); found {
+			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("original Ethereum native adapter does not execute contracts"))
+		}
+		if state.legacyContracts != nil {
+			if _, found := state.legacyContracts.Contracts[tx.To]; found {
+				return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("original Ethereum native adapter does not execute contracts"))
+			}
+		}
+		actualGas = originalEthereumTransferGas
+	} else if tx.GasLimit != EthereumTransferGasLimit {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("invalid authorized Ethereum gas limit"))
 	}
 	maximumGasFee := tx.MaximumGasFee
 	accounts := state.accounts
@@ -1403,7 +1429,7 @@ func (a *Application) applyAuthorizedEthereumValueTransfer(state executionState,
 	return state, transactionExecution{
 		typeName: tx.EnvelopeType,
 		hash:     tx.Hash,
-		gas:      int64(tx.GasLimit),
+		gas:      int64(actualGas),
 		event: abcitypes.Event{Type: "ynx.transfer", Attributes: []abcitypes.EventAttribute{
 			{Key: "sender", Value: tx.From, Index: true},
 			{Key: "recipient", Value: tx.To, Index: true},

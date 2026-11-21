@@ -245,8 +245,11 @@ func TestPQEthereumGatewayFullMemberTypesOriginalAndColdRead(t *testing.T) {
 		for _, hash := range []string{v.NativeTransactionHash, v.ABCITransactionHash} {
 			tx := assertRPCObject(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":1,"method":"eth_getTransactionByHash","params":[%q]}`, hash))
 			receipt := assertRPCObject(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":1,"method":"eth_getTransactionReceipt","params":[%q]}`, hash))
-			if tx["type"] != hexEVMQuantity(uint64(kind)) || tx["nonce"] != hexEVMQuantity(uint64(kind+1)) || tx["gas"] != "0x5208" || tx["gasPrice"] != "0x2" || tx["hash"] != v.NativeTransactionHash || tx["ynxABCITransactionHash"] != v.ABCITransactionHash || receipt["gasUsed"] != "0x5208" || receipt["type"] != tx["type"] || receipt["effectiveGasPrice"] != "0x2" {
+			if tx["type"] != hexEVMQuantity(uint64(kind)) || tx["nonce"] != hexEVMQuantity(uint64(kind+1)) || tx["value"] != "0x6124fee993bc0000" || tx["ynxValueAtoms"] != "7" || tx["gas"] != "0x5208" || tx["gasPrice"] != "0x1bc16d674ec80000" || tx["ynxEffectiveGasPriceAtoms"] != "2" || tx["hash"] != v.NativeTransactionHash || tx["ynxABCITransactionHash"] != v.ABCITransactionHash || receipt["gasUsed"] != "0x5208" || receipt["type"] != tx["type"] || receipt["effectiveGasPrice"] != "0x1bc16d674ec80000" || receipt["ynxEffectiveGasPriceAtoms"] != "2" {
 				t.Fatalf("PQ projection defaulted fields: %+v %+v", tx, receipt)
+			}
+			if kind == 2 && (tx["maxPriorityFeePerGas"] != "0x1bc16d674ec80000" || tx["maxFeePerGas"] != "0x3782dace9d900000" || tx["ynxMaxPriorityFeePerGasAtoms"] != "2" || tx["ynxMaxFeePerGasAtoms"] != "4") {
+				t.Fatalf("PQ dynamic fee projection lost exact atom/wei binding: %+v", tx)
 			}
 			for _, field := range []string{"v", "r", "s", "yParity"} {
 				if _, ok := tx[field]; ok {

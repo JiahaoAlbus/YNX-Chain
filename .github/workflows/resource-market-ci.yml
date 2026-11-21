@@ -8,6 +8,8 @@ on:
       - 'codex/ynx-pq-perf-integration'
     paths:
       - 'scripts/verify/qualify_pq_private_synthetic_ci.py'
+      - 'scripts/verify/*qualify_original_ethereum_ci.py'
+      - 'scripts/verify/original-ethereum-gateway-ci.sh'
       - 'scripts/verify/test_qualify_held_optional_live_getter.py'
       - 'scripts/verify/qualify_held_optional_live_getter.py'
       - 'scripts/verify/test_wire_live_matching_source_ci.py'
@@ -213,6 +215,8 @@ on:
   pull_request:
     paths:
       - 'scripts/verify/qualify_pq_private_synthetic_ci.py'
+      - 'scripts/verify/*qualify_original_ethereum_ci.py'
+      - 'scripts/verify/original-ethereum-gateway-ci.sh'
       - 'scripts/verify/test_qualify_held_optional_live_getter.py'
       - 'scripts/verify/qualify_held_optional_live_getter.py'
       - 'scripts/verify/test_wire_live_matching_source_ci.py'
@@ -2635,6 +2639,7 @@ jobs:
             exit 1
           fi
           cat "$RUNNER_TEMP/ynx-lab-large-source-tests.jsonl" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"
+          python3 -B scripts/verify/qualify_original_ethereum_ci.py consensus "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"
           python3 -B - <<'PY'
           import json, os
           from pathlib import Path
@@ -3272,7 +3277,7 @@ jobs:
           YNX_PQ_STAKING_ORIGINALS_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-staking-originals-public-interop.json
           YNX_PQ_CONTRACT_DEPLOY_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-contract-deploy-public-interop.json
         run: |
-          go test -p 1 -count=1 -timeout=180s ./internal/bftgateway ./cmd/ynx-bft-gatewayd
+          bash scripts/verify/original-ethereum-gateway-ci.sh
           test -s "$YNX_PQ_CONTRACT_DEPLOY_FIXTURE_OUT"
           sha256sum "$YNX_PQ_CONTRACT_DEPLOY_FIXTURE_OUT"
       - name: Upload only public compiled contract deploy and finality interoperability fixture

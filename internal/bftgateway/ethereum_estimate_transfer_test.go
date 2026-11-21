@@ -44,10 +44,21 @@ func TestGatewayEstimateGasForEthereumValueTransfer(t *testing.T) {
 	}
 	server := httptest.NewServer(gateway.Handler())
 	defer server.Close()
-	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":1,"method":"eth_estimateGas","params":[{"from":"`+from+`","to":"`+to+`","value":"0x7d","gasPrice":"0x2"}]}`, "0x5208")
-	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":2,"method":"eth_estimateGas","params":[{"from":"`+from+`","to":"`+to+`","value":"0x7d","maxPriorityFeePerGas":"0x1","maxFeePerGas":"0x2","accessList":[]}]}`, "0x5208")
-	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":6,"method":"eth_estimateGas","params":[{"to":"`+to+`","value":"0x1","accessList":[ ]}]}`, "0x5208")
-	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":5,"method":"eth_estimateGas","params":[{"to":"`+to+`","value":"0x1","data":"0x"}]}`, "0x5208")
+	// Preserve checks for the confirmed integer profile as a direct helper;
+	// the standard Ethereum RPC now quotes only the distinct original wei
+	// adapter, because unversioned 21k RPC submissions are held for units.
+	integerQuote := func(g *Gateway, call string, want string, wantCode int) {
+		t.Helper()
+		result, code, handled, err := g.evmEstimateValueTransfer(context.Background(), []json.RawMessage{json.RawMessage(call)})
+		if !handled || code != wantCode || (wantCode == 0 && (err != nil || result != want)) || (wantCode != 0 && err == nil) {
+			t.Fatalf("integer quote: result=%v code=%d handled=%v error=%v", result, code, handled, err)
+		}
+	}
+	integerQuote(gateway, `{"from":"`+from+`","to":"`+to+`","value":"0x7d","gasPrice":"0x2"}`, "0x5208", 0)
+	integerQuote(gateway, `{"from":"`+from+`","to":"`+to+`","value":"0x7d","maxPriorityFeePerGas":"0x1","maxFeePerGas":"0x2","accessList":[]}`, "0x5208", 0)
+	integerQuote(gateway, `{"to":"`+to+`","value":"0x1","accessList":[ ]}`, "0x5208", 0)
+	integerQuote(gateway, `{"to":"`+to+`","value":"0x1","data":"0x"}`, "0x5208", 0)
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":5,"method":"eth_estimateGas","params":[{"to":"`+to+`","value":"0x1","data":"0x"}]}`, -32000)
 	// Calls carrying actual calldata must remain on the pre-existing bounded
 	// contract path, rather than receiving a simple-transfer gas quote.
 	_, _, handled, err := gateway.evmEstimateValueTransfer(context.Background(), []json.RawMessage{json.RawMessage(`{"to":"` + to + `","data":"0x06661abd"}`)})
@@ -68,7 +79,7 @@ func TestGatewayEstimateGasForEthereumValueTransfer(t *testing.T) {
 		{`{"to":"` + to + `","value":"0x1","accessList":null}`, -32602},
 		{`{"to":"` + to + `","value":"0x1","chainId":"0x1"}`, -32602},
 	} {
-		assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":3,"method":"eth_estimateGas","params":[`+tc.call+`]}`, tc.code)
+		integerQuote(gateway, tc.call, "", tc.code)
 	}
 
 	// A status H followed by an ABCI account snapshot at H+1 must not be
@@ -99,5 +110,5 @@ func TestGatewayEstimateGasForEthereumValueTransfer(t *testing.T) {
 	}
 	racingServer := httptest.NewServer(racingGateway.Handler())
 	defer racingServer.Close()
-	assertRPCError(t, racingServer.URL+"/evm", `{"jsonrpc":"2.0","id":4,"method":"eth_estimateGas","params":[{"from":"`+from+`","to":"`+to+`","value":"0x1"}]}`, -32603)
+	integerQuote(racingGateway, `{"from":"`+from+`","to":"`+to+`","value":"0x1"}`, "", -32603)
 }

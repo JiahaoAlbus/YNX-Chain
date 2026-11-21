@@ -34,10 +34,9 @@ func TestGatewayClassicBroadcastPreservesConfiguredAuthority(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ethereumPayload, _, err := consensus.NewEthereumLegacyTransfer(key, 6423, 0, 2, recipient, 10)
-	if err != nil {
-		t.Fatal(err)
-	}
+	// Exercise the configured-authority contract with the original public
+	// 25k+ adapter fixture; unversioned 21k standard RPC is held for units.
+	_, ethereumPayload := originalPaddedEthereumFixture(t)
 	stake, err := consensus.NewSignedApplicationAction(key, 6423, consensus.ActionStakeDelegate, consensus.StakeDelegatePayload{Validator: recipient, AmountYNXT: 1}, 1)
 	if err != nil {
 		t.Fatal(err)

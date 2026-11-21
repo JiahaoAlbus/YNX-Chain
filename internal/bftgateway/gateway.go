@@ -1746,6 +1746,14 @@ func (g *Gateway) handleEVM(w http.ResponseWriter, r *http.Request) {
 	switch request.Method {
 	case "eth_chainId":
 		result = "0x1917"
+	case "ynx_getFeeModel":
+		var code int
+		var err error
+		result, code, err = g.evmOriginalFeeModel(r.Context(), request.Params)
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": code, "message": err.Error()}})
+			return
+		}
 	case "net_version":
 		result = "6423"
 	case "eth_blockNumber":

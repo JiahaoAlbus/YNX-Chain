@@ -2354,8 +2354,8 @@ def assert_workflow_contract(raw):
         need(by_name(name)[0] in steps)
     gateway = by_name("Verify Whole BFT gateway and native container readback")[0]
     need("YNX_PQ_CONTRACT_DEPLOY_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-contract-deploy-public-interop.json" in gateway)
-    need("          go test -p 1 -count=1 -timeout=180s ./internal/bftgateway ./cmd/ynx-bft-gatewayd\n" in gateway
-         and gateway.count("go test ") == 1)
+    need("          bash scripts/verify/original-ethereum-gateway-ci.sh\n" in gateway
+         and gateway.count("bash scripts/verify/original-ethereum-gateway-ci.sh") == 1)
     need('test -s "$YNX_PQ_CONTRACT_DEPLOY_FIXTURE_OUT"' in gateway
          and 'sha256sum "$YNX_PQ_CONTRACT_DEPLOY_FIXTURE_OUT"' in gateway)
     deploy_upload = by_name("Upload only public compiled contract deploy and finality interoperability fixture")
@@ -2620,6 +2620,15 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
         path = Path(__file__).resolve().parents[2] / '.github/workflows/resource-market-ci.yml'
         self.assertLessEqual(path.stat().st_size, 500 * 1024)
 
+    def test_original_ethereum_gateway_script_preserves_full_suite_and_strict_result(self):
+        root = Path(__file__).resolve().parents[2]
+        script = (root / 'scripts/verify/original-ethereum-gateway-ci.sh').read_text()
+        self.assertIn('set -euo pipefail', script)
+        self.assertEqual(script.count('go test -json -p 1 -count=1 -timeout=180s ./internal/bftgateway ./cmd/ynx-bft-gatewayd'), 1)
+        self.assertIn('qualify_original_ethereum_ci.py bftgateway "$events"', script)
+        self.assertIn('test_qualify_original_ethereum_ci.py', script)
+        self.assertNotIn('|| true', script)
+
     def test_extracted_controls_trigger_push_and_pull_request(self):
         path = Path(__file__).resolve().parents[2] / '.github/workflows/resource-market-ci.yml'
         raw = path.read_text()
@@ -2627,6 +2636,8 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
         pr = raw.split('  pull_request:\n', 1)[1].split('  workflow_dispatch:', 1)[0]
         for section in (push, pr):
             for name in ('pq-clock-ab-ci.sh', 'pq-enrollment-command-ci.sh', 'qualify_pq_portable_ci.py', 'qualify_pq_private_synthetic_ci.py'):
+                self.assertEqual(section.count("      - 'scripts/verify/" + name + "'\n"), 1)
+            for name in ('*qualify_original_ethereum_ci.py', 'original-ethereum-gateway-ci.sh'):
                 self.assertEqual(section.count("      - 'scripts/verify/" + name + "'\n"), 1)
 
 
@@ -3976,7 +3987,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             raw.replace(upload, upload.replace("steps.pqgateway.outcome == 'success'", "true", 1), 1),
             raw.replace(upload, upload.replace("/ynx-pq-contract-deploy-public-interop.json", "/ynx-proof-host-source-public/original", 1), 1),
             raw.replace(upload, upload.replace("if-no-files-found: error", "if-no-files-found: ignore", 1), 1),
-            raw.replace(gateway, gateway.replace("./internal/bftgateway ./cmd/ynx-bft-gatewayd", "-run '^TestMissing$' ./internal/bftgateway", 1), 1),
+            raw.replace(gateway, gateway.replace("bash scripts/verify/original-ethereum-gateway-ci.sh", "true", 1), 1),
             raw.replace(gateway + upload, upload + gateway, 1)]
         for index, changed in enumerate(mutations):
             self.assertNotEqual(changed, raw)

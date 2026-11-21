@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
+	"math/big"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ethnative"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch"
 	cmttypes "github.com/cometbft/cometbft/types"
@@ -355,18 +357,26 @@ func (g *Gateway) committedPQEthereumOriginal(ctx context.Context, hash string) 
 	return v.indexed, v.transaction, v.Committed, nil
 }
 
+// The explicitly named PQ profile signs atom counts. Standard EVM quantity
+// fields instead represent wei; keep the signed counts separately available.
+func pqAtomWeiQuantity(atoms uint64) string {
+	return ethnative.Quantity(new(big.Int).Mul(new(big.Int).SetUint64(atoms), ethnative.WeiPerYNXT()))
+}
+
 func pqEthereumEVMTransaction(tx chain.Transaction, index uint32, wire, raw []byte, intent ynxauth.EthereumValueIntent) map[string]any {
 	price := intent.GasPrice
 	if intent.TxType == 2 {
 		price = intent.MaxPriorityFeePerGas
 	}
-	v := map[string]any{"hash": tx.Hash, "from": intent.Owner, "to": intent.To, "value": hexEVMQuantity(intent.Value), "nonce": hexEVMQuantity(intent.Nonce), "blockHash": "0x" + strings.TrimPrefix(tx.BlockHash, "0x"), "blockNumber": hexEVMQuantity(tx.BlockNum), "transactionIndex": hexEVMQuantity(uint64(index)), "gas": hexEVMQuantity(intent.GasLimit), "gasPrice": hexEVMQuantity(price), "input": "0x", "type": hexEVMQuantity(uint64(intent.TxType)), "chainId": hexEVMQuantity(intent.NativeChainID), "ynxAuthorization": "pq-and", "ynxProfile": intent.Profile, "ynxNativeTransactionHash": consensus.SignedTransactionHash(wire), "ynxABCITransactionHash": consensus.SignedTransactionHash(raw)}
+	v := map[string]any{"hash": tx.Hash, "from": intent.Owner, "to": intent.To, "value": pqAtomWeiQuantity(intent.Value), "nonce": hexEVMQuantity(intent.Nonce), "blockHash": "0x" + strings.TrimPrefix(tx.BlockHash, "0x"), "blockNumber": hexEVMQuantity(tx.BlockNum), "transactionIndex": hexEVMQuantity(uint64(index)), "gas": hexEVMQuantity(intent.GasLimit), "gasPrice": pqAtomWeiQuantity(price), "input": "0x", "type": hexEVMQuantity(uint64(intent.TxType)), "chainId": hexEVMQuantity(intent.NativeChainID), "ynxAuthorization": "pq-and", "ynxProfile": intent.Profile, "ynxValueAtoms": strconv.FormatUint(intent.Value, 10), "ynxEffectiveGasPriceAtoms": strconv.FormatUint(price, 10), "ynxNativeTransactionHash": consensus.SignedTransactionHash(wire), "ynxABCITransactionHash": consensus.SignedTransactionHash(raw)}
 	if intent.TxType != 0 {
 		v["accessList"] = []any{}
 	}
 	if intent.TxType == 2 {
-		v["maxPriorityFeePerGas"] = hexEVMQuantity(intent.MaxPriorityFeePerGas)
-		v["maxFeePerGas"] = hexEVMQuantity(intent.MaxFeePerGas)
+		v["maxPriorityFeePerGas"] = pqAtomWeiQuantity(intent.MaxPriorityFeePerGas)
+		v["maxFeePerGas"] = pqAtomWeiQuantity(intent.MaxFeePerGas)
+		v["ynxMaxPriorityFeePerGasAtoms"] = strconv.FormatUint(intent.MaxPriorityFeePerGas, 10)
+		v["ynxMaxFeePerGasAtoms"] = strconv.FormatUint(intent.MaxFeePerGas, 10)
 	}
 	return v
 }
@@ -376,7 +386,7 @@ func pqEthereumEVMReceipt(tx chain.Transaction, index uint32, gas, cumulative ui
 	if intent.TxType == 2 {
 		price = intent.MaxPriorityFeePerGas
 	}
-	return map[string]any{"transactionHash": tx.Hash, "transactionIndex": hexEVMQuantity(uint64(index)), "blockHash": "0x" + strings.TrimPrefix(tx.BlockHash, "0x"), "blockNumber": hexEVMQuantity(tx.BlockNum), "from": intent.Owner, "to": intent.To, "contractAddress": nil, "cumulativeGasUsed": hexEVMQuantity(cumulative), "gasUsed": hexEVMQuantity(gas), "effectiveGasPrice": hexEVMQuantity(price), "status": "0x1", "type": hexEVMQuantity(uint64(intent.TxType)), "logs": []any{}, "logsBloom": "0x" + strings.Repeat("0", 512), "ynxAuthorization": "pq-and", "ynxProfile": intent.Profile, "ynxNativeTransactionHash": tx.Hash, "ynxABCITransactionHash": consensus.SignedTransactionHash(raw)}
+	return map[string]any{"transactionHash": tx.Hash, "transactionIndex": hexEVMQuantity(uint64(index)), "blockHash": "0x" + strings.TrimPrefix(tx.BlockHash, "0x"), "blockNumber": hexEVMQuantity(tx.BlockNum), "from": intent.Owner, "to": intent.To, "contractAddress": nil, "cumulativeGasUsed": hexEVMQuantity(cumulative), "gasUsed": hexEVMQuantity(gas), "effectiveGasPrice": pqAtomWeiQuantity(price), "status": "0x1", "type": hexEVMQuantity(uint64(intent.TxType)), "logs": []any{}, "logsBloom": "0x" + strings.Repeat("0", 512), "ynxAuthorization": "pq-and", "ynxProfile": intent.Profile, "ynxEffectiveGasPriceAtoms": strconv.FormatUint(price, 10), "ynxNativeTransactionHash": tx.Hash, "ynxABCITransactionHash": consensus.SignedTransactionHash(raw)}
 }
 
 // Only resolve a projection already produced by projectPQEthereum. Raw shape

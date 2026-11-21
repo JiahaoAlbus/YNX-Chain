@@ -273,13 +273,13 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":11,"method":"net_version","params":[]}`, "6423")
 	assertRPCResult(t, server.URL+"/", `{"jsonrpc":"2.0","id":2,"method":"eth_chainId","params":[]}`, "0x1917")
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":2,"method":"eth_blockNumber","params":[]}`, "0x11")
-	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":39,"method":"eth_gasPrice","params":[]}`, "0x1")
+	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":39,"method":"eth_gasPrice","params":[]}`, "0x246139ca8000")
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":40,"method":"eth_maxPriorityFeePerGas"}`, "0x1")
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":41,"method":"eth_gasPrice","params":["latest"]}`, -32602)
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":42,"method":"eth_maxPriorityFeePerGas","params":{}}`, -32602)
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":43,"method":"eth_gasPrice","params":null}`, -32602)
 	assertRPCResult(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":25,"method":"eth_sendRawTransaction","params":["0x%x"]}`, txPayload), txHash)
-	assertRPCResult(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":12,"method":"eth_getBalance","params":[%q,"latest"]}`, signed.From), "0x3ce")
+	assertRPCResult(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":12,"method":"eth_getBalance","params":[%q,"latest"]}`, signed.From), "0x34ccf71f86de780000")
 	assertRPCResult(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":13,"method":"eth_getTransactionCount","params":[%q,"finalized"]}`, signed.From), "0x1")
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":14,"method":"eth_getBalance","params":["0x0000000000000000000000000000000000000000","0x11"]}`, "0x0")
 	evmBlock := assertRPCObject(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":17,"method":"eth_getBlockByNumber","params":["latest",false]}`)
@@ -532,8 +532,8 @@ func TestGatewayBroadcastsAndResolvesEthereumLegacyTransferByEthereumHash(t *tes
 		t.Fatalf("Ethereum receipt object is not truthful: %+v", receiptObject)
 	}
 	result, code, err := gateway.evmSendRawTransaction(context.Background(), json.RawMessage(fmt.Sprintf(`["0x%x"]`, payload)))
-	if err != nil || code != 0 || result != ethereumTx.Hash {
-		t.Fatalf("eth_sendRawTransaction did not return Ethereum Keccak hash: result=%v code=%d err=%v", result, code, err)
+	if err == nil || code != -32004 || result != nil {
+		t.Fatalf("ambiguous standard RPC submission was not held: result=%v code=%d err=%v", result, code, err)
 	}
 	if _, _, err := gateway.evmSendRawTransaction(context.Background(), json.RawMessage(`["0x02c0"]`)); err == nil {
 		t.Fatal("typed Ethereum transaction was accepted")

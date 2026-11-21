@@ -93,6 +93,9 @@ type EthereumDynamicFeeTransaction struct {
 // EthereumValueTransfer is the normalized execution view shared by the
 // bounded legacy, EIP-2930 and EIP-1559 envelopes.
 type EthereumValueTransfer struct {
+	// OriginalAdapter identifies only the exact pre-migration native adapter
+	// envelope after its original full RLP signature and fee checks succeed.
+	OriginalAdapter      bool
 	EnvelopeType         string
 	TransactionType      byte
 	ChainID              int64
@@ -343,7 +346,11 @@ func DecodeEthereumValueTransfer(payload []byte) (EthereumValueTransfer, error) 
 	}
 	tx, err := DecodeEthereumLegacyTransaction(payload)
 	if err != nil {
-		return EthereumValueTransfer{}, err
+		original, originalErr := decodeOriginalEthereumAdapter(payload)
+		if originalErr != nil {
+			return EthereumValueTransfer{}, err
+		}
+		return original, nil
 	}
 	return tx.ValueTransfer(), nil
 }
@@ -392,11 +399,17 @@ func (tx EthereumValueTransfer) Verify(expectedChainID int64) error {
 	if !IsNativeAddress(tx.From) || !IsNativeAddress(tx.To) || tx.From == tx.To {
 		return errors.New("Ethereum transfer requires distinct canonical sender and recipient addresses")
 	}
-	if tx.Value <= 0 || tx.Fee <= 0 || tx.GasLimit != EthereumTransferGasLimit || tx.GasPrice < EthereumMinimumGasPrice || len(tx.Data) != 0 {
+	if tx.Value <= 0 || tx.Fee <= 0 || len(tx.Data) != 0 {
 		return errors.New("Ethereum transfer is outside the bounded value-transfer profile")
 	}
-	if tx.GasPrice > uint64(math.MaxInt64)/tx.GasLimit || tx.Fee != int64(tx.GasPrice*tx.GasLimit) {
-		return errors.New("Ethereum transfer fee does not match the bounded gas profile")
+	if tx.OriginalAdapter {
+		if err := validateOriginalEthereumAdapterFields(tx); err != nil {
+			return err
+		}
+	} else {
+		if tx.GasLimit != EthereumTransferGasLimit || tx.GasPrice < EthereumMinimumGasPrice || tx.GasPrice > uint64(math.MaxInt64)/tx.GasLimit || tx.Fee != int64(tx.GasPrice*tx.GasLimit) {
+			return errors.New("Ethereum transfer fee does not match the bounded gas profile")
+		}
 	}
 	if tx.EnvelopeType == EthereumDynamicFeeTransferType {
 		if tx.BaseFeePerGas != EthereumCompatibilityBaseFeePerGas || tx.MaxPriorityFeePerGas < EthereumMinimumGasPrice || tx.MaxPriorityFeePerGas > tx.MaxFeePerGas || tx.GasPrice != tx.MaxPriorityFeePerGas || tx.MaxFeePerGas > uint64(math.MaxInt64)/tx.GasLimit {
@@ -426,6 +439,12 @@ func (tx EthereumValueTransfer) Verify(expectedChainID int64) error {
 }
 
 func (tx EthereumValueTransfer) MaximumGasFee() (int64, error) {
+	if tx.OriginalAdapter {
+		if err := validateOriginalEthereumAdapterFields(tx); err != nil {
+			return 0, err
+		}
+		return int64((tx.GasLimit + originalEthereumTransferGas - 1) / originalEthereumTransferGas), nil
+	}
 	price := tx.GasPrice
 	if tx.EnvelopeType == EthereumDynamicFeeTransferType {
 		price = tx.MaxFeePerGas

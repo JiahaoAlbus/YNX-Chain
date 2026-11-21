@@ -8,15 +8,19 @@ import (
 
 func TestEVMFeeSuggestionMatchesZeroBaseFeeCompatibilityProfile(t *testing.T) {
 	for _, method := range []string{"eth_gasPrice", "eth_maxPriorityFeePerGas"} {
+		want := "0x1"
+		if method == "eth_gasPrice" {
+			want = "0x246139ca8000"
+		}
 		t.Run(method+" omitted params", func(t *testing.T) {
 			got, err := evmFeeSuggestionResult(method, nil)
-			if err != nil || got != "0x1" {
+			if err != nil || got != want {
 				t.Fatalf("unexpected fee suggestion: got=%q err=%v", got, err)
 			}
 		})
 		t.Run(method+" empty params", func(t *testing.T) {
 			got, err := evmFeeSuggestionResult(method, json.RawMessage(`[]`))
-			if err != nil || got != "0x1" {
+			if err != nil || got != want {
 				t.Fatalf("unexpected fee suggestion: got=%q err=%v", got, err)
 			}
 		})

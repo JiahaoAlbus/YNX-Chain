@@ -8,22 +8,12 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
-	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
 func TestEVMSendRawTransactionClassifiesCometDuplicateAsTransactionRejection(t *testing.T) {
-	senderKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 61))
-	recipientKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 62))
-	recipient, err := consensus.NativeAddress(recipientKey.PubKey().SerializeCompressed())
-	if err != nil {
-		t.Fatal(err)
-	}
-	payload, _, err := consensus.NewEthereumDynamicFeeTransfer(senderKey, 6423, 0, 1, 2, recipient, 1)
-	if err != nil {
-		t.Fatal(err)
-	}
+	// Keep the Comet duplicate classification exercised through the actual
+	// supported standard RPC using the original public signed adapter bytes.
+	_, payload := originalPaddedEthereumFixture(t)
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/broadcast_tx_commit" || r.URL.Query().Get("tx") != fmt.Sprintf("0x%x", payload) {
 			t.Fatalf("unexpected duplicate broadcast request: %s?%s", r.URL.Path, r.URL.RawQuery)
