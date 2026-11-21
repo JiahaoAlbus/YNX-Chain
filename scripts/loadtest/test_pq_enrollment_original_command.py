@@ -20,11 +20,16 @@ sha=m.b.sha
 class EnrollmentOriginalCommandControls(unittest.TestCase):
     def setUp(self):
         self.pair=t.EnrollmentPairControls();self.pair.setUp();self.addCleanup(self.pair.doCleanups)
+        self.prepare_confirmation_controls()
+
+    def prepare_confirmation_controls(self,light_trust=None):
+        """Reuse this invalid-byte fixture after binding another original pair."""
         self.request=raw(self.pair.request);self.pin=sha(self.request);self.context=copy.deepcopy(self.pair.context)
         self.context['lightTrust']=dict(version='YNX-CONSENSUS-PROOF-TRUST/v1',chainId='ynx_642399-1',scheduleHash='1'*64,
             consensusGenesisSHA256='e'*64,originalGenesisHash='c'*64,migrationStateHash='2'*64,runtimePlanFile='',runtimePlanHash='',
             engineHeight='6',engineAppHash='3'*64,trustedLightBlockSHA256='4'*64,trustingPeriodNanoseconds='3600000000000',
             maxClockDriftNanoseconds='1000000000',trustLevelNumerator='1',trustLevelDenominator='3')
+        if light_trust is not None:self.context['lightTrust'].update(light_trust)
         self.proofs={r:raw({'UNIT':'not cryptographic proof','role':r}) for r in m.ROLES}
         self.proof_pins={r:sha(v) for r,v in self.proofs.items()};self.retained={};historical=dict(classification='data',currentEligibility='UNKNOWN',nativeGrant=False)
         self.confirm=dict(historical=historical,currentEligibility='UNKNOWN',authorityGranted=False)
@@ -34,7 +39,7 @@ class EnrollmentOriginalCommandControls(unittest.TestCase):
                 height='5',index=e['index'],total='2',executionCode='0',gasWanted='0',gasUsed='1',executionData='',
                 included=True,finalized=True,executionSuccessful=True,outcome='succeeded',nativeGrant=False)
             for name in ('block','successor'):
-                tx[name]=dict(e[name],version='YNX-PQ-LIGHT-PROOF/v1',classification='data',genesisSha256='e'*64,
+                tx[name]=dict(e[name],version='YNX-PQ-LIGHT-PROOF/v1',classification='data',genesisSha256=self.context['lightTrust']['consensusGenesisSHA256'],
                     authorityThroughHeight='6',trustedHeight='3',trustedBlockHash='c'*64,validatorsHash='d'*64,
                     nextValidatorsHash='d'*64,consensusHash='f'*64,commitVerified=True,lightTransitionVerified=True)
             historical[role]=tx;directory=self.pair.parent/self.pair.request[role+'OperationId']/'confirmation-proof'
