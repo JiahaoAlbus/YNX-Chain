@@ -210,7 +210,7 @@ class _DeliveryStopped(RuntimeError):pass
 def run_durable(plan,backend,emit,check_resources,stop,*,ledger_path,enabled=False,origin=None,ledger_module=None,max_db_bytes=1<<30):
     """Same normal three callees, bounded control queues and disk-only demand.
 
-    This entry is not exposed by pq-independent-load's runtime CLI. Normal Core
+    The driver exposes this only through its separate opt-in accounting profile. Core
     source/manifest capacity, authority, Window and resource admission still
     belong to that original driver. Structural callback tests grant none.
     """
@@ -226,7 +226,9 @@ def run_durable(plan,backend,emit,check_resources,stop,*,ledger_path,enabled=Fal
     s=original if ledger_module is None else ledger_module
     d=_durable_module()
     if origin is not None:original.require(type(origin) is int and 0<=origin<=time.monotonic_ns(),'original parent monotonic origin required')
+    ledger_open_started=time.monotonic_ns()
     ledger=original.open_durable_ledger(plan,ledger_path,emit,check_resources,enabled=True,max_db_bytes=max_db_bytes)
+    ledger_open_returned=time.monotonic_ns()
     origin=time.monotonic_ns() if origin is None else origin
     deadline=origin+plan['windowNs']+plan['tailNs'];observation_deadline=deadline
     clock=BoundedArrivalClock(plan,origin,stop);events=queue.Queue(maxsize=DURABLE_CAPS['events'])
@@ -239,7 +241,7 @@ def run_durable(plan,backend,emit,check_resources,stop,*,ledger_path,enabled=Fal
     stop_state=dict(startedNs=None,returnedNs=None,error=None);backend_stop_retired=False
     def fail(error):
         with lock:
-            if shared['firstCause'] is None:shared['firstCause']=str(error)
+            if shared['firstCause'] is None:shared['firstCause']=d.failure_message(error)
         stop.set()
     def deliver(event):
         while not abort_delivery.is_set():
@@ -263,7 +265,7 @@ def run_durable(plan,backend,emit,check_resources,stop,*,ledger_path,enabled=Fal
         with lock:stop_state['startedNs']=time.monotonic_ns()-origin
         try:backend.stop()
         except BaseException as error:
-            with lock:stop_state['error']=str(error)
+            with lock:stop_state['error']=d.failure_message(error)
             fail(error)
         finally:
             with lock:stop_state['returnedNs']=time.monotonic_ns()-origin
@@ -282,7 +284,7 @@ def run_durable(plan,backend,emit,check_resources,stop,*,ledger_path,enabled=Fal
                 ok=True
             except _DeliveryStopped:pass
             except Exception as error:
-                try:notify(row,dict(kind='failed' if isinstance(error,s.KnownFailure) else 'unknown',error=str(error)))
+                try:notify(row,dict(kind='failed' if isinstance(error,s.KnownFailure) else 'unknown',error=d.failure_message(error)))
                 except _DeliveryStopped:pass
             finally:
                 try:deliver(dict(kind='_phase_done',stage=stage,index=index,id=row['id'],handle=result,ok=ok))
@@ -435,7 +437,7 @@ def run_durable(plan,backend,emit,check_resources,stop,*,ledger_path,enabled=Fal
             except BaseException as error:accounting_complete=False;fail(error)
         if result is None:
             try:audit=ledger.audit()
-            except BaseException as error:audit=dict(status='UNKNOWN',reason=str(error))
+            except BaseException as error:audit=dict(status='UNKNOWN',reason=d.failure_message(error))
             result=dict(schema='YNX-PQ-DURABLE-LOAD-ACCOUNTING/v1',configuredDemand=plan['configuredDemand'],
                         observationCutoffNs=cutoff,qualified=None,notQualified=None,firstCause=shared['firstCause'],
                         accountingStatus='UNKNOWN',originalPendingAudit=audit,stableFinalTPS='UNMEASURED')
@@ -451,6 +453,9 @@ def run_durable(plan,backend,emit,check_resources,stop,*,ledger_path,enabled=Fal
             undelivered_snapshot=list(undelivered.values());unreported_snapshot=list(unreported_completions.values())
             completed_snapshot=dict(done);event_peak=shared['eventQueuePeak'];stop_snapshot=dict(stop_state)
         result['pipeline']=dict(schema='YNX-PQ-DURABLE-STAGED/v1',stageWorkers=dict(WORKERS),bounds=dict(DURABLE_CAPS),
+            ledgerInitialization=dict(startMonotonicNs=ledger_open_started,endMonotonicNs=ledger_open_returned,
+                elapsedNs=ledger_open_returned-ledger_open_started,beforeOfferedOrigin=ledger_open_returned<=origin,
+                meaning='actual original SQLite setup span; no signed work and no subtraction from original per-operation clocks'),
             queuePeak=dict(peak),eventQueuePeak=event_peak,arrivalQueuePeak=clock.peak,operationPeak=operation_peak,
             queueAtCutoff=queue_at_cutoff,queueAtRetirement={stage:q.qsize() for stage,q in queues.items()},completedByStage=completed_snapshot,
             completedByStageMeaning='worker calls returned or raised; not successful business counts',workerThreadsRetired=not worker_timeouts,
@@ -470,6 +475,6 @@ def run_durable(plan,backend,emit,check_resources,stop,*,ledger_path,enabled=Fal
     finally:ledger.close()
     try:result['durableLedgerArtifact']=ledger.artifact()
     except BaseException as error:
-        result['durableAccountingComplete']=False;result['artifactError']=str(error)
-        result['firstCause']=result['firstCause'] or str(error)
+        result['durableAccountingComplete']=False;result['artifactError']=d.failure_message(error)
+        result['firstCause']=result['firstCause'] or d.failure_message(error)
     return result

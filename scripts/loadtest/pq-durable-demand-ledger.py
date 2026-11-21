@@ -38,6 +38,12 @@ INTERVALS={
     'releaseToAccountClaim':('releasedNs','claimedNs')}
 
 
+def failure_message(error):
+    try:value=str(error)
+    except BaseException:value=None
+    return value or type(error).__name__+': original failure message '+('unavailable' if value is None else 'empty')
+
+
 def encoded(value,limit=MAX_RECORD_BYTES):
     raw=json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
     require(len(raw)<=limit,'bounded original durable record exceeded; preserve pending')
@@ -200,7 +206,7 @@ class DurableLedger:
             finally:os.close(directory)
             self._budget()
         except BaseException as error:
-            self.failed=self.failed or str(error)
+            self.failed=self.failed or failure_message(error)
             if self.db.in_transaction:
                 try:self.db.execute('ROLLBACK')
                 except sqlite3.Error:pass # Preserve the first failed durable write.
@@ -226,7 +232,7 @@ class DurableLedger:
     def _publish(self,event):
         try:self.emit(event)
         except BaseException as error:
-            self.failed=self.failed or str(error);raise # The committed claim stays durable.
+            self.failed=self.failed or failure_message(error);raise # The committed claim stays durable.
 
     def release(self,now):
         require(self._meta('sealed')=='false' and self._meta('cutoffBoundary')=='false',
@@ -406,6 +412,9 @@ class DurableLedger:
             lateOriginalEvents=self.db.execute("SELECT count(*) FROM events WHERE kind='late_original_event'").fetchone()[0],
             automaticRetry=False,runtimeAuthorized=False,pressureAuthorized=False,stableFinalTPS='UNMEASURED',
             interpretation='Durable parent observations only; original Core journal and normal verifier remain authoritative. Missing outcomes retain the full denominator; this is not a sustained throughput qualification.')
+        summary.update(notSubmitted=n-summary['submitted'],lateSubmitted=summary['submitted']-summary['submittedWithinWindow'],
+                       qualifiedInTail=summary['qualified']-summary['qualifiedWithinWindow'],
+                       releasedWithinWindow=self.db.execute('SELECT coalesce(sum(end_idx-first_idx),0) FROM releases WHERE at_ns<?',(window,)).fetchone()[0])
         for name in INTERVALS:
             observed=self.db.execute('SELECT count(*) FROM intervals WHERE metric=?',(name,)).fetchone()[0]
             values={}

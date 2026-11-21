@@ -806,12 +806,12 @@ class NormalBackend:
         target = case / 'original-live-proof-failure.json'
         proof_readback.write_new(target, raw)
 
-    def retain_stopped_live_proof_failures(self, load):
+    def retain_stopped_live_proof_failures(self, load, *, rows=None):
         """Collect only original failure records after the owning nodes stop."""
         public = self.w.work / 'public'
         lanes = {lane['node']: lane for lane in self.c.live}
         records = []
-        for row in load['rows']:
+        for row in load['rows'] if rows is None else rows:
             index = row['index']
             request = public / f'load-{index:05d}-live-session-request.json'
             case = public / 'load-operations' / f'{index:05d}'
@@ -1102,6 +1102,8 @@ def create_network_window(hook,ceremony,args,tools,plan_pin,demand):
 
 
 def validate_options(args):
+    if getattr(args,'durable_accounting',False) is not False:
+        module('original_durable_driver_accounting','pq-durable-load-accounting.py').validate_options(args)
     profile=getattr(args,'first_trial_profile','own1b')
     lab.require(profile in ('own1b','d24','1695','7c25',HELD_TRIAL_PROFILE) and (profile=='own1b' or getattr(args,'initialize_before_load',False)),'selected source requires explicit same-window first100 profile')
     lab.require(type(getattr(args, 'held_ready_only', False)) is bool and
@@ -1238,7 +1240,46 @@ def load_conditions(args):
         result['requestStageObservation']=True
     if result['firstTrialProfile'] == HELD_TRIAL_PROFILE:
         result.update(preparePublicSource=True, persistentLiveMaterials=True)
+    if getattr(args,'durable_accounting',False):result['durableAccounting']=True
     return result
+
+
+def make_load_plan(args,ceremony,owners):
+    """One driver selection; all source/admission gates still precede this call."""
+    staged=module('original_staged_pipeline','pq-staged-independent-scheduler.py') if getattr(args,'staged_publication',False) else None
+    if getattr(args,'durable_accounting',False):
+        accounting=module('original_durable_driver_accounting','pq-durable-load-accounting.py')
+        return accounting.make_plan(ceremony.pin,ceremony.workload_pin,args,owners),staged
+    plan=scheduler.make_plan(ceremony.pin,ceremony.workload_pin,args.mode,owners,args.rate,args.seconds*1_000_000_000,args.tail_seconds*1_000_000_000)
+    return (staged.configure(plan) if staged else plan),staged
+
+
+def run_load_window(plan,backend,journal,monitor,stop,*,staged_scheduler=None,durable_accounting=None):
+    if durable_accounting is not None:
+        return durable_accounting.run(backend,journal.emit,ledger_module=scheduler)
+    return (staged_scheduler.run(plan,backend,journal.emit,monitor.check,stop,ledger_module=scheduler)
+            if staged_scheduler else scheduler.run(plan,backend,journal.emit,monitor.check,stop))
+
+
+def finish_load_backend(backend,durable_backend,result):
+    if durable_backend is None:
+        backend.stop();return True
+    result['durableBackendStop']=durable_backend.finish()
+    if result['durableBackendStop']['cleanupDebt']:
+        result['firstCause']=result.get('firstCause') or result['durableBackendStop']['error'] or 'original durable backend did not retire; preserve cleanup debt'
+    return (result['durableBackendStop']['retired']
+            and not result.get('loadResult',{}).get('pipeline',{}).get('callbacksMayStillArrive',False))
+
+
+def close_load_journal(journal,work,result,*,durable=False):
+    try:
+        journal.close()
+        result['journalSegments']=[dict(path=str(path.relative_to(work/'public')),bytes=path.stat().st_size,
+                                       sha256=lab.guard.digest(path)) for path in journal.paths]
+    except BaseException as error:
+        if not durable:raise
+        result['loadJournalError']=dict(errorType=type(error).__name__,status='UNKNOWN')
+        result['firstCause']=result.get('firstCause') or module('original_durable_driver_accounting','pq-durable-load-accounting.py').failure_message(error)
 
 
 def validate_escalation(args):
@@ -1255,6 +1296,7 @@ def validate_escalation(args):
 
 def run(args):
     demand=validate_options(args)
+    durable_module=module('original_durable_driver_accounting','pq-durable-load-accounting.py') if getattr(args,'durable_accounting',False) else None
     backend_kind=sender_backend_kind(args) # Source/semantic/window gates below still run before any Window.
     lab.require(not getattr(args,'startup_timings',False) or args.commit in STARTUP_TIMING_ABI_SOURCES,'matching original startup timing ABI required; old source cannot inherit new flags')
     lab.require(not getattr(args,"header_hop_capture",False) or args.network_accounting,"header capture requires original owned network accounting scope")
@@ -1308,9 +1350,11 @@ def run(args):
         if any(existing==root or existing in root.parents for existing in roots):continue
         roots=[existing for existing in roots if root not in existing.parents];roots.append(root)
     w=lab.Window(source,work,additional_storage=tuple(roots));stop=threading.Event();backend=monitor=journal=ceremony=network=storage=None
+    durable_accounting=durable_backend=None
     initialization_journal=Journal(work/"public/initialization-events.jsonl")
     stages=initialization.InitializationStages(on_event=initialization_journal.emit)
     result=dict(schema="YNX-PQ-INDEPENDENT-NORMAL-RUN/v1",source=identity,caps=lab.CAPS,storageRoots=[str(p) for p in w.storage_roots],mode=args.mode,requestedOfferedTPS=args.rate,configuredDemand=demand,firstCause=None,loadExecuted=False,normalLiveCalleeUsed=False,stableFinalTPS="UNMEASURED",P95FinalConfirmation="UNMEASURED",actualHopBytesPerTx="UNMEASURED",firstSaturatedChainStage="UNMEASURED",sameHost=True,physicalFaultDomains=1,signerTransport="original per-account persistent stdin/stdout with actual DATA-ready and measured normal CLI; cold initialization retained outside offered clock, no pre-sign/reserved nonce; source703 includes other changes and is not a pure-cache A/B")
+    if durable_module is not None:result['schema']=durable_module.RUN_SCHEMA
     result["toolIdentity"]=tool_identity()
     result["loadConditions"]=load_conditions(args)
     result["freshResourceAdmission"]=admission
@@ -1384,10 +1428,8 @@ def run(args):
             ceremony.activation_quiet_timeout=result['coldBootstrapReadinessBudget']['requestedColdPhaseSeconds']
         owners=[dict(ownerIndex=o["index"],address=o["owner"],nextNonce=int(o["initialNonce"])+1,capacity=int(o["memberCapacity"])) for o in ceremony.workload["owners"][4:]]
         lab.require(ceremony.workload["batchSize"]=="1" and ceremony.workload["outstandingPerOwner"]=="1" and ceremony.workload["batchWaitNanoseconds"]=="0","original independent single transfers and one pending required")
-        plan=scheduler.make_plan(ceremony.pin,ceremony.workload_pin,args.mode,owners,args.rate,args.seconds*1_000_000_000,args.tail_seconds*1_000_000_000)
-        staged_scheduler=module('original_staged_pipeline','pq-staged-independent-scheduler.py') if staged else None
-        if staged:plan=staged_scheduler.configure(plan)
-        lab.write_new(work/"public/load-plan.json",plan);result["planSHA256"]=lab.guard.digest(work/"public/load-plan.json")
+        plan,staged_scheduler=make_load_plan(args,ceremony,owners)
+        lab.write_new(work/"public/load-plan.json",durable_module.public_plan(plan) if durable_module else plan);result["planSHA256"]=lab.guard.digest(work/"public/load-plan.json")
         result["activation"]=ceremony.prepare_network();result["preparationUnconfirmedOwners"]=sorted(ceremony.pending_owners);result["livePolicies"]=[dict(node=l["node"],policy=str(l["policy"]),sha256=l["pin"]) for l in ceremony.live]
         if staged:
             checkpoint=ceremony.quiet()
@@ -1401,6 +1443,7 @@ def run(args):
             return result # Existing finally performs the same bounded stop and preserves all originals.
         backend=make_sender_backend(ceremony,owners,stop,backend_kind,
                                     prepare_public_source=True,persistent_live=True) if held else make_sender_backend(ceremony,owners,stop,backend_kind)
+        if durable_module is not None:durable_backend=durable_module.StopOnce(backend)
         if backend_kind=='bounded-cold':
             result['signerTransport']='original cold per-operation DATA-ready/sign/EOF; same original owner/operation reopen for normal full proof Confirm; no automatic retry'
         elif backend_kind=='public-owner':
@@ -1408,7 +1451,9 @@ def run(args):
         if held:
             result['signerTransport'] = 'prepared original sender-owners with per-command current checkpoint validation'
         journal=Journal(work/"public/load-events.jsonl")
-        monitor=Monitor(w,stop);monitor.thread.start()
+        monitor=Monitor(w,stop)
+        if durable_module is not None:durable_accounting=durable_module.DriverAccounting(w,monitor,stop,plan)
+        monitor.thread.start()
         result["senderPoolPreparation"]=stages.run("sender_pool_preparation",None,lambda:backend.prepare(monitor.check))
         if getattr(args,"owned_storage_accounting",False):
             store_module=module("original_pq_store_window","pq-owned-storage-window.py")
@@ -1433,14 +1478,15 @@ def run(args):
             result['heldReadyOnlyComplete'] = True
             return result
         result["loadExecuted"]=True
-        result["loadResult"]=(staged_scheduler.run(plan,backend,journal.emit,monitor.check,stop,ledger_module=scheduler) if staged else scheduler.run(plan,backend,journal.emit,monitor.check,stop))
+        result["loadResult"]=run_load_window(plan,durable_backend or backend,journal,monitor,stop,
+            staged_scheduler=staged_scheduler,durable_accounting=durable_accounting)
+        if durable_module is not None:result['firstCause']=result['loadResult'].get('firstCause')
         monitor.check();lab.check_source(source,args.commit)
         result["firstCause"]=result["loadResult"]["firstCause"]
-    except BaseException as error:result["firstCause"]=str(error)
+    except BaseException as error:result["firstCause"]=(result['firstCause'] or durable_module.failure_message(error)) if durable_module is not None else str(error)
     finally:
         stop.set()
-        if backend is not None:
-            backend.stop()
+        if backend is not None and finish_load_backend(backend,durable_backend,result):
             if getattr(backend, "pool_ready", None) is not None:
                 # A later lane can fail before the whole pool returns. Keep
                 # the successful earlier READY frames and their elapsed times.
@@ -1474,11 +1520,24 @@ def run(args):
             result["resourceObserverRetired"]=not monitor.thread.is_alive()
             if monitor.thread.is_alive():result["firstCause"]=result["firstCause"] or "original resource observer did not retire within bounded cleanup"
         if journal is not None:
-            journal.close();result["journalSegments"]=[dict(path=str(p.relative_to(work/"public")),bytes=p.stat().st_size,sha256=lab.guard.digest(p)) for p in journal.paths]
+            close_load_journal(journal,work,result,durable=durable_module is not None)
         try:result["cleanupComplete"]=w.stop()
-        except BaseException as error:result["cleanupComplete"]=False;result["cleanupError"]=str(error);result["directOwnedCleanupAfterFailure"]=getattr(w,"direct_cleanup_after_failure",[])
+        except BaseException as error:
+            result["cleanupComplete"]=False
+            result["cleanupError"]=durable_module.failure_message(error) if durable_module is not None else str(error)
+            result["directOwnedCleanupAfterFailure"]=getattr(w,"direct_cleanup_after_failure",[])
+        if durable_backend is not None:
+            result['originalWindowCleanupComplete']=result['cleanupComplete']
+            result['cleanupComplete']=result['cleanupComplete'] and not result['durableBackendStop']['cleanupDebt'] and not result.get('loadResult',{}).get('pipeline',{}).get('cleanupDebt',False)
         if backend is not None and result["cleanupComplete"] and "loadResult" in result:
-            result["stoppedLiveProofFailures"]=backend.retain_stopped_live_proof_failures(result["loadResult"])
+            if durable_accounting is None:result["stoppedLiveProofFailures"]=backend.retain_stopped_live_proof_failures(result["loadResult"])
+            else:
+                try:
+                    with durable_accounting.readonly_rows() as rows:
+                        result['stoppedLiveProofFailures']=backend.retain_stopped_live_proof_failures(result['loadResult'],rows=rows)
+                except BaseException as error:
+                    result['stoppedLiveProofFailures']=dict(status='UNKNOWN',errorType=type(error).__name__,altersLoadResult=False)
+                    result['firstCause']=result['firstCause'] or durable_module.failure_message(error)
         if ceremony is not None and ceremony.commit_observation_enabled:
             try:
                 observed=commit_readback.retain_after_stop(w,ceremony.commit_observation_descriptors,ceremony.plan["chainId"],ceremony.plan["originalGenesisHash"])
@@ -1530,6 +1589,9 @@ def run(args):
                 result['initializationDataValidation']=dict(completeNormalInitializationObserved=False,reason=str(error),pressureAuthorized=False)
                 result['firstCause']=result['firstCause'] or str(error)
         result['loadCompletionDiagnostics']=completion_diagnostics(result)
+        if durable_accounting is not None:
+            result['durableAccounting']=durable_accounting.receipt(result['planSHA256'],result['firstCause'])
+            lab.write_new(work/'public/durable-accounting.json',result['durableAccounting'])
         lab.write_new(work/"public/receipt.json",result);print(json.dumps(dict(publicArtifacts=str(work/"public"),firstCause=result["firstCause"],loadExecuted=result["loadExecuted"])))
     return result
 
@@ -1543,6 +1605,7 @@ if __name__=="__main__":
     p.add_argument("--owned-storage-accounting",action="store_true",help="metadata-only exact original lab blockstore/stateDB/application paths; allocation is not disk writes or per-transaction bytes")
     p.add_argument('--initialization-only',action='store_true',help='exact staged500+4 normal functional initialization and cleanup only; no business load; separate from pressure qualification')
     p.add_argument('--staged-publication',action='store_true',help='separate bounded normal sign/POST, inclusion and original final-proof lanes; exact qualified large-owner normal callee required; not a new pressure authorization')
+    p.add_argument('--durable-accounting',action='store_true',help='opt-in private SQLite accounting for original staged finite demand; unchanged60s/10000/Core limits, distinct receipt, no replay or pressure grant')
     p.add_argument('--sender-backend',choices=('auto','bounded-cold','public-owner'),default='auto',help='explicit normal sender transport; public-owner requires exact1695 ABI plus separate source/semantic/window qualification; no automatic fallback')
     p.add_argument('--startup-timings',action='store_true',help='matching original source ABI only: registration/activation and node startup wall stages; separate source CI and runtime window gates still required')
     p.add_argument('--initialize-before-load',action='store_true',help='Root-selected separate1b first100 profile: complete original504 initialization/census/bootstrap0 and livePQ gate in same window before release; no500/1000 or actual window grant')
