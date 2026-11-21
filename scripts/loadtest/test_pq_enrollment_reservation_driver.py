@@ -107,7 +107,7 @@ s.close()
         loader=driver.module
         with self.bound(binary),mock.patch.object(driver,'module',side_effect=lambda name,file:m if file=='pq-enrollment-reservation-transport.py' else loader(name,file)),contextlib.redirect_stdout(io.StringIO()) as stdout:
             code=driver.main(argv,enrollment_resource_observer=args['check_resources'])
-        out=json.loads(stdout.getvalue());self.assertEqual(code,2);self.assertTrue(out['normalFixtureTestPassed'])
+        out=json.loads(stdout.getvalue());self.assertEqual(code,2);self.assertTrue(out['normalFixtureTestPassed'],out)
         self.assertNotIn(str(self.root),stdout.getvalue());self.assertGreater(len(self.resources),1)
 
     def test_known_binary_without_actual_resource_owner_stays_closed(self):

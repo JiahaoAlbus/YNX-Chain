@@ -344,7 +344,7 @@ def run_synthetic_fixture(*,enabled=False,source=None,source_directory=None,test
 
 def _run_synthetic_fixture(*,binding,source,source_directory,test_binary,cli_binary,root,
                            plan_sha256,workload_sha256,credential_fd,output,check_resources,
-                           timeout=240,stop=None,register_process=None):
+                           timeout=240,stop=None,register_process=None,launch_lifecycle=None):
     # Internal same-job owner bridge. Its caller must create the Linux binaries
     # using the frozen source and original Window before supplying their pins.
     # No public CLI/env option can supply this binding or open production gates.
@@ -409,7 +409,7 @@ def _run_synthetic_fixture(*,binding,source,source_directory,test_binary,cli_bin
             process_result=c._invoke(test_binary,test_fd,None,None,b'',output/'process',timeout,stop,
                 original_argv=argv,inherited_fds=(original_credential,child_peer.fileno(),cli_fd),
                 synthetic_fixture=dict(cwd=str(source_directory/'internal/consensus'),env=env,
-                    exchange=connected,check_resources=check_resources))
+                    exchange=connected,check_resources=check_resources,lifecycle=launch_lifecycle))
             out['originalProcess']={key:value for key,value in process_result.items() if key not in ('stdout','stderr')}
             out['normalFixtureProcessInvoked']=process_result['processStarted']
             out['originalProcess'].update(stdoutSHA256=b.sha(process_result['stdout']),stderrSHA256=b.sha(process_result['stderr']))

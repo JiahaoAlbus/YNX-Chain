@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import shutil
 import signal
+import select
 import tempfile
 import threading
 import subprocess
@@ -64,13 +65,16 @@ class HostedSyntheticReservationControls(unittest.TestCase):
             def stop(self):
                 outer.events.append('original-window-stop')
                 outer.assertFalse(self._pq_resource_monitor.thread.is_alive())
+                outer.assertIsNotNone(self.launch_cleanup_deadline)
                 if outer.stop_error:raise outer.stop_error
                 return outer.stop_result
+            def process_receipt(self):return [dict(name='CONTROL',pid=999,command=['PRIVATE CONTROL'])]
+            def launch_cleanup_report(self):return dict(status='OBSERVED',pending=[],cleanupDebt=[])
         def callee(**kwargs):
             self.events.append('sole-private-callee')
             self.assertEqual(kwargs['source'],m.HOSTED_SYNTHETIC_SOURCE['commit'])
             self.assertEqual(os.fstat(kwargs['credential_fd']).st_size,32)
-            self.assertTrue(callable(kwargs['register_process']))
+            self.assertIsInstance(kwargs['launch_lifecycle'],m.PendingFixtureLaunch)
             self.assertEqual(kwargs['binding'].keys(),{'testSHA256','cliSHA256'})
             kwargs['check_resources']()
             return self.callee_result or dict(normalFixtureTestPassed=True,firstCause=None,cleanupDebt=False,
@@ -127,6 +131,8 @@ class HostedSyntheticReservationControls(unittest.TestCase):
         self.assertEqual(self.events,['original-go-version','original-cli-build','original-test-build','original-create',
                                       'sole-private-callee','original-window-stop'])
         self.assertTrue(result['peerAckBytesMatch'] and result['normalFixtureTestPassed'])
+        self.assertEqual(result['originalProcessReceipt'][0]['pid'],999)
+        self.assertEqual(len(result['privateProcessReceiptSHA256']),64)
         self.assertEqual(result['status'],'UNKNOWN');self.assertFalse(result['nonceReleased'] or result['runtimeAuthorized'])
         self.assertEqual(result['steps'][1]['name'],'original-cli-build')
         self.assertTrue((self.parent/'pq-enrollment-synthetic-once.lock').is_file())
@@ -182,6 +188,45 @@ class HostedSyntheticReservationControls(unittest.TestCase):
         self.assertEqual(json.loads(raw)['firstCauseType'],'OSError')
         with self.assertRaisesRegex(ValueError,'fresh'):m.publish(target,value)
 
+    def test_private_pending_constructor_leaves_resource_lock_free_and_cannot_publish_after_stop(self):
+        window=SimpleNamespace(lock=threading.RLock(),launch_lock=threading.Lock(),sample=mock.Mock(),
+            closed_for_launch=False,launches_closed=False,launch_cleanup_debt=[],pending_launches={},children=[],known={},
+            launch_guard_failure=None,_cleanup_wait_remaining=lambda:1)
+        stop=threading.Event();pending=m.PendingFixtureLaunch(window,stop);entered=threading.Event();release=threading.Event()
+        errors=[];proc=SimpleNamespace(pid=123,returncode=0,poll=lambda:0,wait=lambda timeout=None:0,
+                                      send_signal=lambda sig:None,terminate=lambda:None,kill=lambda:None)
+        def constructor():
+            try:
+                pending.begin();entered.set();release.wait(2)
+                pending.publish(proc,['ORIGINAL CONTROL'])
+            except BaseException as error:errors.append(error)
+            finally:pending.finish(proc)
+        with mock.patch.object(m.lab.guard,'bounded',return_value=b'CONTROL'),mock.patch.object(m.lab.guard,'parse_stat',return_value={'startTicks':4}):
+            thread=threading.Thread(target=constructor);thread.start()
+            try:
+                self.assertTrue(entered.wait(1));self.assertTrue(window.lock.acquire(blocking=False));window.lock.release()
+                self.assertIsNone(window.pending_launches[pending.token]['process'])
+                window.launch_guard_failure=RuntimeError('original pending resource cap');stop.set()
+            finally:release.set();thread.join(2)
+        self.assertFalse(thread.is_alive());self.assertEqual(str(errors[0]),'original pending resource cap')
+        self.assertEqual(len(window.children),1);self.assertIs(window.children[0]['process'],proc)
+        self.assertFalse(window.pending_launches);self.assertTrue(window.launch_lock.acquire(blocking=False));window.launch_lock.release()
+
+    def test_private_registration_failure_keeps_exact_handle_and_never_rebinds_or_signals(self):
+        window=SimpleNamespace(lock=threading.RLock(),launch_lock=threading.Lock(),sample=mock.Mock(),
+            closed_for_launch=False,launches_closed=False,launch_cleanup_debt=[],pending_launches={},children=[],known={},
+            launch_guard_failure=None,_cleanup_wait_remaining=lambda:1)
+        pending=m.PendingFixtureLaunch(window,threading.Event());proc=SimpleNamespace(pid=123,returncode=0,poll=lambda:0)
+        pending.begin()
+        with mock.patch.object(m.lab,'bind_process_lifecycle',side_effect=RuntimeError('original binding failed')) as bind:
+            with self.assertRaisesRegex(RuntimeError,'binding failed'):pending.publish(proc,['ORIGINAL CONTROL'])
+            pending.finish(proc)
+        bind.assert_called_once_with(proc);self.assertIs(window.children[0]['process'],proc)
+        self.assertFalse(window.pending_launches)
+        with mock.patch.object(m.lab.os,'kill') as kill,mock.patch.object(m.lab.os,'killpg') as group:
+            with self.assertRaisesRegex(RuntimeError,'unmanaged'):m.lab.signal_original_child(proc,signal.SIGTERM)
+            kill.assert_not_called();group.assert_not_called()
+
     def test_original_workflow_is_opt_in_after_controls_and_uploads_one_public_file(self):
         text=(Path(__file__).parents[2]/'.github/workflows/chain-core.yml').read_text()
         self.assertIn('default: false',text)
@@ -191,43 +236,103 @@ class HostedSyntheticReservationControls(unittest.TestCase):
         self.assertEqual(job.count('actions/upload-artifact@'),1)
         self.assertIn('path: ${{ runner.temp }}/pq-enrollment-public-summary/SUMMARY.json',job)
         self.assertNotIn('path: ${{ runner.temp }}/\n',job)
-        self.assertIn("'test_pq_enrollment_linux_private.py': 12",text)
+        self.assertIn("'test_pq_enrollment_linux_private.py': 16",text)
         self.assertIsNone(m.r.NORMAL_RESERVATION_PRODUCER)
         self.assertEqual(m.r.SYNTHETIC_FIXTURE_BINARIES,{})
 
-    @unittest.skipUnless(sys.platform=='linux','real Linux subreaper and /proc required; no Mac substitute')
-    def test_real_linux_fast_leader_orphan_is_adopted_then_retired_by_original_window(self):
-        # Separate supervisor keeps adoption/affinity/cleanup away from the CI
-        # test runner. No node, account, credential or transaction is created.
+    def orphan_case(self,blocked=False):
         script=r'''
 import importlib.util,json,os,pathlib,sys,time
-source=pathlib.Path(sys.argv[1]);work=pathlib.Path(sys.argv[2])
+source=pathlib.Path(sys.argv[1]);work=pathlib.Path(sys.argv[2]);blocked=sys.argv[3]=='1'
 spec=importlib.util.spec_from_file_location('original_private_job',source/'pq-enrollment-linux-private.py')
 m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 m.enable_original_subreaper()
 work.mkdir(mode=0o700);(work/'.private').mkdir(mode=0o700);(work/'public').mkdir(mode=0o700)
 w=m.lab.Window(source,work);child=None;clean=False
 try:
-    code="import os,time; p=os.fork(); (time.sleep(30) if p==0 else print(p,flush=True)); os._exit(0)"
+    # Self deadline is only a test resource fuse if the readiness pipe itself
+    # fails. It is never counted as Window retirement or a successful assertion.
+    code="import os,signal,time; p=os.fork(); (signal.alarm(12),time.sleep(30)) if p==0 else print(p,flush=True); os._exit(0)"
     p=w.launch('synthetic-fast-leader',[sys.executable,'-c',code],private_log=True)
-    p.wait(timeout=2) # Deliberately no intervening resource sample.
+    p.wait(timeout=2)
     child=int((work/'.private/synthetic-fast-leader.log').read_text().strip())
     row=m.lab.guard.parse_stat(m.lab.guard.bounded(pathlib.Path('/proc')/str(child)/'stat'),child)
-    assert row['parent']==os.getpid(), 'unseen orphan must belong to original subreaper'
-    assert child not in w.known, 'control requires no prior sample of orphan'
+    assert row['parent']==os.getpid() and child not in w.known
+    print(json.dumps(dict(pid=child,startTicks=row['startTicks'])),flush=True)
+    if blocked:time.sleep(30)
     clean=w.stop()
-    assert clean and not (pathlib.Path('/proc')/str(child)).exists(), 'original adopted child not retired'
-    print(json.dumps(dict(adopted=True,cleanupComplete=clean)))
+    assert clean and not (pathlib.Path('/proc')/str(child)).exists()
+    print(json.dumps(dict(adopted=True,cleanupComplete=clean)),flush=True)
 finally:
     if not clean:w.stop()
 '''
-        proc=subprocess.Popen([sys.executable,'-B','-c',script,str(Path(__file__).parent),str(self.base/'linux-supervisor')],
+        proc=subprocess.Popen([sys.executable,'-B','-c',script,str(Path(__file__).parent),str(self.base/'linux-supervisor'),str(int(blocked))],
             stdout=subprocess.PIPE,stderr=subprocess.PIPE,start_new_session=True)
-        try:stdout,stderr=proc.communicate(timeout=20)
-        except BaseException:
-            if proc.poll() is None:os.killpg(proc.pid,signal.SIGKILL)
-            proc.wait(timeout=2);raise
-        self.assertEqual(proc.returncode,0,stderr.decode());self.assertEqual(json.loads(stdout),dict(adopted=True,cleanupComplete=True))
+        supervisor_fd=os.pidfd_open(proc.pid,0);child_fd=None
+        try:
+            self.assertTrue(select.select([proc.stdout],[],[],5)[0],'original readiness not supplied')
+            ready=json.loads(proc.stdout.readline(512));self.assertEqual(set(ready),{'pid','startTicks'})
+            self.assertIs(type(ready['pid']),int);self.assertIs(type(ready['startTicks']),int)
+            def identity():
+                value=m.lab.guard.parse_stat(m.lab.guard.bounded(Path('/proc')/str(ready['pid'])/'stat'),ready['pid'])
+                self.assertEqual((value['parent'],value['startTicks']),(proc.pid,ready['startTicks']))
+            identity();child_fd=os.pidfd_open(ready['pid'],0);identity()
+            try:stdout,stderr=proc.communicate(timeout=1 if blocked else 10)
+            except subprocess.TimeoutExpired:
+                self.assertTrue(blocked,'unexpected original supervisor timeout')
+                # Child has its OWN session. Both kernel handles were bound
+                # before timeout; no supervisor-only killpg or numeric fallback.
+                signal.pidfd_send_signal(child_fd,signal.SIGKILL)
+                signal.pidfd_send_signal(supervisor_fd,signal.SIGKILL)
+                proc.wait(timeout=2)
+                self.assertTrue(select.select([child_fd],[],[],2)[0],'original orphan has not exited')
+                return dict(status='UNKNOWN',cleanupDebt=True,firstCause='TimeoutExpired')
+            self.assertFalse(blocked,'blocking control unexpectedly completed')
+            self.assertEqual(proc.returncode,0,stderr.decode())
+            return json.loads(stdout)
+        finally:
+            for fd in (child_fd,supervisor_fd):
+                if fd is not None:
+                    try:signal.pidfd_send_signal(fd,signal.SIGKILL)
+                    except ProcessLookupError:pass
+            proc.wait(timeout=2)
+            for fd in (child_fd,supervisor_fd):
+                if fd is not None:os.close(fd)
+
+    @unittest.skipUnless(sys.platform=='linux','real Linux subreaper and /proc required; no Mac substitute')
+    def test_real_linux_fast_leader_orphan_is_adopted_then_retired_by_original_window(self):
+        self.assertEqual(self.orphan_case(),dict(adopted=True,cleanupComplete=True))
+
+    @unittest.skipUnless(sys.platform=='linux','real Linux pidfd timeout cleanup required; no Mac substitute')
+    def test_real_linux_orphan_timeout_uses_both_original_handles_and_keeps_debt(self):
+        self.assertEqual(self.orphan_case(True),dict(status='UNKNOWN',cleanupDebt=True,firstCause='TimeoutExpired'))
+
+    @unittest.skipUnless(sys.platform=='linux','real Linux callee and Window lifecycle required; no Mac substitute')
+    def test_real_private_invoke_publishes_bound_handle_before_original_window_retirement(self):
+        script=r'''
+import importlib.util,pathlib,sys,threading
+source=pathlib.Path(sys.argv[1])
+def load(name):
+ s=importlib.util.spec_from_file_location(name,source/name);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
+m=load('pq-enrollment-linux-private.py');t=load('test_pq_enrollment_reservation_driver.py')
+x=t.EnrollmentReservationDriverControls();x.setUp();w=None
+try:
+ work=x.base/'actual-window';work.mkdir();(work/'.private').mkdir();(work/'public').mkdir()
+ w=m.lab.Window(x.source,work);binary=x.binary();args=x.args(binary);args.pop('enabled')
+ with x.bound(binary):
+  binding=t.m.SYNTHETIC_FIXTURE_BINARIES[(t.m.INSPECTED_SYNTHETIC_HANDSHAKE,t.m.original.platform.system(),t.m.original.platform.machine())]
+  out=t.m._run_synthetic_fixture(binding=binding,launch_lifecycle=m.PendingFixtureLaunch(w,threading.Event()),**args)
+ assert out['firstCause'] is None and out['originalProcess']['processReaped'],out
+ assert len(w.children)==1 and '_ynx_lifecycle_lock' in vars(w.children[0]['process'])
+ assert not w.pending_launches and w.stop() is True
+ print('ORIGINAL_CALLEE_AND_WINDOW_RETIRED')
+finally:
+ if w is not None:w.stop()
+ x.doCleanups()
+'''
+        result=subprocess.run([sys.executable,'-B','-c',script,str(Path(__file__).parent)],capture_output=True,timeout=10)
+        self.assertEqual(result.returncode,0,result.stderr.decode())
+        self.assertEqual(result.stdout.strip(),b'ORIGINAL_CALLEE_AND_WINDOW_RETIRED')
 
 
 if __name__=='__main__':unittest.main(verbosity=2)

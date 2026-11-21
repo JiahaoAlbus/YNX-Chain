@@ -99,6 +99,70 @@ def enable_original_subreaper():
             'original Linux subreaper readback differs')
 
 
+class PendingFixtureLaunch:
+    """Same original Window's pending admission for the bounded pipe callee.
+
+    Popen happens outside Window.lock. No second constructor, reaper or signal
+    owner is created. The original Window can observe/cancel its descendant
+    closure while construction is pending; the real handle is always retained.
+    """
+    def __init__(self,window,stop):
+        self.window=window;self.stop=stop;self.token=object();self.locked=False;self.registered=False
+    def begin(self):
+        w=self.window
+        require(w.launch_lock.acquire(timeout=1),'original launch serialization unavailable')
+        self.locked=True
+        with lab.bounded_original_lifecycle(w.lock):
+            w.sample()
+            require(not self.stop.is_set() and not w.closed_for_launch and not w.launches_closed
+                    and not w.launch_cleanup_debt,'original Window refused private fixture admission')
+            w.pending_launches[self.token]=dict(name='original-enrollment-handshake',requestedNs=time.monotonic_ns(),
+                                                process=None,log=None)
+    def publish(self,proc,argv):
+        w=self.window
+        with lab.bounded_original_lifecycle(w.lock):
+            require(self.token in w.pending_launches,'original pending constructor missing')
+            w.pending_launches[self.token]['process']=proc
+            row=dict(name='original-enrollment-handshake',process=proc,persistent=False,
+                     command=list(argv),startedNs=time.monotonic_ns())
+            try:lab.bind_process_lifecycle(proc)
+            finally:w.children.append(row);self.registered=True
+            try:
+                current=lab.guard.parse_stat(lab.guard.bounded(Path('/proc')/str(proc.pid)/'stat'),proc.pid)
+                row['startTicks']=current['startTicks'];w.known[proc.pid]=current['startTicks']
+            except FileNotFoundError:
+                row['startTicks']=None
+                require(proc.poll() is not None,'live original fixture identity unavailable')
+            if w.launch_guard_failure is not None:raise w.launch_guard_failure
+            require(not self.stop.is_set() and not w.closed_for_launch and not w.launches_closed
+                    and not w.launch_cleanup_debt,'original pending fixture cancelled before business publication')
+            w.sample();w.pending_launches.pop(self.token)
+        self._unlock()
+    def _unlock(self):
+        if self.locked:self.locked=False;self.window.launch_lock.release()
+    def finish(self,proc,argv=()):
+        w=self.window
+        try:
+            with lab.bounded_original_lifecycle(w.lock,w._cleanup_wait_remaining()):
+                if proc is not None and not self.registered:
+                    # Binding/registration failed after a REAL Popen returned.
+                    # Keep that original handle even if it is already reaped.
+                    row=dict(name='original-enrollment-handshake',process=proc,persistent=False,
+                             command=list(argv),startedNs=None,startTicks=None)
+                    try:
+                        if '_ynx_lifecycle_lock' not in vars(proc):lab.bind_process_lifecycle(proc)
+                    finally:w.children.append(row);self.registered=True
+                pending=w.pending_launches.get(self.token)
+                if pending is not None:
+                    pending['process']=proc
+                    if proc is None or proc.poll() is not None:w.pending_launches.pop(self.token)
+                    else:
+                        w.launches_closed=True
+                        w.launch_cleanup_debt.append(dict(name=pending['name'],errorType='UnretiredOriginalProcess',
+                            meaning='original private constructor remains pending; preserve UNKNOWN'))
+        finally:self._unlock()
+
+
 def failure(error):return dict(type=type(error).__name__,message=r.d.failure_message(error))
 
 
@@ -116,7 +180,8 @@ def public_projection(value):
         r.original.canonical(value['firstCause'])).hexdigest()
     out['cleanupErrorTypes']=[e['type'] for e in value['cleanupErrors']]
     for key in ('source','tools','runID','runAttempt','binaries','planSHA256','workloadSHA256','databasePin',
-                'framePins','outboxRequestPins','caps','peakRSSBytes','peakOwnedBytes','monitorRetired','resourceFailureType'):
+                'framePins','outboxRequestPins','caps','peakRSSBytes','peakOwnedBytes','monitorRetired','resourceFailureType',
+                'privateProcessReceiptSHA256'):
         if key in value:out[key]=value[key]
     out['steps']=[{key:step[key] for key in ('name','returnCode','elapsedNs')} for step in value['steps']]
     return out
@@ -208,22 +273,14 @@ def run(source,parent,*,enabled=False,stop=None):
         out.update(planSHA256=r.b.sha(plan),workloadSHA256=r.b.sha(workload))
         pins=r.PinnedOriginals(root,fixed['commit'],out['planSHA256'],out['workloadSHA256'])
         check();require(check_source(source)==out['source'],'source changed before original handshake')
-        def register(proc,argv):
-            # _invoke owns/reaps this Popen until it returns. Window retirement
-            # is sequential afterwards; the monitor samples but never reaps.
-            with window.lock:
-                row=dict(name='original-enrollment-handshake',process=proc,persistent=False,
-                         command=list(argv),startedNs=time.monotonic_ns())
-                window.children.append(row)
-                current=lab.guard.parse_stat(lab.guard.bounded(Path('/proc')/str(proc.pid)/'stat'),proc.pid)
-                row['startTicks']=current['startTicks'];window.known[proc.pid]=current['startTicks']
+        lifecycle=PendingFixtureLaunch(window,stop)
         credential=os.open(root/'workload/private-senders/recovery.raw',os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
         output=work/'.private/reservation'
         try:
             result=r._run_synthetic_fixture(binding={key+'SHA256':value['sha256'] for key,value in binaries.items()},
                 source=fixed['commit'],source_directory=source,test_binary=test,cli_binary=cli,root=root,
                 plan_sha256=pins.plan_pin,workload_sha256=pins.workload_pin,credential_fd=credential,
-                output=output,check_resources=check,timeout=240,stop=stop,register_process=register)
+                output=output,check_resources=check,timeout=240,stop=stop,launch_lifecycle=lifecycle)
         finally:os.close(credential)
         out['normalFixtureTestPassed']=result['normalFixtureTestPassed']
         out['firstCause']=result['firstCause'];out['cleanupDebt']=result['cleanupDebt']
@@ -241,6 +298,12 @@ def run(source,parent,*,enabled=False,stop=None):
         if not isinstance(error,Exception):stop.set();raise
     finally:
         stop.set()
+        if window is not None:
+            # Monitor retirement consumes the same original cleanup budget;
+            # Window.stop must not start a fresh 15 seconds afterwards.
+            until=time.monotonic()+lab.CAPS['cleanupSeconds']
+            previous=getattr(window,'launch_cleanup_deadline',None)
+            window.launch_cleanup_deadline=until if previous is None else min(previous,until)
         if monitor is not None:
             try:monitor.close()
             except BaseException as error:
@@ -261,6 +324,14 @@ def run(source,parent,*,enabled=False,stop=None):
             except BaseException as error:
                 out['cleanupErrors'].append(failure(error));out['firstCause']=out['firstCause'] or failure(error);out['cleanupDebt']=True
             out.update(peakRSSBytes=window.peak_rss,peakOwnedBytes=window.peak_bytes)
+            try:
+                out['originalProcessReceipt']=window.process_receipt()
+                out['originalLaunchLifecycle']=window.launch_cleanup_report()
+                out['privateProcessReceiptSHA256']=hashlib.sha256(r.original.canonical(
+                    dict(processes=out['originalProcessReceipt'],launch=out['originalLaunchLifecycle']))).hexdigest()
+            except BaseException as error:
+                out['cleanupErrors'].append(failure(error));out['firstCause']=out['firstCause'] or failure(error)
+                out['cleanupDebt']=True;out['cleanupComplete']=False
             # No sample after stop: ordinary stopped logs may be closed without
             # retire_log metadata. No invented post-readback resource proof.
         if work is not None:

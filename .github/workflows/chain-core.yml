@@ -103,13 +103,13 @@ jobs:
           spec.loader.exec_module(hook)
           required = {'test_pq_durable_demand_ledger.py': 21, 'test_pq_durable_staged_scheduler.py': 19,
                       'test_pq_durable_load_accounting.py': 26, 'test_pq_resource_first_cause.py': 6,
-                      'test_resource_guard_sampling.py': 11, 'test_pq_enrollment_original_bindings.py': 13,
+                      'test_resource_guard_sampling.py': 11, 'test_window_pending_launch.py': 31, 'test_pq_enrollment_original_bindings.py': 13,
                       'test_pq_enrollment_normal_callee.py': 16, 'test_pq_enrollment_original_pair.py': 12,
                       'test_pq_durable_enrollment_reservation.py': 13, 'test_pq_enrollment_original_command.py': 14,
                       'test_pq_enrollment_original_transport.py': 13, 'test_pq_enrollment_original_dispatch.py': 9,
                       'test_pq_enrollment_reservation_transport.py': 23,
                       'test_pq_enrollment_reservation_driver.py': 8,
-                      'test_pq_enrollment_linux_private.py': 12}
+                      'test_pq_enrollment_linux_private.py': 16}
           hook.GROUPS = [entry for entry in hook.GROUPS if entry[0] in required]
           assert {name: count for name, _, count in hook.GROUPS} == required, 'original exact control selection differs'
           output = io.StringIO()
@@ -122,7 +122,7 @@ jobs:
               raw = output.getvalue().encode()
               (destination / 'original-controls.log').write_bytes(raw)
               value = dict(sourceCommit=os.environ['GITHUB_SHA'], runID=os.environ['GITHUB_RUN_ID'],
-                           platform=sys.platform, declaredCases=required, declaredTotal=216,
+                           platform=sys.platform, declaredCases=required, declaredTotal=251,
                            allDeclaredActuallyPassedWithoutSkip=passed, logSHA256=hashlib.sha256(raw).hexdigest(),
                            controlCalleeAndResourceInputs=True, nodeStarted=False, businessLoadExecuted=False,
                            realChainFinalityProven=False, physicalRSSLimitQualified=False,

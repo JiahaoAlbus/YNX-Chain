@@ -179,7 +179,7 @@ def _invoke(binary,fd,context_path,context_sha,request,output,timeout,stop=None,
             'one independent original credential descriptor required')
     env={'PATH':os.defpath,'LANG':'C'};cwd=None
     if synthetic:
-        b.closed(synthetic_fixture,('cwd','env','exchange','check_resources'),'closed original synthetic fixture transport required')
+        b.closed(synthetic_fixture,('cwd','env','exchange','check_resources','lifecycle'),'closed original synthetic fixture transport required')
         cwd=Path(synthetic_fixture['cwd'])
         require(cwd.is_absolute() and cwd.resolve(strict=True)==cwd and callable(synthetic_fixture['exchange'])
                 and callable(synthetic_fixture['check_resources'])
@@ -191,6 +191,9 @@ def _invoke(binary,fd,context_path,context_sha,request,output,timeout,stop=None,
                     'GOMODCACHE','GOPATH','GOTOOLCHAIN','GOMAXPROCS','GOMEMLIMIT','GOGC','GOPROXY','GOSUMDB',
                     'GOFLAGS','GOENV','GOTELEMETRY') for k in extra),'bounded original synthetic environment required')
         env.update(extra)
+        lifecycle=synthetic_fixture['lifecycle']
+        require(lifecycle is None or all(callable(getattr(lifecycle,k,None)) for k in ('begin','publish','finish')),
+                'original Window pending lifecycle required')
     output=Path(output);require(output.is_absolute() and not output.exists() and output.parent.resolve(strict=True)==output.parent,
                                 'fresh private verifier evidence directory required')
     parent=os.open(output.parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
@@ -244,11 +247,13 @@ def _invoke(binary,fd,context_path,context_sha,request,output,timeout,stop=None,
             synthetic_fixture['check_resources']()
             require(not linux or hasattr(os,'pidfd_open') and hasattr(signal,'pidfd_send_signal'),
                     'Linux original synthetic child pidfd required before launch')
+            if lifecycle is not None:lifecycle.begin()
         if stop is not None and stop.is_set():raise InterruptedError('normal verifier cancelled before original process start')
         process=subprocess.Popen(argv,executable='/proc/self/fd/%d'%fd if linux else str(binary),pass_fds=((fd,) if linux else ())+inherited_fds,
             stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,close_fds=True,bufsize=0,
             env=env,cwd=cwd,start_new_session=synthetic)
         if synthetic and linux:pidfd=os.pidfd_open(process.pid,0) # Before publication to the owning Window.
+        if synthetic and lifecycle is not None:lifecycle.publish(process,argv)
         for name in ('stdin','stdout','stderr'):
             stream=getattr(process,name);os.set_blocking(stream.fileno(),False)
             selector.register(stream,selectors.EVENT_WRITE if name=='stdin' else selectors.EVENT_READ,name)
@@ -283,6 +288,7 @@ def _invoke(binary,fd,context_path,context_sha,request,output,timeout,stop=None,
                 cleanup_errors.append(failure)
                 if cause is None:cause=failure
         if pidfd is not None:finish(lambda:os.close(pidfd),'original child pidfd close')
+        if synthetic and lifecycle is not None:finish(lambda:lifecycle.finish(process,argv),'original pending launch retirement')
         finish(selector.close,'selector close')
         if process is not None:
             for name in ('stdin','stdout','stderr'):
@@ -311,6 +317,7 @@ def _invoke(binary,fd,context_path,context_sha,request,output,timeout,stop=None,
         if cause is None and retention_errors:cause=retention_errors[0]
         if cause is None and cleanup_errors:cause=cleanup_errors[0]
     return dict(argv=argv,returnCode=process.returncode if process is not None else None,
+        originalProcessID=process.pid if process is not None else None,
         elapsedNs=time.monotonic_ns()-start,firstCause=cause,processStarted=process is not None,processReaped=reaped,
         cleanupDebt=(process is not None and not reaped) or bool(cleanup_errors),cleanupErrors=cleanup_errors,
         descendantCleanupRequired=synthetic and process is not None,descendantRetirementObserved=False,
