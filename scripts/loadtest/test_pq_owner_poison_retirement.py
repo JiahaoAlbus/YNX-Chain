@@ -406,6 +406,18 @@ class PoisonControls(unittest.TestCase):
         self.assertTrue(lifecycle['cleanupDebt'])
         self.assertIsNone(lifecycle['clockIdentityCleanupDebt'])
         self.assertFalse(lifecycle['cleanupCompleteProven'])
+        self.assertIsNotNone(w.launch_cleanup_deadline)
+        self.assertLessEqual(w.launch_cleanup_deadline,time.monotonic())
+        w2=original_window_fixture();w2.lock=threading.Lock();w2.children=[];w2.logs=[]
+        held2=threading.Event();release2=threading.Event()
+        def holder2():
+            with w2.lock:held2.set();release2.wait(3)
+        owner2=threading.Thread(target=holder2);owner2.start();self.assertTrue(held2.wait(1))
+        deadline=time.monotonic()+.1;w2.launch_cleanup_deadline=deadline;started=time.monotonic()
+        try:
+            with self.assertRaisesRegex(RuntimeError,'cleanup lock did not retire'):w2.stop()
+            self.assertLess(time.monotonic()-started,.6);self.assertEqual(w2.launch_cleanup_deadline,deadline)
+        finally:release2.set();owner2.join(2)
 
     def test_shutdown_inventory_lock_is_bounded_after_admission(self):
         w=original_window_fixture();w.lock=threading.Lock();w.children=[];w.known={};w.logs=[]
@@ -433,6 +445,12 @@ class PoisonControls(unittest.TestCase):
         lifecycle=w.launch_cleanup_report()
         self.assertEqual(lifecycle['status'],'UNKNOWN');self.assertTrue(lifecycle['cleanupDebt'])
         self.assertIsNone(lifecycle['clockIdentityCleanupDebt'])
+        self.assertLessEqual(w.launch_cleanup_deadline,time.monotonic())
+        waits=[];anchor=SimpleNamespace(close_bounded=lambda *,timeout:(waits.append(timeout) or True))
+        process=SimpleNamespace(poll=lambda:0,stdin=SimpleNamespace(closed=True),
+            _ynx_lifecycle_lock=threading.RLock(),_ynx_original_pidfd=anchor)
+        self.assertTrue(driver.retire_original_proof_pidfd(process,deadline=w.launch_cleanup_deadline)['closed'])
+        self.assertEqual(waits,[0])
 
     def test_process_receipt_retains_original_cause_when_child_lock_is_held(self):
         w=original_window_fixture();w.lock=threading.RLock()
@@ -607,6 +625,14 @@ class PoisonControls(unittest.TestCase):
             try:
                 driver.stop_backend_preserving_cause(backend,result)
                 with self.assertRaisesRegex(RuntimeError,'cleanup lock did not retire'):w.stop()
+                self.assertIsNotNone(w.launch_cleanup_deadline)
+                self.assertLessEqual(w.launch_cleanup_deadline,time.monotonic())
+                waits=[]
+                anchor=SimpleNamespace(close_bounded=lambda *,timeout:(waits.append(timeout) or True))
+                process=SimpleNamespace(poll=lambda:0,stdin=SimpleNamespace(closed=True),
+                    _ynx_lifecycle_lock=threading.RLock(),_ynx_original_pidfd=anchor)
+                self.assertTrue(driver.retire_original_proof_pidfd(process,deadline=w.launch_cleanup_deadline)['closed'])
+                self.assertEqual(waits,[0])
                 report=w.sample_stage_report()
                 self.assertEqual(report['status'],'UNKNOWN');self.assertEqual(report['stages'],{})
                 self.assertIn('not observed',report['reason']);self.assertEqual(result['firstCause'],'original transaction UNKNOWN')
