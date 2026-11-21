@@ -8,6 +8,7 @@ import stat
 import tempfile
 import types
 import unittest
+import weakref
 from unittest import mock
 
 import importlib.util
@@ -135,6 +136,26 @@ class Case:
 
 
 class SameRunnerProducerTests(unittest.TestCase):
+    def test_before_public_bytes_are_released_before_after_admission(self):
+        class TrackedFiles(dict):
+            pass
+        with tempfile.TemporaryDirectory() as name:
+            case=Case(Path(name)); refs={}; original=producer.public_files
+            def tracked(work):
+                value=TrackedFiles(original(work));refs[work.name]=weakref.ref(value);return value
+            after_admit=case.adapters['after'].admit
+            def check_before_released(retained):
+                self.assertIn(case.adapters['before'].work.name,refs)
+                self.assertIsNone(refs[case.adapters['before'].work.name](),
+                                  'sealed before payload must not stay in coordinator memory')
+                return after_admit(retained)
+            case.adapters['after'].admit=check_before_released
+            with mock.patch.object(producer,'public_files',side_effect=tracked):
+                result=case.run()
+            self.assertEqual(result['status'],'PAYLOADS_SEALED_AWAITING_ORIGINAL_ACTIONS_UPLOADS')
+            self.assertTrue((case.adapters['before'].work/'.private/original-UNKNOWN').exists())
+            self.assertTrue((case.root/'producer/before').is_dir())
+
     def test_sequential_producer_upload_seal_reader_round_trip_preserves_unknown_and_private(self):
         with tempfile.TemporaryDirectory() as name:
             case = Case(Path(name)); result = case.run()
