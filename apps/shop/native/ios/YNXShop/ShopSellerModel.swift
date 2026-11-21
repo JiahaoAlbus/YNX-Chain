@@ -91,6 +91,9 @@ import SwiftUI
         guard let expected=try? encoder.encode(order),let current=try? encoder.encode(actual) else{return false}
         return expected==current
     }
+    func canShip(_ order:SellerOrder)->Bool {
+        !busy && exactCurrentOrder(order) && can("fulfillment.write") && !hasPending(order.ID) && order.Status=="paid" && order.hasOriginalPaidRecord && (!order.PayIntentID.hasPrefix("npi_") || ["native_paid","native_partial_refund"].contains(order.paymentDisplayState))
+    }
     func refundableOriginalEvent(_ order:SellerOrder)->SellerTimelineEvent? {
         guard exactCurrentOrder(order),storeRole=="owner",can("finance.read"),can("refund.approve"),
               order.validatedNetPaidAtoms != nil,let id=order.originalRefundRequestID else{return nil}

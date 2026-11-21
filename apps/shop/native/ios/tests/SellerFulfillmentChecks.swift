@@ -190,6 +190,12 @@ final class FulfillmentHTTP:URLProtocol,@unchecked Sendable {
         model.refresh();try await until{!model.busy};model.recoverOriginals(for:current.ID);let decisionLookup=try await take("seller/mutations/lookup");try lookup(decisionLookup,decision,first);try await until{!model.busy}
         try check(try journal.records(account)[decision.key]?.phase=="confirmed","original return decision recovers after later warehouse timeline events")
         second=makeOrder("order_second");second["Status"]="paid";second["Shipment"]=nil;second["Timeline"]=[];model.refresh();try await until{!model.busy}
+        let reviewedShipment=model.orders.first(where:{$0.ID=="order_second"})!
+        try check(model.canShip(reviewedShipment),"verified original paid order enables shipment")
+        var unpaidProjection=second;unpaidProjection["Settlement"]=nil
+        try check(try !model.canShip(decode(unpaidProjection)),"unverified or changed order cannot enable shipment")
+        second["LogisticsStatus"]="changed-after-review";model.refresh();try await until{!model.busy}
+        try check(!model.canShip(reviewedShipment) && model.canShip(model.orders.first(where:{$0.ID=="order_second"})!),"refreshed order invalidates stale shipment review")
         model.perform(.ship(orderID:"order_second",carrier:"Reviewed carrier",trackingNumber:"Reviewed tracking"));let ship=try await take("seller/orders/order_second/transition")
         let shipping=try journal.records(account).values.first(where:{$0.kind=="ship"})!;ship.lose();try await until{!model.busy}
         second["Status"]="delivered";second["Shipment"]=["Carrier":"Reviewed carrier","TrackingNumber":"Reviewed tracking","Status":"manual","UpdatedAt":now]
