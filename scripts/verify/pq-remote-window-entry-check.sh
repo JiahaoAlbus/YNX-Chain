@@ -251,10 +251,10 @@ for event, selected in [('push', None), ('workflow_dispatch', None), *[('push', 
     if (checked.returncode == 0) != (event == 'push' and selected is None):
         raise RuntimeError('synthetic Commit source-only identity guard differs')
 normal_push = "github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')"
-for name in ('caddy-source', 'artifact-release-cabi'):
-    if job_if(name) != normal_push:
-        raise RuntimeError('same-source normal main producer route missing: ' + name)
-if job_if('protocol-delivery') != normal_push + " && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success'":
+clock_push = "github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' || github.ref == 'refs/heads/codex/chain-commit-monotonic-20261121')"
+if job_if('artifact-release-cabi') != normal_push or job_if('caddy-source') != clock_push:
+    raise RuntimeError('same-source normal main producer route missing')
+if job_if('protocol-delivery') != clock_push + " && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success'":
     raise RuntimeError('normal production runtime must retain both same-run source gates')
 if job_if('proof-verifier-macos') != "github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')":
     raise RuntimeError('normal production proof verifier route missing')

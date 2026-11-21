@@ -4968,7 +4968,7 @@ class FuturePerfSourceBranchControls(unittest.TestCase):
         root=Path(__file__).resolve().parents[2]
         shell=(root/'scripts/verify/pq-remote-window-entry-check.sh').read_text()
         body=shell.split("<<'PY'\n",1)[1].rsplit('\nPY',1)[0]
-        wanted={'expected_verify':'verify','expected_focused':'focused-go','normal_push':'artifact-release-cabi'}
+        wanted={'expected_verify':'verify','expected_focused':'focused-go','normal_push':'artifact-release-cabi','clock_push':'caddy-source'}
         def check(text):
             values={}
             for node in ast.parse(text).body:
