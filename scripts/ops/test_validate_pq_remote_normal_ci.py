@@ -2028,7 +2028,7 @@ FOCUSED_GO_TIMEOUT = (
     "    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || "
     "(inputs.paired_n1 || inputs.consensus_e2e || inputs.consensus_e2e_retained_history || "
     "inputs.consensus_remote_e2e_retained_history || inputs.remote_signer_process) && 15 || "
-    "(github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108') && 40 || 25 }}\n"
+    "(github.event_name == 'push' && (github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' || github.ref == 'refs/heads/codex/perf-before59-clock-20261121')) && 40 || 25 }}\n"
 )
 
 
@@ -2062,7 +2062,8 @@ def assert_workflow_contract(raw):
         "github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || "
         "(github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || "
         "(github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108') || "
-        "(github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/codex/ynx-pq-perf-source-20261108' && (startsWith(github.ref, "
+        "(github.event_name == 'push' && github.ref == 'refs/heads/codex/perf-before59-clock-20261121') || "
+        "(github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/codex/ynx-pq-perf-source-20261108' && github.ref != 'refs/heads/codex/perf-before59-clock-20261121' && (startsWith(github.ref, "
         "'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))")
     need("    if: " + expected_job_if + "\n" in job)
     heavy_group = "ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade"
@@ -2167,7 +2168,7 @@ def assert_workflow_contract(raw):
     delivery_job, delivery_steps = workflow_steps(raw, "protocol-delivery")
     mac_job, _ = workflow_steps(raw, "proof-verifier-macos")
     push_condition = ("github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || "
-                      "github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')")
+                      "github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' || github.ref == 'refs/heads/codex/perf-before59-clock-20261121')")
     need(re.findall(r"(?m)^    needs: (.+)$", delivery_job) == ["[focused-go, caddy-source]"]
          and "    timeout-minutes: 12\n" in delivery_job)
     # One build-cache shape covers the original tests and later pinned ELFs.
@@ -2184,7 +2185,7 @@ def assert_workflow_contract(raw):
          + "\n    runs-on: ubuntu-24.04\n    timeout-minutes: 6\n")
     need("continue-on-error:" not in caddy_job)
     branches = re.findall(r"(?m)^  push:\n    branches:\n((?:      - [^\n]+\n)+)", raw)
-    need(branches == ["      - 'main'\n      - 'codex/ynx-pq-public-upgrade'\n      - 'codex/ynx-pq-perf-integration'\n      - 'codex/ynx-pq-perf-source-20261108'\n"])
+    need(branches == ["      - 'main'\n      - 'codex/ynx-pq-public-upgrade'\n      - 'codex/ynx-pq-perf-integration'\n      - 'codex/ynx-pq-perf-source-20261108'\n      - 'codex/perf-before59-clock-20261121'\n"])
     lines = lambda step: [line for line in step.splitlines() if line.strip()]
     need(lines(caddy_steps[0]) == [
         "      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
@@ -2229,7 +2230,7 @@ def assert_workflow_contract(raw):
     need(caddy_steps.index(control_seals[0]) < caddy_steps.index(control_uploads[0]))
     need(raw.count("bash scripts/verify/public-bft-gateway-ingress-check.sh") == 1)
     need("    needs: protocol-delivery\n" in mac_job and "    timeout-minutes: 12\n" in mac_job)
-    need("    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')\n" in mac_job)
+    need("    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' || github.ref == 'refs/heads/codex/perf-before59-clock-20261121')\n" in mac_job)
     need("          ref: ${{ github.sha }}\n" in delivery_job and "          ref: ${{ github.sha }}\n" in mac_job)
     combined = steps + delivery_steps
     by_name = lambda name: [step for step in combined if step.startswith("      - name: " + name + "\n")]
@@ -3766,12 +3767,13 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
         mutations.extend((line.replace("&& 12 ||", "&& 15 ||", 1),
                           line.replace(") && 15 ||", ") && 25 ||", 1),
                           line.replace("&& 40 ||", "&& 41 ||", 1),
-                          line.replace("github.event_name == 'push' && github.ref ==", "github.ref ==", 1),
+                          line.replace("github.event_name == 'push' && (github.ref ==", "(github.ref ==", 1),
                           line.replace("codex/ynx-pq-perf-source-20261108", "codex/ynx-pq-perf-integration", 1),
                           line.replace("|| 25 }}", "|| 26 }}", 1),
                           "    timeout-minutes: 25"))
         assert_workflow_contract(raw)
         for index, changed in enumerate(mutations):
+            self.assertNotEqual(changed, line)
             with self.subTest(index=index), self.assertRaises(AssertionError):
                 assert_workflow_contract(raw.replace(line, changed, 1))
 
@@ -3835,7 +3837,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("test_verify_retained_migration_preservation_once.py -v 2>&1 | tee", "test_verify_retained_migration_preservation_once.py -v 2>&1 || true | tee"),
             ("grep -F -c 'YNX_RETAINED_PRESERVATION_ROFD_DATA_PASS'", "echo 'YNX_RETAINED_PRESERVATION_ROFD_DATA_PASS'"),
             (".cleanupComplete == true", ".cleanupComplete != false"),
-            ("    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')\n", "    if: false\n"),
+            ("    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' || github.ref == 'refs/heads/codex/perf-before59-clock-20261121')\n", "    if: false\n"),
         ]
         for before, after in changes:
             self.assertIn(before, raw)
@@ -4824,7 +4826,7 @@ class NormalSourceParentCIControls(unittest.TestCase):
 
 
 FUTURE_PERF_SOURCE_REF = 'refs/heads/codex/ynx-pq-perf-source-20261108'
-FUTURE_PERF_SOURCE_IDENTITY = ("          if [ \"$YNX_ENTRY_REF\" = '" + FUTURE_PERF_SOURCE_REF + "' ]; then\n"
+FUTURE_PERF_SOURCE_IDENTITY = ("          if [[ \"$YNX_ENTRY_REF\" == '" + FUTURE_PERF_SOURCE_REF + "' || \"$YNX_ENTRY_REF\" == 'refs/heads/codex/perf-before59-clock-20261121' ]]; then\n"
     "            test \"$YNX_ENTRY_EVENT\" = 'push'\n          fi\n")
 
 
@@ -4895,6 +4897,15 @@ class FuturePerfSourceBranchControls(unittest.TestCase):
             flags=tuple(n for n,b in zip(names,enabled) if b)
             self.assertFalse(self.evaluate(focused,FUTURE_PERF_SOURCE_REF,'workflow_dispatch',flags))
             self.assertFalse(self.evaluate(paired,FUTURE_PERF_SOURCE_REF,'workflow_dispatch',flags))
+            self.assertFalse(self.evaluate(focused,'refs/heads/codex/perf-before59-clock-20261121','workflow_dispatch',flags))
+            self.assertFalse(self.evaluate(paired,'refs/heads/codex/perf-before59-clock-20261121','workflow_dispatch',flags))
+        before='refs/heads/codex/perf-before59-clock-20261121'
+        for name in ('focused-go','caddy-source','protocol-delivery','proof-verifier-macos'):
+            self.assertTrue(self.evaluate(self.condition(raw,name),before,'push'),name)
+            self.assertFalse(self.evaluate(self.condition(raw,name),before+'-other','push'),name)
+        for name in ('verify','browser-verification','native-compatibility','artifact-release-cabi','pq-paired-n1'):
+            self.assertFalse(self.evaluate(self.condition(raw,name),before,'push'),name)
+        self.assertNotIn(before.removeprefix('refs/heads/'),gate.NORMAL_BRANCHES)
         self.assertNotIn(FUTURE_PERF_SOURCE_REF.removeprefix('refs/heads/'),gate.NORMAL_BRANCHES)
         body='\n'.join(line[10:] for line in FUTURE_PERF_SOURCE_IDENTITY.splitlines())+'\n'
         for event,expected in [('push',0),('workflow_dispatch',1),('pull_request',1)]:
@@ -4965,7 +4976,7 @@ class FuturePerfSourceBranchControls(unittest.TestCase):
 
     def test_future_ref_removal_wildcard_dispatch_and_identity_bypass_refused(self):
         raw=self.raw()
-        variants=[raw.replace("      - 'codex/ynx-pq-perf-source-20261108'\n",'',1),raw.replace("      - 'codex/ynx-pq-perf-source-20261108'\n","      - 'codex/*'\n",1),raw.replace(FUTURE_PERF_SOURCE_REF,FUTURE_PERF_SOURCE_REF+'-renamed'),raw.replace(FUTURE_PERF_SOURCE_IDENTITY,'',1),raw.replace(FUTURE_PERF_SOURCE_IDENTITY,FUTURE_PERF_SOURCE_IDENTITY.replace("= 'push'","= 'workflow_dispatch'"),1),raw.replace("github.ref != '"+FUTURE_PERF_SOURCE_REF+"' && (startsWith",'(startsWith',1)]
+        variants=[raw.replace("      - 'codex/ynx-pq-perf-source-20261108'\n",'',1),raw.replace("      - 'codex/ynx-pq-perf-source-20261108'\n","      - 'codex/*'\n",1),raw.replace(FUTURE_PERF_SOURCE_REF,FUTURE_PERF_SOURCE_REF+'-renamed'),raw.replace(FUTURE_PERF_SOURCE_IDENTITY,'',1),raw.replace(FUTURE_PERF_SOURCE_IDENTITY,FUTURE_PERF_SOURCE_IDENTITY.replace("= 'push'","= 'workflow_dispatch'"),1),raw.replace("github.ref != '"+FUTURE_PERF_SOURCE_REF+"' && github.ref != 'refs/heads/codex/perf-before59-clock-20261121' && (startsWith",'(startsWith',1),raw.replace("      - 'codex/perf-before59-clock-20261121'\n",'',1),raw.replace("github.ref != 'refs/heads/codex/perf-before59-clock-20261121' && (startsWith",'(startsWith',1)]
         for i,changed in enumerate(variants):
             with self.subTest(index=i),self.assertRaises(AssertionError):assert_future_perf_source_contract(changed)
 

@@ -7,7 +7,8 @@ OBSERVER_BLOBS['internal/consensus/abci_public_trace_equivalence_test.go']='9245
 OBSERVER_BLOBS['scripts/verify/pq-clock-ab-ci.sh']='604904f5ce3ff223112e82e443d6d58269517cec'
 ALLOWED=set(OBSERVER_BLOBS)|{'cmd/ynx-comet/before59_observer_equivalence_test.go',
     '.github/workflows/resource-market-ci.yml','scripts/verify/pq-clock-ab-ci.sh',
-    'scripts/verify/pq-remote-window-entry-check.sh','scripts/verify/before59-observer-source-check.py'}
+    'scripts/verify/pq-remote-window-entry-check.sh','scripts/verify/before59-observer-source-check.py',
+    'scripts/ops/test_validate_pq_remote_normal_ci.py'}
 def git(*args):return subprocess.check_output(['git',*args],text=True).strip()
 subprocess.run(['git','merge-base','--is-ancestor',BASE,'HEAD'],check=True)
 if git('status','--porcelain','--untracked-files=normal'):raise RuntimeError('original exact candidate checkout is not clean')
@@ -15,6 +16,11 @@ changed=set(git('diff','--name-only',BASE,'HEAD').splitlines())
 if changed!=ALLOWED:raise RuntimeError('before59 observer changed unexpected or missing source files')
 for path,blob in OBSERVER_BLOBS.items():
     if git('rev-parse','HEAD:'+path)!=blob:raise RuntimeError('original 72b observer blob differs: '+path)
+# The original normal-CI control must explicitly account for this exact
+# source-only ref. Pin the reviewed control so the extra leaf cannot hide an
+# unrelated change to the original test or its negative admission cases.
+if git('rev-parse','HEAD:scripts/ops/test_validate_pq_remote_normal_ci.py')!='bdf036d340c14fb009d9f578826cdb7a3641d64d':
+    raise RuntimeError('before59 exact normal-CI control differs')
 for path in ('internal/consensus/commit_timing.go','internal/consensus/finalize_timing.go'):
     if git('rev-parse','HEAD:'+path)!=git('rev-parse',BASE+':'+path):raise RuntimeError('original 59f timing implementation differs')
 print('YNX_BEFORE59_OBSERVER_SOURCE_DATA_ONLY base='+BASE+' observerBlobCount='+str(len(OBSERVER_BLOBS))+' businessTreeUnchanged=true runtimeAuthorized=false')
