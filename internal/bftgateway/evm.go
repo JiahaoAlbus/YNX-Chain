@@ -16,6 +16,7 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -333,6 +334,12 @@ func (g *Gateway) evmCommittedContractCall(ctx context.Context, method string, r
 	if err := json.Unmarshal(raw, &params); err != nil || len(params) < 1 || len(params) > 2 {
 		return nil, -32602, fmt.Errorf("%s requires a call object and optional block tag", method)
 	}
+	if method == "eth_estimateGas" {
+		result, code, handled, err := g.evmEstimateValueTransfer(ctx, params)
+		if handled {
+			return result, code, err
+		}
+	}
 	if len(params) == 2 {
 		if code, err := g.requireCurrentCommittedTag(ctx, params[1]); err != nil {
 			return nil, code, err
@@ -365,6 +372,153 @@ func (g *Gateway) evmCommittedContractCall(ctx context.Context, method string, r
 		return "0x1", 0, nil
 	}
 	return result.EncodedResult, 0, nil
+}
+
+// evmEstimateValueTransfer quotes only the bounded simple value profile. It
+// does not sign a transaction or grant account authorization; execution still
+// checks the current policy, nonce, balance and the original signed payload.
+func (g *Gateway) evmEstimateValueTransfer(ctx context.Context, params []json.RawMessage) (any, int, bool, error) {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(params[0], &fields); err != nil || fields == nil {
+		return nil, -32602, true, errors.New("transaction must be an object")
+	}
+	for _, name := range []string{"data", "input"} {
+		if raw, ok := fields[name]; ok {
+			var value string
+			if json.Unmarshal(raw, &value) != nil {
+				return nil, -32602, true, fmt.Errorf("%s must be a string", name)
+			}
+			if value != "0x" {
+				return nil, 0, false, nil // retain the existing bounded contract path
+			}
+		}
+	}
+	allowed := map[string]bool{"from": true, "to": true, "value": true, "gas": true, "gasPrice": true, "maxFeePerGas": true, "maxPriorityFeePerGas": true, "nonce": true, "chainId": true, "type": true, "data": true, "input": true, "accessList": true}
+	for name := range fields {
+		if !allowed[name] {
+			return nil, -32602, true, fmt.Errorf("unsupported value-transfer field %q", name)
+		}
+	}
+	if list, ok := fields["accessList"]; ok {
+		var entries []json.RawMessage
+		if err := json.Unmarshal(list, &entries); err != nil || entries == nil || len(entries) != 0 {
+			return nil, -32602, true, errors.New("only an empty access list is supported")
+		}
+	}
+	to, err := requiredEVMStringField(fields, "to")
+	if err != nil || !isCanonicalEVMAddress(to) {
+		return nil, -32602, true, errors.New("canonical lowercase recipient is required")
+	}
+	from, hasFrom, err := optionalEVMStringField(fields, "from")
+	if err != nil || (hasFrom && !isCanonicalEVMAddress(from)) || (hasFrom && from == to) {
+		return nil, -32602, true, errors.New("sender must be a distinct canonical lowercase address")
+	}
+	if !hasFrom {
+		from = "0x0000000000000000000000000000000000000001"
+		if from == to {
+			from = "0x0000000000000000000000000000000000000002"
+		}
+	}
+	quantity := func(name string, fallback uint64) (uint64, error) {
+		if value, ok := fields[name]; ok {
+			return parseCanonicalEVMQuantity(value, name)
+		}
+		return fallback, nil
+	}
+	chainID, err := quantity("chainId", 6423)
+	if err != nil || chainID != 6423 {
+		return nil, -32602, true, errors.New("chainId must match the configured chain")
+	}
+	defaultType := uint64(0)
+	if _, ok := fields["accessList"]; ok {
+		defaultType = 1
+	}
+	if _, ok := fields["maxFeePerGas"]; ok {
+		defaultType = 2
+	}
+	if _, ok := fields["maxPriorityFeePerGas"]; ok {
+		defaultType = 2
+	}
+	txType, err := quantity("type", defaultType)
+	if err != nil || txType > 2 {
+		return nil, -32602, true, errors.New("unsupported transaction type")
+	}
+	gas, err := quantity("gas", consensus.EthereumTransferGasLimit)
+	if err != nil || gas != consensus.EthereumTransferGasLimit {
+		return nil, -32602, true, errors.New("value transfer gas must be exactly 21000")
+	}
+	value, err := quantity("value", 0)
+	if err != nil {
+		return nil, -32602, true, err
+	}
+	intent := ynxauth.EthereumValueIntent{Profile: ynxauth.EthereumABCIIntegerGasProfile, ChainID: make([]byte, 32), NativeChainID: chainID, Owner: from, To: to, TxType: uint32(txType), Value: value, GasLimit: gas}
+	if txType == 2 {
+		if _, ok := fields["gasPrice"]; ok {
+			return nil, -32602, true, errors.New("dynamic fee transaction cannot include gasPrice")
+		}
+		intent.MaxPriorityFeePerGas, err = quantity("maxPriorityFeePerGas", consensus.EthereumMinimumGasPrice)
+		if err == nil {
+			intent.MaxFeePerGas, err = quantity("maxFeePerGas", intent.MaxPriorityFeePerGas)
+		}
+	} else {
+		if _, ok := fields["maxFeePerGas"]; ok {
+			return nil, -32602, true, errors.New("legacy transaction cannot include dynamic fee fields")
+		}
+		if _, ok := fields["maxPriorityFeePerGas"]; ok {
+			return nil, -32602, true, errors.New("legacy transaction cannot include dynamic fee fields")
+		}
+		intent.GasPrice, err = quantity("gasPrice", consensus.EthereumMinimumGasPrice)
+	}
+	if err != nil {
+		return nil, -32602, true, err
+	}
+	if err = intent.Validate(); err != nil {
+		return nil, -32602, true, err
+	}
+	var nonce uint64
+	rawNonce, hasNonce := fields["nonce"]
+	if hasNonce {
+		nonce, err = parseCanonicalEVMQuantity(rawNonce, "nonce")
+		if err != nil || nonce == math.MaxUint64 {
+			return nil, -32602, true, errors.New("nonce is malformed or exhausted")
+		}
+	}
+	status, err := g.status(ctx)
+	if err != nil {
+		return nil, -32603, true, err
+	}
+	tag := json.RawMessage(`"latest"`)
+	if len(params) == 2 {
+		tag = params[1]
+	}
+	height, err := parseCommittedBlockTag(tag, status.EarliestBlockHeight, status.Height)
+	if err != nil || height != status.Height {
+		return nil, -32602, true, errors.New("gas quote requires the current committed block")
+	}
+	if hasFrom {
+		var account chain.ConsensusAccount
+		accountHeight, err := g.queryPQWalletJSON(ctx, "/accounts/"+from, &account)
+		if err != nil {
+			return nil, -32000, true, err
+		}
+		if accountHeight < 0 || uint64(accountHeight) != height {
+			return nil, -32603, true, errors.New("account snapshot height differs from quoted block")
+		}
+		if account.Address != from || account.Balance < 0 {
+			return nil, -32603, true, errors.New("ABCI account evidence is invalid")
+		}
+		if account.Nonce == math.MaxUint64 || (hasNonce && nonce != account.Nonce) {
+			return nil, -32000, true, errors.New("nonce differs from current account or is exhausted")
+		}
+		price := intent.GasPrice
+		if txType == 2 {
+			price = intent.MaxFeePerGas
+		}
+		if uint64(account.Balance) < value+gas*price {
+			return nil, -32000, true, errors.New("insufficient balance for value and maximum fee")
+		}
+	}
+	return hexEVMQuantity(gas), 0, true, nil
 }
 
 func (g *Gateway) requireCurrentCommittedTag(ctx context.Context, raw json.RawMessage) (int, error) {
