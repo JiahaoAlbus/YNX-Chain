@@ -1572,6 +1572,8 @@ def assert_state_math_required_workflow_contract(step):
             raise AssertionError("public owner core requires exact original cases and whole-stream closure")
     if step.count("          required += ['TestABCIPublicTraceFullStateAndAppHashEveryHeight']\n") != 1:
         raise AssertionError("fixed public trace regression must execute once and pass")
+    if step.count("          required += ['TestPQLabEnrollmentOriginalProofsSameChain', 'TestPQLabEnrollmentOriginalLegacyFundingProof']\n") != 1:
+        raise AssertionError("both original enrollment proof cases must execute and pass")
     for block in (SENDER_PARENT_PERSISTENCE_BLOCK, SENDER_PARENT_PERSISTENCE_CALL, SENDER_PARENT_PERSISTENCE_REQUIRED):
         if step.count("".join("          " + line + "\n" for line in block.splitlines())) != 1:
             raise AssertionError("five original sender persistence cases require unique complete-stream qualification")
@@ -4374,6 +4376,7 @@ class CompleteStatePartitionControls(unittest.TestCase):
         caller = next(group for group in scope["state_partitions"] if group[0] == "lab-caller")
         mutations = [
             step.replace("          required += ['TestABCIPublicTraceFullStateAndAppHashEveryHeight']\n", "", 1),
+            step.replace("          required += ['TestPQLabEnrollmentOriginalProofsSameChain', 'TestPQLabEnrollmentOriginalLegacyFundingProof']\n", "", 1),
             step.replace("-run '" + caller[1] + "'", "-run '^TestPQLabSenderMissing$'", 1),
             step.replace("-run '" + caller[1] + "'", "-run '^TestPQLab'", 1),
             step.replace("-timeout=180s -run '" + caller[1], "-timeout=181s -run '" + caller[1], 1),
@@ -5099,7 +5102,8 @@ class ChainLabSplitCIControls(unittest.TestCase):
         live_large = "-run '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$' ./internal/consensus > \"$RUNNER_TEMP/pq-lab-live-large-tests.jsonl\""
         command = "./cmd/ynx-consensus-pq-lab > \"$RUNNER_TEMP/pq-lab-command-tests.jsonl\""
         streams = "('pq-lab-core-tests.jsonl', 'pq-lab-export-tests.jsonl', 'pq-lab-checkpoint-tests.jsonl', 'pq-lab-caller-tests.jsonl', 'pq-lab-live-tests.jsonl', 'pq-lab-live-large-tests.jsonl', 'pq-lab-command-tests.jsonl', 'pq-proof-history-tests.jsonl')"
-        for part in (core, export, checkpoint, caller, live, live_large, command, streams, "if terminal != ['pass']:", 'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"'):
+        enrollment = "enrollment_required = ['TestPQLabEnrollmentOriginalProofsSameChain', 'TestPQLabEnrollmentOriginalLegacyFundingProof']\n          required += enrollment_required\n          for name in enrollment_required:\n              matching = [row['Action'] for row in rows if row.get('Package') == 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus' and row.get('Test') == name and row['Action'] in ('run', 'pass', 'fail', 'skip')]\n              if matching != ['run', 'pass'] or any(row.get('Test', '').startswith(name + '/') and row.get('Action') in ('skip', 'fail') for row in rows):\n                  raise RuntimeError('same-chain enrollment proof or child did not execute and pass: ' + name)"
+        for part in (core, export, checkpoint, caller, live, live_large, command, streams, enrollment, "if terminal != ['pass']:", 'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"'):
             if step.count(part) != 1:
                 raise AssertionError('original lab command, stream or required receipt changed')
         for part, output in ((core, 'core'), (export, 'export'), (checkpoint, 'checkpoint'), (caller, 'caller'), (live, 'live'), (live_large, 'live-large')):
@@ -5140,6 +5144,7 @@ class ChainLabSplitCIControls(unittest.TestCase):
             self.assertIn(name, step)
         for old, new in (
             ('pq-lab-caller-tests.jsonl', 'missing.jsonl'),
+            ("if matching != ['run', 'pass']", 'if False'),
             ("if terminal != ['pass']:", 'if False:'),
             ("-run '^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Workload)'", "-run '^TestNothing'"),
         ):
@@ -5148,6 +5153,25 @@ class ChainLabSplitCIControls(unittest.TestCase):
             changed = raw.replace(step, changed_step, 1)
             with self.assertRaises(AssertionError):
                 self.qualify(changed)
+
+    def test_actual_enrollment_receipt_rejects_missing_duplicate_skip_and_foreign(self):
+        import textwrap
+        root = Path(__file__).resolve().parents[2]
+        step = self.qualify((root / '.github/workflows/chain-core.yml').read_text())
+        start = step.index('          enrollment_required = ')
+        end = step.index('          for name in required:', start)
+        code = compile(textwrap.dedent(step[start:end]), '<actual-enrollment-receipt>', 'exec')
+        package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
+        names = ['TestPQLabEnrollmentOriginalProofsSameChain', 'TestPQLabEnrollmentOriginalLegacyFundingProof']
+        rows = [dict(Package=package, Test=name, Action=action) for name in names for action in ('run', 'pass')]
+        exec(code, {'rows': rows, 'required': []})
+        bad = [rows[:-1], rows + [rows[0]], [dict(row, Package='foreign') if i == 0 else row for i,row in enumerate(rows)]]
+        for action in ('skip', 'fail'):
+            bad.append([dict(row, Action=action) if i == 1 else row for i,row in enumerate(rows)])
+            bad.append(rows + [dict(Package=package, Test=names[0] + '/negative', Action=action)])
+        for changed in bad:
+            with self.assertRaises(RuntimeError):
+                exec(code, {'rows': changed, 'required': []})
 
 if __name__ == "__main__":
     unittest.main()

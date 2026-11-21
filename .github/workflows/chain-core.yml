@@ -373,6 +373,12 @@ jobs:
           required += ['TestPQProofHistoryPersistentBranchesAndOwnedMaterialization', 'TestPQProofHistoryIndexMatchesOriginalQueriesAndFallsBack', 'TestPQProofHistoryIndexAdvanceIsPersistentAndCandidateBound', 'TestPQProofHistoryWholeFullStateEagerDifferentialAndColdRecovery', 'TestPQProofHistoryCurrentSourceTranscript', 'TestPQLabLiveMaterialsInvocationWitnessReusesHeldValidation', 'TestPQLabLiveMaterialsInvocationWitnessNormalSetupAndColdScope']
           required += ['TestPQLabCanonicalComparisonExactChunks', 'TestPQLabCheckpointReadCurrentBytesAndCloseGuards', 'TestPQLabCheckpointReadJournalOriginalParity', 'TestPQLabCheckpointReadSameInputSevenHeightParity', 'TestPQLabProofInputsSameOriginalParityAndCost']
           required += ['TestPQLabStartupMeasuredRegistrationActivationPreserveFreshState', 'TestPQLabStartupHeldInputsRejectReplacementAndWrongPin', 'TestPQLabStartupTimingNormalRegistrationAndUnknown', 'TestPQLabStartupTimingFlagsAndMissingSourcesFailClosed']
+          enrollment_required = ['TestPQLabEnrollmentOriginalProofsSameChain', 'TestPQLabEnrollmentOriginalLegacyFundingProof']
+          required += enrollment_required
+          for name in enrollment_required:
+              matching = [row['Action'] for row in rows if row.get('Package') == 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus' and row.get('Test') == name and row['Action'] in ('run', 'pass', 'fail', 'skip')]
+              if matching != ['run', 'pass'] or any(row.get('Test', '').startswith(name + '/') and row.get('Action') in ('skip', 'fail') for row in rows):
+                  raise RuntimeError('same-chain enrollment proof or child did not execute and pass: ' + name)
           for name in required:
               terminal = [row['Action'] for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
               if terminal != ['pass']:

@@ -2715,6 +2715,7 @@ jobs:
           required += ['TestInitializeApplicationCapacityMatchesWrittenLayoutAndRefusesBeforeReservation']
           required += ['TestZstdDependencyRejectsUpstreamTwoBlockFrame']
           required += ['TestABCIPublicTraceFullStateAndAppHashEveryHeight']
+          required += ['TestPQLabEnrollmentOriginalProofsSameChain', 'TestPQLabEnrollmentOriginalLegacyFundingProof']
           required += ['TestPQLabSenderHeldInputStatsOriginalCountsAndNoCacheGrowth', 'TestPQLabSenderHeldInputStatsNeverLoadsOrValidatesSources', 'TestPQLabPublicOwnerSessionOriginalIsolationAndWitness', 'TestPQLabPublicOwnerSessionProofAndOwnerRetirement']
           required += ['TestPQLabSenderPUBLICOperationParentPersistenceBarrier', 'TestPQLabSenderPUBLICOperationParentFailurePreservesUnknown', 'TestPQLabSenderPUBLICPersistenceRolesKeepOriginalWrites', 'TestPQLabSenderPUBLICWorkloadPublicationAncestorBarriers', 'TestPQLabNetworkPUBLICFreshRootParentPersistence']
           required += ['TestPQLabLiveColdOwnerSameOriginalFullBoundary', 'TestPQLabLiveColdOwnerPreservesOriginalFirstCause', 'TestPQLabLiveColdOwnerNormalizationAndEncodingFirstCause']

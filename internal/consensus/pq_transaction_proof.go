@@ -242,6 +242,12 @@ func pqTransactionWire(envelope []byte) (string, []byte, error) {
 }
 
 func VerifyPQTransactionProof(trust PQLightProofTrust, expected PQTransactionProofExpectation, proof PQTransactionProofRequest) (PQTransactionProofResult, error) {
+	return verifyTransactionProof(trust, expected, proof, false)
+}
+
+// The private legacy mode is restricted to the historical funding verifier;
+// it does not change the public PQ-only proof API or transaction admission.
+func verifyTransactionProof(trust PQLightProofTrust, expected PQTransactionProofExpectation, proof PQTransactionProofRequest, allowLegacyFunding bool) (PQTransactionProofResult, error) {
 	var empty PQTransactionProofResult
 	if err := proof.validate(); err != nil {
 		return empty, err
@@ -250,7 +256,19 @@ func VerifyPQTransactionProof(trust PQLightProofTrust, expected PQTransactionPro
 	if h <= 0 || h >= math.MaxInt64-2 || expected.Successor.HeaderHeight != h+1 || expected.Block.ChainID != expected.Successor.ChainID || expected.Index < 0 || expected.Index > math.MaxUint32 || len(expected.TransactionHash) != 32 || len(expected.NativeWireHash) != 32 {
 		return empty, pqLightFailure("anchor_mismatch", "independent adjacent headers, transaction hashes and index are required")
 	}
-	kind, wire, err := pqTransactionWire(expected.Envelope)
+	var kind string
+	var wire []byte
+	var err error
+	if allowLegacyFunding && expected.TransactionType == PQLabLegacyFundingType {
+		var tx SignedTransaction
+		tx, err = DecodeSignedTransaction(expected.Envelope)
+		if err == nil {
+			err = tx.Verify(tx.ChainID)
+		}
+		kind, wire = PQLabLegacyFundingType, expected.Envelope
+	} else {
+		kind, wire, err = pqTransactionWire(expected.Envelope)
+	}
 	outerHash, nativeHash := sha256.Sum256(expected.Envelope), sha256.Sum256(wire)
 	if err != nil || kind != expected.TransactionType || !bytes.Equal(wire, expected.NativeWire) || !bytes.Equal(outerHash[:], expected.TransactionHash) || !bytes.Equal(nativeHash[:], expected.NativeWireHash) {
 		return empty, pqLightFailure("anchor_mismatch", "exact independently requested PQ type, envelope and native wire identities differ")
