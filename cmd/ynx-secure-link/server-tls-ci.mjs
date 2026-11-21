@@ -22,17 +22,18 @@ export const AUTH_SERVER_TLS_REQUIRED_TESTS = Object.freeze(['TestNormalRootEmpt
   'TestBoundedOutputRetainsPrefix', 'TestSourceParentBlockedByResourceBorrow',
   'TestResourceCannotAliasCredentialEpochAndSourceGeneration', 'TestOriginalAcceptPendingCloseOwnership',
   'TestAmbiguousAcceptCloseRemainsOwnedAfterLeaseGC',
-  'TestAcceptRetireDuringPostCurrentKeepsChildUntilClose', 'TestOriginalAcceptRejectsNilConnectionWithoutError']);
+  'TestAcceptRetireDuringPostCurrentKeepsChildUntilClose', 'TestOriginalAcceptRejectsNilConnectionWithoutError',
+  'TestNilAcceptRetireKeepsFirstAndDrainsParent']);
 export const AUTH_SERVER_TLS_SNAPSHOT = Object.freeze([
   Object.freeze({path: 'internal/authservertls/lease.go', bytes: 22347, sha256: 'e2e99d83412e50cc91d7d47d36606e0b519ff5353f74df594c26d8162426e45c', gitBlob: '6f284b967a6404fde45e5f70323f86aeffdd1567'}),
   Object.freeze({path: 'internal/authservertls/parent_darwin.go', bytes: 427, sha256: 'a04f8058d0e8068a0c0271b114d74481fd445e6b3ed80934295f7859a75eff26', gitBlob: 'a491f1aeb4e38a64f4537b11ef78352e51ae668c'}),
   Object.freeze({path: 'internal/authservertls/parent_linux.go', bytes: 429, sha256: '96ad86046ee79cd9b9be5ca9893a7eb958a426459e0e63e4a1deee7d02134882', gitBlob: 'b6858541da3160d56f2477f9ac46b72b239108d2'}),
   Object.freeze({path: 'internal/authservertls/qualification.go', bytes: 16282, sha256: '37264cee7e607292c4b5641ad41ba4fe58be86617f637f903e99fefa7c0089e2', gitBlob: 'de64acaddd8338ba5273c1a6878b91a8ddd43985'}),
   Object.freeze({path: 'internal/authservertls/qualification_test.go', bytes: 7217, sha256: 'f977c1d43db5bd4406755f4a0bdb2bf11dd50261ca54a54bf12e488be9b59c06', gitBlob: 'db148107ed341e5a23d8548f19669bd504b181f4'}),
-  Object.freeze({path: 'internal/authservertls/accept_close_test.go', bytes: 6052, sha256: 'd09ea8fce3689a6d48ebe0959cc11d1d8bc59438149c491461759f6502ce8481', gitBlob: 'e0ebd66310d3e14892ae3487c8a9b63773a26dcc'}),
+  Object.freeze({path: 'internal/authservertls/accept_close_test.go', bytes: 7859, sha256: '447994ab29220c71a416bec7463840bbeb1cf94dd90722e01d76b9c9ee4f5f5c', gitBlob: '85a5d1ca320270889ea161cad06eccc106647fa3'}),
 ]);
 const qualificationInputs = Object.freeze([
-  Object.freeze({path: 'PROVENANCE.json', bytes: 2624, sha256: '3ba5fb077da98e023f1e490b4ccdfed68fe42dcdf33f3f1350764bfeeb374b46'}),
+  Object.freeze({path: 'PROVENANCE.json', bytes: 2624, sha256: '3f5d16f4d932d38cd50c114ad3a049b89af98118a41bdb8826f7c9a593c228d9'}),
 ]);
 const requireValue = (ok, why) => {if (!ok) throw Error('Server TLS source CI: ' + why);};
 const sha = raw => createHash('sha256').update(raw).digest('hex');

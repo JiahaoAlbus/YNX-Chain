@@ -39,9 +39,9 @@
     },
     {
       "path": "internal/authservertls/accept_close_test.go",
-      "bytes": 6052,
-      "sha256": "d09ea8fce3689a6d48ebe0959cc11d1d8bc59438149c491461759f6502ce8481",
-      "gitBlob": "e0ebd66310d3e14892ae3487c8a9b63773a26dcc",
+      "bytes": 7859,
+      "sha256": "447994ab29220c71a416bec7463840bbeb1cf94dd90722e01d76b9c9ee4f5f5c",
+      "gitBlob": "85a5d1ca320270889ea161cad06eccc106647fa3",
       "mode": "100644"
     }
   ],
@@ -56,7 +56,7 @@
     "provenance": {
       "path": "PROVENANCE.json",
       "bytes": 2624,
-      "sha256": "3ba5fb077da98e023f1e490b4ccdfed68fe42dcdf33f3f1350764bfeeb374b46"
+      "sha256": "3f5d16f4d932d38cd50c114ad3a049b89af98118a41bdb8826f7c9a593c228d9"
     },
     "productionRootRows": 0
   }

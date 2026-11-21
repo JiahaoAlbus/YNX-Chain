@@ -34,6 +34,55 @@ func (l *acceptTestListener) Accept() (net.Conn, error) { l.calls++; return l.c,
 func (l *acceptTestListener) Close() error              { return nil }
 func (l *acceptTestListener) Addr() net.Addr            { return nil }
 
+type blockedNilAcceptListener struct {
+	entered, resume chan struct{}
+	closes          int
+}
+
+func (l *blockedNilAcceptListener) Accept() (net.Conn, error) {
+	close(l.entered)
+	<-l.resume
+	return nil, nil
+}
+func (l *blockedNilAcceptListener) Close() error   { l.closes++; return nil }
+func (l *blockedNilAcceptListener) Addr() net.Addr { return nil }
+
+func TestNilAcceptRetireKeepsFirstAndDrainsParent(t *testing.T) {
+	prior := errors.New("PUBLIC original source failure")
+	underlying := &blockedNilAcceptListener{entered: make(chan struct{}), resume: make(chan struct{})}
+	s := &leaseState{listener: underlying, changed: make(chan struct{}), first: prior}
+	l := &originalListener{borrow: &borrowState{owner: s}}
+	lease := &ReviewedServerTLSLease{s}
+	type result struct {
+		conn net.Conn
+		err  error
+	}
+	done := make(chan result, 1)
+	go func() {
+		c, err := l.acceptWithCurrent(func() error { return nil })
+		done <- result{c, err}
+	}()
+	<-underlying.entered
+	lease.Retire()
+	if closed, err := lease.Close(); closed || !errors.Is(err, ErrPending) {
+		t.Fatalf("parent closed while accept was in flight: %t %v", closed, err)
+	}
+	close(underlying.resume)
+	r := <-done
+	if r.conn != nil || !errors.Is(r.err, ErrUnknown) || IsOriginalAcceptRetrySafe(r.err) {
+		t.Fatalf("invalid accept result escaped: %v %v", r.conn, r.err)
+	}
+	if s.acceptChecks != 0 || !errors.Is(s.first, prior) || underlying.closes != 1 {
+		t.Fatalf("lost first/ownership: checks=%d first=%v closes=%d", s.acceptChecks, s.first, underlying.closes)
+	}
+	if err := lease.Join(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if closed, err := lease.Close(); !closed || !errors.Is(err, prior) || !s.closed || underlying.closes != 1 {
+		t.Fatalf("parent did not drain exactly once: %t %v closes=%d", closed, err, underlying.closes)
+	}
+}
+
 func TestOriginalAcceptRejectsNilConnectionWithoutError(t *testing.T) {
 	underlying := &acceptTestListener{}
 	s := &leaseState{listener: underlying, changed: make(chan struct{})}
