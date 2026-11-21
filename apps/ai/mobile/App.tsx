@@ -2,6 +2,7 @@ import React,{useCallback,useEffect,useMemo,useRef,useState} from "react";
 import {ActivityIndicator,Alert,FlatList,I18nManager,Linking,Modal,Pressable,SafeAreaView,ScrollView,Share,StyleSheet,Text,TextInput,View} from "react-native";
 import {StatusBar} from "expo-status-bar";
 import * as Clipboard from "expo-clipboard";
+import * as Crypto from "expo-crypto";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import {getLocales} from "expo-localization";
@@ -11,9 +12,9 @@ import {clearSession,hasPendingRevocation,retainPendingRevocation,restoreState,s
 import {TaskWorkspace} from "./src/TaskWorkspace";
 import {createNativeTaskSession} from "./src/taskNative";
 import {finishSessionSignOut,mayRestoreSavedSession,signOutNotice} from "./src/sessionSignOut";
-import {requireWalletCallbackReady} from "./src/walletCallbackGate";
+import {OriginalWalletCallbackClaims,requireWalletCallbackReady} from "./src/walletCallbackGate";
 import type {TaskSessionRuntime} from "./src/taskSession";
-import {createDeviceIdentity,parseWalletCallback,signGatewayChallenge} from "./src/walletProtocol";
+import {canonicalJSON,createDeviceIdentity,parseWalletCallback,signGatewayChallenge} from "./src/walletProtocol";
 
 type Tab="chat"|"tasks"|"review"|"privacy"|"settings";
 type Action={id:string;kind:string;scope:string;description:string;payloadPreview:string;target:string;risk:string;evidence:string[];provider:string;status:string;walletStillNeeded:boolean};
@@ -30,6 +31,7 @@ export default function App(){
   const [booting,setBooting]=useState(true),[busy,setBusy]=useState(false),[streaming,setStreaming]=useState(false);
   const bootReady=useRef<{promise:Promise<void>;finish:()=>void}|null>(null);
   if(!bootReady.current){let finish!:()=>void;const promise=new Promise<void>(resolve=>{finish=resolve});bootReady.current={promise,finish}}
+  const walletCallbackClaims=useRef(new OriginalWalletCallbackClaims());
   const [session,setSession]=useState<Session|null>(null),[account,setAccount]=useState("");
   const [taskOwner,setTaskOwner]=useState<{session:Session;runtime:TaskSessionRuntime}|null>(null);
   // Retain unresolved cleanup owners; logout never erases task journals/debt.
@@ -53,7 +55,7 @@ export default function App(){
 
   useEffect(()=>{void(async()=>{try{const restored=await restoreState();deviceSecret.current=restored.deviceSecret;setLocaleOverride(restored.locale);setOutputLanguage(restored.outputLanguage);const pending=await hasPendingRevocation();bootReady.current?.finish();if(mayRestoreSavedSession(restored.token,restored.deviceId,pending)){const current={token:restored.token,deviceId:restored.deviceId};setSession(current);await loadConversations(current,restored.lastConversation);try{setProvider(await api.provider(current));}catch(caught){setError(errorText(caught,restored.locale||systemLocale));}}if(pending)setError((restored.locale||systemLocale).startsWith("zh")?"原钱包会话撤销仍需确认；请在原钱包中检查授权。":"Original Wallet session revocation still requires confirmation. Check the authorization in Wallet.");}catch(caught){setError(errorText(caught,systemLocale))}finally{bootReady.current?.finish();setBooting(false);}})();},[loadConversations]);
 
-  const finishWallet=useCallback(async(url:string)=>{if(!url.startsWith("ynxai://wallet-auth/callback"))return;setBusy(true);setError("");try{const response=parseWalletCallback(url);const secret=await requireWalletCallbackReady(bootReady.current!.promise,()=>deviceSecret.current,hasPendingRevocation);const approval=await api.approveWallet(response);const completion=signGatewayChallenge(approval.challenge,secret);const result=await api.completeWallet(completion);const current={token:result.token,deviceId:result.deviceId};await saveSession(result.token,result.deviceId);setSession(current);setAccount(result.account);await loadConversations(current);}catch(caught){setError(errorText(caught,locale));}finally{setBusy(false);}},[loadConversations,locale]);
+  const finishWallet=useCallback(async(url:string)=>{if(!url.startsWith("ynxai://wallet-auth/callback"))return;let claimed=false;try{const response=parseWalletCallback(url);const secret=await requireWalletCallbackReady(bootReady.current!.promise,()=>deviceSecret.current,hasPendingRevocation);const digest=await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256,canonicalJSON(response));if(!walletCallbackClaims.current.reserve(digest))return;claimed=true;setBusy(true);setError("");const approval=await api.approveWallet(response);const completion=signGatewayChallenge(approval.challenge,secret);const result=await api.completeWallet(completion);const current={token:result.token,deviceId:result.deviceId};await saveSession(result.token,result.deviceId);setSession(current);setAccount(result.account);await loadConversations(current);}catch(caught){setError(errorText(caught,locale));}finally{if(claimed)setBusy(false);}},[loadConversations,locale]);
   useEffect(()=>{const listener=Linking.addEventListener("url",event=>void finishWallet(event.url));void Linking.getInitialURL().then(url=>{if(url) return finishWallet(url);});return()=>listener.remove();},[finishWallet]);
 
   const signIn=async()=>{setBusy(true);setError("");try{if(await hasPendingRevocation())throw new Error("ORIGINAL_WALLET_REVOCATION_PENDING");const meta=await api.meta();if(!meta.integratedCentral&&!meta.localFixtureAuthEnabled)throw new Error("CENTRAL_WALLET_AUTH_UNAVAILABLE");const identity=createDeviceIdentity(deviceSecret.current||undefined);deviceSecret.current=identity.secret;await saveDeviceSecret(identity.secret);const request=await api.createWalletRequest(identity.publicKey);await Linking.openURL(request.walletUrl);}catch(caught){setError(errorText(caught,locale));}finally{setBusy(false);}};
