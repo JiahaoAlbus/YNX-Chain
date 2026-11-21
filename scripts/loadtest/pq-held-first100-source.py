@@ -11,12 +11,13 @@ PREPARED_SOURCE = '0b515124bda8ff7efaf3ec03456d69dee2c6ad18'
 PREPARED_TREE = 'd2cf1d0620a2157ef2660331eaf1a166049549b9'
 FINAL_FENCE_SOURCE = '59f7885d11bd3eeb5d27dce7232779aae480a806'
 FINAL_FENCE_TREE = 'f7d7cf8f6df57d931b2f15bb622405764de27d6b'
-SOURCE = 'c697abae262c3be7859f235f45e9e8447bbccf63'
-TREE = 'da151a9140c50e93379abaa3894b254ea44e4547'
-RUN = 44880037485
-JOB = 136773095628
+SOURCE = '59f7885d11bd3eeb5d27dce7232779aae480a806'
+TREE = 'f7d7cf8f6df57d931b2f15bb622405764de27d6b'
+RUN = 43585389405
+JOB = 132418666724
 REPOSITORY = 'JiahaoAlbus/YNX-Chain'
 BRANCH = 'codex/ynx-pq-perf-source-20261108'
+QUALIFICATION_BOUNDARY = 'historical-focused-only'
 REQUIRED_STEPS = (
     'Check reachable vulnerabilities in the eight production runtime commands',
     'Verify Linux window controls without starting a node',
@@ -41,6 +42,8 @@ DELIVERY_STEPS = (
 # A successful same-named step in another revision need not reject a Go skip.
 DELIVERY_SOURCE = 'c697abae262c3be7859f235f45e9e8447bbccf63'
 DELIVERY_BRANCH = 'codex/ynx-pq-perf-source-20261108'
+DELIVERY_RUN = 44880037485
+DELIVERY_JOB = 136778017832
 
 
 def validate_delivery(run, jobs, *, source, branch):
@@ -48,7 +51,7 @@ def validate_delivery(run, jobs, *, source, branch):
     import re
     if not (type(source) is str and re.fullmatch(r'[0-9a-f]{40}', source)
             and source == DELIVERY_SOURCE and branch == DELIVERY_BRANCH
-            and type(run) is dict and type(run.get('id')) is int and run['id'] > 0
+            and type(run) is dict and type(run.get('id')) is int and run['id'] == DELIVERY_RUN
             and run.get('head_sha') == source and run.get('head_branch') == branch
             and run.get('event') == 'push' and run.get('run_attempt') == 1
             and run.get('workflow_id') == 322643672
@@ -62,7 +65,7 @@ def validate_delivery(run, jobs, *, source, branch):
     if len(matches) != 1:
         raise RuntimeError('unique original protocol-delivery job required')
     job = matches[0]
-    if not (type(job.get('id')) is int and job['id'] > 0 and job.get('run_id') == run['id']
+    if not (type(job.get('id')) is int and job['id'] == DELIVERY_JOB and job.get('run_id') == run['id']
             and job.get('run_attempt') == 1 and job.get('head_sha') == source
             and job.get('head_branch') == branch and job.get('status') == 'completed'
             and job.get('conclusion') == 'success' and type(job.get('steps')) is list):
@@ -108,6 +111,22 @@ def validate_successor(run, focused_job, jobs):
     return dict(focused, delivery=delivery)
 
 
+
+def qualification_boundary():
+    """Selected source contract only; historical evidence is never upgraded."""
+    historical = QUALIFICATION_BOUNDARY == 'historical-focused-only'
+    if not ((historical and SOURCE == FINAL_FENCE_SOURCE and TREE == FINAL_FENCE_TREE)
+            or (QUALIFICATION_BOUNDARY == 'focused-and-exact-same-run-delivery'
+                and SOURCE == DELIVERY_SOURCE and RUN == DELIVERY_RUN)):
+        raise RuntimeError('source-pinned qualification boundary differs')
+    return dict(kind=QUALIFICATION_BOUNDARY, source=SOURCE, sourceTree=TREE,
+                focusedRun=RUN, focusedJob=JOB, sameRunDeliveryRequired=not historical,
+                deliveryRun=None if historical else DELIVERY_RUN,
+                deliveryJob=None if historical else DELIVERY_JOB,
+                historicalFocusedValidationOnly=historical,
+                runtimePermissionGranted=False, independentFinality=False)
+
+
 def qualification(*, metadata_reader=None):
     # This internal transport capability supplies original metadata only. Both
     # paths use the same complete inventory and successor validators below.
@@ -123,8 +142,12 @@ def qualification(*, metadata_reader=None):
         token = os.environ.get('GH_TOKEN') or os.environ.get('GITHUB_TOKEN')
         if token:
             headers['Authorization'] = 'Bearer ' + token
+    boundary = qualification_boundary()
+    endpoints = (f'runs/{RUN}', f'jobs/{JOB}')
+    if boundary['sameRunDeliveryRequired']:
+        endpoints += (f'runs/{RUN}/jobs?per_page=100',)
     values = []
-    for endpoint in (f'runs/{RUN}', f'jobs/{JOB}', f'runs/{RUN}/jobs?per_page=100'):
+    for endpoint in endpoints:
         if metadata_reader is not None:
             values.append(metadata_reader(endpoint))
             continue
@@ -134,6 +157,10 @@ def qualification(*, metadata_reader=None):
             if response.status != 200 or response.url != url or len(raw) > 1 << 20:
                 raise RuntimeError('bounded original held first100 CI metadata required')
             values.append(json.loads(raw))
+    if boundary['historicalFocusedValidationOnly']:
+        # This is exactly the original 961/59f gate. The later delivery helpers
+        # above do not grant a successor or pretend that old fixtures were run.
+        return validate(*values)
     inventory = values[2]
     if not (type(inventory) is dict and type(inventory.get('total_count')) is int
             and type(inventory.get('jobs')) is list and inventory['total_count'] == len(inventory['jobs'])
