@@ -2197,8 +2197,22 @@ jobs:
               raise RuntimeError('prepared proof loader did not pass once')
           if [event['Action'] for event in prepared_events if 'Test' not in event and event['Action'] in ('start', 'pass', 'fail', 'skip')] != ['start', 'pass']:
               raise RuntimeError('original proof command package did not start and pass once')
-          if any(event.get('Action') in ('fail', 'build-fail', 'skip') for event in prepared_events):
-              raise RuntimeError('original proof command failed or skipped a child')
+          # These fixtures are created by the later delivery job; they cannot
+          # exist on this focused runner. Each is separately required to PASS
+          # in that job after its original producer has completed.
+          deferred = {
+              'TestProofHostFromOriginalSignedPublicFixture',
+              'TestProofHostSelectionNormalCommandRetainedFixture',
+              'TestTransactionProofInitialPreparedFundingOriginalCLI',
+          }
+          if any(event.get('Action') in ('fail', 'build-fail') for event in prepared_events):
+              raise RuntimeError('original proof command failed')
+          skips = [event for event in prepared_events if event.get('Action') == 'skip']
+          if len(skips) != len(deferred) or {event.get('Test') for event in skips} != deferred:
+              raise RuntimeError('unexpected or incomplete early fixture-dependent skips')
+          for name in deferred:
+              if [event['Action'] for event in prepared_events if event.get('Test') == name and event.get('Action') in ('run', 'pass', 'fail', 'skip')] != ['run', 'skip']:
+                  raise RuntimeError('fixture-dependent early test did not skip uniquely: ' + name)
           print('YNX_PREPARED_PROOF_TRUST_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=[prepared_test], sourceQualified=False, nativeGrant=False), sort_keys=True))
           PY
           go vet ./internal/consensus
@@ -4542,7 +4556,11 @@ jobs:
         timeout-minutes: 2
         env:
           YNX_PQ_HOST_PUBLIC_FIXTURE: ${{ runner.temp }}/ynx-pq-consensus-transaction-proof-public.json
-        run: go test -p 1 -count=1 -timeout=90s -run '^TestProofHostFromOriginalSignedPublicFixture$' ./cmd/ynx-consensus-proof-verify
+        run: |
+          set -euo pipefail
+          test -s "$YNX_PQ_HOST_PUBLIC_FIXTURE"
+          go test -p 1 -count=1 -timeout=90s -v -run '^TestProofHostFromOriginalSignedPublicFixture$' ./cmd/ynx-consensus-proof-verify | tee "$RUNNER_TEMP/ynx-proof-host-signed-fixture.log"
+          grep -F -- '--- PASS: TestProofHostFromOriginalSignedPublicFixture (' "$RUNNER_TEMP/ynx-proof-host-signed-fixture.log"
       - name: Build and pin normal signer process binaries without running them
         id: pqremotebuild
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.remote_signer_process && inputs.candidate_sha == github.sha))) }}

@@ -5072,19 +5072,44 @@ class HeldFinalFenceControls(unittest.TestCase):
                 dict(Package=package, Test=name+'/guard', Action='pass'),
                 dict(Package=package, Test=name, Action='pass'),
                 dict(Package=package, Action='pass')]
+        # These three integration tests need original fixtures produced later
+        # on the delivery runner. They are not qualified by this early stream:
+        # their own downstream steps must execute and pass with those fixtures.
+        deferred = ('TestProofHostFromOriginalSignedPublicFixture',
+                    'TestProofHostSelectionNormalCommandRetainedFixture',
+                    'TestTransactionProofInitialPreparedFundingOriginalCLI')
+        for test in deferred:
+            rows[-1:-1] = [dict(Package=package, Test=test, Action='run'),
+                           dict(Package=package, Test=test, Action='skip')]
+        delivery_steps = (
+            ('Verify normal Host source producer with original signed transaction fixture', 'YNX_PQ_HOST_PUBLIC_FIXTURE', deferred[0]),
+            ('Verify exact transaction Host selection and original acquire-current', 'YNX_PROOF_HOST_SOURCE_FIXTURE_OUT', deferred[1]),
+            ('Verify initial registration and funded transfer through the original proof CLI', 'YNX_PQ_INITIAL_FUNDED_FIXTURE_OUT', deferred[2]),
+        )
+        for step_name, fixture, test in delivery_steps:
+            matches = re.findall(r'(?ms)^      - name: ' + re.escape(step_name) + r'\n(.*?)(?=^      - name:|^  [A-Za-z][A-Za-z0-9_-]*:|\Z)', raw)
+            self.assertEqual(len(matches), 1, step_name)
+            step = matches[0]
+            self.assertIn(fixture, step)
+            self.assertIn("-run '^" + test + "$'", step)
+            self.assertIn("--- PASS: " + test + " (", step)
         def collect(events):
             with tempfile.TemporaryDirectory(prefix='prepared-collector-pure-') as temp:
                 (Path(temp)/'ynx-production-entrypoint-tests.jsonl').write_text(''.join(json.dumps(e)+'\n' for e in events))
                 with patch.dict(os.environ, RUNNER_TEMP=temp, GITHUB_SHA='a'*40), contextlib.redirect_stdout(io.StringIO()):
                     exec(compile(selected[0], '<original-prepared-collector>', 'exec'), {})
         collect(rows)
-        for label in ('missing', 'duplicate', 'foreign', 'child-skip', 'package-fail'):
+        for label in ('missing', 'duplicate', 'foreign', 'child-skip', 'package-fail', 'unexpected-skip', 'deferred-missing', 'deferred-pass', 'deferred-duplicate'):
             changed = copy.deepcopy(rows)
             if label == 'missing': changed.pop(1)
             elif label == 'duplicate': changed.insert(1, copy.deepcopy(changed[1]))
             elif label == 'foreign': changed[1]['Package'] = 'foreign/package'
             elif label == 'child-skip': changed[3]['Action'] = 'skip'
-            else: changed[-1]['Action'] = 'fail'
+            elif label == 'package-fail': changed[-1]['Action'] = 'fail'
+            elif label == 'unexpected-skip': changed.insert(-1, dict(Package=package, Test='Unrelated', Action='skip'))
+            elif label == 'deferred-missing': changed = [e for e in changed if e.get('Test') != deferred[0]]
+            elif label == 'deferred-pass': next(e for e in changed if e.get('Test') == deferred[0] and e['Action'] == 'skip')['Action'] = 'pass'
+            elif label == 'deferred-duplicate': changed.insert(-1, dict(Package=package, Test=deferred[0], Action='skip'))
             with self.subTest(label=label), self.assertRaises(RuntimeError): collect(changed)
 
 
