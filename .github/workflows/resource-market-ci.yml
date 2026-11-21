@@ -282,6 +282,11 @@ on:
       - 'packages/wallet-auth/native/source-parent/**'
   workflow_dispatch:
     inputs:
+      proof_pair_b957_controller_sha:
+        description: Evidence-only fixed 415f/b957 PUBLIC proof comparison; exact controller SHA and all business window inputs empty
+        required: false
+        default: ''
+        type: string
       proof_closure_435829_controller_sha:
         description: Evidence-only original435829 diagnostic; exact controller SHA, empty candidate_sha and all window flags false
         required: false
@@ -6324,6 +6329,106 @@ jobs:
             ${{ env.YNX_PAIR_CI_CASE }}/go.stderr.log
           if-no-files-found: warn
           retention-days: 7
+
+  proof-pair-415f-b957-evidence:
+    # Offline historical PUBLIC closures only; never a signer, node or transaction.
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration' && inputs.proof_pair_b957_controller_sha == github.sha && inputs.proof_closure_435829_controller_sha == '' && inputs.candidate_sha == '' && !inputs.paired_n1 && !inputs.consensus_e2e && !inputs.consensus_e2e_retained_history && !inputs.consensus_remote_e2e_retained_history && !inputs.consensus_fresh_paired_business && !inputs.remote_signer_process
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    concurrency:
+      group: ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade
+      cancel-in-progress: false
+    env:
+      GOMAXPROCS: '2'
+      GOMEMLIMIT: '1536MiB'
+      GOGC: '50'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: local
+      GOPROXY: https://proxy.golang.org
+      GOSUMDB: sum.golang.org
+    steps:
+      - name: Checkout exact diagnostic controller
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          path: controller
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+      - name: Checkout exact original evidence source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 763b7f8f422f38f39e747a4f7f6cfb6405a0b96d
+          path: original-source
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+      - name: Checkout exact before source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 415f4ee427874eccfaee926aa54cf99d4b27c019
+          path: before-source
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+      - name: Checkout exact after source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: b95721b119ef1ffdd2dec8e004b30354fc1d52df
+          path: after-source
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+      - name: Select original Go toolchain without post cache save
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.26.11'
+          cache: false
+      - name: Check pure source, instrumentation and workflow controls
+        env:
+          YNX_PAIR_REPO: ${{ github.workspace }}/after-source
+        run: |
+          set -euo pipefail
+          test "$(git -C controller rev-parse HEAD)" = '${{ github.sha }}'
+          python3 controller/scripts/fixtures/proof-closure-435829/test_controls.py
+          python3 controller/scripts/fixtures/proof-closure-435829/test_pair.py
+      - name: Compare both original PUBLIC proof closures independently
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 controller/scripts/fixtures/proof-closure-435829/pair_supervisor.py \
+            --original-root "$GITHUB_WORKSPACE/original-source" \
+            --before-root "$GITHUB_WORKSPACE/before-source" \
+            --after-root "$GITHUB_WORKSPACE/after-source" \
+            --case "$RUNNER_TEMP/proof-pair-435829"
+      - name: Preserve original failure or offline comparison evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: proof-pair-415f-b957-offline-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            ${{ runner.temp }}/proof-pair-435829/RESOURCE-ADMISSION.json
+            ${{ runner.temp }}/proof-pair-435829/PAIR-*.json
+            ${{ runner.temp }}/proof-pair-435829/PAIR-PHASES.jsonl
+            ${{ runner.temp }}/proof-pair-435829/PREPARED.json
+            ${{ runner.temp }}/proof-pair-435829/SOURCE-*.json
+            ${{ runner.temp }}/proof-pair-435829/LINUX-PUBLIC-RESTORE.json
+            ${{ runner.temp }}/proof-pair-435829/OBSERVATION-*.json
+            ${{ runner.temp }}/proof-pair-435829/STAGES-*.json
+            ${{ runner.temp }}/proof-pair-435829/evidence/ARTIFACTS.json
+            ${{ runner.temp }}/proof-pair-435829/evidence/JOB.json
+            ${{ runner.temp }}/proof-pair-435829/evidence/RECEIPT-ORIGINAL.json
+            ${{ runner.temp }}/proof-pair-supervisor-start.json
+            ${{ runner.temp }}/proof-pair-supervisor-result.json
+            ${{ runner.temp }}/proof-pair-435829/results/*.stdout
+            ${{ runner.temp }}/proof-pair-435829/results/*.stderr
+            ${{ runner.temp }}/proof-pair-435829/results/*.result.json
+            ${{ runner.temp }}/proof-pair-435829/profile-*/CPU.pprof
+            ${{ runner.temp }}/proof-pair-435829/profile-*/NORMAL-CLI-RESULT.json
+            ${{ runner.temp }}/proof-pair-435829/profile-*/PROFILE-RESULT.json
 
   proof-closure-435829-evidence:
     # Explicit historical DATA diagnosis only. No push route or business window.
