@@ -60,8 +60,8 @@ EXTRA_FOCUSED_STEPS=('Verify synthetic local Commit monotonic boundary',)
 # event contract must be frozen separately after the Core owner fixes it.
 HISTORY_JOB_NAME='source-history-counterexamples'
 LEGACY_FOUR_JOB_SOURCE='c697abae262c3be7859f235f45e9e8447bbccf63'
-BEFORE59_SOURCE='301b8171549193c08c88568309bc5f79714b6c04'
-BEFORE59_TREE='c10d778b4a39301097222ca70c02711cc91dd575'
+BEFORE59_SOURCE='de54c52b669ad56ebc702a484e2eaca51d0efc2e'
+BEFORE59_TREE='d22b51801073930a4715dcea20b0320259d27fb4'
 BEFORE59_FORK='5a128880d14bfc73de4334cba23218859ad3473c'
 BEFORE59_BRANCH='codex/perf-before59-clock-20261121'
 BEFORE59_STEPS=('Verify before59 original observer-only source',

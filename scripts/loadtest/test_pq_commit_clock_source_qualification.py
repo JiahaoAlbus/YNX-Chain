@@ -123,6 +123,13 @@ class ClockSourceQualificationControls(unittest.TestCase):
                 m.qualification(identity,metadata_reader=metadata,focused_log_reader=lambda *args:raw+b'x')
         wrong=dict(binding,tree='b'*40);wrong_identity=dict(identity,tree=wrong['tree'])
         with self.assertRaisesRegex(RuntimeError,'source-history job NOT_SUPPLIED'):m.binding_identity(wrong,wrong_identity)
+        # The previous 301 run failed its own CI. Its otherwise valid test
+        # stream must never migrate to the exact de54 source/tree successor.
+        previous=dict(binding,source='301b8171549193c08c88568309bc5f79714b6c04',
+                      tree='c10d778b4a39301097222ca70c02711cc91dd575')
+        previous_identity=dict(identity,commit=previous['source'],tree=previous['tree'])
+        with self.assertRaisesRegex(RuntimeError,'source-history job NOT_SUPPLIED'):
+            m.binding_identity(previous,previous_identity)
 
     def test_moved_getter_steps_are_required_on_original_getter_job(self):
         binding,identity,run,focused,jobs=self.fixture();binding.update(historyJob=106,getterJob=107)
