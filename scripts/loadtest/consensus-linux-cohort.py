@@ -895,8 +895,10 @@ class Window:
         # A concurrent receipt cannot infer completed identity cleanup while
         # the original Window is still being retired.
         self.commit_clock_cleanup_debt=None
-        if not self.lock.acquire(timeout=1):
+        if not self.lock.acquire(timeout=self._cleanup_wait_remaining()):
             self.launch_cleanup_lock_unavailable=True
+            deadline=getattr(self,'launch_cleanup_deadline',None);now=time.monotonic()
+            self.launch_cleanup_deadline=now if deadline is None else min(deadline,now)
             self.launch_cleanup_failure=dict(operation='Window.stop',errorType='RuntimeError',
                 meaning='original cleanup lock unavailable; retain UNKNOWN and cleanup debt')
             self.commit_clock_cleanup_debt=None
@@ -1017,6 +1019,8 @@ class Window:
     def _cleanup_lock(self):
         if not self.lock.acquire(timeout=self._cleanup_wait_remaining()):
             self.launch_cleanup_lock_unavailable=True
+            deadline=getattr(self,'launch_cleanup_deadline',None);now=time.monotonic()
+            self.launch_cleanup_deadline=now if deadline is None else min(deadline,now)
             raise RuntimeError('original Window cleanup lock did not retire; preserve cleanup debt')
         try:yield
         finally:self.lock.release()
