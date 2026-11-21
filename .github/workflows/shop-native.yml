@@ -177,7 +177,7 @@ jobs:
                       receipt_test_delta = True
                       tests = new_tests
           if lifecycle_fixture_only:
-              tests = ["TestBusinessNativeIntentColdRecoveryUsesOriginalOrderAndNeverSettles", "TestNativeInvoiceCreateAndLookupBindOnlyExactOriginalBill", "TestNativeInvoicePrivacyDeletionRetainsCancelledOriginalAndUnknown", "TestNativeOrderCancellation"]
+              tests = ["TestBusinessNativeIntentColdRecoveryUsesOriginalOrderAndNeverSettles", "TestBusinessNativeIntentReadUsesCapturedOriginalBill", "TestBusinessNativeIntentRejectsChangedOriginalAfterRead", "TestNativeInvoiceCreateAndLookupBindOnlyExactOriginalBill", "TestNativeInvoicePrivacyDeletionRetainsCancelledOriginalAndUnknown", "TestNativeOrderCancellation"]
           if session_inventory_only:
               tests = ["TestShopSessionInventory", "TestCommerceV2", "TestSnapshot", "TestCommercePersistence", "TestAuthenticatedState", "TestPrivacy", "TestBusinessActor", "TestBusinessReplay", "TestBusinessTransaction", "TestNativeSellerRoleRevocation", "TestSellerTeamInvitationPersistence", "TestShopInvoiceSource"]
           if v4_supplier_intake and "TestShopSessionInventory" not in tests:

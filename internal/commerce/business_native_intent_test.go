@@ -245,3 +245,48 @@ func TestBusinessNativeIntentReadUsesCapturedOriginalBill(t *testing.T) {
 		})
 	}
 }
+
+func TestBusinessNativeIntentRejectsChangedOriginalAfterRead(t *testing.T) {
+	s, buyer, order, request := publicSourceInvoiceRecord(t)
+	order, err := s.BindInvoice(buyer, order.ID, PayInvoiceHandoff{InvoiceID: "core_original", IntentID: "npi_" + strings.Repeat("ab", 24), Merchant: request.Merchant, PayoutAddress: request.Recipient})
+	if err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	client := nativeIntentObservationClient(t, func(*http.Request) (*http.Response, error) {
+		calls++
+		s.mu.Lock()
+		for id, record := range s.s.BusinessEffects {
+			if record.Kind == "pay.native-create" {
+				var input nativeInvoiceInput
+				if err := json.Unmarshal(record.Input, &input); err != nil {
+					s.mu.Unlock()
+					t.Fatal(err)
+				}
+				input.Request.AmountAtoms = "1"
+				record.Input, _ = json.Marshal(input)
+				s.s.BusinessEffects[id] = record
+				break
+			}
+		}
+		s.mu.Unlock()
+		return nativeShopPayResponse(200, publicNativeInvoiceResponse(request)), nil
+	})
+	server := NewServer(s, ServerConfig{NativePay: client, businessV2: controlledBusinessVerifier{account: buyer, role: "buyer"}})
+	w := businessHTTPRequest(server, "GET", "/api/orders/"+order.ID+"/native-pay-intent", strings.Repeat("y", 43), "")
+	if w.Code < 400 || calls != 1 || bytes.Contains(w.Body.Bytes(), []byte(`"queryOnly":true`)) {
+		t.Fatal("changed original returned to caller", w.Code, w.Body.String(), calls)
+	}
+	if s.s.Orders[order.ID].Settlement != nil || s.s.Orders[order.ID].NativePayment != nil {
+		t.Fatal("read changed funds")
+	}
+	retained := false
+	for _, record := range s.s.BusinessEffects {
+		if record.Kind == "pay.native-intent" && len(record.Result) > 0 {
+			retained = true
+		}
+	}
+	if !retained {
+		t.Fatal("changed original discarded the received response")
+	}
+}
