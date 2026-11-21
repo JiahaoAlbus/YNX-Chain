@@ -265,6 +265,7 @@ on:
       - 'scripts/ops/test_validate_pq_wallet_policy_ci.py'
       - 'scripts/ops/test_validate_pq_current4_ci.py'
       - 'scripts/verify/pq-ci-replay-entry-identity.py'
+      - 'scripts/verify/pq-remote-window-entry-check.sh'
       - 'scripts/ops/test_validate_pq_source_parent_ci.py'
       - 'scripts/verify/committed-account-proof-check.sh'
       - 'scripts/ops/collect_pq_committed_account_tests.py'

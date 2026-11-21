@@ -239,7 +239,8 @@ normal_push = "github.event_name == 'push' && (github.ref == 'refs/heads/main' |
 for name in ('caddy-source', 'artifact-release-cabi'):
     if job_if(name) != normal_push:
         raise RuntimeError('same-source normal main producer route missing: ' + name)
-if job_if('protocol-delivery') != normal_push + " && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success' && needs.detached-source-checks.result == 'success'":
+expected_delivery = normal_push + " && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success' && needs.detached-source-checks.result == 'success' && needs.held-optional-live-source.result == 'success'"
+if job_if('protocol-delivery') != expected_delivery or job_if('held-optional-live-source') != normal_push or job_if('source-history-counterexamples') != expected_focused:
     raise RuntimeError('normal production runtime must retain all same-run source gates')
 if job_if('proof-verifier-macos') != "github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')":
     raise RuntimeError('normal production proof verifier route missing')

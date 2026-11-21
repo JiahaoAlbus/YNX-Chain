@@ -3827,6 +3827,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             raw.replace(delivery, delivery.replace("    needs: [focused-go, caddy-source, detached-source-checks, held-optional-live-source]\n", "    needs: focused-go\n", 1), 1),
             raw.replace(delivery, delivery.replace("    needs: [focused-go, caddy-source, detached-source-checks, held-optional-live-source]\n", "    needs: caddy-source\n", 1), 1),
             raw.replace(delivery, delivery.replace(" && needs.detached-source-checks.result == 'success'", "", 1), 1),
+            raw.replace(delivery, delivery.replace(" && needs.held-optional-live-source.result == 'success'", "", 1), 1),
             raw.replace(delivery, delivery.replace(" && needs.focused-go.result == 'success'", "", 1), 1),
             raw.replace(delivery, delivery.replace(" && needs.caddy-source.result == 'success'", "", 1), 1),
             raw.replace(delivery, delivery.replace("needs.caddy-source.result == 'success'", "needs.caddy-source.result != 'failure'", 1), 1),
