@@ -27,10 +27,11 @@ func registerCommitObservationFlags(flags *pflag.FlagSet, p *pqOptions) {
 	flags.Var(&initializationStringFlag{target: &p.finalizeObservationOutput}, "finalize-observation-output", "disabled by default; separate bounded Finalize output; requires original synthetic Commit observation scope")
 	flags.Var(&initializationStringFlag{target: &p.commitObservationOutput}, "commit-observation-output", "disabled by default; fresh private bounded Commit timing output after normal node stop")
 	flags.Var(&initializationStringFlag{target: &p.commitObservationScope}, "commit-observation-scope", "explicit synthetic-loopback-lab/v1 only; local persistence is not signer fsync or finality")
+	flags.Var(&initializationStringFlag{target: &p.commitMonotonicOutput}, "commit-monotonic-output", "disabled by default; separate synthetic same-kernel local Commit boundary observation")
 }
 
 func (p pqOptions) commitObservationConfigured() bool {
-	return p.commitObservationOutput != "" || p.commitObservationScope != "" || p.finalizeObservationOutput != ""
+	return p.commitObservationOutput != "" || p.commitObservationScope != "" || p.finalizeObservationOutput != "" || p.commitMonotonicOutput != ""
 }
 
 func (p pqOptions) commitObservationWireOptions() pqOptions {
@@ -66,7 +67,10 @@ func (p pqOptions) validateCommitObservation() error {
 	if err := commitObservationPrivateParent(filepath.Dir(p.commitObservationOutput)); err != nil {
 		return err
 	}
-	return p.validateFinalizeObservation()
+	if err := p.validateFinalizeObservation(); err != nil {
+		return err
+	}
+	return p.validateCommitMonotonic()
 }
 
 func (p pqOptions) validateCommitObservationMigration(m chain.ConsensusMigrationState) error {
@@ -137,6 +141,7 @@ type operatorCommitObservation struct {
 	app                    *consensus.Application
 	file                   *commitObservationOutput
 	finalize               *operatorFinalizeObservation
+	monotonic              *operatorCommitMonotonic
 	result                 operatorCommitObservationResult
 	latestObserved         *operatorCommitSample
 	ran, attempted, closed bool
@@ -160,7 +165,11 @@ func prepareOperatorCommitObservation(config *cfg.Config, p pqOptions) (*operato
 	if err != nil {
 		return nil, errors.Join(err, file.close())
 	}
-	return &operatorCommitObservation{file: file, finalize: finalize, result: operatorCommitObservationResult{
+	monotonic, err := prepareOperatorCommitMonotonic(p)
+	if err != nil {
+		return nil, errors.Join(err, finalize.close(), file.close())
+	}
+	return &operatorCommitObservation{file: file, finalize: finalize, monotonic: monotonic, result: operatorCommitObservationResult{
 		Version: operatorCommitObservationVersion, Scope: operatorWireObservationScope, ProcessID: os.Getpid(),
 		CaptureBoundary: "synchronous-original-block-executor-Commit-return;normal-stop-output;replay-and-early-failures-not-covered",
 		MaxSamples:      operatorCommitObservationMaxSamples, Samples: []operatorCommitSample{}, RejectedNotifications: map[string]uint64{},
@@ -280,6 +289,7 @@ func observedCommitSample(app *consensus.Application, height int64) (*operatorCo
 }
 
 func (o *operatorCommitObservation) success(height int64, validHeight bool) {
+	reading := o.monotonic.capture()
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	if o.closed {
@@ -311,6 +321,7 @@ func (o *operatorCommitObservation) success(height int64, validHeight bool) {
 		return
 	}
 	o.result.Samples = append(o.result.Samples, *sample)
+	o.monotonic.append(sample, reading)
 }
 func (o *operatorCommitObservation) failure() {
 	o.mu.Lock()

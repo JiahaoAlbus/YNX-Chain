@@ -24,6 +24,7 @@ func (p pqOptions) validateFinalizeObservation() error {
 	q := p
 	q.commitObservationOutput = p.finalizeObservationOutput
 	q.finalizeObservationOutput = ""
+	q.commitMonotonicOutput = ""
 	return q.validateCommitObservation()
 }
 
@@ -97,10 +98,8 @@ func (o *operatorCommitObservation) writeAfterStop() error {
 	}
 	// Evaluate both exactly once even when no Commit notification exists because
 	// Finalize failed early. That failure must still have its original projection.
-	if o.finalize == nil {
-		return o.writeCommitAfterStop()
-	}
-	return errors.Join(o.writeCommitAfterStop(), o.finalize.writeAfterStop())
+	commitErr := o.writeCommitAfterStop()
+	return errors.Join(commitErr, o.finalize.writeAfterStop(), o.monotonic.writeAfterStop(o, commitErr))
 }
 func (o *operatorFinalizeObservation) writeAfterStop() error {
 	if o == nil {

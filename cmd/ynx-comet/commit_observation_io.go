@@ -178,8 +178,5 @@ func (o *operatorCommitObservation) close() error {
 	if o.app != nil {
 		o.app.SetCommitTimingEnabled(false)
 	}
-	if o.finalize == nil {
-		return o.file.close()
-	}
-	return errors.Join(o.finalize.close(), o.file.close())
+	return errors.Join(o.monotonic.close(), o.finalize.close(), o.file.close())
 }

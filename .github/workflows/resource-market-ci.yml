@@ -2811,6 +2811,23 @@ jobs:
               sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=required_passed, performanceMeasured=False,
           ), sort_keys=True))
           PY
+      - name: Verify synthetic local Commit monotonic boundary
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        run: |
+          set -euo pipefail
+          go test -mod=readonly -json -p 1 ./cmd/ynx-comet -run '^TestCommitMonotonic' -count=1 -timeout=90s > "$RUNNER_TEMP/commit-monotonic-tests.jsonl"
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'commit-monotonic-tests.jsonl').read_text().splitlines()]
+          required = ('TestCommitMonotonicRequiresDistinctSyntheticOriginal', 'TestCommitMonotonicRealBlockExecutorSyntheticTransfer', 'TestCommitMonotonicMissingSourceIsUnknown', 'TestCommitMonotonicSameKernelChild')
+          for name in required:
+              outcomes = [e['Action'] for e in events if e.get('Test') == name and e['Action'] in ('run', 'pass', 'skip', 'fail')]
+              if outcomes != ['run', 'pass']:
+                  raise RuntimeError('Linux original clock case did not run and pass: ' + name)
+          if any(e['Action'] in ('skip', 'fail', 'build-fail') for e in events):
+              raise RuntimeError('Linux original clock stream failed or skipped')
+          PY
       - name: Qualify pinned bootstrap registration and normal block restoration
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         run: |
