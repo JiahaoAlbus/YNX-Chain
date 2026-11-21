@@ -644,5 +644,128 @@ class ProcessRSSObservationContractControls(unittest.TestCase):
                 with self.subTest(values=values, change=change), self.assertRaises(RuntimeError): self.reduce(report)
 
 
+class RSSObservationCostControls(unittest.TestCase):
+    def setUp(self):
+        for name in ('subprocess.Popen', 'urllib.request.urlopen', 'socket.create_connection'):
+            patch = mock.patch(name, side_effect=AssertionError('source metadata controls cannot execute or connect'))
+            patch.start(); self.addCleanup(patch.stop)
+
+    def original(self):
+        import threading
+        lab = module('stage_guard_cost_original', 'consensus-linux-cohort.py')
+        window = lab.Window.__new__(lab.Window)
+        window.lock = threading.RLock(); window.sample_stage_totals = {}
+        window._cleanup_wait_remaining = lambda: 0
+        window.process_rss_observation = lab.ProcessRSSObservation()
+        ticks = iter(range(10, 1000, 10))
+        with mock.patch.object(lab.time, 'monotonic_ns', side_effect=lambda: next(ticks)), \
+             mock.patch.object(lab, 'owned_rss', side_effect=AssertionError('no new process sample')):
+            with window.sample_stage('sampleIncludingLockWait'):
+                with window.sample_stage('ownedRSS'):
+                    for node in range(4):
+                        with window.sample_stage('processRSSRetention'):
+                            window.process_rss_observation.retain(14+node, 100+node, 200+node, at_ns=100)
+        return dict(resourceGuardStageElapsed=window.sample_stage_report(),
+                    processRSSObservation=window.process_rss_report())
+
+    def test_original_nested_timer_and_sink_preserve_cost_coverage_not_full_overhead(self):
+        receipt = self.original(); before = copy.deepcopy(receipt)
+        result = m.rss_observation_cost(receipt)
+        self.assertEqual(receipt, before)
+        retention = result['retention']['aggregate']
+        self.assertEqual((retention['denominator'], retention['observed'], retention['totalNs']), (4, 4, 40))
+        self.assertEqual(result['guardStages']['ownedRSS']['totalNs'], 90)
+        self.assertEqual(result['guardStages']['sampleIncludingLockWait']['totalNs'], 110)
+        self.assertIsNone(retention['observedMedianNs']); self.assertIsNone(retention['retainedSampleP95Ns'])
+        self.assertIsNone(result['reportMaterializationElapsedNs']); self.assertIsNone(result['incrementalRSSBytes'])
+        self.assertFalse(result['stagesAdded'] or result['fullObservationOverheadMeasured'])
+        self.assertEqual(m.process_rss_observations(receipt)['retainedObservations'], '4')
+
+    def test_old_receipt_missing_retention_and_unknown_guard_never_backfill_zero(self):
+        self.assertEqual(m.rss_observation_cost({})['status'], 'NOT_SUPPLIED')
+        receipt = self.original(); guard = receipt['resourceGuardStageElapsed']
+        del guard['stages']['processRSSRetention']
+        result = m.rss_observation_cost(receipt)
+        self.assertEqual(result['retention'], dict(status='NOT_SUPPLIED', aggregate=None))
+        guard.update(status='UNKNOWN', stages={}, reason='original lock unavailable')
+        result = m.rss_observation_cost(receipt)
+        self.assertEqual(result['status'], 'UNKNOWN'); self.assertEqual(result['guardStages'], {})
+        self.assertIsNone(result['receiptEncodingElapsedNs'])
+
+    def test_failed_clock_keeps_original_attempt_denominator_and_missing_elapsed(self):
+        receipt = self.original(); guard = receipt['resourceGuardStageElapsed']
+        guard['status'] = 'UNKNOWN'
+        row = guard['stages']['processRSSRetention']
+        row.update(calls=5, failedCalls=1, clockErrors=1)
+        result = m.rss_observation_cost(receipt)['retention']['aggregate']
+        self.assertEqual((result['denominator'], result['observed'], result['missingOrCensored']), (5, 4, 1))
+        row.update(timedCalls=0, clockErrors=5, totalNs=None, minNs=None, maxNs=None)
+        result = m.rss_observation_cost(receipt)['retention']['aggregate']
+        self.assertEqual(result['missingOrCensored'], 5); self.assertIsNone(result['totalNs'])
+
+    def test_changed_scope_counts_status_or_unobserved_zero_are_refused(self):
+        for change in ('clock', 'scope', 'callsBool', 'count', 'failed', 'total', 'status', 'zeroFill'):
+            receipt = self.original(); guard = receipt['resourceGuardStageElapsed']
+            row = guard['stages']['processRSSRetention']
+            if change == 'clock': guard['clock'] = 'wall'
+            if change == 'scope': guard['guardChecksPreserved'] = 1
+            if change == 'callsBool': row['calls'] = True
+            if change == 'count': row['clockErrors'] = 1
+            if change == 'failed': row['failedCalls'] = 5
+            if change == 'total': row['totalNs'] = 0
+            if change == 'status': guard['status'] = 'UNKNOWN'
+            if change == 'zeroFill':
+                guard['status'] = 'UNKNOWN'; row.update(timedCalls=0, clockErrors=4, totalNs=0, minNs=None, maxNs=None)
+            with self.subTest(change=change), self.assertRaises(RuntimeError): m.rss_observation_cost(receipt)
+
+    def test_four_node_original_archive_reader_retains_rss_and_cost_with_full500(self):
+        # Reuse the existing original archive/Commit/Finalize reader fixture and
+        # real Ledger. These are public synthetic controls, not a four-node run.
+        held = module('stage_cost_original_archive_fixture', 'test_pq_first100_held_readback.py')
+        original = self.original()
+        ledger = fixtures.ObservedThroughputControls().ledger(500)
+        load = ledger.report(35_000_000_000)
+        load['originMonotonicNs'] = '100000000000'
+        def edit(receipt, files, prefix):
+            receipt.pop('heldReadyOnlyComplete')
+            receipt.pop('normalPublicOwnerTransport')
+            receipt.update(original, configuredDemand=500, loadResult=load, loadExecuted=True,
+                           caps=dict(rssBytes=4<<30), firstCause='original stopped before any release')
+            files[prefix+'load-plan.json'] = held.encode(ledger.plan)
+            files[prefix+'load-events-00000.jsonl'] = b'{}\n'
+            receipt.update(planSHA256=held.sha(files[prefix+'load-plan.json']),
+                journalSegments=[dict(path='load-events-00000.jsonl', bytes=3,
+                                      sha256=held.sha(b'{}\n'))])
+        raw, pin, receipt = held.HeldCheckpointReadbackTests().fixture(edit=edit)
+        readback = held.reader.inspect(raw, held.sha(raw), held.HeldReadbackTests.controller, pin)
+        result = m.verifier_summary(held.encode(receipt), readback)
+        self.assertEqual(len(readback['finalizeByNode']), 4)
+        self.assertEqual(readback['originalResourceGuardStageElapsed'], original['resourceGuardStageElapsed'])
+        self.assertEqual(len(result['processRSSObservation']['records']), 4)
+        self.assertEqual(result['resourceObservationCost']['retention']['aggregate']['denominator'], 4)
+        self.assertEqual(result['coverage']['individualPeakUnknown'], 500)
+        self.assertEqual(result['business']['terminalCounts'], {'queued':500})
+        self.assertFalse(result['binding']['archiveReverified'])
+        readback['originalResourceGuardStageElapsed'] = None
+        with self.assertRaisesRegex(RuntimeError, 'guard timing projection differs'):
+            m.verifier_summary(held.encode(receipt), readback)
+
+    def test_bound_receipt_cannot_replace_guard_or_turn_export_failure_into_samples(self):
+        helper = VerifierResourceControls(); receipt = helper.receipt(); receipt.update(self.original())
+        raw, readback = helper.bound(receipt)
+        original = m.verifier_summary(raw, readback)
+        self.assertEqual(original['resourceObservationCost']['retention']['aggregate']['totalNs'], 40)
+        receipt['resourceGuardStageElapsed']['stages']['processRSSRetention']['totalNs'] = 99
+        with self.assertRaisesRegex(RuntimeError, 'bytes or digest differ'):
+            m.verifier_summary(json.dumps(receipt).encode(), readback)
+        receipt = helper.receipt(); receipt.update(self.original())
+        receipt['processRSSObservation'].update(status='UNKNOWN',reason='original export failed',
+            observations=None,omittedObservations=None,records=[])
+        raw, readback = helper.bound(receipt); result = m.verifier_summary(raw, readback)
+        self.assertEqual(result['processRSSObservation']['status'], 'UNKNOWN')
+        self.assertEqual(result['resourceObservationCost']['retention']['aggregate']['observed'], 4)
+        self.assertEqual(result['coverage']['individualPeakUnknown'], 500)
+
+
 if __name__ == '__main__':
     unittest.main()

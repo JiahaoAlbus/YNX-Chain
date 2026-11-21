@@ -119,7 +119,7 @@ class OriginalDriverInitializationControls(unittest.TestCase):
                 window.assert_not_called();ports.assert_not_called()
             files=list(parent.glob('pq-independent-load-*/public/fresh-resource-admission.json'));self.assertEqual(len(files),1);record=json.loads(files[0].read_bytes());self.assertEqual(record['freeDiskBytes'],15<<30);self.assertEqual(record['availableMemoryBytes'],7<<30);self.assertEqual(record['caps']['initialDiskBytes'],16<<30);self.assertEqual(record['ownedPIDLimit'],16)
 
-    def mocked_initialization(self,census_error=None,cleanup=True,receipt_error=None):
+    def mocked_initialization(self,census_error=None,cleanup=True,receipt_error=None,clock_readback=False,rss_error=None,clock_error=True,rss_records=0,export_measurements=None):
         from types import SimpleNamespace
         import contextlib,io
         d=self.driver
@@ -128,6 +128,7 @@ class OriginalDriverInitializationControls(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             parent=Path(tmp).resolve();source=parent/'source';source.mkdir();args=self.args();args.source=str(source)
             work_holder={};c=SimpleNamespace(commit_observation_enabled=False,measurements=SimpleNamespace(report=lambda:{}),wire_readback=lambda:{},prepare_network=lambda:{'original':'activation'},pending_owners=set(range(4)),live=[],pin='a'*64,workload_pin='b'*64,root=None)
+            c.commit_clock_observation_enabled=clock_readback;c.commit_clock_descriptors=[]
             owners=[dict(index=i,owner='owner%d'%i,initialNonce='1',initialBalance='1',memberCapacity='1') for i in range(504)]
             c.workload=dict(owners=owners,batchSize='1',outstandingPerOwner='1',batchWaitNanoseconds='0');c.quiet=lambda:dict(height=21,appHash='ab'*32)
             def window(source,work,additional_storage=()):
@@ -147,7 +148,13 @@ class OriginalDriverInitializationControls(unittest.TestCase):
                 w.launch_cleanup_debt=[] if cleanup else [dict(operation='Window.stop',errorType='RuntimeError',meaning='synthetic unresolved cleanup control')]
                 w.launch_cleanup_report=lambda:original_launch_report(w)
                 w.process_rss_observation=d.lab.ProcessRSSObservation()
-                w.process_rss_report=lambda:original_rss_report(w)
+                for index in range(rss_records):
+                    w.process_rss_observation.retain(1000+index,2000+index,index,at_ns=10)
+                def export_rss():
+                    before=d.time.perf_counter_ns();value=original_rss_report(w)
+                    if export_measurements is not None:export_measurements.append(dict(elapsedNs=d.time.perf_counter_ns()-before,records=len(value['records'])))
+                    return value
+                w.process_rss_report=mock.Mock(side_effect=rss_error if rss_error is not None else export_rss)
                 w.sample_stage_report=lambda:dict(status='NOT_OBSERVED',stages={},runtimeMeasured=False)
                 w.launch=launch;work_holder['window']=w;return w
             def instrumented(base):
@@ -164,14 +171,20 @@ class OriginalDriverInitializationControls(unittest.TestCase):
             with contextlib.ExitStack() as stack:
                 for obj,name,value in [(d.lab,'check_source',mock.Mock(return_value=dict(commit=args.commit,tree=d.STAGED_CALLEE_TREE))),(d.lab,'git',mock.Mock(return_value='')),(d.subprocess,'check_output',mock.Mock(return_value=b'live-materials')),(d.lab.guard,'proc_inventory',mock.Mock(return_value=({},None))),(d.lab.guard,'memory_available',mock.Mock(return_value=7<<30)),(d.shutil,'disk_usage',mock.Mock(return_value=SimpleNamespace(free=20<<30))),(d.lab,'heavy_processes',mock.Mock(return_value=[])),(d.lab,'admit',mock.Mock()),(d.lab,'ports_available',mock.Mock()),(d.ctypes,'CDLL',mock.Mock(return_value=SimpleNamespace(prctl=lambda *a:0))),(d.lab,'Window',window),(d.lab.guard,'digest',mock.Mock(return_value='a'*64)),(d.initialization,'instrumented_ceremony_class',instrumented),(d,'NormalBackend',mock.Mock(side_effect=AssertionError('business backend'))),(d,'Journal',only_initialization_journal),(d,'Monitor',mock.Mock(side_effect=AssertionError('business monitor')))]:stack.enter_context(mock.patch.object(obj,name,value))
                 if census_error is not None:stack.enter_context(mock.patch.object(d.initialization,'complete_account_readback',side_effect=census_error))
+                if clock_readback:
+                    stack.enter_context(mock.patch.object(d.commit_clock,'retain_after_stop',return_value=dict(fourOriginalSnapshotsUsable=True)))
+                    stack.enter_context(mock.patch.object(d,'original_commit_clock_readback',side_effect=OSError('original clock inputs missing') if clock_error else None,return_value=dict(status='OBSERVED_OR_CENSORED')))
                 stack.enter_context(mock.patch.object(d.sys,'platform','linux'));stack.enter_context(mock.patch.dict(d.os.environ,env));stack.enter_context(contextlib.redirect_stdout(io.StringIO()));r=d.run(args)
             result=copy.deepcopy(r)
-            self.assertEqual(result['processRSSObservation']['observations'],'0')
-            self.assertEqual(result['processRSSObservation']['records'],[])
+            work_holder['window'].process_rss_report.assert_called_once()
+            self.assertEqual(result['processRSSObservation']['observations'],None if rss_error is not None else str(rss_records))
+            self.assertEqual(len(result['processRSSObservation']['records']),0 if rss_error is not None else rss_records)
             self.assertFalse(result['processRSSObservation']['individualLifetimePeakMeasured'])
             work_holder['window'].stop.assert_called_once();self.assertTrue((work_holder['path']/'public/receipt.json').is_file())
+            persisted=json.loads((work_holder['path']/'public/receipt.json').read_bytes())
+            self.assertEqual(persisted['processRSSObservation'],result['processRSSObservation'])
+            self.assertEqual(persisted['firstCause'],result['firstCause'])
             if receipt_error is not None:
-                persisted=json.loads((work_holder['path']/'public/receipt.json').read_bytes())
                 for key in ('firstCause','processes','processReceiptStatus','processReceiptCleanupDebt','cleanupComplete','normalNodeCleanExit'):
                     self.assertEqual(persisted[key],result[key])
             return result
@@ -190,6 +203,35 @@ class OriginalDriverInitializationControls(unittest.TestCase):
         self.assertIsNone(r['processes']);self.assertEqual(r['processReceiptStatus'],'UNKNOWN')
         self.assertTrue(r['processReceiptCleanupDebt']);self.assertFalse(r['cleanupComplete'])
         self.assertIsNone(r['normalNodeCleanExit']);self.assertFalse(r['loadExecuted'])
+
+    def test_clock_finally_materializes_rss_once_after_original_readback_failure(self):
+        for failed in (False,True):
+            r=self.mocked_initialization(clock_readback=True,clock_error=failed)
+            self.assertEqual(r['firstCause'],'original clock inputs missing' if failed else None)
+            if failed:self.assertEqual(r['commitClockReadback']['censored'],500)
+            self.assertEqual(r['commitClockReadbackResources']['status'],'UNKNOWN')
+            self.assertEqual(r['processRSSObservation']['observations'],'0')
+            self.assertFalse(r['loadExecuted'])
+
+    def test_original_driver_exports_one_bounded_snapshot_without_new_samples(self):
+        for clock in (False,True):
+            measurements=[]
+            r=self.mocked_initialization(clock_readback=clock,clock_error=False,rss_records=4096,export_measurements=measurements)
+            self.assertEqual(len(measurements),1);self.assertEqual(measurements[0]['records'],4096)
+            self.assertEqual(r['processRSSObservation']['additionalRSSReads'],0)
+            self.assertLess(len(json.dumps(r).encode()),8<<20)
+            self.assertIsNone(r['firstCause']);self.assertFalse(r['loadExecuted'])
+
+    def test_failed_rss_export_persists_unknown_and_preserves_first_cause_without_retry(self):
+        for clock in (False,True):
+            for cause in (None,RuntimeError('original missing owner499')):
+                with self.subTest(clock=clock,cause=type(cause).__name__):
+                    r=self.mocked_initialization(cause,clock_readback=clock,rss_error=MemoryError('PRIVATE_SENTINEL'))
+                    self.assertEqual(r['processRSSObservation']['status'],'UNKNOWN')
+                    self.assertNotIn('PRIVATE_SENTINEL',json.dumps(r))
+                    expected='original missing owner499' if cause is not None else 'original clock inputs missing' if clock else 'original process RSS observation export failed'
+                    self.assertEqual(r['firstCause'],expected)
+                    self.assertFalse(r['loadExecuted']);self.assertNotIn('loadResult',r)
     def test_successful_census_with_cleanup_debt_cannot_be_accepted(self):
         r=self.mocked_initialization(cleanup=False)
         self.assertFalse(r['cleanupComplete']);self.assertFalse(r['loadExecuted']);self.assertEqual(r['preparationOnlyDemandAccounting']['notReleased'],500)

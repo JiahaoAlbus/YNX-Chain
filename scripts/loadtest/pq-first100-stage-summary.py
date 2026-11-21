@@ -495,6 +495,56 @@ def process_rss_observations(receipt):
                 meaning='Exact identity aggregate of original owned_rss return values; unavailable, proven retirement zero charges and VmSize upper bounds are separate from measured RSS. Producer min/max/count are retained, not reconstructed raw samples or continuous lifetime coverage.')
 
 
+def rss_observation_cost(receipt):
+    """Original guard aggregates only; exporting/encoding this report is untimed."""
+    guard = receipt.get('resourceGuardStageElapsed')
+    stages = {}
+    if guard is not None:
+        require(type(guard) is dict
+                and guard.get('schema') == 'YNX-PERF-ORIGINAL-RESOURCE-GUARD-STAGES/v1'
+                and guard.get('clock') == 'parent_monotonic_ns', 'original guard timing schema or clock differs')
+        expected = dict(intervalsOverlap=True, guardChecksPreserved=True, byteAccountingChanged=False,
+                        cadenceChanged=False, firstStorageSampleGuaranteed=True, pidOrRSSCached=False)
+        require(all(guard.get(k) is v for k, v in expected.items()), 'original guard timing scope differs')
+        values, status = guard.get('stages'), guard.get('status')
+        require(type(values) is dict and len(values) <= 128
+                and status in ('OBSERVED', 'NOT_OBSERVED', 'UNKNOWN'), 'original guard stage coverage differs')
+        for name, row in values.items():
+            require(type(name) is str and 0 < len(name) <= 128 and type(row) is dict,
+                    'original guard stage identity differs')
+            for key in ('calls', 'timedCalls', 'failedCalls', 'clockErrors'):
+                integer(row.get(key), 'guard ' + key)
+            calls, timed = row['calls'], row['timedCalls']
+            require(calls > 0 and timed + row['clockErrors'] == calls and row['failedCalls'] <= calls,
+                    'original guard stage denominator differs')
+            summary = aggregate(row, calls, 'timedCalls', 'minNs', 'maxNs')
+            total = row.get('totalNs')
+            if timed:
+                integer(total, 'guard totalNs')
+                require(row['minNs'] * (timed-1) + row['maxNs'] <= total
+                        <= row['maxNs'] * (timed-1) + row['minNs'],
+                        'original guard elapsed total excludes retained extrema')
+            else:
+                require(total is None, 'missing guard elapsed cannot be zero-filled')
+            summary.update(totalNs=total, failedCalls=row['failedCalls'], clockErrors=row['clockErrors'])
+            stages[name] = summary
+        if values:
+            require(status == ('UNKNOWN' if any(row['clockErrors'] for row in values.values()) else 'OBSERVED'),
+                    'original guard clock error status differs')
+        else:
+            require(status == 'NOT_OBSERVED' or (status == 'UNKNOWN' and type(guard.get('reason')) is str
+                    and 0 < len(guard['reason']) <= 256), 'empty guard report cannot claim observation')
+    retention = stages.get('processRSSRetention')
+    return dict(status='NOT_SUPPLIED' if guard is None else guard['status'], guardStages=stages,
+        retention=dict(status='NOT_SUPPLIED' if retention is None else 'ORIGINAL_PARENT_WALL_AGGREGATE',
+                       aggregate=retention),
+        reportMaterializationElapsedNs=None, receiptEncodingElapsedNs=None,
+        incrementalAllocationBytes=None, incrementalRSSBytes=None,
+        fullObservationOverheadMeasured=False, stagesAdded=False, overheadSubtractedFromCallee=False,
+        originalReport=copy.deepcopy(guard),
+        meaning='processRSSRetention is nested inside ownedRSS and sampleIncludingLockWait. Its wall span excludes the timer bookkeeping after the closing clock read, report deepcopy and receipt encoding; no complete overhead, additive duration, Go CPU or performance gain is inferred.')
+
+
 def verifier_resources(receipt):
     """Join retained parent boundaries to the original single RSS peak snapshot.
 
@@ -620,7 +670,7 @@ def verifier_resources(receipt):
         originalFirstCause=receipt.get('firstCause'), originalResourceFirstFailure=copy.deepcopy(receipt.get('resourceFirstFailure')),
         originalCaps=copy.deepcopy(receipt.get('caps')), originalProcessCapacity=copy.deepcopy(receipt.get('processCapacity')),
         originalCleanupComplete=receipt.get('cleanupComplete'), originalHelperCoverage=helpers,
-        processRSSObservation=rss_observations,
+        processRSSObservation=rss_observations, resourceObservationCost=rss_observation_cost(receipt),
         business=cohort, records=records,
         coverage=dict(retainedVerifierRequests=len(timings), registeredVerifierProcesses=len(registered),
                       notRepresentedByRetainedVerifierRecords=500-len(records),
@@ -713,6 +763,9 @@ def verifier_summary(receipt_raw, readback):
             and receipt.get('peakRSSSample') == readback.get('peakRSSSample')
             and receipt.get('firstCause') == readback.get('firstCause'),
             'receipt identity, denominator, resource snapshot or first cause differs from readback')
+    if 'originalResourceGuardStageElapsed' in readback:
+        require(readback['originalResourceGuardStageElapsed'] == receipt.get('resourceGuardStageElapsed'),
+                'original held guard timing projection differs from receipt')
     result = verifier_resources(receipt)
     result['binding'] = dict(originalReceiptPath=refs[0][0], receiptBytes=len(receipt_raw), receiptSHA256=digest,
         archiveSHA256=readback.get('archiveSHA256'), controller=readback.get('controller'),
