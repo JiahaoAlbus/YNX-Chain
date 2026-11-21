@@ -8,6 +8,11 @@ on:
       - codex/v5-link-native-ci
     paths:
       - "scripts/verify/qualify_pq_private_synthetic_ci.py"
+      - "scripts/verify/qualify_held_optional_live_getter.py"
+      - "scripts/verify/test_qualify_held_optional_live_getter.py"
+      - "scripts/verify/pq-history-*-ci.*"
+      - "scripts/verify/test-pq-history-finalize-ci.py"
+      - "scripts/verify/qualify-pq-finalize-ci.py"
       - ".github/workflows/chain-core.yml"
       - ".github/workflows/resource-market-ci.yml"
       - "Makefile"
@@ -46,6 +51,11 @@ on:
       - codex/ynx-pq-perf-integration
     paths:
       - "scripts/verify/qualify_pq_private_synthetic_ci.py"
+      - "scripts/verify/qualify_held_optional_live_getter.py"
+      - "scripts/verify/test_qualify_held_optional_live_getter.py"
+      - "scripts/verify/pq-history-*-ci.*"
+      - "scripts/verify/test-pq-history-finalize-ci.py"
+      - "scripts/verify/qualify-pq-finalize-ci.py"
       - ".github/workflows/chain-core.yml"
       - ".github/workflows/resource-market-ci.yml"
       - "Makefile"
@@ -166,6 +176,8 @@ jobs:
             scripts/verify/wire-live-matching-source-ci.py scripts/verify/test_wire_live_matching_source_ci.py \
             scripts/verify/pq-clock-ab-ci.sh scripts/verify/pq-enrollment-original-ci-receipt.py \
             scripts/verify/qualify_pq_private_synthetic_ci.py \
+            scripts/verify/qualify_held_optional_live_getter.py scripts/verify/test_qualify_held_optional_live_getter.py \
+            'scripts/verify/pq-history-*-ci.*' scripts/verify/test-pq-history-finalize-ci.py scripts/verify/qualify-pq-finalize-ci.py \
             scripts/ops/test_validate_pq_observer_ci.py \
             .github/workflows/chain-core.yml .github/workflows/resource-market-ci.yml > "$RUNNER_TEMP/client-observation-changes.txt"
           if [[ -s "$RUNNER_TEMP/client-observation-changes.txt" ]]; then

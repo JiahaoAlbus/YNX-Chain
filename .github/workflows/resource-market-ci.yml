@@ -8,6 +8,13 @@ on:
       - 'codex/ynx-pq-perf-integration'
     paths:
       - 'scripts/verify/qualify_pq_private_synthetic_ci.py'
+      - 'scripts/verify/test_qualify_held_optional_live_getter.py'
+      - 'scripts/verify/qualify_held_optional_live_getter.py'
+      - 'scripts/verify/test_wire_live_matching_source_ci.py'
+      - 'scripts/verify/wire-live-matching-source-ci.py'
+      - 'scripts/verify/pq-history-*-ci.*'
+      - 'scripts/verify/test-pq-history-finalize-ci.py'
+      - 'scripts/verify/qualify-pq-finalize-ci.py'
       - 'scripts/verify/pq-clock-ab-ci.sh'
       - 'scripts/verify/pq-enrollment-command-ci.sh'
       - 'scripts/verify/qualify_pq_portable_ci.py'
@@ -206,6 +213,13 @@ on:
   pull_request:
     paths:
       - 'scripts/verify/qualify_pq_private_synthetic_ci.py'
+      - 'scripts/verify/test_qualify_held_optional_live_getter.py'
+      - 'scripts/verify/qualify_held_optional_live_getter.py'
+      - 'scripts/verify/test_wire_live_matching_source_ci.py'
+      - 'scripts/verify/wire-live-matching-source-ci.py'
+      - 'scripts/verify/pq-history-*-ci.*'
+      - 'scripts/verify/test-pq-history-finalize-ci.py'
+      - 'scripts/verify/qualify-pq-finalize-ci.py'
       - 'scripts/verify/pq-clock-ab-ci.sh'
       - 'scripts/verify/pq-enrollment-command-ci.sh'
       - 'scripts/verify/qualify_pq_portable_ci.py'
@@ -1603,8 +1617,87 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  held-optional-live-source:
+    name: Exact optional live getter source composition
+    # This independent source composition owns its original bounded job rather
+    # than inheriting the elapsed client, lab and observer execution time.
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      GOMAXPROCS: '2'
+    steps:
+      - name: Checkout exact getter source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install the original pinned getter Go toolchain
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          check-latest: false
+          cache: true
+      - name: Verify strict source availability and separated Go stream controls
+        run: python3 -B scripts/verify/test_wire_live_matching_source_ci.py
+      - name: Acquire only the immutable optional supplier object
+        env:
+          WIRE_SUPPLIER_READ_TOKEN: ${{ github.token }}
+        run: |
+          python3 -B - <<'PY'
+          import base64, os, subprocess
+          commit = '5a49f5c91452604dffb910df736702b3b9df2562'
+          tree = '08747364c24c065bf2b13527c210625d7ec95fba'
+          # contents:read only; never write credentials to config, argv, disk
+          # or logs. This one explicit fetch is outside the offline helper.
+          environment = os.environ.copy()
+          token = environment.pop('WIRE_SUPPLIER_READ_TOKEN')
+          if not token:
+              raise RuntimeError('read-only supplier acquisition credential missing')
+          environment.update(GIT_CONFIG_COUNT='1',
+              GIT_CONFIG_KEY_0='http.https://github.com/.extraheader',
+              GIT_CONFIG_VALUE_0='AUTHORIZATION: basic ' + base64.b64encode(('x-access-token:' + token).encode()).decode(),
+              GIT_TERMINAL_PROMPT='0', GIT_TRACE='0', GIT_TRACE_CURL='0', GIT_CURL_VERBOSE='0')
+          subprocess.run(['git', 'fetch', '--quiet', '--no-tags', '--no-recurse-submodules',
+              '--depth=1', '--no-write-fetch-head', 'origin', commit], env=environment, check=True, timeout=60)
+          actual_commit = subprocess.check_output(['git', 'rev-parse', '--verify', commit + '^{commit}'], text=True).strip()
+          actual_tree = subprocess.check_output(['git', 'rev-parse', '--verify', commit + ':third_party/cometbft'], text=True).strip()
+          if actual_commit != commit or actual_tree != tree:
+              raise RuntimeError('received immutable supplier identity differs')
+          if subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip() != os.environ['GITHUB_SHA']:
+              raise RuntimeError('supplier acquisition changed original HEAD')
+          if subprocess.check_output(['git', 'status', '--porcelain']).strip():
+              raise RuntimeError('supplier acquisition changed original checkout')
+          print('YNX_WIRE_SUPPLIER_OBJECT_RECEIVED commit=' + commit + ' forkTree=' + tree)
+          PY
+      - name: Verify exact optional live getter composition without enabling a carrier
+        run: python3 -B scripts/verify/wire-live-matching-source-ci.py
+      - name: Verify held getter qualification controls
+        run: python3 -B scripts/verify/test_qualify_held_optional_live_getter.py
+      - name: Qualify complete original getter source and Go streams
+        run: |
+          python3 -B scripts/verify/qualify_held_optional_live_getter.py
+      - name: Preserve only public optional live source evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: held-normal-live-wire-source-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/wire-live-source-*/SOURCE.json
+            ${{ runner.temp }}/wire-live-source-*/normal-live-caller.jsonl
+            ${{ runner.temp }}/wire-live-source-*/normal-live-caller.stderr.log
+            ${{ runner.temp }}/wire-live-source-*/normal-live-caller.result.json
+            ${{ runner.temp }}/wire-live-source-*/original-peer-budget.jsonl
+            ${{ runner.temp }}/wire-live-source-*/original-peer-budget.stderr.log
+            ${{ runner.temp }}/wire-live-source-*/original-peer-budget.result.json
+            ${{ runner.temp }}/wire-live-source-*/composition/SOURCE-SELECTION.json
+            ${{ runner.temp }}/wire-live-source-*/GETTER-QUALIFICATION.json
+          if-no-files-found: error
+          retention-days: 14
+
   focused-go:
-    needs: detached-source-checks
+    needs: [detached-source-checks, source-history-counterexamples]
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'workflow_dispatch' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))
     outputs:
       inputs-artifact-id: ${{ steps.stageupload.outputs.artifact-id }}
@@ -2050,51 +2143,6 @@ jobs:
             ${{ runner.temp }}/ynx-pq-light-source-public/public-delivery/trust-context.json
             ${{ runner.temp }}/ynx-pq-light-source-public/public-delivery/delivery.json
             ${{ runner.temp }}/ynx-pq-light-source-public/public-delivery/PUBLIC-test-receipt.json
-      - name: Verify original key ceremony retains partial custody and never creates during resume
-        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
-        timeout-minutes: 2
-        run: |
-          set -euo pipefail
-          umask 077
-          YNX_KEY_CEREMONY_CASE="$RUNNER_TEMP/ynx-original-key-ceremony-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
-          export YNX_KEY_CEREMONY_CASE
-          mkdir "$YNX_KEY_CEREMONY_CASE"
-          cp internal/consensus/key_ceremony.go "$YNX_KEY_CEREMONY_CASE/fixed.go"
-          git show df4c9717c6cedda089c4a350b36cb09240e6b919:internal/consensus/key_ceremony.go > "$YNX_KEY_CEREMONY_CASE/original.go"
-          trap 'cp "$YNX_KEY_CEREMONY_CASE/fixed.go" internal/consensus/key_ceremony.go' EXIT
-          python3 -B - <<'PY'
-          import os, re
-          from pathlib import Path
-          root = Path(os.environ['YNX_KEY_CEREMONY_CASE'])
-          pattern = r'(?ms)^func InitializeProductionKeyFiles\(.*?^}\n'
-          fixed = (root / 'fixed.go').read_text()
-          old = re.findall(pattern, (root / 'original.go').read_text())
-          if len(old) != 1:
-              raise SystemExit('original key ceremony function is ambiguous')
-          replaced, count = re.subn(pattern, lambda _: old[0], fixed)
-          if count != 1:
-              raise SystemExit('fixed key ceremony function is ambiguous')
-          # Only the new intent encoder uses this standard-library import.
-          # Replaying the old function must compile before its real overwrite
-          # can qualify as the expected assertion failure.
-          unused = '\t"encoding/json"\n'
-          if replaced.count(unused) != 1:
-              raise SystemExit('new intent-only import is ambiguous')
-          replaced = replaced.replace(unused, '')
-          Path('internal/consensus/key_ceremony.go').write_text(replaced)
-          PY
-          set +e
-          go test -v -p 1 -count=1 -timeout=60s -run '^TestProductionKeyCeremonyPublicPathCannotReplaceGeneratedPrivateKey$' ./internal/consensus > "$YNX_KEY_CEREMONY_CASE/original-red.log" 2>&1
-          YNX_KEY_CEREMONY_RED_STATUS=$?
-          set -e
-          cp "$YNX_KEY_CEREMONY_CASE/fixed.go" internal/consensus/key_ceremony.go
-          trap - EXIT
-          cat "$YNX_KEY_CEREMONY_CASE/original-red.log"
-          test "$YNX_KEY_CEREMONY_RED_STATUS" -ne 0
-          grep -F 'public output replaced generated custody or hid the failure: <nil>' "$YNX_KEY_CEREMONY_CASE/original-red.log"
-          go test -v -p 1 -count=1 -timeout=90s -run '^TestProductionKeyCeremony' ./internal/consensus
-          go test -v -p 1 -count=1 -timeout=60s ./cmd/ynx-consensus-key-init
-          bash scripts/verify/init-consensus-candidate-keys-check.sh
       - name: Compile frozen measured production overlay without executing cases
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
@@ -2832,6 +2880,10 @@ jobs:
               raise RuntimeError('original trimpath linked declaration missing')
           PY
           cat "$RUNNER_TEMP/ynx-comet-monotonic-buildinfo.json"
+      - name: Qualify original Finalize phase observation tests
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success' && steps.syntheticclock.outcome == 'success') }}
+        run: python3 -B scripts/verify/qualify-pq-finalize-ci.py
+
       - name: Retain original synthetic Commit clock test events
         if: ${{ !cancelled() && steps.syntheticclock.outcome != 'skipped' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -2995,164 +3047,6 @@ jobs:
             ${{ runner.temp }}/ynx-committed-account-wire/STDERR
           if-no-files-found: error
           retention-days: 7
-      - name: Reproduce signed-history overwrite and unsafe rollback callers
-        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
-        timeout-minutes: 3
-        run: |
-          if bash scripts/verify/reuse-pq-history-counterexamples.sh; then
-            exit 0
-          fi
-          set -euo pipefail
-          YNX_HISTORY_SCRIPT_CASE="$RUNNER_TEMP/ynx-history-scripts-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
-          umask 077
-          mkdir "$YNX_HISTORY_SCRIPT_CASE"
-          cp internal/consensus/production.go "$YNX_HISTORY_SCRIPT_CASE/fixed-production.go"
-          cp scripts/ops/rollback-consensus-candidate.sh "$YNX_HISTORY_SCRIPT_CASE/fixed-rollback.sh"
-          trap 'cp "$YNX_HISTORY_SCRIPT_CASE/fixed-production.go" internal/consensus/production.go; cp "$YNX_HISTORY_SCRIPT_CASE/fixed-rollback.sh" scripts/ops/rollback-consensus-candidate.sh' EXIT
-          python3 -B - <<'PY'
-          import re, subprocess
-          from pathlib import Path
-          path = Path('internal/consensus/production.go')
-          fixed = path.read_text()
-          old = subprocess.check_output(['git', 'show', '3a72627aae36a94b61d3c771ad14e313f3510361:internal/consensus/production.go'], text=True)
-          def span(text):
-              start = re.search(r'^func writeProductionRoleScripts\(', text, re.M)
-              if start is None:
-                  raise RuntimeError('original script generator missing')
-              following = re.search(r'^func ', text[start.end():], re.M)
-              return start.start(), len(text) if following is None else start.end() + following.start()
-          a, b = span(fixed)
-          c, d = span(old)
-          path.write_text(fixed[:a] + old[c:d] + fixed[b:])
-          PY
-          set +e
-          go test -p 1 -count=1 -timeout=60s -v -run '^TestProductionRoleScriptsPreserveSignedStateAndUnknownResults$/^existing-signed-install$' ./internal/consensus > "$YNX_HISTORY_SCRIPT_CASE/original-install-red.log" 2>&1
-          YNX_HISTORY_INSTALL_RED=$?
-          set -e
-          cp "$YNX_HISTORY_SCRIPT_CASE/fixed-production.go" internal/consensus/production.go
-          cat "$YNX_HISTORY_SCRIPT_CASE/original-install-red.log"
-          test "$YNX_HISTORY_INSTALL_RED" -ne 0
-          grep -Fq 'PRODUCTION_SCRIPT_HISTORY_NOT_PRESERVED' "$YNX_HISTORY_SCRIPT_CASE/original-install-red.log"
-          git show 3a72627aae36a94b61d3c771ad14e313f3510361:scripts/ops/rollback-consensus-candidate.sh > scripts/ops/rollback-consensus-candidate.sh
-          set +e
-          go test -p 1 -count=1 -timeout=60s -v -run '^TestProductionRollbackCallerRefusesBeforeTransport$/^without-archive$' ./internal/consensus > "$YNX_HISTORY_SCRIPT_CASE/original-rollback-red.log" 2>&1
-          YNX_HISTORY_ROLLBACK_RED=$?
-          set -e
-          cp "$YNX_HISTORY_SCRIPT_CASE/fixed-rollback.sh" scripts/ops/rollback-consensus-candidate.sh
-          cat "$YNX_HISTORY_SCRIPT_CASE/original-rollback-red.log"
-          test "$YNX_HISTORY_ROLLBACK_RED" -ne 0
-          grep -Fq 'PRODUCTION_ROLLBACK_TRANSPORT_NOT_PRESERVED' "$YNX_HISTORY_SCRIPT_CASE/original-rollback-red.log"
-          go test -p 1 -count=1 -timeout=60s -v -run '^TestProduction(RoleScriptsPreserveSignedStateAndUnknownResults|RollbackCallerRefusesBeforeTransport)$/^(existing-signed-install|without-archive)$' ./internal/consensus
-      - name: Reproduce source-authority initialization coupling and verify independent execution
-        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
-        timeout-minutes: 4
-        run: |
-          if bash scripts/verify/reuse-pq-history-counterexamples.sh; then
-            exit 0
-          fi
-          YNX_PRESERVE_CASE="$RUNNER_TEMP/ynx-migration-preservation-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
-          umask 077
-          mkdir "$YNX_PRESERVE_CASE"
-          cp internal/consensus/application.go "$YNX_PRESERVE_CASE/fixed-application.go"
-          cp internal/consensus/runtime_upgrade.go "$YNX_PRESERVE_CASE/fixed-runtime-upgrade.go"
-          trap 'cp "$YNX_PRESERVE_CASE/fixed-application.go" internal/consensus/application.go; cp "$YNX_PRESERVE_CASE/fixed-runtime-upgrade.go" internal/consensus/runtime_upgrade.go' EXIT
-          python3 -B - <<'PY'
-          from pathlib import Path
-          for name in ('application.go', 'runtime_upgrade.go'):
-              path = Path('internal/consensus') / name
-              text = path.read_text()
-              fixed = 'validateMigrationPreservationClosure(migration)'
-              assert text.count(fixed) == 1
-              path.write_text(text.replace(fixed, 'validateMigrationExecutionClosure(migration)'))
-          PY
-          set +e
-          go test -p 1 -count=1 -timeout=90s -v -run '^TestMigrationPreservationFactoryKeepsSourceAndIndependentExecution$' ./internal/consensus > "$YNX_PRESERVE_CASE/original-red.log" 2>&1
-          YNX_PRESERVE_RED_STATUS=$?
-          set -e
-          cp "$YNX_PRESERVE_CASE/fixed-application.go" internal/consensus/application.go
-          cp "$YNX_PRESERVE_CASE/fixed-runtime-upgrade.go" internal/consensus/runtime_upgrade.go
-          trap - EXIT
-          cat "$YNX_PRESERVE_CASE/original-red.log"
-          test "$YNX_PRESERVE_RED_STATUS" -ne 0
-          grep -Fq '=== RUN   TestMigrationPreservationFactoryKeepsSourceAndIndependentExecution' "$YNX_PRESERVE_CASE/original-red.log"
-          grep -Eq '^--- FAIL: TestMigrationPreservationFactoryKeepsSourceAndIndependentExecution' "$YNX_PRESERVE_CASE/original-red.log"
-          grep -F 'MIGRATION_PRESERVATION_FACTORY_BLOCKED' "$YNX_PRESERVE_CASE/original-red.log"
-          go test -p 1 -count=1 -timeout=90s -v -run '^(TestMigrationPreservation|TestMigrationPaySourceDoesNotInventMerchantAuthority$)' ./internal/consensus
-      - name: Reproduce JSON-only signing source and verify real journal recovery
-        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
-        timeout-minutes: 4
-        run: |
-          if bash scripts/verify/reuse-pq-history-counterexamples.sh; then
-            exit 0
-          fi
-          YNX_READ_CASE="$RUNNER_TEMP/ynx-pq-state-read-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
-          umask 077
-          mkdir "$YNX_READ_CASE"
-          cp internal/consensus/pq_engine_file_source.go "$YNX_READ_CASE/fixed-source.go"
-          trap 'cp "$YNX_READ_CASE/fixed-source.go" internal/consensus/pq_engine_file_source.go' EXIT
-          python3 -B - <<'PY'
-          from pathlib import Path
-          path = Path('internal/consensus/pq_engine_file_source.go')
-          text = path.read_text()
-          fixed = 'readPQEngineCommittedStateOwned(statePath, witness, authorization, runtime, capture)'
-          assert text.count(fixed) == 1
-          path.write_text(text.replace(fixed, 'loadCommittedStateOwned(statePath, witness)'))
-          PY
-          set +e
-          go test -p 1 -count=1 -timeout=90s -v -run '^TestPQEngineStateReadActualLayoutsRegistryRotationRevocation$' ./internal/consensus > "$YNX_READ_CASE/original-red.log" 2>&1
-          YNX_READ_RED_STATUS=$?
-          set -e
-          cp "$YNX_READ_CASE/fixed-source.go" internal/consensus/pq_engine_file_source.go
-          trap - EXIT
-          cat "$YNX_READ_CASE/original-red.log"
-          test "$YNX_READ_RED_STATUS" -ne 0
-          test "$(grep -c 'actual fresh signing source rejected the complete layout' "$YNX_READ_CASE/original-red.log")" -eq 2
-          grep -F -- '--- PASS: TestPQEngineStateReadActualLayoutsRegistryRotationRevocation/atomic-json' "$YNX_READ_CASE/original-red.log"
-          go test -p 1 -count=1 -timeout=120s -v -run '^TestPQEngineStateRead' ./internal/consensus
-      - name: Reproduce atomic-only Comet operator startup and verify normal journal selection
-        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
-        timeout-minutes: 3
-        run: |
-          if bash scripts/verify/reuse-pq-history-counterexamples.sh; then
-            exit 0
-          fi
-          YNX_COMET_LAYOUT_CASE="$RUNNER_TEMP/ynx-comet-layout-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
-          umask 077
-          mkdir "$YNX_COMET_LAYOUT_CASE"
-          cp cmd/ynx-comet/runtime_upgrade.go "$YNX_COMET_LAYOUT_CASE/fixed-operator.go"
-          trap 'cp "$YNX_COMET_LAYOUT_CASE/fixed-operator.go" cmd/ynx-comet/runtime_upgrade.go' EXIT
-          python3 -B - <<'PY'
-          from pathlib import Path
-          path = Path('cmd/ynx-comet/runtime_upgrade.go')
-          text = path.read_text()
-          start = '\tvar app *consensus.Application\n'
-          end = '\n\tif err == nil {\n\t\terr = app.ValidateNormalRuntime()'
-          assert text.count(start) == 1 and text.count(end) == 1
-          a, b = text.index(start), text.index(end)
-          assert 'switch options.applicationLayout()' in text[a:b]
-          original = '''\tvar app *consensus.Application
-          \t_ = invoice // Historical atomic-only counterexample intentionally ignores this feature.
-          \tif runtime != nil {
-          \t\tapp, err = consensus.NewPersistentApplicationWithRuntimeUpgrade(migration, path, bootstrap, pq, runtime)
-          \t} else if pq != nil {
-          \t\tapp, err = consensus.NewPersistentApplicationWithEngineAuthorization(migration, path, bootstrap, pq)
-          \t} else {
-          \t\tapp, err = consensus.NewPersistentApplicationWithBootstrap(migration, path, bootstrap)
-          \t}'''
-          path.write_text(text[:a] + original + text[b:])
-          PY
-          set +e
-          go test -p 1 -count=1 -timeout=90s -v -run '^TestCometJournalOperatorApplicationRealRegistryScheduleColdContinuation$' ./cmd/ynx-comet > "$YNX_COMET_LAYOUT_CASE/original-red.log" 2>&1
-          YNX_COMET_LAYOUT_RED_STATUS=$?
-          set -e
-          cp "$YNX_COMET_LAYOUT_CASE/fixed-operator.go" cmd/ynx-comet/runtime_upgrade.go
-          trap - EXIT
-          cat "$YNX_COMET_LAYOUT_CASE/original-red.log"
-          test "$YNX_COMET_LAYOUT_RED_STATUS" -ne 0
-          test "$(grep -c 'normal helper silently used another storage layout' "$YNX_COMET_LAYOUT_CASE/original-red.log")" -eq 2
-          test "$(grep -c 'wrong layout silently selected another decoder' "$YNX_COMET_LAYOUT_CASE/original-red.log")" -eq 1
-          grep -F 'normalOperatorLayout=atomic-json actualCommitAndColdRecovery=true' "$YNX_COMET_LAYOUT_CASE/original-red.log"
-          go test -p 1 -count=1 -timeout=90s -v -run '^TestCometJournal' ./cmd/ynx-comet
       - name: Reproduce Ethereum mutable-lot provenance counterexamples and verify cold recovery
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         run: |
@@ -4435,6 +4329,86 @@ jobs:
 
   # Current tests and delivery checks remain separate bounded stages of the
   # same run/source. Only the closed public fixture catalog crosses runners.
+  source-history-counterexamples:
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'workflow_dispatch' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      GOMAXPROCS: '2'
+      GOGC: '50'
+      GOMEMLIMIT: '1536MiB'
+      CGO_ENABLED: '0'
+      GOPROXY: https://proxy.golang.org
+      GOSUMDB: sum.golang.org
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Record exact candidate identity
+        id: identity
+        env:
+          YNX_ENTRY_EVENT: ${{ github.event_name }}
+          YNX_ENTRY_REF: ${{ github.ref }}
+          YNX_ENTRY_GITHUB_SHA: ${{ github.sha }}
+          YNX_ENTRY_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          YNX_ENTRY_REMOTE_RETAINED: ${{ inputs.consensus_remote_e2e_retained_history }}
+          YNX_ENTRY_PAIRED: ${{ inputs.paired_n1 }}
+          YNX_ENTRY_LOCAL: ${{ inputs.consensus_e2e }}
+          YNX_ENTRY_LOCAL_RETAINED: ${{ inputs.consensus_e2e_retained_history }}
+          YNX_ENTRY_REMOTE_PROCESS: ${{ inputs.remote_signer_process }}
+          YNX_ENTRY_FRESH_BUSINESS: ${{ inputs.consensus_fresh_paired_business }}
+        run: |
+          git rev-parse HEAD
+          test "$(git rev-parse HEAD)" = '${{ github.sha }}'
+          test "$(git rev-parse --is-shallow-repository)" = false
+          git merge-base --is-ancestor aa97f102fc72ee89ef3c61b6125256b288694b39 HEAD
+          go version
+          git status --porcelain
+          bash scripts/verify/pq-remote-window-entry-check.sh
+          python3 -B scripts/verify/pq-ci-replay-entry-identity.py
+      - name: Verify same-run history and Finalize event controls
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        run: python3 -B scripts/verify/test-pq-history-finalize-ci.py
+      - name: Verify original key ceremony retains partial custody and never creates during resume
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 2
+        run: bash scripts/verify/pq-history-ceremony-ci.sh
+      - name: Reproduce signed-history overwrite and unsafe rollback callers
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 3
+        run: bash scripts/verify/pq-history-signed-history-ci.sh
+      - name: Reproduce source-authority initialization coupling and verify independent execution
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 4
+        run: bash scripts/verify/pq-history-source-authority-ci.sh
+      - name: Reproduce JSON-only signing source and verify real journal recovery
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 4
+        run: bash scripts/verify/pq-history-journal-ci.sh
+      - name: Reproduce atomic-only Comet operator startup and verify normal journal selection
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 3
+        run: bash scripts/verify/pq-history-comet-layout-ci.sh
+      - name: Qualify the twelve original history test event streams
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        run: python3 -B scripts/verify/pq-history-qualify-ci.py
+      - name: Retain only same-run original history test events
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-history-original-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ynx-pq-history-public/*.log
+            ${{ runner.temp }}/ynx-pq-history-public/*.json
+          if-no-files-found: error
+          retention-days: 7
   detached-source-checks:
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'workflow_dispatch' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))
     runs-on: ubuntu-24.04
@@ -4575,8 +4549,8 @@ jobs:
           retention-days: 7
 
   protocol-delivery:
-    needs: [focused-go, caddy-source, detached-source-checks]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success' && needs.detached-source-checks.result == 'success'
+    needs: [focused-go, caddy-source, detached-source-checks, held-optional-live-source]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success' && needs.detached-source-checks.result == 'success' && needs.held-optional-live-source.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     env:
