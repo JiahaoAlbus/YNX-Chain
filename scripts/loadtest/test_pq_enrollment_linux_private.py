@@ -40,6 +40,7 @@ class HostedSyntheticReservationControls(unittest.TestCase):
         class Window:
             def __init__(self,source,work):
                 self.source,self.work=source,work;self.lock=threading.RLock();self.env={};self.children=[];self.known={}
+                self.storage_roots=[work];self.started=__import__('time').monotonic()
                 self.peak_rss=12;self.peak_bytes=34
                 (work/'.private/bin').mkdir();outer.window=self
             def _sample(self):

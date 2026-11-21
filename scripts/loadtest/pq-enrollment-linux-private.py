@@ -29,6 +29,7 @@ def module(name):
 
 r=module('pq-enrollment-reservation-transport.py')
 driver=module('pq-independent-load.py');lab=driver.lab
+stopped_reader=module('pq-enrollment-stopped-readback.py')
 require=r.require
 # Exact normal integration source, inspected locally against original Git
 # objects. This permits one synthetic test job, not source CI or runtime grants.
@@ -51,6 +52,7 @@ PUBLIC_NAME='SUMMARY.json'
 # closure on exit is NOT proof that its child/descendants have retired.
 _CUSTODY=vars(sys).setdefault('_ynx_enrollment_fixture_custody_v1',
                             dict(lock=threading.Lock(),owners={}))
+_READ_SCOPE_DEBT=[] # Strong custody of uncertain observer/FD shutdown; never retry.
 
 
 def identity():
@@ -92,6 +94,7 @@ def initial_report():
         nonceReleased=False,automaticRetry=False,privateDataExported=False,nodeStarted=False,
         businessLoadExecuted=False,normalFixtureTestPassed=False,localPairReservationObserved=False,
         peerAckBytesMatch=False,bothOutboxRequestBytesMatch=False,operationIdentity='UNKNOWN',
+        stoppedReadback=stopped_reader.report(),stoppedReadResources=None,
         currentEligibility='UNKNOWN',cleanupComplete=False,cleanupDebt=False,firstCause=None,
         cleanupErrors=[],steps=[],missingEvidence=[],resourceSemantics=
         'Original periodic owned RSS/log/storage observations, not hard cgroup or hard log ceilings; '
@@ -104,6 +107,185 @@ def enable_original_subreaper():
     enabled=ctypes.c_int()
     require(libc.prctl(37,ctypes.byref(enabled),0,0,0)==0 and enabled.value==1,
             'original Linux subreaper readback differs')
+
+
+class StoppedReadScope:
+    """Same supervisor and owned storage, after original descendant retirement.
+
+    Reuses original inventory/RSS/storage guards without touching stopped logs
+    or restarting a Window. Samples are observations, never a continuous cap.
+    The main-thread alarm bounds the read operation; the periodic observer has
+    a separate bounded retirement, with unresolved handles retained as debt.
+    """
+    SECONDS=10
+    def __init__(self,window):
+        require(sys.platform=='linux' and threading.current_thread() is threading.main_thread(),
+                'stopped originals require original Linux main-thread read scope')
+        self.window=window;self.lock=threading.Lock();self.roots=[];self.monitor=None
+        self.first=None;self.closed=False;self.closing=False;self.alarm=False;self.cleanup_debt=False;self.samples=0
+        self.cleanup_errors=[]
+        self.storage_bytes=None;self.last_storage=None
+        self.peak=None;self.peak_bytes=None;self.first_ns=None;self.last_ns=None;self.fallback_kinds=set()
+        self.pid=os.getpid();self.started=time.monotonic()
+        self.until=min(self.started+self.SECONDS,window.started+lab.CAPS['totalSeconds']-1)
+        self.stop=threading.Event();self.old_alarm=None
+        with lab.bounded_original_lifecycle(window.lock,.05):
+            require(window.closed_for_launch and window.launches_closed and not window.pending_launches
+                and not window.launch_cleanup_debt and not getattr(window,'launch_cleanup_failure',None),
+                'original stopped ownership is incomplete')
+            require(all(vars(row['process']).get('returncode') is not None for row in window.children),
+                    'original child is not reaped')
+            self.known=dict(window.known);self.start_ticks=self.known.get(self.pid)
+            paths=tuple(window.storage_roots)
+            root_ids=dict(getattr(window,'_enrollment_storage_identities',{}))
+        require(type(self.start_ticks) is int and self.start_ticks>0,'original supervisor startTicks missing')
+        require(1<=len(paths)<=8 and Path(window.work) in paths,'original owned storage scope missing')
+        self.paths=paths;self.root_ids=root_ids
+    def _open_roots(self):
+        for path in self.paths:
+            path=Path(path)
+            require(path.is_absolute() and path.resolve(strict=True)==path,'original storage path changed')
+            fd=os.open(path,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+            # Own the raw FD before any following syscall can fail.
+            self.roots.append((path,fd,None));info=os.fstat(fd);self.roots[-1]=(path,fd,info)
+            require(self.root_ids.get(str(path))==(info.st_dev,info.st_ino),'pre-launch owned storage identity missing or changed')
+        self._root_check()
+    def _root_check(self):
+        for path,fd,before in self.roots:
+            current=path.lstat();held=os.fstat(fd)
+            require(stat.S_ISDIR(current.st_mode) and (current.st_dev,current.st_ino)==(before.st_dev,before.st_ino)
+                    ==(held.st_dev,held.st_ino) and current.st_uid==held.st_uid==os.geteuid(),
+                    'original stopped storage identity differs')
+    def _deadline(self):
+        require(not self.closed and time.monotonic()<self.until,'original stopped read deadline exceeded')
+    def sample(self,*,final=False):
+        require(self.lock.acquire(timeout=.05),'original stopped read observer lock unavailable')
+        try:return self._sample(force_storage=final)
+        finally:self.lock.release()
+    def _sample(self,*,force_storage=False):
+        self._deadline();self._root_check()
+        rows,_=lab.guard.proc_inventory()
+        require(self.pid in rows and rows[self.pid]['startTicks']==self.start_ticks,
+                'original stopped supervisor identity missing or changed')
+        ids=lab.guard.owned_set(rows,self.pid,known=self.known)
+        require(ids==[self.pid],'original descendants not retired at stopped read boundary')
+        fallback=[];retired=[]
+        size=lab.owned_rss(self.pid,rows[self.pid],retired.append,fallback.append)
+        require(type(size) is int and size>=0 and not retired,'original live supervisor RSS unavailable')
+        for entry in fallback:self.fallback_kinds.add(entry.get('sampleKind','UNKNOWN'))
+        self.peak=size if self.peak is None else max(self.peak,size)
+        # Preserve the original allocated-byte and regular-file inventory. No
+        # new smaller cache/storage domain is substituted for the original one.
+        now=time.monotonic()
+        if force_storage or self.last_storage is None or now-self.last_storage>=1:
+            self.storage_bytes=sum(lab.private_bytes(path) for path,_,_ in self.roots);self.last_storage=now
+        storage=self.storage_bytes
+        self.peak_bytes=storage if self.peak_bytes is None else max(self.peak_bytes,storage)
+        require(size<=lab.CAPS['rssBytes'],'owned RSS exceeded 4GiB during stopped read')
+        require(storage<=lab.CAPS['newBytes'],'new artifacts exceeded 8GiB during stopped read')
+        require(shutil.disk_usage(self.window.work).free>=1<<30,'runtime disk reserve below 1GiB during stopped read')
+        self._root_check();self._deadline()
+        now=time.monotonic_ns();self.first_ns=now if self.first_ns is None else self.first_ns;self.last_ns=now;self.samples+=1
+    def start(self):
+        require(self.monitor is None and not self.closed,'stopped read scope is one-shot')
+        require(signal.getitimer(signal.ITIMER_REAL)==(0.0,0.0) and signal.getsignal(signal.SIGALRM)==signal.SIG_DFL,
+                'original stopped read timer already owned')
+        self.old_alarm=signal.getsignal(signal.SIGALRM)
+        def deadline(_signum,_frame):raise TimeoutError('original stopped read alarm deadline')
+        signal.signal(signal.SIGALRM,deadline);self.alarm=True
+        signal.setitimer(signal.ITIMER_REAL,max(.001,self.until-time.monotonic()))
+        self._open_roots()
+        self.monitor=driver.Monitor(self,self.stop)
+        self.sample();self.monitor.thread.start()
+    def check(self,*,final=False):
+        require(self.monitor is not None and not self.closing,'original stopped read observer not started or closing')
+        self.monitor.check();self.sample(final=final);self.monitor.check()
+    def close(self):
+        if self.closed or self.closing:return
+        self.closing=True
+        def secondary(error):
+            self.cleanup_debt=True
+            self.cleanup_errors.append(failure(error))
+            if self.first is None:self.first=failure(error)
+        if self.alarm:
+            self.alarm=False
+            try:signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,self.old_alarm)
+            except BaseException as error:secondary(error)
+        if self.monitor is not None:
+            self.monitor.finished.set()
+            if self.monitor.thread.ident is not None:
+                try:self.monitor.thread.join(timeout=.5)
+                except BaseException as error:secondary(error)
+            if self.monitor.thread.is_alive():
+                secondary(RuntimeError('original stopped read observer did not retire'))
+                self.closed=True;_READ_SCOPE_DEBT.append(self);return
+            snapshot=self.monitor.failure_snapshot()
+            if snapshot is not None and self.first is None:
+                self.first=dict(type=snapshot['errorType'],message=snapshot['originalError'])
+        self.closed=True
+        roots,self.roots=self.roots,[] # Single close responsibility, no reused FD retry.
+        for _,fd,_ in roots:
+            try:os.close(fd)
+            except BaseException as error:secondary(error)
+        if self.cleanup_debt:_READ_SCOPE_DEBT.append(self)
+    def report(self):
+        return dict(schema='YNX-PERF-STOPPED-READ-RESOURCES/v1',
+            status='OBSERVED' if self.closed and self.samples>0 and self.first is None and not self.cleanup_debt else 'UNKNOWN',
+            pid=self.pid,startTicks=self.start_ticks,samples=self.samples,firstSampleMonotonicNs=self.first_ns,
+            lastSampleMonotonicNs=self.last_ns,peakSampledRSSOrUpperBoundBytes=self.peak,
+            peakSampledOwnedBytes=self.peak_bytes,fallbackKinds=sorted(self.fallback_kinds),
+            caps=dict(rssBytes=lab.CAPS['rssBytes'],ownedBytes=lab.CAPS['newBytes'],ownedProcesses=lab.guard.CAPS['ownedProcesses'],diskReserveBytes=1<<30),
+            deadlineSeconds=self.SECONDS,originalTotalDeadlinePreserved=True,cleanupDebt=self.cleanup_debt,
+            firstCauseType=None if self.first is None else self.first['type'],
+            firstCauseSHA256=None if self.first is None else r.b.sha(r.original.canonical(self.first)),
+            cleanupErrors=[dict(type=error['type'],sha256=r.b.sha(r.original.canonical(error))) for error in self.cleanup_errors],
+            monitorRetired=self.monitor is not None and not self.monitor.thread.is_alive(),
+            continuousRSSLimitProven=False,readOnly=True,normalWindowRestarted=False)
+
+
+def finish_stopped_readback(window,lifecycle,out,handshake,binaries):
+    """Actual job continuation after stop, never another producer invocation."""
+    if handshake is None or binaries is None:
+        out['stoppedReadback']['missingEvidence']=['originalStoppedHandshakePins'];return
+    if not out['cleanupComplete'] or out['cleanupDebt'] or out.get('resourceFailureType') is not None:
+        out['stoppedReadback']['missingEvidence']=['originalRetirementWithoutResourceDebt'];return
+    process=None if lifecycle is None else lifecycle.process
+    if process is None or type(vars(process).get('returncode')) is not int \
+            or lifecycle.window is not window or lifecycle.registered is not True \
+            or not any(row['process'] is process and row['name']=='original-enrollment-handshake' for row in window.children):
+        out['stoppedReadback']['missingEvidence']=['originalReapedProducerHandle'];return
+    scope=None
+    try:
+        scope=StoppedReadScope(window);scope.start()
+        out['stoppedReadback']=stopped_reader.audit_stopped_originals(handshake=handshake,
+            binary_pins={role+'SHA256':pin['sha256'] for role,pin in binaries.items()},
+            stopped=dict(originalProcessReaped=True,ownedDescendantsRetired=True,cleanupDebt=False,firstCause=out['firstCause']),
+            check_resources=scope.check,enabled=True)
+        scope.check(final=True)
+        observed=out['stoppedReadback']
+        if observed['firstCauseType'] is not None:
+            out['firstCause']=out['firstCause'] or dict(type=observed['firstCauseType'],message='original stopped byte read refused; see retained error SHA')
+        if observed['cleanupDebt']:out['cleanupDebt']=True;out['cleanupComplete']=False
+    except BaseException as error:
+        original=None if scope is None or scope.monitor is None else scope.monitor.failure_snapshot()
+        first=failure(error) if original is None else dict(type=original['errorType'],message=original['originalError'])
+        out['firstCause']=out['firstCause'] or first
+        if scope is not None and scope.first is None:scope.first=first
+        if not isinstance(error,Exception):raise
+    finally:
+        if scope is not None:
+            try:scope.close()
+            except BaseException as error:
+                scope.cleanup_debt=True
+                scope.cleanup_errors.append(failure(error))
+                if scope.first is None:scope.first=failure(error)
+                if scope not in _READ_SCOPE_DEBT:_READ_SCOPE_DEBT.append(scope)
+            out['stoppedReadResources']=scope.report()
+            if scope.first is not None:out['firstCause']=out['firstCause'] or scope.first
+            if scope.cleanup_debt:out['cleanupDebt']=True;out['cleanupComplete']=False
+        if out['firstCause'] is not None or out['cleanupDebt']:
+            for key in ('bothConfirmationByteBindingsObserved','bothOutboxByteBindingsObserved','coldRecoveryReplyBytesMatch'):
+                out['stoppedReadback'][key]=False
 
 
 class PendingFixtureLaunch:
@@ -243,6 +425,10 @@ def public_projection(value):
                 'framePins','outboxRequestPins','caps','peakRSSBytes','peakOwnedBytes','monitorRetired','resourceFailureType',
                 'privateProcessReceiptSHA256'):
         if key in value:out[key]=value[key]
+    observed=value['stoppedReadback']
+    require(set(observed)==set(stopped_reader.report()),'closed stopped original projection required')
+    out['stoppedReadback']=observed # Reader returns fixed labels/hash-only data, never input paths or payload.
+    out['stoppedReadResources']=value['stoppedReadResources']
     out['steps']=[{key:step[key] for key in ('name','returnCode','elapsedNs')} for step in value['steps']]
     return out
 
@@ -270,7 +456,8 @@ def private_audit(pins,output,result):
 
 def run(source,parent,*,enabled=False,stop=None):
     require(enabled is True,'explicit private synthetic job required')
-    out=initial_report();work=None;window=None;monitor=None;lease=None;lifecycle=None;stop=threading.Event() if stop is None else stop
+    out=initial_report();work=None;window=None;monitor=None;lease=None;lifecycle=None;handshake=None;binaries=None
+    stop=threading.Event() if stop is None else stop
     try:
         fixed=identity();source=Path(source);parent=hosted_parent(Path(parent))
         require(source!=parent and not parent.is_relative_to(source),'private work must be outside source')
@@ -292,6 +479,9 @@ def run(source,parent,*,enabled=False,stop=None):
         work=Path(tempfile.mkdtemp(prefix='pq-enrollment-private-',dir=parent));work.chmod(0o700)
         (work/'.private').mkdir(mode=0o700);(work/'public').mkdir(mode=0o700)
         window=lab.Window(source,work)
+        window._enrollment_storage_identities={}
+        for path in window.storage_roots:
+            info=path.stat();window._enrollment_storage_identities[str(path)]=(info.st_dev,info.st_ino)
         # This disposable supervisor and all its children inherit the SAME
         # original file-size cap, including the FD-executed test process.
         resource.setrlimit(resource.RLIMIT_FSIZE,(lab.CAPS['newBytes'],lab.CAPS['newBytes']))
@@ -347,6 +537,8 @@ def run(source,parent,*,enabled=False,stop=None):
         if result.get('database'):
             observed,db_pin,file_pins=private_audit(pins,output,result)
             out.update(databasePin=db_pin,framePins=file_pins)
+            handshake=dict(originalLaunch=dict(root=pins.root,source=pins.source,planSHA256=pins.plan_pin,workloadSHA256=pins.workload_pin),
+                transcript=output/'frames',database=output/'original.sqlite',database_pin=db_pin,file_pins=file_pins)
             out['outboxRequestPins']={role:observed['originalPins'][role+'OutboxRequest']
                 for role in ('funding','migration') if role+'OutboxRequest' in observed.get('originalPins',{})}
             for key in ('localPairReservationObserved','peerAckBytesMatch','bothOutboxRequestBytesMatch'):out[key]=observed[key]
@@ -401,6 +593,13 @@ def run(source,parent,*,enabled=False,stop=None):
                 out['cleanupDebt']=True;out['cleanupComplete']=False
             # No sample after stop: ordinary stopped logs may be closed without
             # retire_log metadata. No invented post-readback resource proof.
+            try:finish_stopped_readback(window,lifecycle,out,handshake,binaries)
+            except BaseException as error:
+                # This is already the stopped-job finally path. A cancellation
+                # or secondary observer failure must not skip private receipt
+                # preservation and the original lease close below.
+                out['cleanupErrors'].append(failure(error));out['firstCause']=out['firstCause'] or failure(error)
+                out['cleanupDebt']=True;out['cleanupComplete']=False
         if work is not None:
             try:r.original._retain_readback(work/'.private',out)
             except Exception as error:
@@ -425,6 +624,9 @@ def main(argv=None):
     publish(Path(args.public_output),out)
     good=all(out[k] for k in ('normalFixtureTestPassed','localPairReservationObserved','peerAckBytesMatch',
                              'bothOutboxRequestBytesMatch','cleanupComplete')) and out['firstCause'] is None
+    good=good and out['stoppedReadback']['bothConfirmationByteBindingsObserved'] \
+        and out['stoppedReadback']['originalPendingPreserved'] \
+        and out['stoppedReadResources'] is not None and out['stoppedReadResources']['status']=='OBSERVED'
     return 0 if good else 2 # Synthetic function result only; status stays UNKNOWN.
 
 
