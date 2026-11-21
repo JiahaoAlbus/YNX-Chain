@@ -300,8 +300,8 @@ jobs:
     name: Original client observations and cohort readback
     # The original full release job deliberately omits integration pushes.
     # Execute the actual new client functions on those pushes as well.
-    needs: contract-tooling-scope
-    if: needs.contract-tooling-scope.outputs.client_changed == 'true'
+    needs: [contract-tooling-scope, default-off-wire-observation]
+    if: needs.contract-tooling-scope.outputs.client_changed == 'true' && needs.default-off-wire-observation.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     env:
@@ -443,6 +443,25 @@ jobs:
           fi
           python3 -B scripts/verify/qualify_pq_private_synthetic_ci.py "$RUNNER_TEMP/ynx-private-synthetic-safety-tests.jsonl"
 
+  default-off-wire-observation:
+    name: Original default-off wire observation tests
+    needs: contract-tooling-scope
+    if: needs.contract-tooling-scope.outputs.client_changed == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      GOMAXPROCS: '2'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          check-latest: false
+          cache: true
       - name: Verify the default-off normal node wire observation adapter
         env:
           CGO_ENABLED: '0'
@@ -518,6 +537,18 @@ jobs:
               raise RuntimeError('observer stream failed or an observer child skipped')
           print('YNX_PQ_OBSERVER_FORK_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=observer_required, nodeStarted=False, liveSyncVerified=False, independentFinalityVerified=False, nativeGrant=False), sort_keys=True))
           PY
+
+      - name: Reject skipped default-off wire tests
+        run: |
+          python3 -B - <<'PYTEST'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          for name in ('wire-observer-tests.jsonl', 'wire-caller-tests.jsonl', 'ynx-pq-observer-fork-tests.jsonl'):
+              rows = [json.loads(line) for line in (root / name).read_text().splitlines()]
+              if not rows or any(row.get('Action') in ('fail', 'skip', 'build-fail') for row in rows):
+                  raise RuntimeError('original default-off wire tests contain failure, skip, or empty output: ' + name)
+          PYTEST
 
   optional-live-source:
     name: Exact optional live getter source composition

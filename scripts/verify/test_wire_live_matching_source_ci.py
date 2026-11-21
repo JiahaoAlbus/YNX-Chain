@@ -521,6 +521,7 @@ class WireLiveSourceControls(unittest.TestCase):
     def assert_optional_partition(self, workflow):
         client = workflow_job(workflow, "client-observations")
         optional = workflow_job(workflow, "optional-live-source")
+        wire = workflow_job(workflow, "default-off-wire-observation")
         scope = workflow_job(workflow, "contract-tooling-scope")
         scope_start = scope.index('git diff --name-only "$BEFORE" "$AFTER" -- \\\n            go.mod go.sum')
         scope_end = scope.index(' > "$RUNNER_TEMP/client-observation-changes.txt"', scope_start)
@@ -530,10 +531,13 @@ class WireLiveSourceControls(unittest.TestCase):
         for event in ('push', 'pull_request'):
             block = re.split(r'(?m)^  [A-Za-z_]+:', workflow.split('  ' + event + ':\n', 1)[1], 1)[0]
             self.assertEqual(block.count('      - ".github/workflows/resource-market-ci.yml"\n'), 1)
-        for job in (client, optional):
-            for line in ("    needs: contract-tooling-scope\n",
-                         "    if: needs.contract-tooling-scope.outputs.client_changed == 'true'\n",
-                         "    runs-on: ubuntu-24.04\n", "    timeout-minutes: 8\n",
+        self.assertIn("    needs: [contract-tooling-scope, default-off-wire-observation]\n", client)
+        self.assertIn("    if: needs.contract-tooling-scope.outputs.client_changed == 'true' && needs.default-off-wire-observation.result == 'success'\n", client)
+        for job in (optional, wire):
+            self.assertIn("    needs: contract-tooling-scope\n", job)
+            self.assertIn("    if: needs.contract-tooling-scope.outputs.client_changed == 'true'\n", job)
+        for job in (client, optional, wire):
+            for line in (                         "    runs-on: ubuntu-24.04\n", "    timeout-minutes: 8\n",
                          "      GOMAXPROCS: '2'\n",
                          "          ref: ${{ github.sha }}\n", "          fetch-depth: 1\n",
                          "          persist-credentials: false\n", "          go-version-file: go.mod\n",
@@ -546,13 +550,14 @@ class WireLiveSourceControls(unittest.TestCase):
                         "Exercise the original readback CLI and complete logical denominators",
                         "Verify normal PQ lab producers and the original proof caller",
                         "Retain original synthetic enrollment test events",
-                        "Verify private synthetic enrollment safety controls",
-                        "Verify the default-off normal node wire observation adapter"]
+                        "Verify private synthetic enrollment safety controls"]
+        wire_steps = ["Verify the default-off normal node wire observation adapter",
+                      "Reject skipped default-off wire tests"]
         optional_steps = ["Verify strict source availability and separated Go stream controls",
                           "Acquire only the immutable optional supplier object",
                           "Verify exact optional live getter composition without enabling a carrier",
                           "Preserve only public optional live source evidence"]
-        for job, expected in ((client, client_steps), (optional, optional_steps)):
+        for job, expected in ((client, client_steps), (optional, optional_steps), (wire, wire_steps)):
             self.assertEqual(re.findall(r"^      - name: (.+)$", job, re.M), expected)
             for name in expected:
                 self.assertEqual(workflow.count("      - name: " + name + "\n"), 1)
@@ -567,6 +572,12 @@ class WireLiveSourceControls(unittest.TestCase):
                      'python3 -B scripts/verify/qualify_pq_private_synthetic_ci.py "$RUNNER_TEMP/ynx-private-synthetic-safety-tests.jsonl"'):
             self.assertEqual(private.count(line), 1)
         self.assertNotIn('upload-artifact', private)
+        observer = wire.split('      - name: Verify the default-off normal node wire observation adapter\n', 1)[1].split('      - name:', 1)[0]
+        for part in ("-run '^TestMempoolWireObserver'", "-run '^(TestOperatorWire(Observation|Live)|TestPQNodeNormalCancellation|TestOperatorStartupTiming)'", "test_validate_pq_observer_ci.py", "ynx-pq-observer-fork-tests.jsonl", "git diff --exit-code -- go.mod go.sum"):
+            self.assertIn(part, observer)
+        self.assertIn("('wire-observer-tests.jsonl', 'wire-caller-tests.jsonl', 'ynx-pq-observer-fork-tests.jsonl')", wire)
+        self.assertIn("('fail', 'skip', 'build-fail')", wire)
+        self.assertNotIn('      - name: Verify the default-off normal node wire observation adapter\n', client)
         self.assertEqual(optional.count("        run: python3 -B scripts/verify/wire-live-matching-source-ci.py\n"), 1)
         self.assertEqual(optional.count("        run: python3 -B scripts/verify/test_wire_live_matching_source_ci.py\n"), 1)
         self.assertNotIn("go test", optional)
@@ -585,6 +596,7 @@ class WireLiveSourceControls(unittest.TestCase):
     def test_optional_partition_rejects_scope_source_budget_soft_failure_and_duplicate_work(self):
         workflow = (HERE.parents[1] / ".github/workflows/chain-core.yml").read_text()
         client, optional = self.assert_optional_partition(workflow)
+        wire = workflow_job(workflow, "default-off-wire-observation")
         changed = [
             optional.replace("needs: contract-tooling-scope", "needs: client-observations", 1),
             optional.replace("if: needs.contract-tooling-scope.outputs.client_changed == 'true'", "if: always()", 1),
@@ -601,6 +613,18 @@ class WireLiveSourceControls(unittest.TestCase):
                 self.assert_optional_partition(workflow.replace(optional, mutation, 1))
         with self.assertRaises(AssertionError):
             self.assert_optional_partition(workflow.replace(client, client + "      - name: Verify exact optional live getter composition without enabling a carrier\n        run: python3 -B scripts/verify/wire-live-matching-source-ci.py\n", 1))
+        for before, after in (("needs: [contract-tooling-scope, default-off-wire-observation]", "needs: contract-tooling-scope"),
+                              ("needs.default-off-wire-observation.result == 'success'", "true")):
+            with self.assertRaises(AssertionError):
+                self.assert_optional_partition(workflow.replace(client, client.replace(before, after, 1), 1))
+        for before, after in (("timeout-minutes: 8", "timeout-minutes: 18"),
+                              ("ref: ${{ github.sha }}", "ref: main"),
+                              ("('fail', 'skip', 'build-fail')", "('fail', 'build-fail')"),
+                              ("-run '^TestMempoolWireObserver'", "-run '^Disabled'"),
+                              ("test_validate_pq_observer_ci.py", "other.py")):
+            self.assertIn(before, wire)
+            with self.assertRaises(AssertionError):
+                self.assert_optional_partition(workflow.replace(wire, wire.replace(before, after, 1), 1))
         for before, after in (("steps.enrollmentlab.outcome == 'failure'", 'false'),
                               ('path: ${{ runner.temp }}/ynx-enrollment-original-ci', 'path: /tmp/foreign'),
                               ('ynx-enrollment-original-events-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}', 'unbound-events')):
