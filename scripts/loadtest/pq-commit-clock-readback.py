@@ -9,6 +9,7 @@ import hashlib
 import importlib.util
 import json
 import os
+from functools import lru_cache
 from pathlib import Path
 import re
 import select
@@ -103,6 +104,64 @@ def capture_built_binary(binary_path):
         require(fields(before)==fields(after)==fields(named), 'original built binary changed during pin')
         return dict(path=str(path),sha256=digest,device=before.st_dev,inode=before.st_ino,size=before.st_size)
     finally:os.close(fd)
+
+
+def retain_after_stop(window, descriptors, source):
+    """Retain only each stopped node's bounded original clock bytes."""
+    require(pin(source,40) and type(descriptors) is list and len(descriptors)==4
+            and [d.get('node') for d in descriptors]==list(range(4)), 'four original clock descriptors required')
+    result=dict(schema='YNX-PERF-ORIGINAL-COMMIT-MONOTONIC/v1',originalSnapshots=[],errors=[],independentFinality=False)
+    for descriptor in descriptors:
+        node=descriptor['node'];name='pq-node-%d'%node
+        try:
+            require(descriptor['processName']==name,'original node name differs')
+            children=[row for row in window.children if row['name']==name]
+            require(len(children)==1 and children[0]['process'].poll() is not None,'original clock node not stopped')
+            proc=children[0]['process'];path=Path(descriptor['path'])
+            require(path.is_absolute() and path.resolve(strict=True)==path,'original clock path redirected')
+            fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
+            try:
+                before=os.fstat(fd)
+                require(stat.S_ISREG(before.st_mode) and stat.S_IMODE(before.st_mode)==0o600
+                        and before.st_nlink==1 and 0<before.st_size<=512<<10,'original clock file identity differs')
+                chunks=[];size=0
+                while True:
+                    part=os.read(fd,65536)
+                    if not part:break
+                    size+=len(part);require(size<=512<<10,'original clock file grew');chunks.append(part)
+                after=os.fstat(fd);named=path.lstat()
+                fields=lambda item:(item.st_dev,item.st_ino,item.st_mode,item.st_nlink,item.st_size,item.st_mtime_ns,item.st_ctime_ns)
+                require(fields(before)==fields(after)==fields(named) and size==before.st_size,'original clock file changed')
+                raw=b''.join(chunks)
+            finally:os.close(fd)
+            snapshot=strict(raw,512<<10)
+            require(snapshot.get('version')=='YNX-COMET-COMMIT-MONOTONIC/v1'
+                    and type(snapshot.get('processID')) is int and snapshot['processID']==proc.pid
+                    and snapshot.get('sourceRevision')==source and snapshot.get('sourceBinding')==SOURCE_BINDING,
+                    'original stopped clock producer identity differs')
+            directory=window.work/'public';target_name='commit-monotonic-node-%d-original.json'%node
+            folder=os.open(directory,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+            try:
+                folder_info=os.fstat(folder)
+                out=os.open(target_name,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600,dir_fd=folder)
+                try:
+                    remaining=memoryview(raw)
+                    while remaining:
+                        written=os.write(out,remaining);require(written>0,'original clock copy short write');remaining=remaining[written:]
+                    os.fsync(out);os.fsync(folder)
+                    created=os.fstat(out);named=os.stat(target_name,dir_fd=folder,follow_symlinks=False);current=directory.lstat()
+                    require(fields(created)==fields(named) and stat.S_ISREG(created.st_mode)
+                            and stat.S_IMODE(created.st_mode)==0o600 and created.st_nlink==1 and created.st_size==len(raw)
+                            and (folder_info.st_dev,folder_info.st_ino)==(current.st_dev,current.st_ino)
+                            and stat.S_ISDIR(current.st_mode),'original clock copy or directory identity differs')
+                finally:os.close(out)
+            finally:os.close(folder)
+            result['originalSnapshots'].append(dict(node=node,processName=name,pid=proc.pid,path=target_name,
+                bytes=len(raw),sha256=sha(raw),sourceStopped=True,usable=snapshot.get('status')=='OBSERVED'))
+        except (OSError,ValueError,KeyError,TypeError,AttributeError,IndexError) as error:
+            result['errors'].append(dict(node=node,errorType=type(error).__name__,missingStagesAreUnknown=True))
+    result['fourOriginalSnapshotsUsable']=len(result['originalSnapshots'])==4 and all(row['usable'] for row in result['originalSnapshots']) and not result['errors']
+    return result
 
 
 def _start_ticks(pid):
@@ -234,7 +293,8 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
     except (KeyError,ValueError,TypeError,IndexError,OverflowError): return result
     descriptors=receipt.get('normalCommitObservation',{}).get('originalSnapshots',[])
     clock_descriptors=receipt.get('commitMonotonicObservation',{}).get('originalSnapshots',[])
-    def one_node(i, height):
+    @lru_cache(maxsize=4)
+    def original_node_heights(i):
         try:
             e=node_evidence[i]; probe=e['processProbe']; raw=e['commitOriginal']; clock_raw=e['clockOriginal']
             olds=[x for x in descriptors if x['node']==i]; news=[x for x in clock_descriptors if x['node']==i]
@@ -276,11 +336,15 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
             heights=[s['height'] for s in samples]; times=[decimal(s['monotonicNs']) for s in samples]
             require(len(heights)==len(set(heights)) and all(a<b for a,b in zip(heights,heights[1:]))
                     and all(a<=b for a,b in zip(times,times[1:])), 'original node clock order or height differs')
-            c=[x for x in commit['samples'] if x['height']==height]; t=[x for x in samples if x['height']==height]
-            require(len(c)==len(t)==1 and c[0]['appHash']==t[0]['appHash'] and pin(t[0]['appHash'],64)
-                    and c[0]['persistence']['height']==height and c[0]['persistence']['durable'] is True, 'original exact height and app hash unavailable')
-            return decimal(t[0]['monotonicNs']),t[0]['appHash']
+            return {clock_sample['height']:(decimal(clock_sample['monotonicNs']),clock_sample['appHash'])
+                    for committed,clock_sample in zip(old_samples,samples)
+                    if committed['appHash']==clock_sample['appHash'] and pin(clock_sample['appHash'],64)
+                    and committed['persistence']['height']==clock_sample['height']
+                    and committed['persistence']['durable'] is True}
         except (KeyError,ValueError,RuntimeError,TypeError,AttributeError,IndexError,StopIteration,OverflowError): return None
+    def one_node(i,height):
+        values=original_node_heights(i)
+        return None if values is None else values.get(height)
     for row in rows:
         entry=dict(index=row['index'],id=row['id'],nodesNs=[None]*4,fourNodeUpperBoundNs=None,status='CENSORED')
         try:

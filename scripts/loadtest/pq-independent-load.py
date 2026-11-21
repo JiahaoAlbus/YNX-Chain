@@ -35,6 +35,7 @@ scheduler=module("independent_pq_load","pq-independent-scheduler.py")
 lab=normal.lab
 proof_readback=module("original_public_proof_readback","pq-public-proof-readback.py")
 commit_readback=module("original_normal_commit_readback","pq-commit-observation.py")
+commit_clock=module("original_normal_commit_clock","pq-commit-clock-readback.py")
 initialization=module("original_initialization_measurements","pq-initialization-measurements.py")
 rpc_measurements=module('original_parent_rpc_measurements','pq-rpc-measurements.py')
 preload_initialization=module('original_preload_initialization','pq-preload-initialization.py')
@@ -286,14 +287,18 @@ class SenderSession:
 
 
 class LoadCeremony(normal.Ceremony):
-    def __init__(self,*args,operations,proof_timeout,commit_observation=False,commit_validation_observation=False,sender_pool=False,consumer_source=None,startup_timings=False,**kwargs):
+    def __init__(self,*args,operations,proof_timeout,commit_observation=False,commit_validation_observation=False,commit_clock_observation=False,sender_pool=False,consumer_source=None,startup_timings=False,**kwargs):
         lab.require(type(startup_timings) is bool and (not startup_timings or consumer_source in STARTUP_TIMING_ABI_SOURCES),'matching original startup timing ABI required; no source qualification implied')
         lab.require(type(commit_validation_observation) is bool and (not commit_validation_observation or
             (commit_observation and COMMIT_VALIDATION_ABI_SOURCE is not None and consumer_source==COMMIT_VALIDATION_ABI_SOURCE)),
             'exact synthetic Commit validation ABI/source NOT_SUPPLIED')
+        lab.require(type(commit_clock_observation) is bool and (not commit_clock_observation or
+            (commit_observation and commit_clock.COMMIT_CLOCK_SOURCE is not None and consumer_source==commit_clock.COMMIT_CLOCK_SOURCE)),
+            'exact synthetic Commit clock ABI/source NOT_SUPPLIED')
         super().__init__(*args,**kwargs);self.operations=operations;self.proof_timeout=proof_timeout;self.live=[]
         self.commit_observation_enabled=commit_observation;self.commit_observation_descriptors=[]
         self.commit_validation_observation_enabled=commit_validation_observation
+        self.commit_clock_observation_enabled=commit_clock_observation;self.commit_clock_descriptors=[]
         self.finalize_observation_enabled=False;self.finalize_observation_descriptors=[]
         self.consumer_source=CALLEE_SOURCE if consumer_source is None else consumer_source
         self.preparation_sender_arguments=("--timings",);self.preparation_sender_measurements=[]
@@ -372,6 +377,12 @@ class LoadCeremony(normal.Ceremony):
                 if self.commit_validation_observation_enabled:
                     lab.require('--commit-validation-observation' not in resumed['nodes'][node]['args'], 'duplicate original Commit validation flag')
                     resumed['nodes'][node]['args'].append('--commit-validation-observation')
+                if getattr(self,'commit_clock_observation_enabled',False):
+                    clock_output=private/("monotonic-node-%d.json"%node)
+                    lab.require('--commit-monotonic-output' not in resumed['nodes'][node]['args'] and not clock_output.exists(),
+                        'fresh original Commit clock output required')
+                    resumed['nodes'][node]['args'].extend(('--commit-monotonic-output',str(clock_output)))
+                    self.commit_clock_descriptors.append(dict(node=node,path=str(clock_output),processName="pq-node-%d"%node))
                 self.commit_observation_descriptors.append(dict(node=node,path=str(output),processName="pq-node-%d"%node))
                 if self.finalize_observation_enabled:
                     finalize_output = private / ("finalize-node-%d.json" % node)
@@ -1130,6 +1141,11 @@ def create_network_window(hook,ceremony,args,tools,plan_pin,demand):
 
 def validate_options(args):
     profile=getattr(args,'first_trial_profile','own1b')
+    lab.require(type(getattr(args,'commit_clock_observation',False)) is bool and
+        (not getattr(args,'commit_clock_observation',False) or
+         (profile==HELD_TRIAL_PROFILE and getattr(args,'commit_observation',False) is True and
+          commit_clock.COMMIT_CLOCK_SOURCE is not None and args.commit==commit_clock.COMMIT_CLOCK_SOURCE)),
+        'exact synthetic held Commit clock source/CI NOT_SUPPLIED')
     lab.require(type(getattr(args,'commit_validation_observation',False)) is bool and
         (not getattr(args,'commit_validation_observation',False) or
          (profile==HELD_TRIAL_PROFILE and getattr(args,'commit_observation',False) is True and
@@ -1272,6 +1288,7 @@ def load_conditions(args):
     if result['firstTrialProfile'] == HELD_TRIAL_PROFILE:
         result.update(preparePublicSource=True, persistentLiveMaterials=True)
     if getattr(args,'commit_validation_observation',False): result['commit_validation_observation']=True
+    if getattr(args,'commit_clock_observation',False): result['commit_clock_observation']=True
     return result
 
 
@@ -1285,6 +1302,60 @@ def validate_escalation(args):
     lab.require(r["requestedOfferedTPS"]==(100 if args.rate==500 else 500) and r["windowCompleted"] is True and r["notReleased"]==0 and r["releasedWithinWindow"]==n and r["notSubmitted"]==0 and r["lateSubmitted"]==0 and r["notQualified"]==0 and r["sourceAcceptanceOrInclusionWithinWindow"]*1000>=n*999 and r["backlogGrowing"] is False,"preceding level did not deliver full independent demand/final data without growing backlog")
     q=r["submitToQualifiedReceiptObserved"]
     lab.require(q["censored"]==0 and q["p95Ms"]<=2000 and q["p99Ms"]<=5000,"preceding observed qualified receipt latency target not achieved")
+
+
+def original_commit_clock_readback(result,work,private_network,source):
+    """Join only retained originals while this one Window still owns them."""
+    public=work/'public'
+    def read(relative,limit):return lab.guard.bounded(public/relative,limit)
+    def node_bytes(section,index):
+        records=[item for item in result.get(section,{}).get('originalSnapshots',[]) if item.get('node')==index]
+        if len(records)!=1:return b''
+        expected=('commit-observation-node-%d-original.json' if section=='normalCommitObservation' else 'commit-monotonic-node-%d-original.json')%index
+        if records[0].get('path')!=expected:return b''
+        try:return read(records[0]['path'],512<<10)
+        except (OSError,ValueError,RuntimeError):return b''
+    probes=result.get('commitClockProcessProbes',[])
+    nodes=[]
+    for index in range(4):
+        item=[row for row in probes if row.get('node')==index]
+        nodes.append(dict(processProbe=item[0]['probe'] if len(item)==1 else {},
+                          commitOriginal=node_bytes('normalCommitObservation',index),
+                          clockOriginal=node_bytes('commitMonotonicObservation',index)))
+    inclusion_paths={}
+    for ref in result.get('commitClockInclusions',[]):
+        try:
+            index=ref['index']
+            if type(index) is not int or not 0<=index<10000 or ref['path']!='load-operations/%05d/four-node-inclusion.json'%index:continue
+            inclusion_paths[index]=ref['path']
+        except (TypeError,KeyError):pass
+    class OriginalInclusions:
+        # Load one existing proof at a time; the original workload may have
+        # thousands of multi-megabyte observations and the same RSS cap applies.
+        def __getitem__(self,index):
+            try:return read(inclusion_paths[index],4<<20)
+            except (OSError,ValueError,RuntimeError,KeyError) as error:raise KeyError(index) from error
+    return commit_clock.reduce(result,expected_source=source,parent=result['commitClockParent'],node_evidence=nodes,
+        inclusion=OriginalInclusions(),selection_raw=read('normal-live-source-selection.json',64<<10),
+        dependencies_raw=read('normal-live-source-dependencies.json',64<<10),
+        build_identity_raw=read('commit-clock-build-identity.log',16<<10),
+        network_plan_raw=lab.guard.bounded(private_network/'network-plan.json',1<<20))
+
+
+def finish_commit_clock_readback(result,window,work,private_network,source,demand):
+    try:
+        result['commitClockReadback']=original_commit_clock_readback(result,work,private_network,source)
+        window.sample() # Post-readback snapshot; it is not a transient memory peak measurement.
+    except BaseException as error:
+        result['commitClockReadback']=dict(status='NOT_SUPPLIED',errorType=type(error).__name__,
+            observed=0,censored=demand,independentFinality=False,runtimeAuthorized=False)
+        try:message=str(error)
+        except BaseException:message=''
+        result['firstCause']=result['firstCause'] or message or type(error).__name__
+    finally:
+        result['peakRSSBytes']=window.peak_rss;result['peakNewBytes']=window.peak_bytes;result['resourceSamples']=window.samples
+        result['peakRSSSample']=getattr(window,'peak_rss_sample',None)
+        result['resourceGuardStageElapsed']=window.sample_stage_report()
 
 
 def run(args):
@@ -1383,7 +1454,7 @@ def run(args):
             result['normalLiveBuildSource']=composition
             w.source=composed/'source'
         for name in ("ynx-consensus-pq-lab","ynx-comet","ynx-consensus-proof-verify"):
-            stages.run("build",name,lambda name=name:w.wait(w.launch("build-"+name,["go","build","-mod=readonly","-p","1",*(["-trimpath","-buildvcs=false"] if live_module is not None else []),*(["-tags",live_module.BUILD_TAG] if live_module is not None and name=="ynx-comet" else []),"-o",str(bins/name),"./cmd/"+name])))
+            stages.run("build",name,lambda name=name:w.wait(w.launch("build-"+name,["go","build","-mod=readonly","-p","1",*(["-trimpath","-buildvcs=false"] if live_module is not None else []),*(["-ldflags","-X main.operatorCommitBuildSource="+args.commit] if getattr(args,'commit_clock_observation',False) and name=="ynx-comet" else []),*(["-tags",live_module.BUILD_TAG] if live_module is not None and name=="ynx-comet" else []),"-o",str(bins/name),"./cmd/"+name])))
         result["binaries"]={n:lab.guard.digest(bins/n) for n in ("ynx-consensus-pq-lab","ynx-comet","ynx-consensus-proof-verify")}
         if live_module is not None:
             result['normalLiveBuildProvenance']={}
@@ -1393,6 +1464,19 @@ def run(args):
                 result['normalLiveBuildProvenance'][name]=dict(binarySHA256=pin,buildArgv=build['command'],buildCwd=str(w.source),
                     sourceSelectionSHA256=selection['receiptSHA256'],sourceDependenciesReceiptSHA256=dependencies['receiptSHA256'],buildInfoFile=info.name,buildInfoSHA256=lab.guard.digest(info),
                     originalSource=identity,selectedOptionalForkTree=composition['optionalForkTree'])
+        if getattr(args,'commit_clock_observation',False):
+            binary=commit_clock.capture_built_binary(bins/'ynx-comet')
+            lab.require(binary['sha256']==result['binaries']['ynx-comet'],'original physical Commit clock build differs')
+            result['commitClockBuiltBinary']=binary
+            proc=w.launch('commit-clock-build-identity',[str(bins/'ynx-comet'),'synthetic-commit-clock-build-identity','--synthetic'])
+            w.wait(proc)
+            raw=lab.guard.bounded(work/'public/commit-clock-build-identity.log',16<<10)
+            declaration=commit_clock.strict(raw,16<<10)
+            lab.require(declaration.get('status')=='DECLARED' and declaration.get('sourceRevision')==args.commit
+                and declaration.get('sourceBinding')==commit_clock.SOURCE_BINDING and declaration.get('syntheticOnly') is True
+                and declaration.get('runtimeAuthorized') is False and declaration.get('nodeStarted') is False,
+                'original synthetic executable declaration differs')
+            result['commitClockBuildIdentity']=dict(path='commit-clock-build-identity.log',pid=proc.pid,bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest())
         root=work/".private/network"
         def create_original():
             p=w.launch("create-original",[str(bins/"ynx-consensus-pq-lab"),"create","--synthetic","--root",str(root),"--transactions",str(args.per_account),"--batch-size","1","--owners",str(args.accounts+4),*(["--online"] if args.mode=="online" else []),"--base-p2p-port","31656","--base-rpc-port","31757"])
@@ -1400,7 +1484,7 @@ def run(args):
         stages.run("create_original","all-configured-owners",create_original)
         created=json.loads((work/"public/create-original.log").read_bytes())
         staged=getattr(args,'staged_publication',False)
-        ceremony=initialization.instrumented_ceremony_class(LoadCeremony)(w,root,created,bins,args.wire_observation,initialization_stages=stages,expected_owners=args.accounts+4,operations=demand,proof_timeout=args.proof_timeout,commit_observation=getattr(args,"commit_observation",False),commit_validation_observation=getattr(args,'commit_validation_observation',False),sender_pool=staged,consumer_source=args.commit,startup_timings=getattr(args,'startup_timings',False))
+        ceremony=initialization.instrumented_ceremony_class(LoadCeremony)(w,root,created,bins,args.wire_observation,initialization_stages=stages,expected_owners=args.accounts+4,operations=demand,proof_timeout=args.proof_timeout,commit_observation=getattr(args,"commit_observation",False),commit_validation_observation=getattr(args,'commit_validation_observation',False),commit_clock_observation=getattr(args,'commit_clock_observation',False),sender_pool=staged,consumer_source=args.commit,startup_timings=getattr(args,'startup_timings',False))
         ceremony.sender_arguments=STAGED_SENDER_ARGUMENTS if staged else ()
         # This assignment is reached only after the matching source CI AND
         # per-height semantic evidence have passed the selected source gate.
@@ -1423,6 +1507,10 @@ def run(args):
         if staged:plan=staged_scheduler.configure(plan)
         lab.write_new(work/"public/load-plan.json",plan);result["planSHA256"]=lab.guard.digest(work/"public/load-plan.json")
         result["activation"]=ceremony.prepare_network();result["preparationUnconfirmedOwners"]=sorted(ceremony.pending_owners);result["livePolicies"]=[dict(node=l["node"],policy=str(l["policy"]),sha256=l["pin"]) for l in ceremony.live]
+        if getattr(args,'commit_clock_observation',False):
+            lab.require(len(ceremony.nodes)==4,'four original live clock nodes required')
+            result['commitClockProcessProbes']=[dict(node=index,probe=w.capture_clock_node(proc,str(bins/'ynx-comet'),result['binaries']['ynx-comet'])) for index,proc in enumerate(ceremony.nodes)]
+            result['commitClockParent']=commit_clock.parent_domain()
         if staged:
             checkpoint=ceremony.quiet()
             result['initializedAccountReadback']=stages.run('complete_account_readback','all-four-nodes',lambda:initialization.complete_account_readback(ceremony.plan['nodes'],ceremony.workload['owners'][4:],checkpoint,ceremony.root,check=w.sample))
@@ -1468,6 +1556,7 @@ def run(args):
             return result
         result["loadExecuted"]=True
         result["loadResult"]=(staged_scheduler.run(plan,backend,journal.emit,monitor.check,stop,ledger_module=scheduler) if staged else scheduler.run(plan,backend,journal.emit,monitor.check,stop))
+        if getattr(args,'commit_clock_observation',False):result['loadResult']['originProcessID']=os.getpid()
         monitor.check();lab.check_source(source,args.commit)
         result["firstCause"]=result["loadResult"]["firstCause"]
     except BaseException as error:result["firstCause"]=str(error)
@@ -1545,6 +1634,26 @@ def run(args):
             except BaseException as error:
                 result["commitObservationReadbackError"]=dict(errorType=type(error).__name__,reason=str(error),missingStagesAreUnknown=True)
                 result["firstCause"]=result["firstCause"] or "original normal Commit readback failed"
+        if ceremony is not None and getattr(ceremony,'commit_clock_observation_enabled',False):
+            try:
+                result['commitMonotonicObservation']=commit_clock.retain_after_stop(w,ceremony.commit_clock_descriptors,args.commit)
+                if not result['commitMonotonicObservation']['fourOriginalSnapshotsUsable']:
+                    result['firstCause']=result['firstCause'] or 'original local Commit clock readback incomplete; missing values UNKNOWN'
+                refs=[]
+                for row in result.get('loadResult',{}).get('rows',[]):
+                    index=row.get('index')
+                    if type(index) is not int or not 0<=index<demand:continue
+                    relative='load-operations/%05d/four-node-inclusion.json'%index
+                    try:
+                        raw=lab.guard.bounded(work/'public'/relative,4<<20)
+                        refs.append(dict(index=index,path=relative,bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest()))
+                    except (OSError,ValueError,RuntimeError):pass # The original missing row remains censored.
+                result['commitClockInclusions']=refs
+                measured=sum(lab.private_bytes(root) for root in w.storage_roots);w.peak_bytes=max(w.peak_bytes,measured)
+                lab.require(measured<=lab.CAPS['newBytes'],'original clock readback exceeded unchanged8GiB storage cap')
+            except BaseException as error:
+                result['commitClockReadbackError']=dict(errorType=type(error).__name__,missingStagesAreUnknown=True)
+                result['firstCause']=result['firstCause'] or 'original local Commit clock readback failed'
         if ceremony is not None and ceremony.finalize_observation_enabled:
             finalize = module('original_finalize_observation', 'pq-finalize-observation.py')
             observed_finalize = finalize.retain_after_stop(w, ceremony.finalize_observation_descriptors,
@@ -1565,6 +1674,8 @@ def run(args):
         result["resourceGuardStageElapsed"]=w.sample_stage_report()
         result["peakRSSSample"] = getattr(w, "peak_rss_sample", None)
         result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,processes=w.process_receipt(),retiredSamplingEvidence=w.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=w.rss_fallback_samples)
+        if ceremony is not None and getattr(ceremony,'commit_clock_observation_enabled',False):
+            finish_commit_clock_readback(result,w,work,ceremony.root,args.commit,demand)
         if ceremony is not None:
             result["wireObservation"]=ceremony.wire_readback()
             if callable(getattr(ceremony,'readiness_report',None)):result['originalReadinessObservations']=ceremony.readiness_report()
@@ -1590,6 +1701,7 @@ if __name__=="__main__":
     p.add_argument("--rate",type=int,choices=(100,500,1000),default=100);p.add_argument("--seconds",type=int,required=True);p.add_argument("--tail-seconds",type=int,default=30);p.add_argument("--accounts",type=int,required=True);p.add_argument("--per-account",type=int,required=True);p.add_argument("--proof-timeout",type=int,default=30);p.add_argument("--wire-observation",action="store_true");p.add_argument("--prior-result");p.add_argument("--prior-result-sha256");p.add_argument("--execute",action="store_true")
     p.add_argument("--commit-observation",action="store_true",help="explicit final qualified normal Commit consumer only; no signer fsync/finality or whole replay claim")
     p.add_argument("--commit-validation-observation",action="store_true",help="explicit separately qualified synthetic held Commit validation phases; default unavailable")
+    p.add_argument("--commit-clock-observation",action="store_true",help="explicit separately qualified synthetic held local Commit-return upper bounds; default unavailable")
     p.add_argument("--header-hop-capture",action="store_true",help="explicit owned controlled-netns exact-tuple IPv4 header-only capture; no physical-wire claim or permission escalation")
     p.add_argument("--network-accounting",action="store_true",help="explicit frozen LINK owned TCP pre-load/post-drain checkpoints; absent live metrics remain unmeasured")
     p.add_argument("--owned-storage-accounting",action="store_true",help="metadata-only exact original lab blockstore/stateDB/application paths; allocation is not disk writes or per-transaction bytes")

@@ -83,6 +83,79 @@ class CommitClockReadbackControls(unittest.TestCase):
         self.assertEqual(result['rows'][0]['fourNodeUpperBoundNs'],203)
         self.assertFalse(result['independentFinality'] or result['runtimeAuthorized'])
 
+    def test_stopped_original_clock_bytes_are_retained_once_and_unknown_is_censored(self):
+        receipt,kwargs=self.fixture()
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();private=root/'private';public=root/'public';private.mkdir();public.mkdir()
+            children=[];descriptors=[]
+            for i,item in enumerate(kwargs['node_evidence']):
+                path=private/('clock-%d.json'%i);path.write_bytes(item['clockOriginal']);path.chmod(0o600)
+                children.append(dict(name='pq-node-%d'%i,process=SimpleNamespace(pid=200+i,poll=lambda:0)))
+                descriptors.append(dict(node=i,path=str(path),processName='pq-node-%d'%i))
+            window=SimpleNamespace(work=root,children=children)
+            got=r.retain_after_stop(window,descriptors,'a'*40)
+            self.assertTrue(got['fourOriginalSnapshotsUsable']);self.assertEqual(len(got['originalSnapshots']),4)
+            for i,item in enumerate(kwargs['node_evidence']):
+                item['clockOriginal']=(public/('commit-monotonic-node-%d-original.json'%i)).read_bytes()
+            receipt['commitMonotonicObservation']=got
+            self.assertEqual(r.reduce(receipt,**kwargs)['rows'][0]['fourNodeUpperBoundNs'],203)
+            repeated=r.retain_after_stop(window,descriptors,'a'*40)
+            self.assertFalse(repeated['fourOriginalSnapshotsUsable']);self.assertEqual(len(repeated['errors']),4)
+
+    def test_unstopped_or_aliased_clock_never_becomes_usable(self):
+        receipt,kwargs=self.fixture()
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();private=root/'private';public=root/'public';private.mkdir();public.mkdir()
+            children=[];descriptors=[]
+            for i,item in enumerate(kwargs['node_evidence']):
+                path=private/('clock-%d.json'%i);path.write_bytes(item['clockOriginal']);path.chmod(0o600)
+                children.append(dict(name='pq-node-%d'%i,process=SimpleNamespace(pid=200+i,poll=lambda:0)))
+                descriptors.append(dict(node=i,path=str(path),processName='pq-node-%d'%i))
+            children[1]['process'].poll=lambda:None
+            os.link(descriptors[2]['path'],private/'alias')
+            got=r.retain_after_stop(SimpleNamespace(work=root,children=children),descriptors,'a'*40)
+            self.assertFalse(got['fourOriginalSnapshotsUsable']);self.assertEqual({x['node'] for x in got['errors']},{1,2})
+            self.assertFalse((public/'commit-monotonic-node-1-original.json').exists())
+            self.assertFalse((public/'commit-monotonic-node-2-original.json').exists())
+
+    def test_original_unknown_clock_is_retained_but_never_usable(self):
+        _,kwargs=self.fixture()
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();private=root/'private';public=root/'public';private.mkdir();public.mkdir()
+            children=[];descriptors=[]
+            for i,item in enumerate(kwargs['node_evidence']):
+                path=private/('clock-%d.json'%i);value=json.loads(item['clockOriginal'])
+                if i==2:value['status']='UNKNOWN';value['unknownReason']='synthetic clock unavailable'
+                path.write_bytes(raw(value));path.chmod(0o600)
+                children.append(dict(name='pq-node-%d'%i,process=SimpleNamespace(pid=200+i,poll=lambda:0)))
+                descriptors.append(dict(node=i,path=str(path),processName='pq-node-%d'%i))
+            result=r.retain_after_stop(SimpleNamespace(work=root,children=children),descriptors,'a'*40)
+            self.assertFalse(result['fourOriginalSnapshotsUsable']);self.assertFalse(result['originalSnapshots'][2]['usable'])
+            self.assertEqual(json.loads((public/'commit-monotonic-node-2-original.json').read_bytes())['status'],'UNKNOWN')
+
+    def test_original_driver_joins_only_retained_files_and_private_original_plan(self):
+        spec=importlib.util.spec_from_file_location('clock_original_driver',Path(__file__).with_name('pq-independent-load.py'))
+        driver=importlib.util.module_from_spec(spec);spec.loader.exec_module(driver)
+        receipt,kwargs=self.fixture()
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();public=root/'public';private=root/'private';public.mkdir();private.mkdir()
+            files={'normal-live-source-selection.json':kwargs['selection_raw'],
+                   'normal-live-source-dependencies.json':kwargs['dependencies_raw'],
+                   'commit-clock-build-identity.log':kwargs['build_identity_raw'],
+                   'load-operations/00000/four-node-inclusion.json':kwargs['inclusion'][0]}
+            for index,item in enumerate(kwargs['node_evidence']):
+                files['commit-observation-node-%d-original.json'%index]=item['commitOriginal']
+                files['commit-monotonic-node-%d-original.json'%index]=item['clockOriginal']
+            for name,data in files.items():
+                path=public/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(data)
+            (private/'network-plan.json').write_bytes(kwargs['network_plan_raw'])
+            with mock.patch.object(driver.commit_clock,'COMMIT_CLOCK_SOURCE','a'*40):
+                result=driver.original_commit_clock_readback(receipt,root,private,'a'*40)
+                self.assertEqual((result['observed'],result['rows'][0]['fourNodeUpperBoundNs']),(1,203))
+                (public/'commit-monotonic-node-2-original.json').unlink()
+                result=driver.original_commit_clock_readback(receipt,root,private,'a'*40)
+                self.assertEqual((result['observed'],result['censored']),(0,1))
+
     def test_old_missing_source_or_parent_remains_not_supplied(self):
         receipt,kwargs=self.fixture()
         for mutate in ('source','parent','manifest','build_argv'):
@@ -136,6 +209,19 @@ class CommitClockReadbackControls(unittest.TestCase):
         other=copy.deepcopy(receipt['loadResult']['rows'][0]);other.update(index=1,id='8'*64)
         receipt['loadResult']['rows'].append(other)
         with self.assertRaisesRegex(ValueError,'hashes cannot be reused'):r.reduce(receipt,**kwargs)
+
+    def test_many_rows_validate_each_original_node_once_without_pooling_heights(self):
+        receipt,kwargs=self.fixture();receipt['configuredDemand']=2
+        row=copy.deepcopy(receipt['loadResult']['rows'][0]);row.update(index=1,id='8'*64,hash='7'*64)
+        receipt['loadResult']['rows'].append(row)
+        payload=json.loads(kwargs['inclusion'][0])
+        for node in payload['rows']:node['hash']='7'*64
+        kwargs['inclusion'][1]=raw(payload)
+        receipt['commitClockInclusions'].append(dict(index=1,path='load-operations/00001/four-node-inclusion.json',**descriptor(kwargs['inclusion'][1])))
+        with mock.patch.object(r._commit,'validate_declared_contract',wraps=r._commit.validate_declared_contract) as validate:
+            result=r.reduce(receipt,**kwargs)
+        self.assertEqual((result['observed'],result['censored'],validate.call_count),(2,0,4))
+        self.assertEqual([row['fourNodeUpperBoundNs'] for row in result['rows']],[203,203])
 
     def test_original_rpc_height_requires_canonical_decimal_string(self):
         for value in (True,5,5.0,'05','+5','5.0'):

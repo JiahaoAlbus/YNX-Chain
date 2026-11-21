@@ -292,7 +292,10 @@ class Ceremony:
                     info=os.fstat(fd)
                     lab.require(stat.S_ISREG(info.st_mode) and info.st_size==32 and info.st_mode&0o077==0 and info.st_nlink==1,"original private recovery file required")
                     command=fd3_command([str(self.bins/"ynx-comet"),*a["args"],*observed],fd)
-                    proc=self.w.launch("pq-node-%d"%n["index"],command,True,pass_fds=(fd,))
+                    if getattr(self,'commit_clock_observation_enabled',False):
+                        proc=self.w.launch("pq-node-%d"%n["index"],command,True,pass_fds=(fd,),original_pidfd_node=True)
+                    else:
+                        proc=self.w.launch("pq-node-%d"%n["index"],command,True,pass_fds=(fd,))
                 finally:os.close(fd)
             self.nodes.append(proc)
 
