@@ -36,6 +36,8 @@ COMMIT_STAGES = ('validate', 'json_encode', 'write', 'file_sync', 'directory_syn
 VERIFIER_NAME = re.compile(r'load-(\d{5})-normal-verifier')
 RECEIPT_LIMIT = 8 * 1024 * 1024
 PROCESS_RECORD_LIMIT = 8192
+RSS_EVIDENCE_LIMIT = 4096  # Original Window.ProcessEvidence distinct-record bound.
+RSS_EVIDENCE_VERSION = 'same-identity-first-last-count-v1'
 
 
 def integer(value, label):
@@ -368,6 +370,107 @@ def helper_stages(readback):
                 meaning='Parent wait/launch include guard overhead. Cleanup after an interrupted helper is not a successful child return or Go elapsed time; missing boundaries stay unknown.')
 
 
+def process_rss_observations(receipt):
+    """Validate the proposed optional export of the existing ProcessEvidence sink.
+
+    This consumer does not install a Window observer. An absent export stays
+    unknown, and even a complete retained sampled maximum is not a continuous
+    process lifetime maximum. Counts/min/max are original producer aggregates.
+    """
+    report = receipt.get('processRSSObservation')
+    if report is None:
+        return dict(status='NOT_SUPPLIED', records=[], retainedObservations=None,
+                    omittedObservations=None, individualLifetimePeakMeasured=False)
+    require(type(report) is dict and report.get('schema') == 'YNX-PERF-PROCESS-RSS-OBSERVATIONS/v1'
+            and report.get('clock') == 'parent_monotonic_ns'
+            and report.get('basis') == 'original-owned-rss-return-values'
+            and report.get('evidenceVersion') == RSS_EVIDENCE_VERSION,
+            'original per-process RSS schema, clock or basis differs')
+    require(type(report.get('additionalRSSReads')) is int and report['additionalRSSReads'] == 0,
+            'per-process RSS export must report zero additional reads')
+    require(type(report.get('recordLimit')) is int and report['recordLimit'] == RSS_EVIDENCE_LIMIT,
+            'original process evidence record limit differs')
+
+    def uint(value, label):
+        require(integer(value, label) < 1 << 64, label + ' exceeds original uint64 bound')
+        return value
+
+    def count(value, label):
+        require(type(value) is str and re.fullmatch(r'0|[1-9][0-9]{0,19}', value),
+                label + ' must be an original canonical decimal count')
+        return uint(int(value), label)
+
+    total = count(report.get('observations'), 'RSS observations')
+    omitted = count(report.get('omittedObservations'), 'omitted RSS observations')
+    rows = report.get('records')
+    require(type(rows) is list and len(rows) <= RSS_EVIDENCE_LIMIT, 'RSS evidence exceeds retained bound')
+    by_identity, keys, retained = {}, set(), 0
+    base_fields = {'pid', 'startTicks', 'sampleKind'}
+    evidence_fields = {'evidenceVersion', 'observations', 'firstObservedMonotonicNs',
+                       'lastObservedMonotonicNs', 'firstEvent', 'lastEvent'}
+    for row in rows:
+        require(type(row) is dict, 'RSS evidence row must be an object')
+        pid, ticks = uint(row.get('pid'), 'RSS pid'), uint(row.get('startTicks'), 'RSS startTicks')
+        require(pid > 0, 'RSS pid must be positive')
+        kind = row.get('sampleKind')
+        require(kind in ('owned-rss-bytes', 'owned-rss-unavailable'), 'unknown original RSS sample kind')
+        sampled = kind == 'owned-rss-bytes'
+        event_fields = base_fields | ({'sampledBytes'} if sampled else set())
+        require(set(row) == event_fields | evidence_fields | ({'minSampledBytes', 'maxSampledBytes'} if sampled else set())
+                and row['evidenceVersion'] == RSS_EVIDENCE_VERSION, 'original RSS evidence fields differ')
+        key = (pid, ticks, kind)
+        require(key not in keys, 'duplicate original RSS identity and kind')
+        keys.add(key)
+        observations = count(row['observations'], 'identity RSS observations')
+        require(observations > 0, 'retained RSS evidence has no observations')
+        first = uint(row['firstObservedMonotonicNs'], 'first RSS clock')
+        last = uint(row['lastObservedMonotonicNs'], 'last RSS clock')
+        require(first <= last, 'original RSS evidence clock regressed')
+        for event in (row['firstEvent'], row['lastEvent']):
+            require(type(event) is dict and set(event) == event_fields
+                    and all(type(event[k]) is type(row[k]) and event[k] == row[k] for k in base_fields),
+                    'original RSS first/last event identity differs')
+        require(all(type(row[k]) is type(row['firstEvent'][k]) and row[k] == row['firstEvent'][k] for k in event_fields),
+                'original RSS first event differs from retained event')
+        if observations == 1:
+            require(first == last and row['firstEvent'] == row['lastEvent'],
+                    'single RSS observation has conflicting endpoints')
+        minimum, maximum = None, None
+        if sampled:
+            minimum = uint(row['minSampledBytes'], 'minimum RSS')
+            maximum = uint(row['maxSampledBytes'], 'maximum RSS')
+            ends = [uint(row[k]['sampledBytes'], 'endpoint RSS') for k in ('firstEvent', 'lastEvent')]
+            require(minimum <= min(ends) <= max(ends) <= maximum,
+                    'original RSS extrema exclude endpoints')
+            if observations <= 2:
+                require((minimum, maximum) == (min(ends), max(ends)), 'RSS extrema require unobserved samples')
+        retained += observations
+        value = by_identity.setdefault((pid, ticks), dict(pid=pid, startTicks=ticks,
+            observedCount=0, missingCount=0, firstObservedMonotonicNs=first,
+            lastObservedMonotonicNs=last, observedMinRSSBytes=None, observedMaxRSSBytes=None,
+            originalRecords=[]))
+        value['firstObservedMonotonicNs'] = min(value['firstObservedMonotonicNs'], first)
+        value['lastObservedMonotonicNs'] = max(value['lastObservedMonotonicNs'], last)
+        value['observedCount' if sampled else 'missingCount'] += observations
+        if sampled:
+            value['observedMinRSSBytes'], value['observedMaxRSSBytes'] = minimum, maximum
+        value['originalRecords'].append(copy.deepcopy(row))
+    require(retained + omitted == total, 'original RSS observation denominator differs')
+    records = []
+    for key in sorted(by_identity):
+        row = by_identity[key]
+        row.update(observedCount=str(row['observedCount']), missingCount=str(row['missingCount']),
+                   allTimePeakRSSBytes=None, fullLifetimeCoverage='UNKNOWN',
+                   rawIndividualSamplesAvailable=False, percentile=None,
+                   omittedObservationsCouldAffectIdentity=omitted > 0)
+        records.append(row)
+    return dict(status='OBSERVED_PRODUCER_AGGREGATES_ONLY', records=records,
+                retainedObservations=str(retained), omittedObservations=str(omitted),
+                originalObservationCount=str(total), originalRecordLimit=RSS_EVIDENCE_LIMIT,
+                producerReportedAdditionalRSSReads=0, individualLifetimePeakMeasured=False,
+                meaning='Exact identity aggregate of original owned_rss return values; unavailable is not zero. Producer min/max/count are retained, not reconstructed raw samples or continuous lifetime coverage.')
+
+
 def verifier_resources(receipt):
     """Join retained parent boundaries to the original single RSS peak snapshot.
 
@@ -379,6 +482,8 @@ def verifier_resources(receipt):
             'verifier configured demand must remain 500')
     cohort = business(receipt['loadResult'])
     helpers = helper_stages(dict(originalHelperLifecycle=receipt.get('normalHelperLifecycle')))
+    rss_observations = process_rss_observations(receipt)
+    observed_by_id = {(r['pid'], r['startTicks']): r for r in rss_observations['records']}
     processes = receipt.get('processes', [])
     require(type(processes) is list and len(processes) <= PROCESS_RECORD_LIMIT,
             'original process history exceeds bounded records')
@@ -481,6 +586,7 @@ def verifier_resources(receipt):
             observedLaunchToExitNs=proc.get('observedLaunchToExitNs') if proc else None,
             rssAtGlobalPeakBytes=rss,
             rssAtGlobalPeakStatus='OBSERVED_EXACT_IDENTITY' if rss is not None else 'UNKNOWN',
+            retainedProcessRSSObservations=copy.deepcopy(observed_by_id.get(key)) if key else None,
             globalPeakOffsetFromLaunchReturnSeconds=peak_time-launch/1e9
                 if peak_row is not None and peak_time is not None and launch is not None else None,
             individualPeakRSSBytes=None, individualPeakStatus='UNKNOWN_NO_PER_PROCESS_TIME_SERIES',
@@ -490,6 +596,7 @@ def verifier_resources(receipt):
         originalFirstCause=receipt.get('firstCause'), originalResourceFirstFailure=copy.deepcopy(receipt.get('resourceFirstFailure')),
         originalCaps=copy.deepcopy(receipt.get('caps')), originalProcessCapacity=copy.deepcopy(receipt.get('processCapacity')),
         originalCleanupComplete=receipt.get('cleanupComplete'), originalHelperCoverage=helpers,
+        processRSSObservation=rss_observations,
         business=cohort, records=records,
         coverage=dict(retainedVerifierRequests=len(timings), registeredVerifierProcesses=len(registered),
                       notRepresentedByRetainedVerifierRecords=500-len(records),

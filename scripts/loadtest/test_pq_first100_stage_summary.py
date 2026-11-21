@@ -513,5 +513,134 @@ class VerifierResourceControls(unittest.TestCase):
                 m.main(['--verifier-receipt', str(receipt), '--readback', str(result), '--old-readback', str(result), '--output', str(output)])
 
 
+class ProcessRSSObservationContractControls(unittest.TestCase):
+    def setUp(self):
+        for name in ('subprocess.Popen', 'urllib.request.urlopen', 'socket.create_connection'):
+            patch = mock.patch(name, side_effect=AssertionError('observer contract is pure metadata only'))
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def report(self, values=(200, 100, 300), unavailable=True):
+        # The original production sink produces these records. No process,
+        # procfs read, Window, chain, or alternative sampler is constructed.
+        lab = module('stage_original_process_evidence', 'consensus-linux-cohort.py')
+        records = []
+        sink = lab.ProcessEvidence(records, ('pid', 'startTicks', 'sampleKind'))
+        for i, value in enumerate(values):
+            sink.retain(dict(pid=101, startTicks=7, sampleKind='owned-rss-bytes', sampledBytes=value), at_ns=20+i*20)
+        if unavailable:
+            sink.retain(dict(pid=101, startTicks=7, sampleKind='owned-rss-unavailable'), at_ns=100)
+        return dict(schema='YNX-PERF-PROCESS-RSS-OBSERVATIONS/v1', clock='parent_monotonic_ns',
+            basis='original-owned-rss-return-values', evidenceVersion=lab.PROCESS_EVIDENCE_VERSION,
+            recordLimit=lab.ProcessEvidence.LIMIT, additionalRSSReads=0,
+            observations=str(len(values)+int(unavailable)), omittedObservations='0', records=records)
+
+    def reduce(self, report):
+        return m.process_rss_observations(dict(processRSSObservation=report))
+
+    def test_actual_original_evidence_sink_output_retains_sampled_range_not_lifetime_peak(self):
+        report = self.report()
+        original = copy.deepcopy(report)
+        result = self.reduce(report)
+        self.assertEqual(report, original)
+        self.assertEqual(result['retainedObservations'], '4')
+        row = result['records'][0]
+        self.assertEqual((row['observedCount'], row['missingCount']), ('3', '1'))
+        self.assertEqual((row['observedMinRSSBytes'], row['observedMaxRSSBytes']), (100, 300))
+        self.assertEqual((row['firstObservedMonotonicNs'], row['lastObservedMonotonicNs']), (20, 100))
+        self.assertIsNone(row['allTimePeakRSSBytes'])
+        self.assertIsNone(row['percentile'])
+        self.assertFalse(row['rawIndividualSamplesAvailable'])
+        self.assertEqual(row['fullLifetimeCoverage'], 'UNKNOWN')
+
+    def test_absent_old_export_and_unavailable_samples_cannot_fill_zero(self):
+        missing = m.process_rss_observations({})
+        self.assertEqual(missing['status'], 'NOT_SUPPLIED')
+        self.assertIsNone(missing['retainedObservations'])
+        row = self.reduce(self.report(values=()))['records'][0]
+        self.assertEqual((row['observedCount'], row['missingCount']), ('0', '1'))
+        self.assertIsNone(row['observedMinRSSBytes'])
+        self.assertIsNone(row['observedMaxRSSBytes'])
+        zero = self.reduce(self.report(values=(0,), unavailable=False))['records'][0]
+        self.assertEqual(zero['observedMaxRSSBytes'], 0)
+        self.assertEqual(zero['observedCount'], '1')
+
+    def test_omitted_observations_keep_original_denominator_and_unknown_identity_coverage(self):
+        report = self.report()
+        report.update(observations='6', omittedObservations='2')
+        result = self.reduce(report)
+        self.assertEqual(result['originalObservationCount'], '6')
+        self.assertEqual(result['omittedObservations'], '2')
+        self.assertTrue(result['records'][0]['omittedObservationsCouldAffectIdentity'])
+        report['observations'] = '4'
+        with self.assertRaisesRegex(RuntimeError, 'denominator'): self.reduce(report)
+
+    def test_optional_export_joins_only_registered_pid_and_start_ticks(self):
+        receipt = VerifierResourceControls().receipt()
+        receipt['processRSSObservation'] = self.report()
+        result = m.verifier_resources(receipt)
+        row = result['records'][0]
+        self.assertEqual(row['retainedProcessRSSObservations']['observedMaxRSSBytes'], 300)
+        self.assertEqual(row['rssAtGlobalPeakBytes'], 200)
+        self.assertIsNone(row['individualPeakRSSBytes'])
+        self.assertEqual(result['coverage']['individualPeakUnknown'], 500)
+        receipt['processes'][0]['startTicks'] = 8
+        self.assertIsNone(m.verifier_resources(receipt)['records'][0]['retainedProcessRSSObservations'])
+
+    def test_different_pid_lifetimes_and_missing_kind_do_not_pool(self):
+        report = self.report()
+        second = copy.deepcopy(report['records'][0])
+        second['startTicks'] = second['firstEvent']['startTicks'] = second['lastEvent']['startTicks'] = 8
+        report['records'].append(second)
+        report['observations'] = '7'
+        rows = self.reduce(report)['records']
+        self.assertEqual(len(rows), 2)
+        self.assertEqual([(r['startTicks'], r['observedCount'], r['missingCount']) for r in rows], [(7, '3', '1'), (8, '3', '0')])
+
+    def test_unknown_schema_basis_extra_reads_and_changed_bound_are_refused(self):
+        for key, value in [('schema', 'v2'), ('clock', 'wall'), ('basis', 'new-proc-read'),
+                           ('evidenceVersion', 'other'), ('additionalRSSReads', 1),
+                           ('additionalRSSReads', False), ('recordLimit', 8192)]:
+            report = self.report(); report[key] = value
+            with self.subTest(key=key, value=value), self.assertRaises(RuntimeError): self.reduce(report)
+
+    def test_noncanonical_overflow_boolean_counts_and_duplicate_rows_are_refused(self):
+        for change in ('leadingZero', 'negative', 'overflow', 'integer', 'bool', 'duplicate', 'bound'):
+            report = self.report()
+            if change == 'leadingZero': report['observations'] = '04'
+            if change == 'negative': report['observations'] = '-1'
+            if change == 'overflow': report['observations'] = str(1 << 64)
+            if change == 'integer': report['observations'] = 4
+            if change == 'bool': report['observations'] = True
+            if change == 'duplicate': report['records'].append(copy.deepcopy(report['records'][0]))
+            if change == 'bound': report['records'] *= m.RSS_EVIDENCE_LIMIT
+            with self.subTest(change=change), self.assertRaises(RuntimeError): self.reduce(report)
+
+    def test_conflicting_first_last_identity_and_regressed_clock_are_refused(self):
+        for change in ('pid', 'ticks', 'kind', 'clock', 'zeroCount', 'firstBytes', 'rowBool'):
+            report = self.report(); row = report['records'][0]
+            if change == 'pid': row['lastEvent']['pid'] += 1
+            if change == 'ticks': row['firstEvent']['startTicks'] += 1
+            if change == 'kind': row['lastEvent']['sampleKind'] = 'owned-rss-unavailable'
+            if change == 'clock': row['lastObservedMonotonicNs'] = 0
+            if change == 'zeroCount': row['observations'] = '0'
+            if change == 'firstBytes': row['sampledBytes'] += 1
+            if change == 'rowBool': row['sampledBytes'] = True; row['firstEvent']['sampledBytes'] = 1
+            with self.subTest(change=change), self.assertRaises(RuntimeError): self.reduce(report)
+
+    def test_unavailable_with_bytes_or_extrema_and_fake_intermediate_extrema_are_refused(self):
+        report = self.report(values=())
+        report['records'][0]['sampledBytes'] = 0
+        with self.assertRaises(RuntimeError): self.reduce(report)
+        for values in ((200,), (200, 100)):
+            for change in ('min', 'max', 'last', 'bool'):
+                report = self.report(values=values, unavailable=False); row = report['records'][0]
+                if change == 'min': row['minSampledBytes'] = 0
+                if change == 'max': row['maxSampledBytes'] = 500
+                if change == 'last': row['lastEvent']['sampledBytes'] = 999
+                if change == 'bool': row['minSampledBytes'] = False
+                with self.subTest(values=values, change=change), self.assertRaises(RuntimeError): self.reduce(report)
+
+
 if __name__ == '__main__':
     unittest.main()
