@@ -10,10 +10,12 @@ Public uploads and manifest sealing remain separate original workflow steps.
 import argparse
 import copy
 import datetime
+import errno
 import importlib.util
 import inspect
 import json
 import os
+import socket
 from pathlib import Path
 import shutil
 import signal
@@ -208,28 +210,99 @@ def validate_binding(binding):
     return configurations
 
 
+def probe_original_ports():
+    """Probe the original fixed loopback ports without retaining any socket."""
+    sockets = []
+    primary = None
+    close_error = None
+    try:
+        for base in (31656, 31757, 31858):
+            for offset in range(4):
+                sock = socket.socket()
+                sockets.append(sock)  # Register before bind so failure closes it too.
+                sock.bind(('127.0.0.1', base+offset))
+    except BaseException as error:
+        primary = error
+    finally:
+        for sock in sockets:
+            try:
+                sock.close()
+            except BaseException as error:
+                if close_error is None: close_error = error
+    if close_error is not None:
+        # Do not retry a busy port if even one probe socket may still be held.
+        raise RuntimeError('original port probe socket cleanup failed') from (primary or close_error)
+    if primary is not None:
+        raise primary
+
+
 class FreshAdmission:
     """Use original guards including retained first-arm bytes, never node-only RSS."""
     def __init__(self, lab, parent):
-        self.lab, self.parent, self.samples = lab, parent, []
+        self.lab, self.parent, self.samples, self.port_observations = lab, parent, [], []
 
     def __call__(self, paths):
         lab = self.lab
         paths = bridge.roots(paths)
-        rows, _ = lab.guard.proc_inventory()
-        memory, free = lab.guard.memory_available(), shutil.disk_usage(self.parent).free
-        heavy = lab.heavy_processes(rows)
-        lab.admit(memory, free, heavy)
-        ids = lab.guard.owned_set(rows, os.getpid())
-        require(ids == [os.getpid()], 'original owned child remains before pair admission')
-        rss = sum(lab.owned_rss(pid, rows[pid]) for pid in ids)
-        physical = sum(lab.private_bytes(path) for path in paths)
-        require(rss <= lab.CAPS['rssBytes'] and physical <= lab.CAPS['newBytes'],
-                'original retained roots or owned RSS exceeds unchanged cap')
-        self.samples.append(dict(availableMemoryBytes=memory, freeDiskBytes=free,
-            ownedRSSBytes=rss, retainedPhysicalBytes=physical, roots=[str(path) for path in paths]))
-        # Original driver still checks ports/subreaper and admission immediately
-        # before Window. This callback neither binds ports nor changes limits.
+        started = time.monotonic()
+        deadline = started + 65.0
+        attempts = 0
+        last_busy = None
+        def record(status, observed=None):
+            observed = time.monotonic() if observed is None else observed
+            event = dict(schema='YNX-PAIR-PORT-READINESS/v1', status=status,
+                attempts=attempts, elapsedNs=int((observed-started)*1_000_000_000),
+                acceptanceDeadlineNs=65_000_000_000)
+            self.port_observations.append(event)
+            try:
+                print(json.dumps(event), flush=True)
+            except (OSError, ValueError):
+                # Keep the original error and the producer's public record.
+                pass
+            return event
+        def reject_expired(observed=None):
+            observed = time.monotonic() if observed is None else observed
+            if observed >= deadline:
+                record('BUSY_TIMEOUT' if last_busy is not None else 'ADMISSION_TIMEOUT', observed)
+                if last_busy is not None:
+                    raise last_busy
+                raise TimeoutError('original pair port readiness deadline exceeded')
+        while True:
+            reject_expired()
+            rows, _ = lab.guard.proc_inventory()
+            memory, free = lab.guard.memory_available(), shutil.disk_usage(self.parent).free
+            heavy = lab.heavy_processes(rows)
+            lab.admit(memory, free, heavy)
+            ids = lab.guard.owned_set(rows, os.getpid())
+            require(ids == [os.getpid()], 'original owned child remains before pair admission')
+            rss = sum(lab.owned_rss(pid, rows[pid]) for pid in ids)
+            physical = sum(lab.private_bytes(path) for path in paths)
+            require(rss <= lab.CAPS['rssBytes'] and physical <= lab.CAPS['newBytes'],
+                    'original retained roots or owned RSS exceeds unchanged cap')
+            reject_expired()
+            attempts += 1
+            try:
+                probe_original_ports()
+            except OSError as error:
+                if error.errno != errno.EADDRINUSE:
+                    record('PROBE_ERROR')
+                    raise
+                last_busy = error
+                reject_expired()
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    reject_expired()
+                time.sleep(min(1.0, remaining))
+                continue
+            accepted = time.monotonic()
+            reject_expired(accepted)
+            elapsed_ns = record('READY', accepted)['elapsedNs']
+            self.samples.append(dict(availableMemoryBytes=memory, freeDiskBytes=free,
+                ownedRSSBytes=rss, retainedPhysicalBytes=physical, roots=[str(path) for path in paths],
+                portReadinessAttempts=attempts, portWaitNs=elapsed_ns))
+            # The unchanged original driver probes these same ports again and
+            # checks its deadline before any original Window or transaction.
+            return
 
 
 class RevalidatedArm(bridge.OriginalDriverAdapter):
@@ -238,6 +311,10 @@ class RevalidatedArm(bridge.OriginalDriverAdapter):
         require(callable(deadline_check),'original pair deadline check required')
         self._deadline_check = deadline_check
         super().__init__(*args,**kwargs)
+
+    def port_readiness(self):
+        require(isinstance(self._admission, FreshAdmission), 'original pair admission observer required')
+        return copy.deepcopy(self._admission.port_observations)
 
     def execute(self, register_work):
         require(not any(key in os.environ for key in ('GH_TOKEN', 'GITHUB_TOKEN')),

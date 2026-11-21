@@ -46,8 +46,15 @@ class ControlledAdapter:
         self.admissions += 1
         self.retained = retained
         if self.mode == 'admission': raise RuntimeError('original unchanged resource floor')
+        if self.mode == 'port-timeout': raise OSError('original bounded port refusal')
         if self.mode == 'postcopy' and self.admissions == 2: raise RuntimeError('original retained-byte cap')
         if self.mode == 'false-admission': return False
+
+    def port_readiness(self):
+        if self.mode == 'invalid-readiness':raise RuntimeError('original admission record is invalid')
+        return [dict(schema='YNX-PAIR-PORT-READINESS/v1',status='BUSY_TIMEOUT' if self.mode=='port-timeout' else 'READY',attempts=1,
+                     elapsedNs=65_000_000_000 if self.mode=='port-timeout' else 1,
+                     acceptanceDeadlineNs=65_000_000_000)]*self.admissions
 
     def execute(self, register):
         self.case.events.append(self.arm+':execute')
@@ -143,6 +150,9 @@ class SameRunnerProducerTests(unittest.TestCase):
             item = next(a for a in metadata[2]['artifacts'] if a['name'].endswith('-manifest'))
             item.update(digest='sha256:'+fixtures.sha(raws['manifest']), size_in_bytes=len(raws['manifest']))
             report = fixtures.read(raws, metadata, case.fixture.expected)
+            self.assertFalse(report['after']['pairPortReadiness']['nodeOrFinalityEvidence'])
+            self.assertGreaterEqual(len(report['after']['pairPortReadiness']['observations']['before']),2)
+            self.assertGreaterEqual(len(report['after']['pairPortReadiness']['observations']['after']),1)
             self.assertTrue(report['sameReportedConditions'])
             self.assertFalse(report['pressureAuthorized'])
             for arm in reader.ARMS:
@@ -152,6 +162,28 @@ class SameRunnerProducerTests(unittest.TestCase):
                 self.assertFalse((case.adapters[arm].work/'public/SAME-RUNNER-ARM.json').exists())
                 self.assertEqual((case.root/'producer'/arm/case.adapters[arm].work.name/'public/empty-original.log').read_bytes(), b'')
                 self.assertFalse(any('.private' in p.parts for p in (case.root/'producer'/arm).rglob('*')))
+
+    def test_port_refusal_is_saved_without_creating_or_replaying_after_window(self):
+        with tempfile.TemporaryDirectory() as name:
+            case=Case(Path(name));case.adapters['after'].mode='port-timeout';result=case.run()
+            self.assertEqual(result['status'],'INCOMPLETE')
+            self.assertEqual(result['firstCause']['errorType'],'OSError')
+            self.assertEqual(result['pairPortReadiness']['after'][0]['status'],'BUSY_TIMEOUT')
+            self.assertFalse(case.adapters['after'].work.exists())
+            saved=json.loads((case.root/'producer/PRODUCER.json').read_bytes())
+            self.assertEqual(saved['pairPortReadiness'],result['pairPortReadiness'])
+            self.assertTrue((case.adapters['before'].work/'.private/original-UNKNOWN').exists())
+
+    def test_invalid_admission_record_preserves_original_arm_and_first_cause(self):
+        with tempfile.TemporaryDirectory() as name:
+            case=Case(Path(name));case.adapters['before'].mode='invalid-readiness';result=case.run()
+            self.assertEqual(result['status'],'INCOMPLETE')
+            self.assertEqual(result['firstCause']['errorType'],'RuntimeError')
+            self.assertIsNone(result['pairPortReadiness'])
+            self.assertTrue((case.root/'producer/before').exists())
+            self.assertTrue((case.adapters['before'].work/'.private/original-UNKNOWN').exists())
+            self.assertFalse(case.adapters['after'].work.exists())
+            self.assertTrue((case.root/'producer/PRODUCER.json').is_file())
 
     def test_all_cleanup_failures_stop_after_arm_and_preserve_originals(self):
         for mode in ('worker', 'observer', 'cleanup', 'debt', 'live-process', 'first-cause', 'postcopy'):

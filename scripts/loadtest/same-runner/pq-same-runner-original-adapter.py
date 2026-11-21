@@ -278,6 +278,10 @@ class OriginalDriverAdapter:
     def qualification_record(self):
         return copy.deepcopy(self._record)
 
+    def port_readiness(self):
+        # Generic original adapters do not claim controller-side observations.
+        return []
+
     def qualify(self):
         self.qualified = self.admitted = False
         require(not self.used, 'original adapter already used; never retry UNKNOWN')

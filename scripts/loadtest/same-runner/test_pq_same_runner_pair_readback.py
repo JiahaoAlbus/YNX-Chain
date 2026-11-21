@@ -390,6 +390,19 @@ class SameRunnerPairReadbackTests(unittest.TestCase):
             fixture.put('after', name, data)
             with self.subTest(name=name), self.assertRaises(RuntimeError): fixture.read()
 
+    def test_public_port_readiness_is_bound_and_rejects_malformed_samples(self):
+        fixture=PairFixture()
+        record=dict(schema='YNX-PAIR-PORT-READINESS-ARCHIVE/v1',arm='after',nodeOrFinalityEvidence=False,
+                    observations=dict(before=[dict(schema='YNX-PAIR-PORT-READINESS/v1',status='READY',
+                        attempts=2,elapsedNs=1_000_000_000,acceptanceDeadlineNs=65_000_000_000)],after=[]))
+        fixture.put('after','PAIR-PORT-READINESS.json',record)
+        self.assertEqual(fixture.read()['after']['pairPortReadiness'],record)
+        for key,value in [('attempts',True),('elapsedNs',-1),('elapsedNs',65_000_000_000),
+                          ('acceptanceDeadlineNs',1),('status','UNKNOWN'),('status','BUSY_TIMEOUT')]:
+            changed=copy.deepcopy(record);changed['observations']['before'][0][key]=value
+            fixture.put('after','PAIR-PORT-READINESS.json',changed)
+            with self.subTest(key=key),self.assertRaises(RuntimeError):fixture.read()
+
     def test_same_job_different_cpu_or_config_never_becomes_same_conditions(self):
         fixture = PairFixture()
         receipt = fixture.get('after', 'receipt.json')

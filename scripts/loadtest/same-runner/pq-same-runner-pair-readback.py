@@ -216,6 +216,28 @@ def arm_read(raw, label, declaration, pair, expected):
     receipt = referenced(files, inventory, marker['receipt'], names[0])
     plan = referenced(files, inventory, marker['loadPlan'], prefix + 'load-plan.json')
     require(marker['loadPlan']['sha256'] == receipt['planSHA256'], 'original runtime plan binding differs')
+    readiness = None
+    readiness_path = prefix+'PAIR-PORT-READINESS.json'
+    if readiness_path in files:
+        readiness = strict(files[readiness_path])
+        fields(readiness, 'schema arm observations nodeOrFinalityEvidence', 'pair port readiness')
+        require(readiness['schema'] == 'YNX-PAIR-PORT-READINESS-ARCHIVE/v1'
+                and readiness['arm'] == label and readiness['nodeOrFinalityEvidence'] is False
+                and type(readiness['observations']) is dict and set(readiness['observations']) == set(ARMS),
+                'original pair port readiness identity differs')
+        for values in readiness['observations'].values():
+            require(type(values) is list and len(values) <= 16, 'bounded pair port readiness required')
+            for item in values:
+                fields(item, 'schema status attempts elapsedNs acceptanceDeadlineNs', 'port readiness sample')
+                require(item['schema'] == 'YNX-PAIR-PORT-READINESS/v1'
+                        and item['status'] in ('READY','BUSY_TIMEOUT','PROBE_ERROR','ADMISSION_TIMEOUT')
+                        and type(item['attempts']) is int and 0 <= item['attempts'] <= 256
+                        and (item['attempts'] > 0 or item['status'] == 'ADMISSION_TIMEOUT')
+                        and type(item['elapsedNs']) is int and item['elapsedNs'] >= 0
+                        and type(item['acceptanceDeadlineNs']) is int and item['acceptanceDeadlineNs'] == 65_000_000_000
+                        and (item['status'] != 'READY' or item['elapsedNs'] < item['acceptanceDeadlineNs'])
+                        and (item['status'] not in ('BUSY_TIMEOUT','ADMISSION_TIMEOUT') or item['elapsedNs'] >= item['acceptanceDeadlineNs']),
+                        'original pair port readiness sample differs')
     report = held.inspect(raw, digest(raw), pair['controllerCommit'], expected['configurationSHA256'])
     require(report['source'] == declaration['source'] and report['tools'] == declaration['tools']
             and report['status'] == 'OBSERVED' and report['fullCohort'] is not None,
@@ -254,7 +276,7 @@ def arm_read(raw, label, declaration, pair, expected):
                if r['producerReportedUsable']}
     report['businessStageCostsByNode'] = {str(i): costs.business_stage_costs(commits.get(str(i)),
         report['finalizeByNode'].get(str(i), {}).get('original'), heights) for i in range(4)}
-    report.update(pairArm=label, originalMarker=marker, originalLoadResult=load,
+    report.update(pairArm=label, originalMarker=marker, originalLoadResult=load, pairPortReadiness=readiness,
                   receiptSHA256=marker['receipt']['sha256'], sameRunnerArtifactOriginBound=False)
     config = strict(files[plans[0]])['configuration']
     comparable_config, excluded = configuration_conditions(config, strict(files[prefix+'FIRST100-HELD-CI.json']))

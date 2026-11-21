@@ -309,6 +309,27 @@ def failure(error):
     return dict(errorType=type(error).__name__, errorSHA256=sha(str(error).encode()))
 
 
+def port_readiness(adapters):
+    """Capture only bounded producer-side preflight observations, never node evidence."""
+    out = {}
+    for label in reader.ARMS:
+        observed = adapters[label].port_readiness()
+        require(type(observed) is list and len(observed) <= 16, 'bounded original port readiness required')
+        for item in observed:
+            require(type(item) is dict and set(item) == {'schema','status','attempts','elapsedNs','acceptanceDeadlineNs'}
+                    and item['schema'] == 'YNX-PAIR-PORT-READINESS/v1'
+                    and item['status'] in ('READY','BUSY_TIMEOUT','PROBE_ERROR','ADMISSION_TIMEOUT')
+                    and type(item['attempts']) is int and 0 <= item['attempts'] <= 256
+                    and (item['attempts'] > 0 or item['status'] == 'ADMISSION_TIMEOUT')
+                    and type(item['elapsedNs']) is int and item['elapsedNs'] >= 0
+                    and type(item['acceptanceDeadlineNs']) is int and item['acceptanceDeadlineNs'] == 65_000_000_000
+                    and (item['status'] != 'READY' or item['elapsedNs'] < item['acceptanceDeadlineNs'])
+                    and (item['status'] not in ('BUSY_TIMEOUT','ADMISSION_TIMEOUT') or item['elapsedNs'] >= item['acceptanceDeadlineNs']),
+                    'original port readiness observation differs')
+        out[label] = copy.deepcopy(observed)
+    return out
+
+
 def validate_payload(files, declaration, pair, expected):
     """Local structural validation only; this ZIP is never an Actions original."""
     output = io.BytesIO()
@@ -421,6 +442,10 @@ def run_pair(output, *, pair, plans, adapters, environment=None, clock=time.mono
             # marker is manufactured when cleanup or the original receipt is absent.
             originals['pq-first100-held-plan.json'] = plans[arm]
             try:
+                readiness_path = prefix+'PAIR-PORT-READINESS.json'
+                require(readiness_path not in originals, 'original pair port readiness already exists')
+                originals[readiness_path] = encode(dict(schema='YNX-PAIR-PORT-READINESS-ARCHIVE/v1',
+                    arm=arm, observations=port_readiness(adapters), nodeOrFinalityEvidence=False))
                 require(primary is None, 'original arm execution or retirement raised')
                 require(receipt is not None, 'original arm receipt missing')
                 retired(receipt, children, threads_before)
@@ -471,6 +496,15 @@ def run_pair(output, *, pair, plans, adapters, environment=None, clock=time.mono
     except BaseException as error:
         if result['firstCause'] is None: result['firstCause'] = failure(error)
         else: result['secondaryFailures'].append(failure(error))
+    try:
+        result['pairPortReadiness'] = port_readiness(adapters)
+    except BaseException as error:
+        result['pairPortReadiness'] = None
+        if result['firstCause'] is None:
+            result['firstCause'] = failure(error)
+        else:
+            result['secondaryFailures'].append(failure(error))
+        result['status'] = 'INCOMPLETE'
     write_new(output/'PRODUCER.json', result, expected_parent=output_identity)
     return result
 

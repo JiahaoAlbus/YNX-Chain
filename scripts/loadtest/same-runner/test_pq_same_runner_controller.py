@@ -1,10 +1,12 @@
 """Bounded controller contracts with synthetic metadata, never a window/source grant."""
 from contextlib import ExitStack
 import copy
+import errno
 import importlib.util
 import json
 import os
 from pathlib import Path
+import socket
 import subprocess
 import sys
 import tempfile
@@ -167,7 +169,8 @@ class ControllerControls(unittest.TestCase):
             with mock.patch.object(lab.guard,'proc_inventory',return_value=(rows,None)), \
                     mock.patch.object(lab.guard,'memory_available',return_value=8<<30), \
                     mock.patch.object(c.shutil,'disk_usage',return_value=types.SimpleNamespace(free=32<<30)), \
-                    mock.patch.object(lab,'owned_rss',return_value=100),mock.patch.object(lab,'heavy_processes',return_value=[]):
+                    mock.patch.object(lab,'owned_rss',return_value=100),mock.patch.object(lab,'heavy_processes',return_value=[]), \
+                    mock.patch.object(c,'probe_original_ports'):
                 admission=c.FreshAdmission(lab,parent);admission((parent,parent/'retained'))
                 self.assertEqual(admission.samples[0]['roots'],[str(parent)])
                 self.assertGreaterEqual(admission.samples[0]['retainedPhysicalBytes'],7)
@@ -178,6 +181,197 @@ class ControllerControls(unittest.TestCase):
                 rows[pid+1]=dict(pid=pid+1,parent=pid,startTicks=2,state='S',threads=1,comm='python')
                 with self.assertRaisesRegex(RuntimeError,'owned child remains'):admission((parent,))
                 self.assertTrue((parent/'retained/original-UNKNOWN').exists())
+
+    def test_original_port_probe_checks_exact_twelve_ports_and_closes_them(self):
+        made=[]
+        class Probe:
+            def __init__(self):self.address=None;self.closed=False;made.append(self)
+            def bind(self,address):self.address=address
+            def close(self):self.closed=True
+        with mock.patch.object(c.socket,'socket',side_effect=Probe):c.probe_original_ports()
+        self.assertEqual([p.address for p in made],
+                         [('127.0.0.1',base+i) for base in (31656,31757,31858) for i in range(4)])
+        self.assertTrue(all(p.closed for p in made))
+
+    def test_failed_port_probe_closes_the_failed_socket_too(self):
+        made=[];error=OSError(errno.EADDRINUSE,'original port busy')
+        class Probe:
+            def __init__(self):self.closed=False;made.append(self)
+            def bind(self,address):
+                if len(made)==4:raise error
+            def close(self):self.closed=True
+        with mock.patch.object(c.socket,'socket',side_effect=Probe):
+            with self.assertRaises(OSError) as caught:c.probe_original_ports()
+        self.assertIs(caught.exception,error);self.assertEqual(len(made),4)
+        self.assertTrue(all(p.closed for p in made))
+
+    def test_port_probe_cleanup_failure_closes_other_sockets_and_refuses(self):
+        made=[];busy=OSError(errno.EADDRINUSE,'original port busy')
+        class Probe:
+            def __init__(self):self.closed=False;self.index=len(made);made.append(self)
+            def bind(self,address):
+                if self.index==3:raise busy
+            def close(self):
+                self.closed=True
+                if self.index==1:raise OSError('original close failure')
+        with mock.patch.object(c.socket,'socket',side_effect=Probe):
+            with self.assertRaisesRegex(RuntimeError,'socket cleanup failed') as caught:c.probe_original_ports()
+        self.assertIs(caught.exception.__cause__,busy)
+        self.assertTrue(all(p.closed for p in made))
+
+    def test_port_wait_probes_original_listener_until_it_is_released(self):
+        with tempfile.TemporaryDirectory() as tmp, socket.socket() as listener:
+            parent=Path(tmp).resolve(); lab=original.lab; pid=os.getpid()
+            rows={pid:dict(pid=pid,parent=0,startTicks=1,state='S',threads=1,comm='python')}
+            listener.bind(('127.0.0.1',0)); listener.listen(); port=listener.getsockname()[1]
+            attempts=[]; now=[0.0]
+            def ports():
+                attempts.append(port)
+                with socket.socket() as probe: probe.bind(('127.0.0.1',port))
+            def sleep(seconds):
+                listener.close();now[0]+=seconds
+            with mock.patch.object(lab.guard,'proc_inventory',return_value=(rows,None)), \
+                 mock.patch.object(lab.guard,'memory_available',return_value=8<<30), \
+                 mock.patch.object(c.shutil,'disk_usage',return_value=types.SimpleNamespace(free=32<<30)), \
+                 mock.patch.object(lab,'owned_rss',return_value=100),mock.patch.object(lab,'heavy_processes',return_value=[]), \
+                 mock.patch.object(c,'probe_original_ports',side_effect=ports), \
+                 mock.patch.object(c.time,'monotonic',side_effect=lambda:now[0]),mock.patch.object(c.time,'sleep',side_effect=sleep):
+                admission=c.FreshAdmission(lab,parent);admission((parent,))
+                self.assertEqual(len(attempts),2)
+                self.assertEqual(admission.samples[-1]['portReadinessAttempts'],2)
+                self.assertGreater(admission.samples[-1]['portWaitNs'],0)
+
+    def test_port_wait_preserves_busy_error_on_timeout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            parent=Path(tmp).resolve();lab=original.lab;pid=os.getpid();now=[0.0]
+            rows={pid:dict(pid=pid,parent=0,startTicks=1,state='S',threads=1,comm='python')}
+            error=OSError(errno.EADDRINUSE,'original port busy')
+            with mock.patch.object(lab.guard,'proc_inventory',return_value=(rows,None)), \
+                 mock.patch.object(lab.guard,'memory_available',return_value=8<<30), \
+                 mock.patch.object(c.shutil,'disk_usage',return_value=types.SimpleNamespace(free=32<<30)), \
+                 mock.patch.object(lab,'owned_rss',return_value=100),mock.patch.object(lab,'heavy_processes',return_value=[]), \
+                 mock.patch.object(c,'probe_original_ports',side_effect=error), \
+                 mock.patch.object(c.time,'monotonic',side_effect=lambda:now[0]), \
+                 mock.patch.object(c.time,'sleep',side_effect=lambda seconds:now.__setitem__(0,now[0]+seconds)):
+                admission=c.FreshAdmission(lab,parent)
+                with self.assertRaises(OSError) as caught: admission((parent,))
+                self.assertIs(caught.exception,error);self.assertFalse(admission.samples)
+                self.assertLessEqual(now[0],65.0)
+
+    def test_port_wait_does_not_retry_other_errors(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            parent=Path(tmp).resolve();lab=original.lab;pid=os.getpid()
+            rows={pid:dict(pid=pid,parent=0,startTicks=1,state='S',threads=1,comm='python')}
+            error=OSError(errno.EACCES,'original permission failure')
+            with mock.patch.object(lab.guard,'proc_inventory',return_value=(rows,None)), \
+                 mock.patch.object(lab.guard,'memory_available',return_value=8<<30), \
+                 mock.patch.object(c.shutil,'disk_usage',return_value=types.SimpleNamespace(free=32<<30)), \
+                 mock.patch.object(lab,'owned_rss',return_value=100),mock.patch.object(lab,'heavy_processes',return_value=[]), \
+                 mock.patch.object(c,'probe_original_ports',side_effect=error) as ports, mock.patch.object(c.time,'sleep') as sleep:
+                with self.assertRaises(OSError) as caught:c.FreshAdmission(lab,parent)((parent,))
+                self.assertIs(caught.exception,error);ports.assert_called_once();sleep.assert_not_called()
+
+    def test_port_wait_rechecks_original_memory_floor(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            parent=Path(tmp).resolve();lab=original.lab;pid=os.getpid()
+            rows={pid:dict(pid=pid,parent=0,startTicks=1,state='S',threads=1,comm='python')}
+            with mock.patch.object(lab.guard,'proc_inventory',return_value=(rows,None)), \
+                 mock.patch.object(lab.guard,'memory_available',side_effect=[8<<30,5<<30]), \
+                 mock.patch.object(c.shutil,'disk_usage',return_value=types.SimpleNamespace(free=32<<30)), \
+                 mock.patch.object(lab,'owned_rss',return_value=100),mock.patch.object(lab,'heavy_processes',return_value=[]), \
+                 mock.patch.object(c,'probe_original_ports',side_effect=OSError(errno.EADDRINUSE,'busy')),mock.patch.object(c.time,'sleep'):
+                with self.assertRaisesRegex(RuntimeError,'MemAvailable'):c.FreshAdmission(lab,parent)((parent,))
+
+    def test_port_wait_rejects_if_resource_scan_crosses_absolute_deadline(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            parent=Path(tmp).resolve();lab=original.lab;pid=os.getpid();now=[0.0];calls=[0]
+            rows={pid:dict(pid=pid,parent=0,startTicks=1,state='S',threads=1,comm='python')}
+            error=OSError(errno.EADDRINUSE,'original port busy')
+            def memory():
+                calls[0]+=1
+                if calls[0]==2:now[0]=66.0
+                return 8<<30
+            with mock.patch.object(lab.guard,'proc_inventory',return_value=(rows,None)), \
+                 mock.patch.object(lab.guard,'memory_available',side_effect=memory), \
+                 mock.patch.object(c.shutil,'disk_usage',return_value=types.SimpleNamespace(free=32<<30)), \
+                 mock.patch.object(lab,'owned_rss',return_value=100),mock.patch.object(lab,'heavy_processes',return_value=[]), \
+                 mock.patch.object(c,'probe_original_ports',side_effect=[error,None]) as ports, \
+                 mock.patch.object(c.time,'monotonic',side_effect=lambda:now[0]), \
+                 mock.patch.object(c.time,'sleep',side_effect=lambda seconds:now.__setitem__(0,now[0]+seconds)):
+                admission=c.FreshAdmission(lab,parent)
+                with self.assertRaises(OSError) as caught:admission((parent,))
+                self.assertIs(caught.exception,error);self.assertEqual(ports.call_count,1)
+                self.assertFalse(admission.samples)
+
+    def test_port_wait_rejects_if_successful_probe_crosses_absolute_deadline(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            parent=Path(tmp).resolve();lab=original.lab;pid=os.getpid();now=[0.0];calls=[0]
+            rows={pid:dict(pid=pid,parent=0,startTicks=1,state='S',threads=1,comm='python')}
+            error=OSError(errno.EADDRINUSE,'original port busy')
+            def ports():
+                calls[0]+=1
+                if calls[0]==1:raise error
+                now[0]=66.0
+            with mock.patch.object(lab.guard,'proc_inventory',return_value=(rows,None)), \
+                 mock.patch.object(lab.guard,'memory_available',return_value=8<<30), \
+                 mock.patch.object(c.shutil,'disk_usage',return_value=types.SimpleNamespace(free=32<<30)), \
+                 mock.patch.object(lab,'owned_rss',return_value=100),mock.patch.object(lab,'heavy_processes',return_value=[]), \
+                 mock.patch.object(c,'probe_original_ports',side_effect=ports), \
+                 mock.patch.object(c.time,'monotonic',side_effect=lambda:now[0]), \
+                 mock.patch.object(c.time,'sleep',side_effect=lambda seconds:now.__setitem__(0,now[0]+seconds)):
+                admission=c.FreshAdmission(lab,parent)
+                with self.assertRaises(OSError) as caught:admission((parent,))
+                self.assertIs(caught.exception,error);self.assertEqual(calls[0],2)
+                self.assertFalse(admission.samples)
+
+    def test_first_resource_scan_past_deadline_cannot_admit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            parent=Path(tmp).resolve();lab=original.lab;pid=os.getpid();now=[0.0]
+            rows={pid:dict(pid=pid,parent=0,startTicks=1,state='S',threads=1,comm='python')}
+            def memory():now[0]=66.0;return 8<<30
+            with mock.patch.object(lab.guard,'proc_inventory',return_value=(rows,None)), \
+                 mock.patch.object(lab.guard,'memory_available',side_effect=memory), \
+                 mock.patch.object(c.shutil,'disk_usage',return_value=types.SimpleNamespace(free=32<<30)), \
+                 mock.patch.object(lab,'owned_rss',return_value=100),mock.patch.object(lab,'heavy_processes',return_value=[]), \
+                 mock.patch.object(c,'probe_original_ports') as ports, \
+                 mock.patch.object(c.time,'monotonic',side_effect=lambda:now[0]):
+                admission=c.FreshAdmission(lab,parent)
+                with self.assertRaises(TimeoutError):admission((parent,))
+                ports.assert_not_called();self.assertFalse(admission.samples)
+                self.assertEqual(admission.port_observations[-1]['status'],'ADMISSION_TIMEOUT')
+
+    def test_first_successful_probe_past_deadline_cannot_admit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            parent=Path(tmp).resolve();lab=original.lab;pid=os.getpid();now=[0.0]
+            rows={pid:dict(pid=pid,parent=0,startTicks=1,state='S',threads=1,comm='python')}
+            with mock.patch.object(lab.guard,'proc_inventory',return_value=(rows,None)), \
+                 mock.patch.object(lab.guard,'memory_available',return_value=8<<30), \
+                 mock.patch.object(c.shutil,'disk_usage',return_value=types.SimpleNamespace(free=32<<30)), \
+                 mock.patch.object(lab,'owned_rss',return_value=100),mock.patch.object(lab,'heavy_processes',return_value=[]), \
+                 mock.patch.object(c,'probe_original_ports',side_effect=lambda:now.__setitem__(0,66.0)), \
+                 mock.patch.object(c.time,'monotonic',side_effect=lambda:now[0]):
+                admission=c.FreshAdmission(lab,parent)
+                with self.assertRaises(TimeoutError):admission((parent,))
+                self.assertFalse(admission.samples)
+                self.assertEqual(admission.port_observations[-1]['status'],'ADMISSION_TIMEOUT')
+
+    def test_port_log_failure_does_not_replace_original_busy_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            parent=Path(tmp).resolve();lab=original.lab;pid=os.getpid();now=[0.0]
+            rows={pid:dict(pid=pid,parent=0,startTicks=1,state='S',threads=1,comm='python')}
+            error=OSError(errno.EADDRINUSE,'original port busy')
+            with mock.patch.object(lab.guard,'proc_inventory',return_value=(rows,None)), \
+                 mock.patch.object(lab.guard,'memory_available',return_value=8<<30), \
+                 mock.patch.object(c.shutil,'disk_usage',return_value=types.SimpleNamespace(free=32<<30)), \
+                 mock.patch.object(lab,'owned_rss',return_value=100),mock.patch.object(lab,'heavy_processes',return_value=[]), \
+                 mock.patch.object(c,'probe_original_ports',side_effect=error), \
+                 mock.patch.object(c.time,'monotonic',side_effect=lambda:now[0]), \
+                 mock.patch.object(c.time,'sleep',side_effect=lambda seconds:now.__setitem__(0,now[0]+seconds)), \
+                 mock.patch('builtins.print',side_effect=BrokenPipeError()):
+                admission=c.FreshAdmission(lab,parent)
+                with self.assertRaises(OSError) as caught:admission((parent,))
+                self.assertIs(caught.exception,error)
+                self.assertEqual(admission.port_observations[-1]['status'],'BUSY_TIMEOUT')
 
     def test_original_floors_and_resource_errors_are_not_converted_to_success(self):
         with tempfile.TemporaryDirectory() as tmp:
