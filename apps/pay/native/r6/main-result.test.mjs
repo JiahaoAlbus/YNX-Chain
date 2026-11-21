@@ -5,6 +5,17 @@ import {nativePayFailureCode,nativePayFailureResultDATA,nativePayRecoveryActions
 const merchant='0x'+'1'.repeat(40),nativeHash='0x'+'2'.repeat(64),abciHash='0x'+'3'.repeat(64),intentId='npi_'+'4'.repeat(48);
 const original={productId:'shop.order',sourceOrder:'order:original',storeId:'store-original',merchant,recipient:merchant,genesis:'a'.repeat(64),nativeChainId:'6423',assetId:'YNXT',unitVersion:'1',amountAtoms:'100',domainData:{schema:'PUBLIC_ORIGINAL_DATA'}};
 function boot(pay,extra={}){const entry=createNativePayMainEntry({getMain:()=>null,getContext:()=>({account:merchant,revision:1,focused:true})});entry.compose({pay,current(){},...extra});return entry;}
+test('Shop original source conflict stops create and lookup before any Pay request',async()=>{
+ let creates=0,lookups=0,reads=0;
+ const conflict=Object.assign(Error('multiple original Shop records'),{code:'SHOP_ORIGINAL_CONFLICT',status:409});
+ const entry=boot({async createInvoiceIntent(){creates++},async lookupInvoiceIntent(){lookups++}},{async readOriginalInvoiceIntent(ref){reads++;assert.deepEqual(ref,{productId:original.productId,sourceOrder:original.sourceOrder});throw conflict}});
+ for(const action of ['create-intent','lookup-intent']){
+  const result=await entry.invokeResult({action,productId:original.productId,sourceOrder:original.sourceOrder});
+  assert.equal(result.ok,false);assert.equal(result.code,'SHOP_ORIGINAL_CONFLICT');assert.equal(result.canRetry,false);
+  assert.equal(readNativePayFailureCause(result).cause,conflict);
+ }
+ assert.equal(reads,2);assert.equal(creates,0);assert.equal(lookups,0);
+});
 test('normal result retains lost-create original selector and offers only original lookup',async()=>{
  const error=Object.assign(Error('PRIVATE_EXCEPTION_BODY'),{code:4100,data:{code:'NATIVE_PAY_HTTP_UNKNOWN',secret:'PRIVATE_MEMBER'}});let creates=0;
  const pay={async createInvoiceIntent(){creates++;throw error;}};
