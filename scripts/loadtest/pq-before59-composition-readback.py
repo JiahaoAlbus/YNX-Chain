@@ -19,6 +19,16 @@ native_source=importlib.util.module_from_spec(spec);spec.loader.exec_module(nati
 SUPPLIER='5a49f5c91452604dffb910df736702b3b9df2562'
 SUPPLIER_TREE='08747364c24c065bf2b13527c210625d7ec95fba'
 COMPOSER='e35ff39c10090e9200bdabf7b265c1fd211fd2ae4d227ffaae52054c6dbc2fac'
+MODULE_DESCRIPTORS={
+    'go.mod':'d7bbb7d5215b1539ad84709f89b843a65f54fcd7f167c9cddba71c71da1cbce8',
+    'go.sum':'87d7280001b2b5e12b687d45e921d5e3500d53b79d3885acf7ab2b9a17cc575c',
+    'third_party/cometbft/go.mod':'265396d8783ee13227b7dcded4787dfc169b86600388e028e3cecdb54a643d59',
+    'third_party/cometbft/go.sum':'daa9e68eab2c225e39a03b624169f17ad31dcf0b3f5c106c2b9df9ac3c9cdbfd'}
+RETAINED_PRODUCTION={
+    'node/observer_node_test.go':'4aff988c3d621a82c55529bab43964deca79c22c922308b989798bf02176ef63',
+    'node/ynx_proof_source.go':'04ee414c22f7179ab8a6636a6de99d37805e9e8ed57e8253d231249dcb382c38',
+    'rpc/core/observer_status_test.go':'21bdde81a1cb45e8333fbc7038ac34a3da2fea1462b114436c0997d464059541',
+    'rpc/core/status.go':'590a74ecb7cc9114ddc058720bed3f69e10beb48d458ba93e94b72d666834181'}
 
 def require(ok,message):
     if not ok:raise RuntimeError(message)
@@ -47,10 +57,11 @@ def validate_build_info(raw,binary_path,go_env):
     require(not any(key.startswith('vcs') for key in settings),'original build-info contains unexpected VCS identity')
 
 def validate_binding(binding):
-    fields={'source','tools','run','job','artifact','archiveSHA256','members','path'}
+    fields={'source','tools','run','job','artifact','archiveBytes','archiveSHA256','members','path'}
     require(type(binding) is dict and set(binding)==fields and binding['source']==SOURCE
         and type(binding['tools']) is str and re.fullmatch('[0-9a-f]{40}',binding['tools'])
         and all(type(binding[k]) is int and binding[k]>0 for k in ('run','job','artifact'))
+        and type(binding['archiveBytes']) is int and 0<binding['archiveBytes']<=32<<20
         and type(binding['archiveSHA256']) is str and re.fullmatch('[0-9a-f]{64}',binding['archiveSHA256'])
         and type(binding['members']) is dict and set(binding['members'])==set(MEMBERS)
         and all(type(value) is str and re.fullmatch('[0-9a-f]{64}',value) for value in binding['members'].values())
@@ -78,12 +89,15 @@ def validate_metadata(binding,job,inventory):
             'unique original same-run before59 source-build artifact required')
     artifact=matches[0];run=artifact.get('workflow_run')
     require(artifact.get('name')==name and artifact.get('expired') is False
+        and type(artifact.get('size_in_bytes')) is int and artifact['size_in_bytes']==binding['archiveBytes']
         and artifact.get('digest')=='sha256:'+binding['archiveSHA256']
         and type(run) is dict and type(run.get('id')) is int and run['id']==binding['run'] and run.get('head_sha')==binding['tools'],
         'original before59 source-build artifact identity differs')
 
 def inspect(binding,job,inventory,raw,*,strict):
     validate_metadata(binding,job,inventory)
+    require(type(raw) is bytes and len(raw)==binding['archiveBytes'],
+            'original before59 source-build archive length differs')
     members=archive.read_original_archive(raw,expected_sha256=binding['archiveSHA256'],
         expected_members=binding['members'],member_limit=1<<20,total_limit=4<<20)
     receipt=strict(members['COMPOSITION-RECEIPT.json']);selection=strict(members['SOURCE-SELECTION.json'])
@@ -119,6 +133,10 @@ def inspect(binding,job,inventory,raw,*,strict):
         and native.get('authorityGranted') is False and native.get('pressureAuthorized') is False
         and native.get('sourceBytesChanged') is False,
         'original before59 source selection or native closure differs')
+    require(selection.get('moduleDescriptorSHA256')==MODULE_DESCRIPTORS
+        and native.get('moduleDescriptorSHA256')==MODULE_DESCRIPTORS
+        and selection.get('retainedProductionSHA256')==RETAINED_PRODUCTION,
+        'original before59 module descriptors or retained production source differs')
     cwd=receipt.get('buildCwd')
     require(type(cwd) is str and PurePosixPath(cwd).is_absolute() and not cwd.startswith('//') and PurePosixPath(cwd).as_posix()==cwd
         and '..' not in PurePosixPath(cwd).parts and cwd.endswith('/composed/source')

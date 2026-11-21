@@ -22,9 +22,10 @@ def fixture():
     selection=dict(originalSourceCommit=r.SOURCE,originalSourceTree=r.TREE,originalProductionForkTree=r.FORK,
         selectedOptionalForkCommit=r.SUPPLIER,selectedOptionalForkTree=r.SUPPLIER_TREE,sourceOnly=True,nodeStarted=False,
         sourceDirectory=cwd,buildTags=['ynx_live_wire_observation'],carrierEnabled=False,
+        moduleDescriptorSHA256=dict(r.MODULE_DESCRIPTORS),retainedProductionSHA256=dict(r.RETAINED_PRODUCTION),
         fakeVCSIdentity=False,originalCheckoutWritten=False,originalModuleDescriptorsChanged=False,publicActivation=False)
     native=dict(source=r.SOURCE,sourceTree=r.TREE,fileCount=11,sourceOnly=True,nodeStarted=False,authorityGranted=False,
-        sourceBytesChanged=False,pressureAuthorized=False,buildSource=cwd,
+        sourceBytesChanged=False,pressureAuthorized=False,buildSource=cwd,moduleDescriptorSHA256=dict(r.MODULE_DESCRIPTORS),
         files=[dict(path=path,**value) for path,value in r.native_source.FILES.items()])
     declaration=dict(version='YNX-COMET-COMMIT-CLOCK-BUILD/v1',
         sourceBinding='linker-declared-requires-original-manifest-build-binary-and-process-proof',
@@ -52,11 +53,11 @@ def build(tools,run,job,artifact,members):
     with zipfile.ZipFile(buffer,'w') as z:
         for name,raw in members.items():z.writestr(name,raw)
     raw=buffer.getvalue();sha=hashlib.sha256(raw).hexdigest()
-    binding=dict(source=r.SOURCE,tools=tools,run=run,job=job,artifact=artifact,archiveSHA256=sha,
+    binding=dict(source=r.SOURCE,tools=tools,run=run,job=job,artifact=artifact,archiveBytes=len(raw),archiveSHA256=sha,
         members={name:hashlib.sha256(value).hexdigest() for name,value in members.items()},path='/CONTROL/official.zip')
     job_data=dict(id=job,run_id=run,run_attempt=1,head_sha=tools,run_url='https://api.github.com/repos/JiahaoAlbus/YNX-Chain/actions/runs/%d'%run,
         name=r.JOB,status='completed',conclusion='success',steps=[dict(name=n,status='completed',conclusion='success') for n in r.STEPS])
-    entry=dict(id=artifact,name='before59-source-build-%s-%d-1'%(tools,run),expired=False,digest='sha256:'+sha,
+    entry=dict(id=artifact,name='before59-source-build-%s-%d-1'%(tools,run),expired=False,digest='sha256:'+sha,size_in_bytes=len(raw),
                workflow_run=dict(id=run,head_sha=tools))
     return binding,job_data,dict(total_count=1,artifacts=[entry]),raw,members
 
@@ -74,18 +75,20 @@ class Before59CompositionReadbackControls(unittest.TestCase):
 
     def test_missing_duplicate_cross_run_and_wrong_sha_artifacts_refused(self):
         binding,job,inventory,raw,_=fixture()
-        for mode in ('missing','duplicate','cross_run','sha','expired'):
+        for mode in ('missing','duplicate','cross_run','sha','size','expired'):
             value=copy.deepcopy(inventory)
             if mode=='missing':value=dict(total_count=0,artifacts=[])
             if mode=='duplicate':value['artifacts'].append(copy.deepcopy(value['artifacts'][0]));value['total_count']=2
             if mode=='cross_run':value['artifacts'][0]['workflow_run']['id']=999
             if mode=='sha':value['artifacts'][0]['digest']='sha256:'+'f'*64
+            if mode=='size':value['artifacts'][0]['size_in_bytes']+=1
             if mode=='expired':value['artifacts'][0]['expired']=True
             with self.subTest(mode=mode),self.assertRaises(RuntimeError):r.inspect(binding,job,value,raw,strict=strict)
 
     def test_missing_changed_or_unsafe_original_archive_rejected(self):
         binding,job,inventory,raw,members=fixture()
-        with self.assertRaises(ValueError):r.inspect(binding,job,inventory,raw+b'x',strict=strict)
+        with self.assertRaises(RuntimeError):r.inspect(binding,job,inventory,raw+b'x',strict=strict)
+        with self.assertRaises(ValueError):r.inspect(binding,job,inventory,raw[:-1]+bytes([raw[-1]^1]),strict=strict)
         changed=dict(members);del changed['GO-BUILD-INFO.txt']
         b,j,i,z,_=build(binding['tools'],binding['run'],binding['job'],binding['artifact'],changed)
         with self.assertRaises(RuntimeError):r.inspect(b,j,i,z,strict=strict)
@@ -109,22 +112,43 @@ class Before59CompositionReadbackControls(unittest.TestCase):
     def test_original_cwd_tags_native_scope_and_structured_buildinfo_refused_on_difference(self):
         binding,_,_,_,members=fixture()
         modes=('selection_cwd','native_cwd','missing_cwd','noncanonical_cwd','tags','carrier','native_pressure',
+               'selection_descriptor','native_descriptor','missing_descriptor','extra_descriptor','invalid_descriptor',
+               'both_descriptors','duplicate_descriptor','retained_source','retained_missing','retained_extra',
                'info_version','info_path','info_arch','info_cgo','info_fake_linux','info_duplicate','info_vcs','declaration_authority')
         for mode in modes:
             value=dict(members);receipt=json.loads(value['COMPOSITION-RECEIPT.json'])
-            if mode in ('selection_cwd','tags','carrier'):
+            if mode in ('selection_cwd','tags','carrier','selection_descriptor','retained_source','retained_missing','retained_extra'):
                 selection=json.loads(value['SOURCE-SELECTION.json'])
                 if mode=='selection_cwd':selection['sourceDirectory']='/tmp/other/composed/source'
                 if mode=='tags':selection['buildTags']=[]
                 if mode=='carrier':selection['carrierEnabled']=True
+                if mode=='selection_descriptor':selection['moduleDescriptorSHA256']['go.mod']='f'*64
+                if mode=='retained_source':selection['retainedProductionSHA256']['rpc/core/status.go']='f'*64
+                if mode=='retained_missing':del selection['retainedProductionSHA256']['rpc/core/status.go']
+                if mode=='retained_extra':selection['retainedProductionSHA256']['rpc/core/extra.go']='f'*64
                 value['SOURCE-SELECTION.json']=encode(selection)
                 receipt['sourceSelectionSHA256']=hashlib.sha256(value['SOURCE-SELECTION.json']).hexdigest()
-            elif mode in ('native_cwd','native_pressure'):
+            elif mode in ('native_cwd','native_pressure','native_descriptor','missing_descriptor','extra_descriptor','invalid_descriptor'):
                 native=json.loads(value['SOURCE-NATIVE-DEPENDENCIES.json'])
                 if mode=='native_cwd':native['buildSource']='/tmp/other/composed/source'
                 if mode=='native_pressure':native['pressureAuthorized']=True
+                if mode=='native_descriptor':native['moduleDescriptorSHA256']['go.mod']='f'*64
+                if mode=='missing_descriptor':del native['moduleDescriptorSHA256']['go.sum']
+                if mode=='extra_descriptor':native['moduleDescriptorSHA256']['other.mod']='f'*64
+                if mode=='invalid_descriptor':native['moduleDescriptorSHA256']['go.mod']='z'*64
                 value['SOURCE-NATIVE-DEPENDENCIES.json']=encode(native)
                 receipt['nativeDependenciesSHA256']=hashlib.sha256(value['SOURCE-NATIVE-DEPENDENCIES.json']).hexdigest()
+            elif mode=='both_descriptors':
+                selection=json.loads(value['SOURCE-SELECTION.json']);native=json.loads(value['SOURCE-NATIVE-DEPENDENCIES.json'])
+                selection['moduleDescriptorSHA256']['go.mod']=native['moduleDescriptorSHA256']['go.mod']='f'*64
+                value['SOURCE-SELECTION.json']=encode(selection);value['SOURCE-NATIVE-DEPENDENCIES.json']=encode(native)
+                receipt['sourceSelectionSHA256']=hashlib.sha256(value['SOURCE-SELECTION.json']).hexdigest()
+                receipt['nativeDependenciesSHA256']=hashlib.sha256(value['SOURCE-NATIVE-DEPENDENCIES.json']).hexdigest()
+            elif mode=='duplicate_descriptor':
+                original=value['SOURCE-SELECTION.json'];needle=b'"moduleDescriptorSHA256": {'
+                value['SOURCE-SELECTION.json']=original.replace(needle,needle+b'"go.mod": "'+b'f'*64+b'", ',1)
+                self.assertNotEqual(value['SOURCE-SELECTION.json'],original)
+                receipt['sourceSelectionSHA256']=hashlib.sha256(value['SOURCE-SELECTION.json']).hexdigest()
             elif mode=='missing_cwd':del receipt['buildCwd']
             elif mode=='noncanonical_cwd':receipt['buildCwd']='/tmp/CONTROL/../CONTROL/composed/source'
             elif mode=='declaration_authority':
