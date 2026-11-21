@@ -64,7 +64,10 @@ final class StubProtocol:URLProtocol,@unchecked Sendable {
         try check(try AppleNativeBusinessPolicy.scopes("GET","/api/orders/id/native-pay-intent")==["account:read","shop:orders:write"],"original Native intent uses narrow read action")
         try check(try AppleNativeBusinessPolicy.scopes("POST","/api/orders/id/projection")==AppleNativeProductState.scopes,"selected Buyer projection uses the original full Buyer scopes")
         for path in ["/api/orders/../projection","/api/orders/id/projection/extra"] {do{_ = try AppleNativeBusinessPolicy.scopes("POST",path);throw NSError(domain:"projection alias",code:1)}catch ShopError.security{print("PASS projection rejects alias")}}
-        let selectedSession=authority.current!,snapshot=String(repeating:"a",count:128)
+        let unregisteredSession=authority.current!
+        do{_ = try await api.selectOriginalOrder("ord_original",expected:unregisteredSession);throw NSError(domain:"non-Native selection",code:1)}catch ShopError.security{print("PASS selection requires Native generation")}
+        let selectedSession=ShopSession(account:unregisteredSession.account,token:unregisteredSession.token,expiresAt:unregisteredSession.expiresAt,nativeGeneration:1),snapshot=String(repeating:"a",count:128)
+        authority.current=selectedSession
         var projectionCalls=0
         StubProtocol.handler={request in projectionCalls+=1;precondition(request.request.httpMethod=="POST" && request.request.url?.path=="/api/orders/ord_original/projection");request.respond(200,"{\"orderId\":\"ord_original\",\"snapshot\":\"\(snapshot)\",\"fields\":[\"currency\",\"status\",\"totalYNXT\"],\"data\":{\"currency\":\"YNXT\",\"status\":\"payment_pending\",\"totalYNXT\":\"10\"}}")}
         let selection=try await api.selectOriginalOrder("ord_original",expected:selectedSession)

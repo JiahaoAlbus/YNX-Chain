@@ -562,7 +562,7 @@ struct AppleShopOrderSelection: Encodable {
     }
     private func readOriginalOrderSelection(_ orderID:String,expected:ShopSession,snapshot requestedSnapshot:String)async throws->AppleShopOrderSelection {
         let check=try capture()
-        guard currentSession==expected,NativeWire.matches(orderID,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),requestedSnapshot.isEmpty || NativeWire.matches(requestedSnapshot,"^[0-9a-f]{128}$") else{throw ShopError.security}
+        guard currentSession==expected,let generation=expected.nativeGeneration,generation>0,NativeWire.matches(orderID,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),requestedSnapshot.isEmpty || NativeWire.matches(requestedSnapshot,"^[0-9a-f]{128}$") else{throw ShopError.security}
         let fields=["currency","status","totalYNXT"]
         let reply=try await raw("orders/"+orderID+"/projection",json:["fields":fields,"snapshot":requestedSnapshot])
         try check()
