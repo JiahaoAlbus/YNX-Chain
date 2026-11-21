@@ -221,6 +221,30 @@ class StoppedResourceControls(unittest.TestCase):
                     scope.roots=[]
                     if scope in m._READ_SCOPE_DEBT:m._READ_SCOPE_DEBT.remove(scope)
 
+    def test_join_exception_cannot_use_a_dead_flag_to_close_live_observer_fds(self):
+        entered=threading.Event();release=threading.Event();scope=None
+        def rss(*args):
+            if threading.current_thread() is not threading.main_thread():entered.set();release.wait(2)
+            return 4096
+        with self.resources(side_effect=rss):
+            try:
+                scope=m.StoppedReadScope(self.w);scope.start();self.assertTrue(entered.wait(1))
+                owned=list(scope.roots)
+                with mock.patch.object(scope.monitor.thread,'join',side_effect=RuntimeError('UNIT join did not return normally')),\
+                        mock.patch.object(scope.monitor.thread,'is_alive',return_value=False):
+                    scope.close()
+                self.assertTrue(scope.cleanup_debt);self.assertEqual(scope.report()['status'],'UNKNOWN')
+                self.assertFalse(scope.report()['monitorRetired'])
+                for _,fd,_ in owned:os.fstat(fd) # The actual reader thread remains blocked.
+                self.assertEqual(scope.roots,owned)
+            finally:
+                release.set()
+                if scope is not None:
+                    scope.monitor.thread.join(1);self.assertFalse(scope.monitor.thread.is_alive())
+                    for _,fd,_ in scope.roots:os.close(fd)
+                    scope.roots=[]
+                    if scope in m._READ_SCOPE_DEBT:m._READ_SCOPE_DEBT.remove(scope)
+
     def test_original_job_invokes_stopped_continuation_after_stop_and_before_private_retention(self):
         fixture=job.HostedSyntheticReservationControls();fixture.setUp();self.addCleanup(fixture.doCleanups)
         events=fixture.events
@@ -273,7 +297,14 @@ class StoppedResourceControls(unittest.TestCase):
                 finally:
                     timer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,signal.SIG_DFL)
                     scope.monitor.finished.set();join(1)
-                    self.assertFalse(scope.monitor.thread.is_alive());self.assertEqual(scope.roots,[])
+                    self.assertFalse(scope.monitor.thread.is_alive())
+                    if phase=='timer':self.assertEqual(scope.roots,[])
+                    else:
+                        self.assertFalse(scope.report()['monitorRetired'])
+                        # The joined-after-error control now explicitly proves
+                        # its test thread exited; production never retries.
+                        for _,fd,_ in scope.roots:os.close(fd)
+                        scope.roots=[]
                     if scope in m._READ_SCOPE_DEBT:m._READ_SCOPE_DEBT.remove(scope)
         with self.subTest(phase='snapshot-lock'),self.resources():
             scope=m.StoppedReadScope(self.w);scope.start()

@@ -124,6 +124,7 @@ class StoppedReadScope:
         self.window=window;self.lock=threading.Lock();self.roots=[];self.monitor=None
         self.first=None;self.first_observed_ns=None;self.closed=False;self.closing=False;self.alarm=False;self.cleanup_debt=False;self.samples=0
         self.cleanup_errors=[]
+        self.observer_retired=False
         self.storage_bytes=None;self.last_storage=None
         self.peak=None;self.peak_bytes=None;self.first_ns=None;self.last_ns=None;self.fallback_kinds=set()
         self.pid=os.getpid();self.started=time.monotonic()
@@ -236,12 +237,19 @@ class StoppedReadScope:
             except BaseException as error:secondary(error)
         if self.monitor is not None:
             self.monitor.finished.set()
+            join_failed=False
             if self.monitor.thread.ident is not None:
                 try:self.monitor.thread.join(timeout=.5)
-                except BaseException as error:secondary(error)
+                except BaseException as error:secondary(error);join_failed=True
+            if join_failed:
+                # An exceptional join is not a retirement proof. In particular
+                # do not use an unreliable dead flag to close a live reader's
+                # original FDs; retain custody without a second join/close.
+                self.closed=True;_READ_SCOPE_DEBT.append(self);return
             if self.monitor.thread.is_alive():
                 secondary(RuntimeError('original stopped read observer did not retire'))
                 self.closed=True;_READ_SCOPE_DEBT.append(self);return
+            self.observer_retired=True
             try:self.retain_monitor_failure()
             except BaseException as error:secondary(error)
         self.closed=True
@@ -262,7 +270,7 @@ class StoppedReadScope:
             firstCauseSHA256=None if self.first is None else r.b.sha(r.original.canonical(self.first)),
             firstCauseObservedMonotonicNs=self.first_observed_ns,
             cleanupErrors=[dict(type=error['type'],sha256=r.b.sha(r.original.canonical(error))) for error in self.cleanup_errors],
-            monitorRetired=self.monitor is not None and not self.monitor.thread.is_alive(),
+            monitorRetired=self.observer_retired,
             continuousRSSLimitProven=False,readOnly=True,normalWindowRestarted=False)
 
 

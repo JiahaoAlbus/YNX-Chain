@@ -21,7 +21,7 @@ GROUPS=[
  ('test_pq_enrollment_reservation_driver.py',None,9),
  ('test_pq_enrollment_linux_private.py',None,22),
  ('test_pq_enrollment_stopped_readback.py',None,12),
- ('test_pq_enrollment_stopped_resources.py',None,17),
+ ('test_pq_enrollment_stopped_resources.py',None,18),
  ('test_pq_first_trial_source.py',None,8),
  ('test_pq_d24_source_readback.py',None,12),
  ('test_pq_preload_initialization.py',None,8),

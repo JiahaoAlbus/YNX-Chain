@@ -111,7 +111,7 @@ jobs:
                       'test_pq_enrollment_reservation_driver.py': 9,
                       'test_pq_enrollment_linux_private.py': 22,
                       'test_pq_enrollment_stopped_readback.py': 12,
-                      'test_pq_enrollment_stopped_resources.py': 17}
+                      'test_pq_enrollment_stopped_resources.py': 18}
           hook.GROUPS = [entry for entry in hook.GROUPS if entry[0] in required]
           assert {name: count for name, _, count in hook.GROUPS} == required, 'original exact control selection differs'
           output = io.StringIO()
@@ -124,7 +124,7 @@ jobs:
               raw = output.getvalue().encode()
               (destination / 'original-controls.log').write_bytes(raw)
               value = dict(sourceCommit=os.environ['GITHUB_SHA'], runID=os.environ['GITHUB_RUN_ID'],
-                           platform=sys.platform, declaredCases=required, declaredTotal=287,
+                           platform=sys.platform, declaredCases=required, declaredTotal=288,
                            allDeclaredActuallyPassedWithoutSkip=passed, logSHA256=hashlib.sha256(raw).hexdigest(),
                            controlCalleeAndResourceInputs=True, nodeStarted=False, businessLoadExecuted=False,
                            realChainFinalityProven=False, physicalRSSLimitQualified=False,
