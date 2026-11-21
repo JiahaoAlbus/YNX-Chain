@@ -10,6 +10,16 @@ import (
 
 type localCallerState struct{ request *http.Request }
 
+type originalV4ResponseLease struct{}
+
+func (*localCallerState) adoptOriginalV4ResponseOwner(*http.Request, OriginalV4ResponseOwner) (*OriginalV4ResponseLease, error) {
+	return nil, ErrUnavailable
+}
+func (*originalV4ResponseLease) status() OriginalV4ResponseStatus {
+	return OriginalV4ResponseStatus{FirstError: ErrUnavailable}
+}
+func (*originalV4ResponseLease) drain(context.Context) error { return ErrUnavailable }
+
 // No supported OS boundary exists on this platform. Keep the public API
 // available without manufacturing credentials or a usable caller.
 func (*localCallerState) current(context.Context) (LocalCallerMaterial, error) {

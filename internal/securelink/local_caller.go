@@ -23,6 +23,10 @@ type LocalCallerServerConfig struct {
 	Handler                                                   http.Handler
 	ReadHeaderTimeout, ReadTimeout, WriteTimeout, IdleTimeout time.Duration
 	MaxHeaderBytes                                            int
+	// RequireOriginalV4ResponseOwner requires a transferred owner before a V4
+	// handler may write response headers or body. Only the V4 constructor
+	// accepts this option; it does not supply product authority.
+	RequireOriginalV4ResponseOwner bool
 }
 
 // LocalCallerMaterial describes the actual OS transport caller and registered
