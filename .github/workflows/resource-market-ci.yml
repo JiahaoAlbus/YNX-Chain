@@ -2835,6 +2835,7 @@ jobs:
           if any(e['Action'] in ('skip', 'fail', 'build-fail') for e in events):
               raise RuntimeError('Linux original clock stream failed or skipped')
           PY
+          cat "$RUNNER_TEMP/commit-monotonic-tests.jsonl"
           go build -mod=readonly -p 1 -trimpath -buildvcs=false -ldflags "-X main.operatorCommitBuildSource=$GITHUB_SHA" -o "$RUNNER_TEMP/ynx-comet-monotonic-build" ./cmd/ynx-comet
           "$RUNNER_TEMP/ynx-comet-monotonic-build" synthetic-commit-clock-build-identity --synthetic > "$RUNNER_TEMP/ynx-comet-monotonic-buildinfo.json"
           python3 -B - <<'PY'
@@ -2844,6 +2845,7 @@ jobs:
           if data.get('status') != 'DECLARED' or data.get('sourceRevision') != os.environ['GITHUB_SHA'] or data.get('runtimeAuthorized') is not False or data.get('nodeStarted') is not False:
               raise RuntimeError('original trimpath buildvcs=false linked runtime declaration missing')
           PY
+          cat "$RUNNER_TEMP/ynx-comet-monotonic-buildinfo.json"
       - name: Qualify pinned bootstrap registration and normal block restoration
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         run: |
