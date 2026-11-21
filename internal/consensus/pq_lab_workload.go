@@ -950,7 +950,9 @@ func OpenPQLabSenderMeasured(directory, pin string, index int, credential []byte
 		return nil, errors.New("synthetic sender credential or custody binding invalid")
 	}
 	defer clear(plain)
-	items, err := ynxbatch.DecodeFields(plain, len(m.Owners)+1, 8<<20)
+	// Validate the entire vault frame before copying only this owner's material.
+	// plain still owns every decrypted field and is cleared on every return.
+	items, err := ynxbatch.DecodeSelectedFields(plain, len(m.Owners)+1, 8<<20, 0, index+1)
 	defer func() {
 		for _, item := range items {
 			clear(item)
@@ -959,7 +961,7 @@ func OpenPQLabSenderMeasured(directory, pin string, index int, credential []byte
 	if err != nil || string(items[0]) != ynxbatch.KeyMaterialFormat {
 		return nil, errors.New("synthetic key material profile invalid")
 	}
-	material, err := ynxbatch.DecodeFields(items[index+1], 4, 4096)
+	material, err := ynxbatch.DecodeFields(items[1], 4, 4096)
 	defer func() {
 		for _, v := range material {
 			clear(v)

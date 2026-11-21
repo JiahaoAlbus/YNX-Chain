@@ -100,6 +100,38 @@ func DecodeFields(wire []byte, expected, maxBytes int) ([][]byte, error) {
 	return copyMessages(f), nil
 }
 
+// DecodeSelectedFields validates the same complete frame as DecodeFields, then
+// returns detached copies of the selected fields in strictly increasing index
+// order. Unselected fields still undergo every framing check, but are not copied.
+// Selection is checked after framing, so malformed input keeps DecodeFields' error
+// priority. Field contents and authority remain the enclosing protocol's job.
+// The caller must not mutate wire during decoding and must clear owned secret
+// copies after use, as with DecodeFields.
+func DecodeSelectedFields(wire []byte, expected, maxBytes int, selected ...int) ([][]byte, error) {
+	if maxBytes < 4 || maxBytes > MaxWholeBytes {
+		return nil, invalid("frame limit")
+	}
+	f, err := fields(wire, expected, maxBytes)
+	if err != nil {
+		return nil, err
+	}
+	if len(selected) == 0 || len(selected) > expected {
+		return nil, invalid("field selection")
+	}
+	previous := -1
+	for _, index := range selected {
+		if index <= previous || index >= expected {
+			return nil, invalid("field selection")
+		}
+		previous = index
+	}
+	result := make([][]byte, len(selected))
+	for i, index := range selected {
+		result[i] = clone(f[index])
+	}
+	return result, nil
+}
+
 // EncodeFields is the unique E(x1,...,xk) grammar. It does not grant authority.
 func EncodeFields(fields ...[]byte) ([]byte, error) {
 	if len(fields) > MaxN {

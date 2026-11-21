@@ -9,6 +9,8 @@ on:
     paths:
       - "scripts/verify/qualify_pq_private_synthetic_ci.py"
       - "scripts/verify/pq-state-capture-check.py"
+      - "scripts/verify/pq-selected-owner-check.py"
+      - "scripts/verify/test_pq_selected_owner_ci.py"
       - "scripts/ops/test_pq_state_capture_ci.py"
       - "scripts/verify/pq-remote-window-entry-check.sh"
       - "scripts/verify/init-consensus-candidate-keys-check.sh"
@@ -56,6 +58,8 @@ on:
     paths:
       - "scripts/verify/qualify_pq_private_synthetic_ci.py"
       - "scripts/verify/pq-state-capture-check.py"
+      - "scripts/verify/pq-selected-owner-check.py"
+      - "scripts/verify/test_pq_selected_owner_ci.py"
       - "scripts/ops/test_pq_state_capture_ci.py"
       - "scripts/verify/pq-remote-window-entry-check.sh"
       - "scripts/verify/init-consensus-candidate-keys-check.sh"
@@ -127,6 +131,11 @@ jobs:
         run: python3 -B -m unittest scripts.ops.test_pq_state_capture_ci -v
       - name: Verify exact original state capture and proof authority controls
         run: python3 -B scripts/verify/pq-state-capture-check.py
+      - name: Verify exact selected owner custody and original recovery
+        # Keep these controls on the original integration push/PR route too.
+        run: |
+          python3 -B -m unittest discover -s scripts/verify -p test_pq_selected_owner_ci.py -v
+          python3 -B scripts/verify/pq-selected-owner-check.py
 
   contract-tooling-scope:
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
@@ -300,6 +309,12 @@ jobs:
         # The original verify job still fails; these controls grant no runtime.
         if: ${{ !cancelled() }}
         run: python3 -B scripts/verify/pq-state-capture-check.py
+      - name: Verify exact selected owner custody and original recovery
+        # Diagnostic controls do not replace any original qualification gate.
+        if: ${{ !cancelled() }}
+        run: |
+          python3 -B -m unittest discover -s scripts/verify -p test_pq_selected_owner_ci.py -v
+          python3 -B scripts/verify/pq-selected-owner-check.py
       - name: Verify actual ready-sender Commit phase observations
         run: >-
           go test -p 1 ./cmd/ynx-consensus-perf-client
