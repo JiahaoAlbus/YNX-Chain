@@ -51,7 +51,8 @@ OLD_COMMANDS = [
     FULL_COMMAND,
     '          if ! YNX_PQ_NETWORK_E2E=\'\' go test -json -p 1 -count=1 -timeout=180s -run \'^(TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)\' ./internal/consensus > "$RUNNER_TEMP/ynx-proof-wallet-state-tests.jsonl"; then\n',
     "          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestProduction' ./internal/consensus > \"$RUNNER_TEMP/ynx-production-operator-state-tests.jsonl\"; then\n",
-    "          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLab' -skip '^TestPQLab(LiveMaterialsCacheBoundOriginalSetupRequestResult$|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)' ./internal/consensus > \"$RUNNER_TEMP/ynx-lab-state-tests.jsonl\"; then\n",
+    "          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLab' -skip '^TestPQLab(LiveMaterials|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)' ./internal/consensus > \"$RUNNER_TEMP/ynx-lab-state-tests.jsonl\"; then\n",
+    "          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLabLiveMaterials' -skip '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$' ./internal/consensus > \"$RUNNER_TEMP/ynx-lab-live-state-tests.jsonl\"; then\n",
     '          if ! YNX_PQ_NETWORK_E2E=\'\' go test -json -p 1 -count=1 -timeout=180s -run \'^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)\' ./internal/consensus > "$RUNNER_TEMP/ynx-lab-caller-state-tests.jsonl"; then\n',
     "          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$' ./internal/consensus > \"$RUNNER_TEMP/ynx-lab-large-source-tests.jsonl\"; then\n",
 ]
@@ -118,7 +119,7 @@ def assert_contract(raw):
     commands = re.findall(r"(?m)^          if ! .*go test .+\n", original)
     if commands != OLD_COMMANDS or "-tags=" in original:
         raise AssertionError("original full union and every 180s budget must remain; only fixed disjoint proof/wallet and caller/workload cases are repartitioned")
-    for name in ("ynx-proof-wallet-state-tests.jsonl", "ynx-production-operator-state-tests.jsonl", "ynx-lab-state-tests.jsonl", "ynx-lab-caller-state-tests.jsonl", "ynx-lab-large-source-tests.jsonl"):
+    for name in ("ynx-proof-wallet-state-tests.jsonl", "ynx-production-operator-state-tests.jsonl", "ynx-lab-state-tests.jsonl", "ynx-lab-live-state-tests.jsonl", "ynx-lab-caller-state-tests.jsonl", "ynx-lab-large-source-tests.jsonl"):
         if original.count('          cat "$RUNNER_TEMP/' + name + '" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"\n') != 1:
             raise AssertionError("original state streams must remain fully merged")
     if OUTPUT in original or (">>" in body and "ynx-initial-cache-state-tests.jsonl" in body):

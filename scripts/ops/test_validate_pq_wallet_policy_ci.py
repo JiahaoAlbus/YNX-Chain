@@ -180,7 +180,7 @@ def assert_contract(raw):
             raise AssertionError("original Go failure must print evidence and exit")
     reader = step_named(raw, SPECS["reader"][0])
     commands = re.findall(r"(?m)^          if ! .*go test .+$", reader)
-    if len(commands) != 7 or sum('./internal/consensus > ' in line for line in commands) != 6:
+    if len(commands) != 8 or sum('./internal/consensus > ' in line for line in commands) != 7:
         raise AssertionError("reader qualification must reuse the original complete execution")
     # Qualify the same nine readers from exactly one complementary bounded
     # group; no other Wallet/ResourcePolicy filtering or second execution is allowed.
