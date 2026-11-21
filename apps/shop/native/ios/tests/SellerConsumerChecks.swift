@@ -18,6 +18,8 @@ import Foundation
         try refused("Seller cannot adopt Buyer approval as its own grant"){try seller.checkWalletRequest(request,sc)}
         let originalBuyerIntent=try NativeWire.canonical(["version":1,"intentId":String(repeating:"i",count:43),"scope":buyer.scope(bc),"session":NSNull()])
         try refused("Seller cannot retire the Buyer original revocation intent"){_ = try seller.saveRevocationIntent("ynx.native-product-session.v2:"+String(repeating:"a",count:64),seller.root+":revoke",originalBuyerIntent,sc)}
+        try check(try AppleNativeBusinessPolicy.scopes("POST","/api/orders/ord_original/projection",profile:.seller)==ShopAccessProfile.seller.scopes,"Seller projection preserves Seller authority")
+        try refused("Seller projection rejects an aliased order path"){_ = try AppleNativeBusinessPolicy.scopes("POST","/api/orders/../projection",profile:.seller)}
         for (method,path) in [("GET","/api/seller/stores"),("GET","/api/orders"),("POST","/api/seller/inventory/batch"),("POST","/api/seller/stores/store_original/roles/member_original/native-revoke")] {
             try check(try AppleNativeBusinessPolicy.scopes(method,path,profile:.seller)==["account:read","shop:seller:operate"],"Seller route uses only its separate registered operations scopes")
             if path.hasPrefix("/api/seller/"){try refused("Buyer cannot borrow a Seller business route"){_ = try AppleNativeBusinessPolicy.scopes(method,path)}}

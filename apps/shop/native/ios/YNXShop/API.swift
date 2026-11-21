@@ -520,6 +520,14 @@ struct OriginalMainPayRefusal:Error {let code:String;var presentationState:Strin
     }
 }
 extension AppleNativeAuthority {func openInvoice(_ url:URL,expected:ShopSession)async throws {throw ShopError.unavailable}}
+// DATA for the original shop.order.read selection. This is not a task grant,
+// Source, approval or permission to disclose an order to another product.
+struct AppleShopOrderSelection: Encodable {
+    let orderId:String
+    let fields:[String]
+    let snapshot:String
+}
+
 @MainActor final class APIClient {
     let base:URL
     private let session:URLSession
@@ -540,6 +548,21 @@ extension AppleNativeAuthority {func openInvoice(_ url:URL,expected:ShopSession)
         ownedOrderNavigation = navigation
     }
     var currentSession:ShopSession?{authority?.current}
+    func selectOriginalOrder(_ orderID:String, expected:ShopSession)async throws->AppleShopOrderSelection {
+        let check=try capture()
+        guard currentSession==expected,NativeWire.matches(orderID,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$") else{throw ShopError.security}
+        let fields=["currency","status","totalYNXT"]
+        let reply=try await raw("orders/"+orderID+"/projection",json:["fields":fields,"snapshot":""])
+        try check()
+        guard currentSession==expected,reply.count==4,reply["orderId"] as? String==orderID,
+              let snapshot=reply["snapshot"] as? String,NativeWire.matches(snapshot,"^[0-9a-f]{128}$"),
+              let returned=reply["fields"] as? [String],returned==fields,
+              let data=reply["data"] as? [String:Any],Set(data.keys)==Set(fields),
+              let currency=data["currency"] as? String,!currency.isEmpty,
+              let status=data["status"] as? String,!status.isEmpty,
+              let total=data["totalYNXT"] as? String,NativeWire.matches(total,"^(0|[1-9][0-9]*)$") else{throw ShopError.security}
+        return AppleShopOrderSelection(orderId:orderID,fields:fields,snapshot:snapshot)
+    }
     func reviewInvoice(_ url:URL,expected:ShopSession)async throws {let check=try capture();guard currentSession==expected,let authority else{throw ShopError.contextChanged};try await authority.openInvoice(url,expected:expected);try check()}
     func openOriginalNativePay(_ operation:String,orderID:String?=nil)async throws {
         let check=try capture();guard NativeWire.matches(operation,"^npi_[a-f0-9]{48}$"),let current=currentSession,let navigation=nativePayNavigation else{throw ShopError.unavailable}

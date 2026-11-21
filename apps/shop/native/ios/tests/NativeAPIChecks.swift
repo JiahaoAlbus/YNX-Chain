@@ -62,6 +62,18 @@ final class StubProtocol:URLProtocol,@unchecked Sendable {
         for pair in [("PUT","/api/orders"),("GET","/api/seller/products"),("POST","/api/profile"),("GET","/api/orders/../profile")]{do{_ = try AppleNativeBusinessPolicy.scopes(pair.0,pair.1);throw NSError(domain:"scope broadened",code:1)}catch ShopError.security{print("PASS fixed Buyer scope route refuses "+pair.1)}}
         try check(try AppleNativeBusinessPolicy.scopes("POST","/api/orders/id/pay-handoff")==["account:read","shop:orders:write"],"payment preparation uses original Buyer scopes")
         try check(try AppleNativeBusinessPolicy.scopes("GET","/api/orders/id/native-pay-intent")==["account:read","shop:orders:write"],"original Native intent uses narrow read action")
+        try check(try AppleNativeBusinessPolicy.scopes("POST","/api/orders/id/projection")==AppleNativeProductState.scopes,"selected Buyer projection uses the original full Buyer scopes")
+        for path in ["/api/orders/../projection","/api/orders/id/projection/extra"] {do{_ = try AppleNativeBusinessPolicy.scopes("POST",path);throw NSError(domain:"projection alias",code:1)}catch ShopError.security{print("PASS projection rejects alias")}}
+        let selectedSession=authority.current!,snapshot=String(repeating:"a",count:128)
+        var projectionCalls=0
+        StubProtocol.handler={request in projectionCalls+=1;precondition(request.request.httpMethod=="POST" && request.request.url?.path=="/api/orders/ord_original/projection");request.respond(200,"{\"orderId\":\"ord_original\",\"snapshot\":\"\(snapshot)\",\"fields\":[\"currency\",\"status\",\"totalYNXT\"],\"data\":{\"currency\":\"YNXT\",\"status\":\"payment_pending\",\"totalYNXT\":\"10\"}}")}
+        let selection=try await api.selectOriginalOrder("ord_original",expected:selectedSession)
+        try check(selection.orderId=="ord_original" && selection.snapshot==snapshot && selection.fields==["currency","status","totalYNXT"] && projectionCalls==1,"actual Native API selects exact original order and snapshot")
+        StubProtocol.handler={request in request.respond(200,"{\"orderId\":\"foreign\",\"snapshot\":\"\(snapshot)\",\"fields\":[\"currency\",\"status\",\"totalYNXT\"],\"data\":{\"currency\":\"YNXT\",\"status\":\"payment_pending\",\"totalYNXT\":\"10\"}}")}
+        do{_ = try await api.selectOriginalOrder("ord_original",expected:selectedSession);throw NSError(domain:"foreign projection",code:1)}catch ShopError.security{print("PASS foreign order cannot become selection")}
+        StubProtocol.handler={request in authority.current=ShopSession.parse(try! metadata(other));request.respond(200,"{\"orderId\":\"ord_original\",\"snapshot\":\"\(snapshot)\",\"fields\":[\"currency\",\"status\",\"totalYNXT\"],\"data\":{\"currency\":\"YNXT\",\"status\":\"payment_pending\",\"totalYNXT\":\"10\"}}")}
+        do{_ = try await api.selectOriginalOrder("ord_original",expected:selectedSession);throw NSError(domain:"late account change",code:1)}catch ShopError.contextChanged{print("PASS changed account cannot receive selection")}
+        authority.current=ShopSession.parse(try metadata(account))
         do{_ = try AppleNativeBusinessPolicy.scopes("DELETE","/api/orders/id/native-pay-intent");throw NSError(domain:"intent mutation permitted",code:1)}catch ShopError.security{print("PASS Native intent cannot authorize DELETE")}
         var nativeOrder=Order(orderID:"ord_original",status:"payment_pending",totalYNXT:10,refundStatus:nil,trustStatus:nil,payDeepLink:nil,buyer:account,storeID:"store_original",currency:"YNXT")
         nativeOrder.payIntentID="npi_"+String(repeating:"ab",count:24)
