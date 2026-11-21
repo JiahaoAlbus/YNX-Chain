@@ -5493,7 +5493,14 @@ class SyntheticClockReceiptControls(unittest.TestCase):
                 exec(compile(program, '<actual-clock-ab-receipt>', 'exec'), {})
             execute(rows)
             bad = [rows[:2] + rows[3:], rows + [rows[2]],
+                   [rows[0], rows[2], rows[1]] + rows[3:],
+                   rows[:3] + [rows[4], rows[3]] + rows[5:],
+                   rows[:3] + rows[4:] + [rows[3]],
+                   rows[:4] + [rows[-1]] + rows[4:-1],
+                   rows[:-1],
                    [dict(row, Package='foreign') if i == 3 else row for i, row in enumerate(rows)],
+                   [dict(row, Test=order) if i == 3 else row for i, row in enumerate(rows)],
+                   [dict(row, Output=row['Output'].replace(source, 'b'*40)) if i == 2 else row for i, row in enumerate(rows)],
                    [dict(row, Output='independentFinality=true\n') if i == 3 else row for i, row in enumerate(rows)],
                    [dict(row, Output='independentFinality=false independentFinality=false\n') if i == 3 else row for i, row in enumerate(rows)],
                    [dict(row, Output='x'*65537) if i == 3 else row for i, row in enumerate(rows)],
