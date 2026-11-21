@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -122,6 +123,44 @@ func (f *nativeServiceFixture) sign(t *testing.T, kind string, payload any, nonc
 		t.Fatal(err)
 	}
 	return wire
+}
+
+func TestNativeRefundReservationBindsOriginalInvoiceAndMember(t *testing.T) {
+	f := newNativeServiceFixture(t)
+	termsHash := bytes.Repeat([]byte{0x44}, 32)
+	settlementHash := bytes.Repeat([]byte{0x55}, 32)
+	payload := ynxauth.InvoiceRefundPayload{InvoiceID: f.terms.InvoiceID, RefundID: "refund-original", TermsHash: termsHash, SettlementHash: settlementHash, Amount: 30}
+	wire := f.sign(t, ynxauth.ActionInvoiceRefund, payload, 2)
+	hash := consensus.SignedTransactionHash(wire)
+	state := NativePayInvoice{Merchant: f.merchant, InvoiceID: f.terms.InvoiceID, TermsHash: fmt.Sprintf("%x", termsHash), SettlementOperation: fmt.Sprintf("0x%x", settlementHash)}
+	op := NativePayOperation{NativePayOriginal: NativePayOriginal{Merchant: f.merchant, InvoiceID: f.terms.InvoiceID, NativeHash: hash, Member: wire}, Kind: ynxauth.ActionInvoiceRefund, Owner: f.merchant, Status: "confirmed", Effect: &consensus.PQInvoiceEffect{Principal: 30}}
+	if got, err := originalRefundReservation(state, payload.RefundID, hash, op); err != nil || got.Amount != 30 {
+		t.Fatal("original refund rejected", err)
+	}
+	for _, mismatch := range []string{"refund-id", "invoice", "terms", "settlement", "kind", "member", "effect"} {
+		t.Run(mismatch, func(t *testing.T) {
+			changed, changedState, id := op, state, payload.RefundID
+			switch mismatch {
+			case "refund-id":
+				id = "another-refund"
+			case "invoice":
+				changedState.InvoiceID = "another-invoice"
+			case "terms":
+				changedState.TermsHash = strings.Repeat("6", 64)
+			case "settlement":
+				changedState.SettlementOperation = "0x" + strings.Repeat("7", 64)
+			case "kind":
+				changed.Kind = ynxauth.ActionInvoiceSettle
+			case "member":
+				changed.Member = []byte("invalid")
+			case "effect":
+				changed.Effect = &consensus.PQInvoiceEffect{Principal: 31}
+			}
+			if _, err := originalRefundReservation(changedState, id, hash, changed); err == nil {
+				t.Fatal("inconsistent original reservation accepted")
+			}
+		})
+	}
 }
 func TestNativePayTermsUnknownColdReplayDoesNotResendOrClaimRPCPayment(t *testing.T) {
 	f := newNativeServiceFixture(t)

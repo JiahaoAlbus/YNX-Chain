@@ -432,24 +432,15 @@ func (n *NativePayService) submitMovement(ctx context.Context, merchant, id stri
 				return errors.New("refund lacks original merchant/settlement binding")
 			}
 			var reserved uint64
-			for _, hash := range state.RefundOperations {
+			for refundID, hash := range state.RefundOperations {
 				existing := state.Operations[hash]
 				if existing.Status == "confirmed_failed" {
 					continue
 				}
-				m, e := ynxbatch.DecodeMember(existing.Member)
+				r, e := originalRefundReservation(state, refundID, hash, existing)
 				if e != nil {
 					return e
 				}
-				a, e := ynxauth.DecodeAction(m.Message)
-				if e != nil {
-					return e
-				}
-				v, e := ynxauth.DecodeActionPayload(a.Kind, a.Payload)
-				if e != nil {
-					return e
-				}
-				r := v.(ynxauth.InvoiceRefundPayload)
 				if r.Amount > state.Terms.Amount-reserved {
 					return errors.New("refund journal exceeds original principal")
 				}
@@ -475,6 +466,33 @@ func (n *NativePayService) submitMovement(ctx context.Context, merchant, id stri
 		return op, err
 	}
 	return n.dispatch(ctx, grant, op)
+}
+
+func originalRefundReservation(state NativePayInvoice, refundID, hash string, op NativePayOperation) (ynxauth.InvoiceRefundPayload, error) {
+	bad := errors.New("original refund reservation differs from invoice journal")
+	if op.NativeHash != hash || consensus.SignedTransactionHash(op.Member) != hash || op.Kind != ynxauth.ActionInvoiceRefund || op.Merchant != state.Merchant || op.InvoiceID != state.InvoiceID || op.Owner != state.Merchant {
+		return ynxauth.InvoiceRefundPayload{}, bad
+	}
+	member, err := ynxbatch.DecodeMember(op.Member)
+	if err != nil {
+		return ynxauth.InvoiceRefundPayload{}, bad
+	}
+	action, err := ynxauth.DecodeAction(member.Message)
+	if err != nil || action.Kind != ynxauth.ActionInvoiceRefund || action.Owner != state.Merchant {
+		return ynxauth.InvoiceRefundPayload{}, bad
+	}
+	decoded, err := ynxauth.DecodeActionPayload(action.Kind, action.Payload)
+	if err != nil {
+		return ynxauth.InvoiceRefundPayload{}, bad
+	}
+	refund, ok := decoded.(ynxauth.InvoiceRefundPayload)
+	if !ok || refund.RefundID != refundID || refund.InvoiceID != state.InvoiceID || hex.EncodeToString(refund.TermsHash) != state.TermsHash || "0x"+hex.EncodeToString(refund.SettlementHash) != state.SettlementOperation || refund.Amount == 0 {
+		return ynxauth.InvoiceRefundPayload{}, bad
+	}
+	if op.Status == "confirmed" && (op.Effect == nil || op.Effect.Principal != refund.Amount) {
+		return ynxauth.InvoiceRefundPayload{}, bad
+	}
+	return refund, nil
 }
 
 // PrepareSettlement returns ONLY Core's exact signing message to the original
