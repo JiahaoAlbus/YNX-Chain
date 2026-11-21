@@ -12,12 +12,12 @@ def suite():
         spec = importlib.util.spec_from_file_location(name, Path(__file__).with_name(name+'.py'))
         module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
         result.addTests(unittest.defaultTestLoader.loadTestsFromModule(module))
-    if result.countTestCases() != 115:
-        raise RuntimeError('all 115 original pair controls must be selected')
+    if result.countTestCases() != 123:
+        raise RuntimeError('all 123 original pair controls must be selected')
     return result
 
 
 if __name__ == '__main__':
     result = unittest.TextTestRunner(verbosity=2).run(suite())
-    if result.testsRun != 115 or result.skipped or not result.wasSuccessful():
-        raise SystemExit('all 115 original pair controls must execute and pass without skips')
+    if result.testsRun != 123 or result.skipped or not result.wasSuccessful():
+        raise SystemExit('all 123 original pair controls must execute and pass without skips')

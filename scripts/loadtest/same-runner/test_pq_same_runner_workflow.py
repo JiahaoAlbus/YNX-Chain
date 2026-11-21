@@ -111,9 +111,10 @@ class WorkflowControls(unittest.TestCase):
         self.assertEqual(controller_controls.original.lab.CAPS['totalSeconds'],w.ARM_SECONDS)
         self.assertEqual((w.JOB_MINUTES*60,w.EXECUTION_MINUTES*60),
                          (w.c.PAIR_JOB_SECONDS,w.c.PAIR_EXECUTION_SECONDS))
-        if w.legacy.WORKFLOW_PAIR_ENABLED:
-            w.c.validate_binding(w.c.bridge.QUALIFIED_PAIR_BINDING)
-        else:self.assertIsNone(w.c.bridge.QUALIFIED_PAIR_BINDING)
+        # The published workflow is preserved as historical data, while this
+        # candidate's actual binding remains closed even if that workflow was enabled.
+        self.assertIsNone(w.c.bridge.QUALIFIED_PAIR_BINDING)
+        w.c.validate_binding(w.c.bridge.HISTORICAL_PAIR_BINDING)
         jobs=re.findall(r'(?m)^  [a-z0-9-]+:\n',raw.split('jobs:\n',1)[1])
         guards=re.findall(r'(?m)^    if: .*',raw)
         self.assertEqual(len(guards),len(jobs))

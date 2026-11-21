@@ -68,6 +68,16 @@ class ControllerControls(unittest.TestCase):
             side_effect=AssertionError('synthetic controller controls may not access network'))
         no_network.start(); self.addCleanup(no_network.stop)
 
+    def test_candidate_ci_only_pushes_this_ref_and_runs_original_control_entry(self):
+        root=c.controller_root(__file__)
+        workflow=(root/'.github/workflows/pq-pair-controller-source-only.yml').read_text()
+        self.assertIn('codex/perf-controller-clock-preflight-20261122',workflow)
+        self.assertIn('ref: ${{ github.sha }}',workflow)
+        self.assertIn('python3 -I -B scripts/loadtest/same-runner/pq-same-runner-controls.py',workflow)
+        self.assertNotIn('workflow_dispatch:',workflow)
+        self.assertNotIn('pq-normal-process.yml@',workflow)
+        self.assertNotIn('python3 scripts/loadtest/same-runner/pq-same-runner-controller.py --execute',workflow)
+
     def test_exact_isolated_controller_root_without_importing_legacy_runtime(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp).resolve()
@@ -691,6 +701,228 @@ class ControllerControls(unittest.TestCase):
             self.assertIs(raised.exception,error)
             metadata.assert_called_once_with('runs/'+str(gate.RUN));child.assert_not_called();window.assert_not_called()
 
+
+    def test_before_gate_uses_original_log_in_actual_factory_before_window(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace=Path(tmp).resolve();parent=workspace/'tmp';parent.mkdir()
+            for name in ('controller','source-before','source-after','tools-before','tools-after','go/bin'):
+                (workspace/name).mkdir(parents=True)
+            go=workspace/'go/bin/go';go.write_text('CONTROL only')
+            selected=arm()
+            for name in ('pq-normal-live-reader.py','pq-7c25-native-source-dependencies.py',
+                         'pq-before59-held-source.py','pq-before59-equivalence-readback.py',
+                         'pq-commit-clock-source-qualification.py','pq-commit-clock-readback.py','pq-experimental-owner-pidfd.py',
+                         'pq-before59-composition-readback.py','pq-source-evidence-archive.py'):
+                selected['toolPins'][name]='a'*64
+            binding=dict(schema='YNX-PERF-ORIGINAL-PAIR-BINDING/v1',arms=dict(before=selected,after=copy.deepcopy(selected)))
+            environment=dict(GITHUB_WORKSPACE=str(workspace),RUNNER_TEMP=str(parent))
+            pair=dict(controllerCommit='e'*40,runID=10,jobID=20)
+            api=types.SimpleNamespace(token=None,read=lambda suffix:{'CONTROL':suffix})
+            held_binding=dict(source='1'*40);log_requirements=dict(CONTROL=True)
+            gate=types.SimpleNamespace(SOURCE='1'*40,TREE='2'*40,BINDING=held_binding,
+                clock=types.SimpleNamespace(BINDING=held_binding,LOG_REQUIREMENTS=log_requirements),
+                qualification=mock.Mock(return_value=selected['sourceQualification']))
+            gate.qualification.__signature__=c.inspect.signature(lambda *,metadata_reader,focused_log_reader: None)
+            clock_ci=types.SimpleNamespace(BINDING=held_binding,LOG_REQUIREMENTS=log_requirements,BEFORE59_SOURCE='1'*40,
+                qualification=mock.Mock(return_value=dict(source='1'*40,focusedOriginalLogVerified=True,
+                    before59OriginalEquivalenceVerified=True,sourceOnlyEvidence=True,runtimePermissionGranted=False,
+                    pressureAuthorized=False,independentFinality=False)))
+            driver=types.SimpleNamespace(run=mock.Mock(),lab=original.lab,before59_held_source=gate,
+                select_held_source=lambda commit:gate,commit_clock_ci=clock_ci,
+                commit_clock=types.SimpleNamespace(COMMIT_CLOCK_SOURCE='1'*40,read_original=mock.Mock(return_value=b'original zip')))
+            driver.run.__signature__=c.inspect.signature(lambda args, *, source_metadata_reader=None, clock_original_log_reader=None, clock_original_evidence_reader=None: None)
+            original_log=mock.Mock(return_value=b'CONTROL original')
+            composition=types.SimpleNamespace(validate_binding=mock.Mock(),validate_metadata=mock.Mock(),
+                inspect=mock.Mock(return_value={'CONTROL':'source-build'}))
+            artifact=dict(source=selected['source'],tools=selected['tools'],run=selected['toolsCI']['run'],job=999,path='/CONTROL/original.zip')
+            with ExitStack() as stack:
+                stack.enter_context(mock.patch.object(c,'__file__',str(workspace/'controller/scripts/loadtest/pq-same-runner-controller.py')))
+                clock_identity=dict(source=selected['source'],tools=selected['tools'])
+                stack.enter_context(mock.patch.object(c,'CLOCK_LOG_BINDING',dict(before=clock_identity,after=dict(clock_identity))))
+                stack.enter_context(mock.patch.object(c,'BEFORE59_COMPOSITION_BINDING',dict(before=artifact,after=dict(artifact))))
+                stack.enter_context(mock.patch.object(c,'active_pair',return_value=pair))
+                stack.enter_context(mock.patch.object(c,'checkout'));stack.enter_context(mock.patch.object(c,'verify_tool_files'))
+                stack.enter_context(mock.patch.object(c,'verify_tools_ci',return_value={'CONTROL':'tools'}))
+                stack.enter_context(mock.patch.object(c.shutil,'which',return_value=str(go)))
+                stack.enter_context(mock.patch.object(c,'module',side_effect=lambda name,path:composition if name.startswith('before59_tools_composition_') else driver))
+                stack.enter_context(mock.patch.object(c,'git',return_value='6'*40))
+                stack.enter_context(mock.patch.object(c.subprocess,'check_output',return_value='go1.26.11\n'))
+                stack.enter_context(mock.patch.object(original.lab,'check_source',return_value={'commit':'1'*40,'tree':'2'*40}))
+                stack.enter_context(mock.patch.object(c,'clock_log_reader_for_arm',return_value=original_log))
+                stack.enter_context(mock.patch.object(c,'clock_evidence_reader_for_arm',return_value=None))
+                window=stack.enter_context(mock.patch.object(original.lab.Window,'__init__',side_effect=AssertionError('no Window before source gate')))
+                with mock.patch.object(c,'BEFORE59_COMPOSITION_BINDING',None):
+                    with self.assertRaisesRegex(RuntimeError,'source-build evidence NOT_SUPPLIED'):
+                        c.prepare(binding,environment,api)
+                composition.inspect.assert_not_called();driver.commit_clock.read_original.assert_not_called()
+                prepared=c.prepare(binding,environment,api)
+                prepared['adapters']['before'].qualify()
+                gate.qualification.assert_called_once_with(metadata_reader=api.read,focused_log_reader=original_log)
+                self.assertIs(clock_ci.qualification.call_args.kwargs['focused_log_reader'],original_log)
+                self.assertEqual(driver.commit_clock.read_original.call_count,2) # once per arm, no re-read at qualification
+                window.assert_not_called();driver.run.assert_not_called()
+                composition.inspect.side_effect=[{'CONTROL':'source-build'},ValueError('after original artifact corrupted')]
+                with self.assertRaisesRegex(ValueError,'after original artifact corrupted'):
+                    c.prepare(binding,environment,api)
+                window.assert_not_called();driver.run.assert_not_called()
+                composition.inspect.side_effect=None;driver.commit_clock.read_original.reset_mock()
+                composition.validate_metadata.side_effect=RuntimeError('wrong original artifact metadata')
+                with self.assertRaisesRegex(RuntimeError,'wrong original artifact metadata'):
+                    c.prepare(binding,environment,api)
+                driver.commit_clock.read_original.assert_not_called();window.assert_not_called();driver.run.assert_not_called()
+
+    def test_after_bad_original_evidence_prevents_before_execution(self):
+        fixture=module('test_pq_same_runner_pair_producer')
+        with tempfile.TemporaryDirectory() as temp:
+            case=fixture.Case(Path(temp))
+            opts=types.SimpleNamespace(commit_clock_observation=True)
+            for label in ('before','after'):
+                adapter=case.adapters[label]
+                def qualify(label=label,adapter=adapter):
+                    case.events.append(label+':qualify')
+                    source=label[0]*40
+                    def qualification(identity,*,metadata_reader,focused_log_reader,original_evidence_reader):
+                        raw=original_evidence_reader('getter',101,107,202,1)
+                        if raw!=b'original-good':raise RuntimeError('after original artifact digest differs')
+                        return dict(source=source,focusedOriginalLogVerified=True,sourceOnlyEvidence=True,
+                            runtimePermissionGranted=False,pressureAuthorized=False,independentFinality=False,
+                            historyOriginalExecutionVerified=True,getterOriginalEvidenceVerified=True)
+                    driver=types.SimpleNamespace(commit_clock=types.SimpleNamespace(COMMIT_CLOCK_SOURCE=source),
+                        commit_clock_ci=types.SimpleNamespace(BINDING={'historyJob':106},qualification=qualification))
+                    c.preflight_clock_source(driver,{'commit':source},lambda x:None,opts,lambda *x:b'focused',
+                        lambda *x:b'original-good' if label=='before' else b'corrupted')
+                    return adapter.qualification_record()
+                adapter.qualify=qualify
+            result=case.run()
+            self.assertEqual(result['status'],'INCOMPLETE')
+            self.assertEqual(case.events,['before:qualify','after:qualify'])
+            self.assertNotIn('before:execute',case.events)
+            self.assertFalse(case.adapters['before'].work.exists())
+
+    def test_before59_preflight_requires_original_equivalence_evidence(self):
+        source='a'*40
+        result=dict(source=source,focusedOriginalLogVerified=True,sourceOnlyEvidence=True,
+            runtimePermissionGranted=False,pressureAuthorized=False,independentFinality=False,
+            before59OriginalEquivalenceVerified=False)
+        driver=types.SimpleNamespace(commit_clock=types.SimpleNamespace(COMMIT_CLOCK_SOURCE=source),
+            commit_clock_ci=types.SimpleNamespace(BEFORE59_SOURCE=source,BINDING={'source':source},
+                qualification=lambda *args,**kwargs:result))
+        opts=types.SimpleNamespace(commit_clock_observation=True)
+        with self.assertRaisesRegex(RuntimeError,'before59 equivalence'):
+            c.preflight_clock_source(driver,{'commit':source},lambda *x:None,opts,lambda *x:b'log',None)
+        result['before59OriginalEquivalenceVerified']=True
+        self.assertIsNone(c.preflight_clock_source(driver,{'commit':source},lambda *x:None,opts,lambda *x:b'log',None))
+
+    def test_frozen_clock_reader_rejects_cross_arm_and_never_retries_failed_original(self):
+        selected=arm(); source=selected['source']; tools=selected['tools']
+        entry=dict(source=source,tools=tools,run=101,job=102,attempt=1,sha256='a'*64,path='/CONTROL/log')
+        required={key:entry[key] for key in ('source','run','job','attempt','sha256')}
+        invoked=mock.Mock(side_effect=OSError('CONTROL original unavailable'))
+        ci=types.SimpleNamespace(BINDING={'source':source},LOG_REQUIREMENTS=required,
+            original_log_identity=mock.Mock(),retained_original_log_reader=mock.Mock(return_value=invoked))
+        def run(args, *, clock_original_log_reader=None): pass
+        driver=types.SimpleNamespace(run=run,commit_clock_ci=ci,
+            commit_clock=types.SimpleNamespace(COMMIT_CLOCK_SOURCE=source,read_original=mock.Mock()))
+        options=types.SimpleNamespace(commit_clock_observation=True,commit_clock_ci_original_log=None)
+        with mock.patch.object(c,'CLOCK_LOG_BINDING',dict(before=entry,after=dict(entry,source='f'*40))):
+            with self.assertRaisesRegex(RuntimeError,'source/Tools binding differs'):
+                c.clock_log_reader_for_arm('after',driver,selected,options)
+            callback=c.clock_log_reader_for_arm('before',driver,selected,options)
+            with self.assertRaisesRegex(OSError,'original unavailable'):callback(101,102,1)
+            with self.assertRaisesRegex(RuntimeError,'prior read failed'):callback(101,102,1)
+            invoked.assert_called_once_with(101,102,1)
+        for field,value in (('run',104),('job',103),('attempt',2),('source','f'*40)):
+            bad=dict(entry,**{field:value})
+            with self.subTest(field=field),mock.patch.object(c,'CLOCK_LOG_BINDING',dict(before=bad,after=entry)):
+                with self.assertRaises(RuntimeError):c.clock_log_reader_for_arm('before',driver,selected,options)
+
+    def test_distinct_actual_factory_pair_preflights_before_window_and_forwards_own_callbacks(self):
+        fixture=module('test_pq_same_runner_pair_producer')
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace=Path(tmp).resolve();parent=workspace/'tmp';parent.mkdir()
+            for name in ('controller','source-before','source-after','tools-before','tools-after','go/bin'):
+                (workspace/name).mkdir(parents=True)
+            go=workspace/'go/bin/go';go.write_text('CONTROL only')
+            before,after=arm(),arm()
+            after.update(source='b'*40,sourceTree='c'*40,tools='d'*40,toolsTree='e'*40)
+            after['toolsCI'].update(source=after['tools'],run=300,job=301)
+            after['sourceQualification'].update(source=after['source'],sourceTree=after['sourceTree'],run=400,job=401)
+            for selected in (before,after):
+                for name in ('pq-normal-live-reader.py','pq-7c25-native-source-dependencies.py',
+                             'pq-commit-clock-source-qualification.py','pq-commit-clock-readback.py',
+                             'pq-experimental-owner-pidfd.py','pq-source-evidence-archive.py',
+                             'pq-source-history-readback.py','pq-getter-source-readback.py'):
+                    selected['toolPins'][name]='a'*64
+            binding=dict(schema='YNX-PERF-ORIGINAL-PAIR-BINDING/v1',arms=dict(before=before,after=after))
+            frozen={label:dict(source=value['source'],tools=value['tools']) for label,value in binding['arms'].items()}
+            case=fixture.Case(parent);pair=case.pair
+            environment=dict(GITHUB_WORKSPACE=str(workspace),RUNNER_TEMP=str(parent))
+            api=types.SimpleNamespace(read=lambda suffix:{'CONTROL':suffix})
+            logs={label:mock.Mock(return_value=(label+'-log').encode()) for label in ('before','after')}
+            evidence={label:mock.Mock(return_value=(label+'-evidence').encode()) for label in ('before','after')}
+            drivers={}
+            for label,selected in binding['arms'].items():
+                source=selected['source']
+                gate=types.SimpleNamespace(SOURCE=source,TREE=selected['sourceTree'],
+                    qualification=mock.Mock(return_value=selected['sourceQualification']))
+                gate.qualification.__signature__=c.inspect.signature(lambda *,metadata_reader:None)
+                def qualify(identity,*,metadata_reader,focused_log_reader,original_evidence_reader,label=label,source=source):
+                    if identity['commit']!=source or focused_log_reader()!= (label+'-log').encode() \
+                            or original_evidence_reader()!= (label+'-evidence').encode():
+                        raise RuntimeError('CONTROL wrong original arm evidence')
+                    return dict(source=source,focusedOriginalLogVerified=True,sourceOnlyEvidence=True,
+                        historyOriginalExecutionVerified=True,getterOriginalEvidenceVerified=True,
+                        runtimePermissionGranted=False,pressureAuthorized=False,independentFinality=False)
+                run=mock.Mock(side_effect=RuntimeError('CONTROL driver stops before Window'))
+                run.__signature__=c.inspect.signature(lambda args,*,source_metadata_reader=None,
+                    clock_original_log_reader=None,clock_original_evidence_reader=None:None)
+                drivers[label]=types.SimpleNamespace(run=run,lab=original.lab,select_held_source=lambda commit,gate=gate:gate,
+                    commit_clock=types.SimpleNamespace(COMMIT_CLOCK_SOURCE=source),
+                    commit_clock_ci=types.SimpleNamespace(BINDING={'historyJob':106},qualification=qualify))
+            def identity(source,commit):
+                selected=binding['arms']['before' if Path(source).name=='source-before' else 'after']
+                return dict(commit=commit,tree=selected['sourceTree'])
+            with ExitStack() as stack:
+                stack.enter_context(mock.patch.object(c,'__file__',str(workspace/'controller/scripts/loadtest/same-runner/pq-same-runner-controller.py')))
+                stack.enter_context(mock.patch.object(c,'CLOCK_LOG_BINDING',frozen))
+                stack.enter_context(mock.patch.object(c,'active_pair',return_value=pair))
+                stack.enter_context(mock.patch.object(c,'checkout'));stack.enter_context(mock.patch.object(c,'verify_tool_files'))
+                stack.enter_context(mock.patch.object(c,'verify_tools_ci',side_effect=lambda ci,*args,**kwargs:
+                    dict(run=ci['run'],job=ci['job'],source=ci['source'],conclusion='success')))
+                stack.enter_context(mock.patch.object(c.shutil,'which',return_value=str(go)))
+                stack.enter_context(mock.patch.object(c,'module',side_effect=lambda name,path:drivers[name.rsplit('_',1)[-1]]))
+                stack.enter_context(mock.patch.object(c,'git',return_value='6'*40))
+                stack.enter_context(mock.patch.object(c.subprocess,'check_output',return_value='go1.26.11\n'))
+                stack.enter_context(mock.patch.object(original.lab,'check_source',side_effect=identity))
+                stack.enter_context(mock.patch.object(c,'clock_log_reader_for_arm',side_effect=lambda label,*args:logs[label]))
+                stack.enter_context(mock.patch.object(c,'clock_evidence_reader_for_arm',side_effect=lambda label,*args:evidence[label]))
+                window=stack.enter_context(mock.patch.object(original.lab.Window,'__init__',side_effect=AssertionError('no Window')))
+                prepared=c.prepare(binding,environment,api)
+                # The real producer calls both factory-built qualification closures before admission.
+                evidence['after'].return_value=b'corrupt-after'
+                with mock.patch.object(c.producer.sys,'platform','linux'),mock.patch.object(c.producer,'identity',return_value=pair['clock']):
+                    result=c.producer.run_pair(parent/'pair-control',pair=pair,plans=prepared['plans'],
+                        adapters=prepared['adapters'],environment=case.environment)
+                self.assertEqual(result['status'],'INCOMPLETE')
+                self.assertEqual(result['firstCause'],c.producer.failure(RuntimeError('CONTROL wrong original arm evidence')))
+                self.assertGreaterEqual(logs['before'].call_count,1)
+                self.assertGreaterEqual(logs['after'].call_count,1)
+                self.assertFalse((parent/'pair-control/before-INTENT.json').exists())
+                for driver in drivers.values():driver.run.assert_not_called()
+                window.assert_not_called()
+                # A fresh synthetic fixture verifies both real adapter-to-driver callback identities.
+                evidence['after'].return_value=b'after-evidence'
+                fresh=c.prepare(binding,environment,api)
+                for label,adapter in fresh['adapters'].items():
+                    adapter._admission=lambda roots:None
+                    adapter._deadline_check=lambda:None
+                    with mock.patch.object(c.bridge,'_WINDOW_LEASE',__import__('threading').Lock()):
+                        with self.assertRaisesRegex(RuntimeError,'CONTROL driver stops'):
+                            adapter.execute(mock.Mock())
+                    kwargs=drivers[label].run.call_args.kwargs
+                    self.assertIs(kwargs['clock_original_log_reader'],logs[label])
+                    self.assertIs(kwargs['clock_original_evidence_reader'],evidence[label])
+                window.assert_not_called()
 
 if __name__ == '__main__':
     unittest.main()

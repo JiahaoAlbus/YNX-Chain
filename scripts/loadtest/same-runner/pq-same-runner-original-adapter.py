@@ -35,7 +35,7 @@ require = producer.require
 
 # Must be populated by the original controller owner in a reviewed frozen
 # integration, together with original CI/dispatch wiring; NOT a runtime flag.
-QUALIFIED_PAIR_BINDING = {'arms': {'after': {'go': 'go1.26.11',
+HISTORICAL_PAIR_BINDING = {'arms': {'after': {'go': 'go1.26.11',
                     'source': 'c697abae262c3be7859f235f45e9e8447bbccf63',
                     'sourceQualification': {'delivery': {'independentFinality': False,
                                                          'job': 136778017832,
@@ -216,6 +216,9 @@ QUALIFIED_PAIR_BINDING = {'arms': {'after': {'go': 'go1.26.11',
                                  'source': '7630e166bf02b73646553a15df5dc371a0be75d8'},
                      'toolsTree': '82367af09565ad1e7211e55707a59c5194311674'}},
  'schema': 'YNX-PERF-ORIGINAL-PAIR-BINDING/v1'}
+# Historical tuple is retained only as data. A reviewed successor must freeze
+# its own exact pair and same-source evidence; there is no runtime override.
+QUALIFIED_PAIR_BINDING = None
 _WINDOW_LEASE = threading.Lock()
 
 
@@ -244,7 +247,7 @@ def roots(paths):
 class OriginalDriverAdapter:
     """One-shot bridge; controller-owned qualification is deliberately explicit."""
     def __init__(self, driver, options, qualification_record, *, verify_qualification,
-                 admit, storage_roots, source_metadata_reader=None):
+                 admit, storage_roots, source_metadata_reader=None, clock_original_log_reader=None, clock_original_evidence_reader=None):
         self.driver, self._run, self._window = driver, driver.run, driver.lab.Window
         require(isinstance(self._window, type) and self._window.__new__ is object.__new__,
                 'unwrapped original Window class required; do not bypass another controller')
@@ -254,6 +257,17 @@ class OriginalDriverAdapter:
         require(source_metadata_reader is None or callable(source_metadata_reader),
                 'original source metadata transport must be callable')
         self._source_metadata_reader = source_metadata_reader
+        require(clock_original_log_reader is None or callable(clock_original_log_reader),
+                'original clock log transport must be callable')
+        require(clock_original_log_reader is None or
+                (getattr(options,'commit_clock_observation',False) is True
+                 and getattr(options,'commit_clock_ci_original_log',None) is None),
+                'original clock log callback requires one explicit clock source')
+        self._clock_original_log_reader = clock_original_log_reader
+        require(clock_original_evidence_reader is None or (callable(clock_original_evidence_reader)
+                and getattr(options,'commit_clock_observation',False) is True),
+                'original clock evidence callback requires explicit clock source')
+        self._clock_original_evidence_reader = clock_original_evidence_reader
         self.storage_roots = roots(storage_roots)
         self.retained_roots = ()
         self.qualified = self.admitted = self.used = self.retired = False
@@ -349,6 +363,10 @@ class OriginalDriverAdapter:
             self.driver.lab.Window = RegisteredWindow
             try:
                 kwargs = {} if self._source_metadata_reader is None else dict(source_metadata_reader=self._source_metadata_reader)
+                if self._clock_original_log_reader is not None:
+                    kwargs['clock_original_log_reader']=self._clock_original_log_reader
+                if self._clock_original_evidence_reader is not None:
+                    kwargs['clock_original_evidence_reader']=self._clock_original_evidence_reader
                 self.result = self._run(copy.deepcopy(self.options), **kwargs)
                 require(len(calls) == 1 and self.registration_error is None,
                         'original driver did not propagate Window registration failure')

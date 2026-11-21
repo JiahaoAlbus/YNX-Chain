@@ -1,0 +1,27 @@
+name: Pair controller source-only controls
+
+on:
+  push:
+    branches:
+      - codex/perf-controller-clock-preflight-20261122
+
+permissions:
+  contents: read
+
+jobs:
+  pair-controller-controls:
+    name: Original pair controller controls without a window
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/workflows/pq-normal-process.yml
+            /.github/workflows/pq-pair-controller-source-only.yml
+            /scripts/loadtest/same-runner/
+      - name: Verify original and cross-arm controls without a window
+        run: python3 -I -B scripts/loadtest/same-runner/pq-same-runner-controls.py

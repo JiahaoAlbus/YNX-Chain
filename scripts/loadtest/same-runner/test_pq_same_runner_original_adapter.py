@@ -107,6 +107,38 @@ class OriginalAdapterControls(unittest.TestCase):
             bridge.configured_adapters(factory)
         factory.assert_not_called()
 
+    def test_actual_default_binding_closed_historical_tuple_preserved(self):
+        self.assertIsNone(bridge.QUALIFIED_PAIR_BINDING)
+        self.assertEqual(bridge.producer.sha(bridge.producer.encode(bridge.HISTORICAL_PAIR_BINDING)),
+                         'cff27693539c49dd9e735285e793877adbf6fb35c7299b0e669468c3b15db133')
+        factory = mock.Mock()
+        with self.assertRaisesRegex(RuntimeError, 'NOT_SUPPLIED'):
+            bridge.configured_adapters(factory)
+        factory.assert_not_called()
+
+    def test_actual_driver_receives_opt_in_original_transports(self):
+        record = copy.deepcopy(self.record)
+        record['configuration']['options'].update(commit_clock_observation=True, commit_clock_ci_original_log=None)
+        options = types.SimpleNamespace(**dict(record['configuration']['options'], source=str(self.source), execute=True))
+        error = RuntimeError('CONTROL driver stopped before Window')
+        run = mock.Mock(side_effect=error)
+        log, evidence, metadata = mock.Mock(), mock.Mock(), mock.Mock()
+        driver = types.SimpleNamespace(run=run, lab=original.lab)
+        adapter = bridge.OriginalDriverAdapter(driver, options, record, verify_qualification=lambda: record,
+            admit=lambda roots: None, storage_roots=(self.source,), source_metadata_reader=metadata,
+            clock_original_log_reader=log, clock_original_evidence_reader=evidence)
+        adapter.qualify(); adapter.admit((self.root,))
+        with self.assertRaisesRegex(RuntimeError, 'CONTROL driver stopped'):
+            adapter.execute(self.register)
+        self.assertIs(run.call_args.kwargs['source_metadata_reader'], metadata)
+        self.assertIs(run.call_args.kwargs['clock_original_log_reader'], log)
+        self.assertIs(run.call_args.kwargs['clock_original_evidence_reader'], evidence)
+        self.assertIs(adapter.execution_error, error)
+        options.commit_clock_observation = False
+        with self.assertRaisesRegex(RuntimeError, 'explicit clock source'):
+            bridge.OriginalDriverAdapter(driver, options, record, verify_qualification=lambda: record,
+                admit=lambda roots: None, storage_roots=(self.source,), clock_original_log_reader=log)
+
     def test_options_and_qualification_cannot_inherit_another_source(self):
         run = mock.Mock()
         adapter = self.adapter(run)
