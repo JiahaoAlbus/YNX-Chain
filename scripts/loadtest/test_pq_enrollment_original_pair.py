@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -259,11 +260,21 @@ class EnrollmentPairControls(unittest.TestCase):
                 ledger.prepare_enrollment_pair(row['index'],request,sha(request),m.SOURCE,now,enabled=True)
                 return row,account
             ledger.reserve=prepared;return ledger
-        with mock.patch.object(a.staged.original,'open_durable_ledger',side_effect=reserve_pair_before_publish):
+        class OneOriginalArrival(a.staged.BoundedArrivalClock):
+            def loop(self):
+                # This is one original byte-join/driver control, not offered
+                # rate qualification. Retain all 100 logical slots while only
+                # supplying one actual arrival; the other 99 remain unissued.
+                # Keep real FULL fsync and the real event/worker clocks. Queue
+                # overload/cutoff behavior has separate unmodified controls.
+                self.queue.put_nowait(dict(first=0,end=1,atNs=time.monotonic_ns()-self.origin));self.peak=1
+        with mock.patch.object(a.staged.original,'open_durable_ledger',side_effect=reserve_pair_before_publish), \
+             mock.patch.object(a.staged,'BoundedArrivalClock',OneOriginalArrival):
             outcome=controls.driver.run_load_window(plan,a.StopOnce(OriginalUnknown()),mock.Mock(),monitor,stop,durable_accounting=accounting)
         self.assertIsNone(outcome['firstCause'])
         self.assertEqual(outcome['firstOperationalFailure']['error'],'UNIT enrollment confirmation UNKNOWN')
         self.assertEqual(outcome['submitted'],1)
+        self.assertEqual((outcome['logicalReleased'],outcome['notReleased']),(1,99))
         tools=dict(source=dict(commit=m.SOURCE,tree='2'*40,forkTree='3'*40),
             tools=dict(commit='4'*40,tree='5'*40,driverSHA256='6'*64,resourceGuardSHA256='7'*64))
         plan_raw=raw(a.public_plan(plan));run=dict(schema=a.RUN_SCHEMA,source=tools['source'],toolIdentity=tools['tools'],

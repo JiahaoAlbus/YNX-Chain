@@ -6,7 +6,11 @@ original bytes, not HMACs, cryptographic proof validity or current eligibility.
 """
 import importlib.util
 import json
+import os
 from pathlib import Path
+import platform
+import stat
+from contextlib import contextmanager
 
 spec=importlib.util.spec_from_file_location('normal_original_pair',Path(__file__).with_name('pq-enrollment-original-pair.py'))
 p=importlib.util.module_from_spec(spec);spec.loader.exec_module(p)
@@ -217,6 +221,12 @@ def audit_reply(raw,returncode,*,operation,durable,original,proof_raws=None,proo
         result_raw=c.read(result_path,p.FILES['RESULT.json'])
         pin=original['binding']['files']['funding']['RESULT.json']
         require(len(result_raw)==pin['bytes'] and b.sha(result_raw)==pin['sha256'],'original result changed after pair audit')
+        initial=inspect_reply(raw,returncode,operation=operation,request_raw=original['request_raw'],
+            request_sha256=original['binding']['requestSHA256'],result_original_raw=result_raw,enabled=True)
+        if initial.get('normalReplyCode')=='UNKNOWN':
+            initial.update(originalLedgerReadOnly=True,originalPairReservationObserved=True,
+                           originalFirstCauseSHA256=out['originalFirstCauseSHA256'])
+            return initial # A failure must not be hidden by absent/partial CONFIRMED output.
         retained=None
         if operation=='confirm':
             retained={role:{name:c.read(parent/r[role+'OperationId']/name,limit) for name,limit in PROOF_FILES.items()} for role in ROLES}
@@ -231,10 +241,158 @@ def audit_reply(raw,returncode,*,operation,durable,original,proof_raws=None,proo
     return classified
 
 
-def normal_original(*,enabled=False,**arguments):
-    """Runtime remains closed before reading credentials, files or starting a child."""
+@contextmanager
+def inherited_credential(fd,root):
+    """Hold a duplicate of the original credential FD without reading its bytes.
+
+    Core alone reads/decrypts and acquires its existing sender lease. This
+    caller must never take that lease first, reconstruct keys or open a new
+    credential by name as a fallback. The caller retains ownership of its FD.
+    """
+    require(type(fd) is int and 3<=fd<=4096,'original inherited credential FD required')
+    path=Path(root)/'workload/private-senders/recovery.raw'
+    directory=os.open('/',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC);held=None
+    try:
+        for part in path.parts[1:-1]:
+            following=os.open(part,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=directory)
+            os.close(directory);directory=following
+        held=os.dup(fd);os.set_inheritable(held,False);before=os.fstat(held)
+        require(3<=held<=4096 and stat.S_ISREG(before.st_mode) and stat.S_IMODE(before.st_mode)==0o600
+                and before.st_nlink==1 and before.st_uid==os.geteuid() and before.st_size==32,
+                'exact private original credential identity required')
+        def check():
+            named=os.stat(path.name,dir_fd=directory,follow_symlinks=False)
+            require(b.metadata(before)==b.metadata(os.fstat(held))==b.metadata(named)==b.metadata(path.lstat()),
+                    'original credential identity changed')
+        parent_identity=os.fstat(directory)
+        check();yield held;check()
+        current=path.parent.lstat()
+        require(stat.S_ISDIR(current.st_mode) and (current.st_dev,current.st_ino)==(parent_identity.st_dev,parent_identity.st_ino),
+                'original credential directory identity changed')
+    finally:
+        if held is not None:os.close(held)
+        os.close(directory)
+
+
+def _retain_readback(output,value):
+    raw=c.encoded(value);path=Path(output)
+    folder=os.open(path,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC);identity=os.fstat(folder);fd=None
+    try:
+        fd=os.open('readback.json',os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600,dir_fd=folder)
+        pending=memoryview(raw)
+        while pending:
+            n=os.write(fd,pending);require(n>0,'original reply readback short write');pending=pending[n:]
+        os.fsync(fd);os.fsync(folder)
+        info=os.fstat(fd);named=os.stat('readback.json',dir_fd=folder,follow_symlinks=False);current=path.lstat()
+        require(b.metadata(info)==b.metadata(named) and info.st_nlink==1 and info.st_size==len(raw)
+                and stat.S_IMODE(info.st_mode)==0o600 and (identity.st_dev,identity.st_ino)==(current.st_dev,current.st_ino),
+                'original reply readback identity changed')
+    finally:
+        if fd is not None:os.close(fd)
+        os.close(folder)
+
+
+def normal_original(*,enabled=False,source=None,binary=None,root=None,plan_sha256=None,workload_sha256=None,
+                    credential_fd=None,operation=None,durable=None,original=None,proof_inputs=None,
+                    output=None,timeout=10,stop=None):
+    """One normal recover/confirm process; no signing, retry or pending release.
+
+    Only a future owning source change may freeze NORMAL_ORIGINAL_CALLEE after
+    complete same-source CI and binary/fixture qualification. Caller options or
+    an old source pass cannot fill that gate. Raw child output remains private.
+    Confirm can write original Core proof/CONFIRMED files; no rollback/replay is
+    attempted on failure. The stopped Perf DB always remains read-only.
+    """
     require(enabled is True,'normal original callee is explicitly opt-in')
-    require(NORMAL_ORIGINAL_CALLEE is None,'normal source/binary/CI integration requires the owning successor')
-    out=unknown();out['missingEvidence']=['fixedIntegratedSourceAndFullCI','sameSourceBinaryAndOriginalMaterials',
-        'normalCredentialFDAndLease','normalTargetCustodyProducer','authenticatedCurrentAccountState']
+    out=unknown();gate=NORMAL_ORIGINAL_CALLEE
+    if gate is None:
+        out['missingEvidence']=['fixedIntegratedSourceAndFullCI','sameSourceBinaryAndOriginalMaterials',
+            'normalCredentialFDAndLease','normalTargetCustodyProducer','authenticatedCurrentAccountState'];return out
+    b.closed(gate,('source','chainCI','resourceCI','binaries'),'closed owner-frozen normal callee qualification required')
+    require(source==gate['source']==INSPECTED_CLI and p.contract.inspected_source(source)
+            and all(type(gate[key]) is int and gate[key]>0 for key in ('chainCI','resourceCI')),
+            'exact original source and complete owner-frozen CI required')
+    require(type(gate['binaries']) is dict,'frozen normal platform binary pins required')
+    binary_pin=gate['binaries'].get((platform.system(),platform.machine()))
+    require(b.hex_pin(binary_pin),'same-source normal platform binary unavailable')
+    if stop is not None and stop.is_set():
+        out['missingEvidence']=['originalCallCancelledBeforeStart'];return out
+    require(type(durable) is dict and type(original) is dict and not set(durable)&set(original),'independent original ledger/outbox inputs required')
+    original=dict(original);require(original.pop('enabled',True) is True,'original outbox inspection required')
+    require(original['binding']['sourceCommit']==source,'original producer and normal callee source differ')
+    observed=p.audit_durable_pair(**durable,**original,enabled=True)
+    out['originalFirstCauseSHA256']=observed.get('originalFirstCauseSHA256')
+    if not observed['originalPairByteBindingsObserved'] or not observed['originalPairReservationObserved']:
+        out['missingEvidence']=observed['missingEvidence'];return out
+    out.update(originalPairReservationObserved=True,originalLedgerReadOnly=True)
+    request_raw=original['request_raw'];request_pin=original['binding']['requestSHA256'];r=request(request_raw,request_pin)
+    root_text=str(root);root=Path(root)
+    require(root.is_absolute() and '..' not in root.parts and str(root)==root_text
+            and Path(original['parent_directory'])==root/'workload/sender-public'/('%04d'%r['ownerIndex']),
+            'same original lab root and sponsor directory required')
+    require(plan_sha256==durable_plan_pin(durable) and workload_sha256==original['binding']['workloadSHA256']
+            and b.hex_pin(plan_sha256),'same original plan/workload pins required')
+    # Plan/workload are checked again by Core. Retain independent input digests
+    # before the process, then re-read them and the stopped DB/outboxes after it.
+    plan_path=root/'network-plan.json';workload_path=root/'workload/PUBLIC-WORKLOAD.json'
+    pins={plan_path:(1<<20,plan_sha256),workload_path:(8<<20,workload_sha256)};proofs=None;proof_pins=None
+    command_raw=command(operation,request_raw,request_pin,root=root,proof_inputs=proof_inputs)
+    if operation=='confirm':
+        proofs={};proof_pins={}
+        for role,item in proof_inputs.items():
+            pins[Path(item['materialsFile'])]=(8<<20,item['materialsSHA256'])
+            pins[Path(item['proofFile'])]=(8<<20,item['proofSHA256'])
+            proofs[role]=c.read(item['proofFile'],8<<20);proof_pins[role]=item['proofSHA256']
+            require(b.sha(proofs[role])==proof_pins[role],'independent original proof pin differs')
+    for path,(limit,pin) in pins.items():require(b.sha(c.read(path,limit))==pin,'original normal callee input pin differs')
+    call=None
+    try:
+        with c.held(binary,64<<20,executable=True) as (binary_raw,binary_fd):
+            require(b.sha(binary_raw)==binary_pin,'exact source-qualified normal binary differs')
+            with inherited_credential(credential_fd,root) as inherited:
+                argv=[str(binary),'enrollment-original','--synthetic','--root',str(root),'--plan-sha256',plan_sha256,
+                    '--workload-sha256',workload_sha256,'--owner',str(r['ownerIndex']),'--credential-fd',str(inherited)]
+                call=c._invoke(Path(binary),binary_fd,None,None,command_raw,output,timeout,stop,
+                               original_argv=argv,inherited_fds=(inherited,))
+    except Exception as error:
+        if call is None:
+            out['firstCause']=dict(type=type(error).__name__,message=b.accounting.d.failure_message(error));return out
+        if call['firstCause'] is None:call['firstCause']=dict(type=type(error).__name__,message=b.accounting.d.failure_message(error))
+    out.update(normalCalleeInvoked=call['processStarted'],sourceCIQualified=True,normalSource=source,
+        binarySHA256=binary_pin,requestSHA256=request_pin,commandSHA256=b.sha(command_raw),
+        stdoutSHA256=b.sha(call['stdout']),stderrSHA256=b.sha(call['stderr']),
+        process={key:value for key,value in call.items() if key not in ('stdout','stderr','argv')},
+        originalPairReservationObserved=True,originalLedgerReadOnly=True,
+        credentialBytesReadByParent=False,credentialFDPassed=call['processStarted'],
+        senderLeaseOwner='normal Core callee only; not independently attested by transport',
+        confirmationMayHaveWrittenOriginals=operation=='confirm' and call['processStarted'])
+    cause=out['process']['firstCause']
+    try:
+        for path,(limit,pin) in pins.items():require(b.sha(c.read(path,limit))==pin,'original inputs changed during normal call')
+        repeated=p.audit_durable_pair(**durable,**original,enabled=True)
+        require(repeated['originalPairByteBindingsObserved'] and repeated['originalPairReservationObserved'],
+                'original stopped ledger/outbox changed during normal call')
+        require(call['returnCode']==0,'normal enrollment process exited unsuccessfully')
+        require(not call['stderr'],'normal enrollment process emitted stderr; preserve original')
+        require(call['processReaped'] and call['outputComplete'] and call['requestBytesWritten']==len(command_raw),
+                'normal enrollment process did not complete the original frame')
+        if cause is None:
+            joined=audit_reply(call['stdout'],call['returnCode'],operation=operation,durable=durable,original=original,
+                               proof_raws=proofs,proof_sha256=proof_pins,enabled=True)
+            out.update({key:value for key,value in joined.items() if key not in ('normalCalleeInvoked','sourceCIQualified')})
+            if joined.get('normalReplyCode')=='UNKNOWN':
+                cause=dict(type='OriginalOperationUnknown',message=joined['failureStage'],proofFailureCode=joined.get('proofFailureCode'))
+    except Exception as error:
+        if cause is None:cause=dict(type=type(error).__name__,message=b.accounting.d.failure_message(error))
+    out['process']['firstCause']=cause;out['firstCause']=cause
+    out['missingEvidence']=list(dict.fromkeys(out['missingEvidence']+['authenticatedCurrentAccountState','normalTargetCustodyProducer']))
+    try:_retain_readback(output,out)
+    except Exception as error:
+        out['readbackRetention']='NOT_RETAINED';out['readbackRetentionFailure']=dict(type=type(error).__name__,message=b.accounting.d.failure_message(error))
+        if out['firstCause'] is None:out['firstCause']=out['readbackRetentionFailure']
     return out
+
+
+def durable_plan_pin(durable):
+    plan=b.accounting.strict(durable['plan_raw'],b.accounting.d.MAX_PLAN_BYTES)
+    return plan['plan']['networkPlanSHA256']

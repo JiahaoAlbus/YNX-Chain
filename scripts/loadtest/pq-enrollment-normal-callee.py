@@ -164,13 +164,26 @@ def bind_operation(context_raw,context_sha256,role,*,original=None,durable=None,
     return report
 
 
-def _invoke(binary,fd,context_path,context_sha,request,output,timeout,stop=None):
+def _invoke(binary,fd,context_path,context_sha,request,output,timeout,stop=None,*,original_argv=None,inherited_fds=()):
     """One unreplayed original Popen; finite nonblocking IO and exact raw logs."""
     require(type(timeout) in (int,float) and 0.05<=timeout<=10,'bounded normal verifier deadline required')
+    argv=[str(binary),'enrollment','--trust-context',str(context_path),'--trust-context-sha256',context_sha]
+    if original_argv is not None:
+        require(type(original_argv) is list and original_argv and original_argv[0]==str(binary)
+                and all(type(item) is str for item in original_argv),'exact original callee argv required')
+        argv=original_argv
+    require(type(inherited_fds) is tuple and len(inherited_fds)<=1
+            and all(type(item) is int and item>=3 and item!=fd for item in inherited_fds),
+            'one independent original credential descriptor required')
     output=Path(output);require(output.is_absolute() and not output.exists() and output.parent.resolve(strict=True)==output.parent,
                                 'fresh private verifier evidence directory required')
-    output.mkdir(mode=0o700)
-    folder=os.open(output,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+    parent=os.open(output.parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+    parent_info=os.fstat(parent)
+    try:
+        os.mkdir(output.name,mode=0o700,dir_fd=parent)
+        folder=os.open(output.name,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=parent)
+    except BaseException:
+        os.close(parent);raise
     folder_info=os.fstat(folder);streams={};initial={}
     try:
         for name in ('stdout','stderr'):
@@ -178,14 +191,19 @@ def _invoke(binary,fd,context_path,context_sha,request,output,timeout,stop=None)
             streams[name]=os.fdopen(log,'wb',buffering=0);initial[name]=os.fstat(log)
     except BaseException:
         for stream in streams.values():stream.close()
-        os.close(folder);raise
-    argv=[str(binary),'enrollment','--trust-context',str(context_path),'--trust-context-sha256',context_sha]
+        os.close(folder);os.close(parent);raise
     linux=platform.system()=='Linux';process=None;selector=selectors.DefaultSelector();start=time.monotonic_ns()
     deadline=time.monotonic()+timeout;buffers={'stdout':bytearray(),'stderr':bytearray()};offset=0;cause=None;reaped=False
-    eof=set();broken_pipe=False;truncated=False;retention_errors=[]
+    eof=set();broken_pipe=False;truncated=False;retention_errors=[];cleanup_errors=[]
+    def finish(action,target,*,retention=False):
+        try:action()
+        except Exception as error:
+            failure=dict(type=type(error).__name__,message=b.accounting.d.failure_message(error),target=target)
+            cleanup_errors.append(failure)
+            if retention:retention_errors.append(failure)
     try:
         if stop is not None and stop.is_set():raise InterruptedError('normal verifier cancelled before original process start')
-        process=subprocess.Popen(argv,executable='/proc/self/fd/%d'%fd if linux else str(binary),pass_fds=(fd,) if linux else (),
+        process=subprocess.Popen(argv,executable='/proc/self/fd/%d'%fd if linux else str(binary),pass_fds=((fd,) if linux else ())+inherited_fds,
             stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,close_fds=True,bufsize=0,
             env={'PATH':os.defpath,'LANG':'C'})
         for name in ('stdin','stdout','stderr'):
@@ -224,12 +242,15 @@ def _invoke(binary,fd,context_path,context_sha,request,output,timeout,stop=None)
                 if process.poll() is None:process.kill()
                 process.wait(timeout=1);reaped=True
             except Exception as error:
-                if cause is None:cause=dict(type=type(error).__name__,message=b.accounting.d.failure_message(error))
-        selector.close()
+                failure=dict(type=type(error).__name__,message=b.accounting.d.failure_message(error),target='original child retirement')
+                cleanup_errors.append(failure)
+                if cause is None:cause=failure
+        finish(selector.close,'selector close')
         if process is not None:
             for name in ('stdin','stdout','stderr'):
                 stream=getattr(process,name)
-                if stream is not None and not stream.closed:stream.close() # unbuffered, no retransmit
+                if stream is not None and not stream.closed:
+                    finish(stream.close,name+' pipe close') # unbuffered, no retransmit
         for name,stream in streams.items():
             try:
                 os.fsync(stream.fileno());current=os.fstat(stream.fileno());named=os.stat(name+'.log',dir_fd=folder,follow_symlinks=False)
@@ -237,21 +258,28 @@ def _invoke(binary,fd,context_path,context_sha,request,output,timeout,stop=None)
                     and stat.S_IMODE(current.st_mode)==0o600 and current.st_size==len(buffers[name])
                     and (current.st_dev,current.st_ino)==(initial[name].st_dev,initial[name].st_ino),'original output identity differs')
             except Exception as error:retention_errors.append(dict(type=type(error).__name__,message=b.accounting.d.failure_message(error)))
-            finally:stream.close()
+            finally:finish(stream.close,name+' log close',retention=True)
         try:
-            os.fsync(folder);current=output.lstat()
+            os.fsync(folder);os.fsync(parent);current=output.lstat();current_parent=output.parent.lstat()
             require(stat.S_ISDIR(current.st_mode) and (folder_info.st_dev,folder_info.st_ino)==(current.st_dev,current.st_ino),
                     'original evidence directory identity differs')
+            require(stat.S_ISDIR(current_parent.st_mode)
+                    and (parent_info.st_dev,parent_info.st_ino)==(current_parent.st_dev,current_parent.st_ino),
+                    'original evidence parent directory identity differs')
         except Exception as error:retention_errors.append(dict(type=type(error).__name__,message=b.accounting.d.failure_message(error)))
-        finally:os.close(folder)
+        finally:
+            finish(lambda:os.close(folder),'evidence folder close',retention=True)
+            finish(lambda:os.close(parent),'evidence parent close',retention=True)
         if cause is None and retention_errors:cause=retention_errors[0]
+        if cause is None and cleanup_errors:cause=cleanup_errors[0]
     return dict(argv=argv,returnCode=process.returncode if process is not None else None,
         elapsedNs=time.monotonic_ns()-start,firstCause=cause,processStarted=process is not None,processReaped=reaped,
-        cleanupDebt=process is not None and not reaped,requestBytesWritten=offset,requestBytes=len(request),
+        cleanupDebt=(process is not None and not reaped) or bool(cleanup_errors),cleanupErrors=cleanup_errors,
+        requestBytesWritten=offset,requestBytes=len(request),
         requestPipeClosedEarly=broken_pipe,outputTruncated=truncated,outputComplete=eof=={'stdout','stderr'} and not truncated,
         originalOutputRetained=not retention_errors,retentionErrors=retention_errors,
         deadlineScope='pipe IO and final wait; filesystem calls and process creation are not interruptible here',
-        executableFDUsed=linux,stdout=bytes(buffers['stdout']),stderr=bytes(buffers['stderr']))
+        executableFDUsed=linux and process is not None,stdout=bytes(buffers['stdout']),stderr=bytes(buffers['stderr']))
 
 
 def verify_enrollment(*,scope='production',enabled=False,source=None,chain_ci=None,binary=None,fixture=None,fixture_sha256=None,
