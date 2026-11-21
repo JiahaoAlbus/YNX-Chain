@@ -277,7 +277,7 @@ func TestShopInvoiceSourceGETOnlyNoBodyAndNoPublicCaller(t *testing.T) {
 }
 
 func TestShopInvoiceSourceOriginalNotFoundAndChangedBillStayExact(t *testing.T) {
-	for _, mode := range []string{"notfound", "changed", "wrong-reference"} {
+	for _, mode := range []string{"notfound", "changed", "wrong-reference", "duplicate-original"} {
 		t.Run(mode, func(t *testing.T) {
 			s, buyer, o, _ := publicSourceInvoiceRecord(t)
 			_, a, client := publicInvoiceReadService(t, s, buyer, o, "")
@@ -291,6 +291,14 @@ func TestShopInvoiceSourceOriginalNotFoundAndChangedBillStayExact(t *testing.T) 
 				changed := cloneOrder(o)
 				changed.Lines[0].Title = "PUBLIC changed original bill"
 				s.s.Orders[o.ID] = changed
+			} else if mode == "duplicate-original" {
+				for _, record := range s.s.BusinessEffects {
+					if record.Kind == "pay.native-create" && record.Target == o.ID {
+						record.ID = "PUBLIC-duplicate-original"
+						s.s.BusinessEffects[record.ID] = record
+						break
+					}
+				}
 			} else {
 				for id, record := range s.s.BusinessEffects {
 					var input nativeInvoiceInput
@@ -306,6 +314,9 @@ func TestShopInvoiceSourceOriginalNotFoundAndChangedBillStayExact(t *testing.T) 
 			response, err := sourceReadCall(t, client, body)
 			if err != nil || response.StatusCode != expected || bytes.Contains(response.Body, []byte("domainData")) {
 				t.Fatal("notfound/conflict changed or leaked", err, response.StatusCode, string(response.Body))
+			}
+			if mode == "duplicate-original" && string(response.Body) != "{\"error\":\"conflict\"}\n" {
+				t.Fatal("original conflict mapping changed", string(response.Body))
 			}
 		})
 	}
