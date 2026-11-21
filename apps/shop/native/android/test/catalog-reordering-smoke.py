@@ -93,9 +93,20 @@ server = ThreadingHTTPServer(("127.0.0.1", 8095), Handler)
 threading.Thread(target=server.serve_forever, daemon=True).start()
 try:
     adb("shell", "am", "start", "-W", "-n", "com.ynxweb4.shop.debug/com.ynxweb4.shop.MainActivity")
-    if not initial_sent.wait(8):
-        print("Initial catalog request absent; UI:", [(n.get("text"), n.get("content-desc")) for n in snapshot()], flush=True)
-        raise AssertionError("initial catalog request did not reach fixture")
+    for attempt in range(4):
+        if initial_sent.wait(8):
+            break
+        nodes = snapshot()
+        print("Initial catalog request absent; UI:", [(n.get("text"), n.get("content-desc")) for n in nodes], flush=True)
+        if attempt == 3:
+            raise AssertionError("initial catalog request did not reach fixture")
+        # Emulator networking can come up after Android reports boot complete.
+        # Retry only this public, read-only initial catalog through the app's
+        # normal retry button; never retry either of the reordered requests.
+        try:
+            tap(position(find(nodes, "Retry")))
+        except StopIteration:
+            raise AssertionError("initial catalog request absent and retry unavailable")
     nodes = snapshot()
     cart = position(find(nodes, "Cart"))
 
