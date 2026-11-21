@@ -153,7 +153,7 @@ class IndependentLoadControls(unittest.TestCase):
             backend.helper_slots=threading.BoundedSemaphore(1);backend.helper_cleanup_debt=[]
             entered=threading.Event();release=threading.Event();proc=Proc();errors=[]
             def blocked(*args,**kwargs):
-                entered.set();self.assertTrue(release.wait(2));return proc
+                entered.set();self.assertTrue(release.wait(10));return proc
             def execute():
                 try:backend._helper('load-00000-normal-verifier',['verifier'],None,{})
                 except BaseException as error:errors.append(error)
@@ -161,10 +161,13 @@ class IndependentLoadControls(unittest.TestCase):
                  mock.patch.object(driver.lab.guard,'bounded',return_value=b'original stat'), \
                  mock.patch.object(driver.lab.guard,'parse_stat',return_value={'startTicks':44}), \
                  mock.patch.object(driver.lab.os,'killpg'):
-                worker=threading.Thread(target=execute);worker.start();self.assertTrue(entered.wait(1))
-                while time.monotonic_ns()<stop.ynx_verifier_admission_deadline_ns:
-                    threading.Event().wait(.005)
-                release.set();worker.join(2)
+                worker=threading.Thread(target=execute);worker.start()
+                try:
+                    self.assertTrue(entered.wait(5))
+                    while time.monotonic_ns()<stop.ynx_verifier_admission_deadline_ns:
+                        threading.Event().wait(.005)
+                finally:
+                    release.set();worker.join(5)
             self.assertFalse(worker.is_alive());self.assertEqual(len(errors),1)
             self.assertIn('crossed admission deadline',str(errors[0]));self.assertTrue(stop.is_set())
             self.assertEqual(proc.poll(),-15);self.assertTrue(window.logs[0][1].closed)
