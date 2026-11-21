@@ -167,6 +167,19 @@ jobs:
           python3 -B scripts/loadtest/test_pq_normal_callgraph.py -v
           python3 -B scripts/loadtest/test_pq_live_materials_transport.py -v
           python3 -B scripts/loadtest/test_resource_guard_sampling.py -v
+          python3 -B - <<'PYRESOURCE'
+          import importlib.util, unittest
+          from pathlib import Path
+          path = Path('scripts/loadtest/test_pq_resource_first_cause.py')
+          spec = importlib.util.spec_from_file_location('original_resource_first_cause', path)
+          module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+          suite = unittest.defaultTestLoader.loadTestsFromModule(module)
+          if suite.countTestCases() != 6:
+              raise RuntimeError('exact six original resource first-cause controls required')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if result.testsRun != 6 or result.skipped or not result.wasSuccessful():
+              raise RuntimeError('all six original resource first-cause controls must execute without skips')
+          PYRESOURCE
       - name: Verify hardware observation and record actual CI host separately
         run: |
           python3 -B scripts/loadtest/test_pq_runtime_hardware.py -v
