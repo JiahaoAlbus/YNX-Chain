@@ -62,6 +62,7 @@ class ClockSourceQualificationControls(unittest.TestCase):
             return out.getvalue()
         hz,gz=archive(hm),archive({'wire-live-source-CONTROL/'+name:value for name,value in gm.items()})
         req=dict(source=binding['source'],run=101,attempt=1,historyJob=106,getterJob=107,historyArtifact=201,getterArtifact=202,
+            historyArtifactName=f"ynx-history-original-{binding['source']}-101-1",getterArtifactName=f"held-normal-live-wire-source-{binding['source']}-101-1",
             historyArchiveSHA256=hashlib.sha256(hz).hexdigest(),getterArchiveSHA256=hashlib.sha256(gz).hexdigest(),historyJobLogSHA256=hashlib.sha256(raw).hexdigest(),
             getterArchiveRoot='wire-live-source-CONTROL',historyMembers={k:hashlib.sha256(v).hexdigest() for k,v in hm.items()},getterMembers={k:hashlib.sha256(v).hexdigest() for k,v in gm.items()})
         focused_req,focused_raw=self.original_log(binding);calls=[]
@@ -76,6 +77,11 @@ class ClockSourceQualificationControls(unittest.TestCase):
             bad=dict(req,getterJob=999)
             with mock.patch.object(m,'ORIGINAL_EVIDENCE_REQUIREMENTS',bad),self.assertRaisesRegex(RuntimeError,'fixed identity'):
                 m.qualification(identity,metadata_reader=metadata,focused_log_reader=lambda *args:focused_raw,original_evidence_reader=evidence)
+            failure=dict(req,historyArtifactName=f"ynx-history-failure-diagnostics-{binding['source']}-101-1")
+            count=len(calls)
+            with mock.patch.object(m,'ORIGINAL_EVIDENCE_REQUIREMENTS',failure),self.assertRaisesRegex(RuntimeError,'fixed identity'):
+                m.qualification(identity,metadata_reader=metadata,focused_log_reader=lambda *args:focused_raw,original_evidence_reader=evidence)
+            self.assertEqual(len(calls),count)
             with self.assertRaises(ValueError):
                 m.qualification(identity,metadata_reader=metadata,focused_log_reader=lambda *args:focused_raw,
                     original_evidence_reader=lambda kind,*args:(raw,hz) if kind=='history' else b'not the original zip')

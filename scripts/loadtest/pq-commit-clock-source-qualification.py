@@ -294,13 +294,16 @@ def inspect_frozen_originals(binding, requirements, reader):
     binding=copy.deepcopy(binding)
     requirements=copy.deepcopy(requirements)
     keys={'source','run','attempt','historyJob','getterJob','historyArtifact','getterArtifact',
-          'historyArchiveSHA256','getterArchiveSHA256','historyJobLogSHA256','getterArchiveRoot','historyMembers','getterMembers'}
+          'historyArtifactName','getterArtifactName','historyArchiveSHA256','getterArchiveSHA256',
+          'historyJobLogSHA256','getterArchiveRoot','historyMembers','getterMembers'}
     require(type(requirements) is dict and set(requirements)==keys
         and binding.get('source') in ORIGINAL_EVIDENCE_CONTRACTS
         and (binding.get('tree'),binding.get('forkTree'))==ORIGINAL_EVIDENCE_CONTRACTS[binding['source']]
         and all(requirements.get(k)==binding.get(k) for k in ('source','run','historyJob','getterJob'))
         and all(type(requirements[k]) is int and requirements[k]>0 for k in ('run','historyJob','getterJob'))
         and type(requirements['attempt']) is int and requirements['attempt']==1
+        and requirements['historyArtifactName']==f"ynx-history-original-{binding['source']}-{binding['run']}-1"
+        and requirements['getterArtifactName']==f"held-normal-live-wire-source-{binding['source']}-{binding['run']}-1"
         and all(type(requirements[k]) is str and re.fullmatch(r'[0-9a-f]{64}',requirements[k]) for k in ('historyArchiveSHA256','getterArchiveSHA256','historyJobLogSHA256'))
         and all(type(requirements[k]) is dict for k in ('historyMembers','getterMembers'))
         and type(requirements['getterArchiveRoot']) is str and re.fullmatch(r'wire-live-source-[A-Za-z0-9_-]+',requirements['getterArchiveRoot'])
