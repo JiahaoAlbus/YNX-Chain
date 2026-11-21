@@ -485,6 +485,9 @@ def seal_manifest(output, metadata):
             'both original arm payloads must be sealed')
     pair = copy.deepcopy(state['pair'])
     run, job, artifacts = metadata
+    require(type(artifacts.get('total_count')) is int and type(artifacts.get('artifacts')) is list
+            and artifacts['total_count'] == len(artifacts['artifacts']) <= 100,
+            'complete bounded original upload artifact inventory required')
     require(run['id'] == pair['runID'] and run['run_attempt'] == 1 and run['head_sha'] == pair['controllerCommit']
             and run['event'] == 'workflow_dispatch' and run['head_branch'] == reader.BRANCH
             and run['repository']['full_name'] == 'JiahaoAlbus/YNX-Chain'

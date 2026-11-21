@@ -9,6 +9,7 @@ Public uploads and manifest sealing remain separate original workflow steps.
 """
 import argparse
 import copy
+import datetime
 import importlib.util
 import inspect
 import json
@@ -18,6 +19,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import time
 import urllib.request
 
 
@@ -46,6 +48,27 @@ REQUIRED_TOOL_PINS = (
     'pq-staged-independent-scheduler.py', 'pq-staged-harness-controls.py',
     'pq-held-first100-source.py', 'pq-initialization-readback.py', 'pq-public-proof-readback.py',
 )
+PAIR_JOB_SECONDS = 45*60
+PAIR_EXECUTION_SECONDS = 35*60
+
+
+def pair_time_budget(job, pair, remaining_arms, execution_started, *, now=None, elapsed=None):
+    """Actual Actions job deadline plus monotonic coordinator deadline, never a cap increase."""
+    require(type(remaining_arms) is int and remaining_arms in (1,2), 'bounded remaining original arms required')
+    require(job.get('id') == pair['jobID'] and job.get('run_id') == pair['runID']
+            and type(job.get('run_attempt')) is int and job['run_attempt'] == 1
+            and job.get('head_sha') == pair['controllerCommit'] and job.get('status') == 'in_progress'
+            and job.get('name') == reader.JOB and job.get('runner_id') == pair['runnerID']
+            and job.get('runner_name') == pair['runnerName'], 'original pair deadline job identity differs')
+    stamp = job.get('started_at')
+    require(type(stamp) is str and stamp.endswith('Z'), 'original job start time missing')
+    started = datetime.datetime.fromisoformat(stamp.replace('Z','+00:00')).timestamp()
+    age = (time.time() if now is None else now)-started
+    elapsed = time.monotonic()-execution_started if elapsed is None else elapsed
+    require(0 <= age < PAIR_JOB_SECONDS and elapsed >= 0, 'original job or coordinator clock differs')
+    require(PAIR_JOB_SECONDS-age >= remaining_arms*(900+15)+300
+            and PAIR_EXECUTION_SECONDS-elapsed >= remaining_arms*(900+15)+30,
+            'original deadline cannot cover remaining arms cleanup and uploads')
 
 
 def same(left, right):
@@ -76,7 +99,7 @@ class ActionsMetadata:
 
     def read(self, suffix):
         import re
-        require(re.fullmatch(r'(runs/[1-9][0-9]*(/(attempts/1/)?jobs\?per_page=100)?|jobs/[1-9][0-9]*)', suffix),
+        require(re.fullmatch(r'(runs/[1-9][0-9]*(/((attempts/1/)?jobs|artifacts)\?per_page=100)?|jobs/[1-9][0-9]*)', suffix),
                 'exact original metadata endpoint required')
         class NoRedirect(urllib.request.HTTPRedirectHandler):
             def redirect_request(self, *args):
@@ -199,6 +222,11 @@ class FreshAdmission:
 
 class RevalidatedArm(bridge.OriginalDriverAdapter):
     """Refresh original qualification and admission without credentials in env."""
+    def __init__(self,*args,deadline_check,**kwargs):
+        require(callable(deadline_check),'original pair deadline check required')
+        self._deadline_check = deadline_check
+        super().__init__(*args,**kwargs)
+
     def execute(self, register_work):
         require(not any(key in os.environ for key in ('GH_TOKEN', 'GITHUB_TOKEN')),
                 'original metadata credential may not enter a subprocess environment')
@@ -206,6 +234,7 @@ class RevalidatedArm(bridge.OriginalDriverAdapter):
         # second arm again after the first finishes; never reuse old permission.
         self.qualify()
         self.admit(self.retained_roots)
+        self._deadline_check()
         return super().execute(register_work)
 
 
@@ -244,6 +273,7 @@ def prepare(binding, environment, api):
 
     Read-only git/toolchain qualification subprocesses retain the normal entry.
     """
+    execution_started = time.monotonic()
     configurations = validate_binding(binding)
     require(not any(key in os.environ for key in ('GH_TOKEN', 'GITHUB_TOKEN')),
             'metadata credential must be removed before original Git/Go qualification')
@@ -296,7 +326,11 @@ def prepare(binding, environment, api):
             return copy.deepcopy(record)
 
         options = argparse.Namespace(**dict(config['options'], source=str(source), execute=True))
+        def deadline_check(label=label):
+            pair_time_budget(api.read('jobs/'+str(pair['jobID'])),pair,
+                             2 if label == 'before' else 1,execution_started)
         adapters[label] = RevalidatedArm(driver, options, record, source_metadata_reader=api.read,
+            deadline_check=deadline_check,
             verify_qualification=qualify, admit=FreshAdmission(driver.lab, parent), storage_roots=storage)
     return dict(pair=pair, plans=plans, adapters=adapters,
                 output=parent/('pq-same-runner-pair-%d-%d'%(pair['runID'], pair['jobID'])))

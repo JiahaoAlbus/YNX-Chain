@@ -177,7 +177,7 @@ class PairFixture:
         job = dict(id=2, run_id=1, run_attempt=1, head_sha=self.controller, name=reader.JOB,
             status='completed', conclusion='failure', runner_id=9, runner_name='synthetic-hosted-runner',
             steps=[dict(name='Preserve same-runner '+arm+' originals', conclusion='success') for arm in raws])
-        artifacts = dict(artifacts=[dict(id=10+i, name=f'pq-first100-same-runner-1-1-{arm}',
+        artifacts = dict(total_count=3, artifacts=[dict(id=10+i, name=f'pq-first100-same-runner-1-1-{arm}',
             expired=False, digest='sha256:'+sha(raw), size_in_bytes=len(raw),
             workflow_run=dict(id=1, head_sha=self.controller, head_branch=reader.BRANCH))
             for i, (arm, raw) in enumerate(raws.items())])

@@ -90,8 +90,9 @@ def origin(run, job, artifacts, controller, raws):
             and type(job['runner_name']) is str and 0 < len(job['runner_name']) <= 256,
             'original pair job identity differs')
     positive(job['runner_id'])
-    require(type(artifacts.get('artifacts')) is list and len(artifacts['artifacts']) <= 100,
-            'bounded original artifact metadata required')
+    require(type(artifacts.get('total_count')) is int and type(artifacts.get('artifacts')) is list
+            and artifacts['total_count'] == len(artifacts['artifacts']) <= 100,
+            'complete bounded original artifact metadata required')
     result = {}
     for arm in ('manifest', *ARMS):
         raw = raws[arm]

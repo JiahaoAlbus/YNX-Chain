@@ -299,6 +299,7 @@ class ControllerControls(unittest.TestCase):
         arms=[object.__new__(c.RevalidatedArm) for _ in range(2)]
         for value in arms:
             value._source_metadata_reader=lambda path: {'CONTROL':path};value.retained_roots=('/CONTROL',)
+            value._deadline_check=mock.Mock()
         with mock.patch.dict(os.environ,{},clear=False), \
                 mock.patch.object(c.RevalidatedArm,'qualify'),mock.patch.object(c.RevalidatedArm,'admit'), \
                 mock.patch.object(c.bridge.OriginalDriverAdapter,'execute',driver_gate):
@@ -317,6 +318,7 @@ class ControllerControls(unittest.TestCase):
         value=object.__new__(c.RevalidatedArm)
         value._source_metadata_reader=c.ActionsMetadata('CONTROL-metadata-token').read
         value.retained_roots=('/CONTROL',)
+        value._deadline_check=mock.Mock()
         def probe():
             result=subprocess.run([sys.executable,'-I','-c',
                 'import os,sys;sys.exit(int(any(k in os.environ for k in ("GH_TOKEN","GITHUB_TOKEN"))))'],
@@ -336,7 +338,7 @@ class ControllerControls(unittest.TestCase):
             driver=types.SimpleNamespace(run=mock.Mock(),lab=original.lab)
             verify=mock.Mock(return_value=record);admission=mock.Mock(return_value=None)
             adapter=c.RevalidatedArm(driver,argparse_namespace(config,root),record,source_metadata_reader=mock.Mock(),
-                verify_qualification=verify,admit=admission,storage_roots=(root,))
+                verify_qualification=verify,admit=admission,storage_roots=(root,),deadline_check=mock.Mock())
             adapter.qualify();adapter.admit((root,))
             for error in (RuntimeError('CONTROL source checkout changed after first arm'),
                           OSError('CONTROL original CI unavailable after first arm')):
