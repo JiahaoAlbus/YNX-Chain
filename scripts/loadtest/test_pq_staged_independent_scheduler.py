@@ -601,6 +601,39 @@ class StagedIndependentSchedulerControls(unittest.TestCase):
         self.assertTrue(all(account["pending"] is not None and account["nextNonce"] == 2 and account["quarantined"] for account in result["accountState"]))
         self.assert_censored(result, 4)
 
+    def test_explicit_post_cutoff_drain_keeps_original_window_censored(self):
+        stop=threading.Event()
+        class DrainBackend(StructuralBackend):
+            def finalize(self, handle, notify, stop_event):
+                self.enter('finalize',handle.row)
+                try:
+                    stop_event.wait(1)
+                    raise RuntimeError('original verifier after cutoff; diagnostic only')
+                finally:self.leave('finalize')
+            def drain_cutoff_verifiers(self, cutoff, seconds, check):
+                self.assertion=(cutoff,seconds)
+                if not stop.is_set():raise AssertionError('scheduler must stop before entering drain')
+                check()
+                return dict(diagnosticOnly=True,qualifiesFinality=False)
+        backend=DrainBackend(); configured=plan(4,4);events=[]
+        result=staged.run(configured,backend,events.append,lambda:None,stop,verifier_drain_seconds=30)
+        self.assertEqual(backend.assertion[1],30)
+        self.assertEqual(result['qualified'],0)
+        self.assertEqual(result['notQualified'],4)
+        self.assertEqual(result['pipeline']['postCutoffVerifierDrain'],dict(diagnosticOnly=True,qualifiesFinality=False))
+        self.assertTrue(all(a['pending'] is not None for a in result['accountState']))
+        self.assertFalse(any(e['kind']=='qualified' for e in events))
+        self.assertTrue(result['pipeline']['workerThreadsRetired'])
+
+    def test_resource_failure_never_enters_post_cutoff_drain(self):
+        class NoDrainBackend(StructuralBackend):
+            def drain_cutoff_verifiers(self,*args):raise AssertionError('must not drain after resource failure')
+        backend=NoDrainBackend();stop=threading.Event()
+        def fail():raise RuntimeError('owned RSS exceeded 4GiB')
+        result=staged.run(plan(4,4),backend,lambda event:None,fail,stop,verifier_drain_seconds=30)
+        self.assertEqual(result['firstCause'],'owned RSS exceeded 4GiB')
+        self.assertIsNone(result['pipeline']['postCutoffVerifierDrain'])
+
     def test_original_confirmation_failure_after_cutoff_remains_in_late_evidence(self):
         class CleanupRejectedBackend(StructuralBackend):
             def finalize(self, handle, notify, stop):

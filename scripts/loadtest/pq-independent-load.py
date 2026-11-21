@@ -1048,6 +1048,9 @@ class NormalBackend:
     def finalize(self,handle,notify,stop):
         row,account,case,started,tx,path,request=(handle[k] for k in ('row','account','case','started','tx','path','request'))
         proof,verified,public_closure=self.live_proof(row,tx,path,case,notify,stop)
+        lab.require(not getattr(self,'post_cutoff_diagnostic_only',False),
+                    'explicit verifier diagnostic does not confirm or qualify any operation')
+        lab.require(not stop.is_set(), 'original verifier finished after cutoff; diagnostic only, preserve pending')
         confirmed=None
         if self.c.mode=="online":
             notify(dict(kind="normal_stage",stage="confirm"))
@@ -1064,6 +1067,39 @@ class NormalBackend:
     def perform(self,row,account,notify,stop):
         # Legacy sequential entry stays byte/protocol equivalent.
         self.finalize(self.observe(self.publish(row,account,notify,stop),notify,stop),notify,stop)
+    def drain_cutoff_verifiers(self, cutoff_ns, seconds, check_resources):
+        """Bounded diagnostic of already-started original verifiers only.
+
+        The scheduler has already set the original stop. Snapshot under the
+        Window.launch lock; pre-issued I/O crossing the boundary remains
+        UNKNOWN. No result is promoted into the ledger or used to confirm.
+        """
+        lab.require(type(cutoff_ns) is int and seconds == 30, 'fixed verifier drain bound required')
+        with self.w.lock:
+            lab.require(self.stop_event.is_set(), 'original cutoff stop required before diagnostic drain')
+            children=list(self.w.children)
+            frozen=time.monotonic_ns()
+            chosen=[c for c in children if c['name'].startswith('load-') and c['name'].endswith('-normal-verifier')
+                    and c['startedNs'] <= cutoff_ns and c['process'].poll() is None]
+            lab.require(len(chosen)<=self.helper_limit and len({c['process'].pid for c in chosen})==len(chosen)
+                        and all(type(c.get('startTicks')) is int and c['startTicks']>0 for c in chosen),
+                        'original verifier identity or helper bound unavailable; preserve UNKNOWN')
+        # Admission is not reopened. Operations already past their checks may
+        # cross the cutoff; their effects remain UNKNOWN. Existing helpers and
+        # sessions retain the original guards and normal cleanup below.
+        check_resources()
+        end=min(cutoff_ns/1_000_000_000+seconds, self.w.started+lab.CAPS['totalSeconds']-lab.CAPS['cleanupSeconds'])
+        while any(c['process'].poll() is None for c in chosen) and time.monotonic()<end:
+            check_resources();self.w.sample()
+            time.sleep(min(.1,max(0,end-time.monotonic())))
+        check_resources();self.w.sample()
+        return dict(schema='YNX-PERF-POST-CUTOFF-VERIFIER-DRAIN/v1', cutoffMonotonicNs=cutoff_ns,
+                    frozenMonotonicNs=frozen, completedMonotonicNs=time.monotonic_ns(),
+                    maxSeconds=seconds, originalCutoffUnchanged=True, diagnosticOnly=True,
+                    qualifiesFinality=False, records=[dict(name=c['name'],pid=c['process'].pid,
+                    startTicks=c.get('startTicks'),startedMonotonicNs=c['startedNs'],
+                    returnCode=c['process'].poll()) for c in chosen])
+
     def stop(self):
         self.stop_event.set();self.w.stopping=True
         with self.w.lock:children=list(self.w.children)
@@ -1103,6 +1139,10 @@ def create_network_window(hook,ceremony,args,tools,plan_pin,demand):
 
 def validate_options(args):
     profile=getattr(args,'first_trial_profile','own1b')
+    drain=getattr(args,'post_cutoff_verifier_drain_seconds',0)
+    lab.require(drain in (0,30) and (drain == 0 or (profile == HELD_TRIAL_PROFILE
+                and getattr(args,'staged_publication',False) and not getattr(args,'held_ready_only',False))),
+                'post-cutoff verifier drain requires explicit held staged load')
     lab.require(profile in ('own1b','d24','1695','7c25',HELD_TRIAL_PROFILE) and (profile=='own1b' or getattr(args,'initialize_before_load',False)),'selected source requires explicit same-window first100 profile')
     lab.require(type(getattr(args, 'held_ready_only', False)) is bool and
                 (not getattr(args, 'held_ready_only', False) or profile == HELD_TRIAL_PROFILE),
@@ -1238,6 +1278,9 @@ def load_conditions(args):
         result['requestStageObservation']=True
     if result['firstTrialProfile'] == HELD_TRIAL_PROFILE:
         result.update(preparePublicSource=True, persistentLiveMaterials=True)
+    if getattr(args,'post_cutoff_verifier_drain_seconds',0):
+        result.update(postCutoffVerifierDrainSeconds=30, diagnosticOnly=True,
+                      normalConfirmationDisabled=True, throughputQualification=False)
     return result
 
 
@@ -1405,6 +1448,7 @@ def run(args, *, source_metadata_reader=None):
             return result # Existing finally performs the same bounded stop and preserves all originals.
         backend=make_sender_backend(ceremony,owners,stop,backend_kind,
                                     prepare_public_source=True,persistent_live=True) if held else make_sender_backend(ceremony,owners,stop,backend_kind)
+        backend.post_cutoff_diagnostic_only=bool(getattr(args,'post_cutoff_verifier_drain_seconds',0))
         if backend_kind=='bounded-cold':
             result['signerTransport']='original cold per-operation DATA-ready/sign/EOF; same original owner/operation reopen for normal full proof Confirm; no automatic retry'
         elif backend_kind=='public-owner':
@@ -1437,7 +1481,8 @@ def run(args, *, source_metadata_reader=None):
             result['heldReadyOnlyComplete'] = True
             return result
         result["loadExecuted"]=True
-        result["loadResult"]=(staged_scheduler.run(plan,backend,journal.emit,monitor.check,stop,ledger_module=scheduler) if staged else scheduler.run(plan,backend,journal.emit,monitor.check,stop))
+        result["loadResult"]=(staged_scheduler.run(plan,backend,journal.emit,monitor.check,stop,ledger_module=scheduler,
+            verifier_drain_seconds=getattr(args,'post_cutoff_verifier_drain_seconds',0)) if staged else scheduler.run(plan,backend,journal.emit,monitor.check,stop))
         monitor.check();lab.check_source(source,args.commit)
         result["firstCause"]=result["loadResult"]["firstCause"]
     except BaseException as error:result["firstCause"]=str(error)
@@ -1547,6 +1592,8 @@ if __name__=="__main__":
     p.add_argument("--owned-storage-accounting",action="store_true",help="metadata-only exact original lab blockstore/stateDB/application paths; allocation is not disk writes or per-transaction bytes")
     p.add_argument('--initialization-only',action='store_true',help='exact staged500+4 normal functional initialization and cleanup only; no business load; separate from pressure qualification')
     p.add_argument('--staged-publication',action='store_true',help='separate bounded normal sign/POST, inclusion and original final-proof lanes; exact qualified large-owner normal callee required; not a new pressure authorization')
+    p.add_argument('--post-cutoff-verifier-drain-seconds',type=int,choices=(0,30),default=0,
+                   help='held-only diagnostic: disables all original confirmations, waits boundedly for already-running verifiers after cutoff; not a throughput qualification')
     p.add_argument('--sender-backend',choices=('auto','bounded-cold','public-owner'),default='auto',help='explicit normal sender transport; public-owner requires exact1695 ABI plus separate source/semantic/window qualification; no automatic fallback')
     p.add_argument('--startup-timings',action='store_true',help='matching original source ABI only: registration/activation and node startup wall stages; separate source CI and runtime window gates still required')
     p.add_argument('--initialize-before-load',action='store_true',help='Root-selected separate1b first100 profile: complete original504 initialization/census/bootstrap0 and livePQ gate in same window before release; no500/1000 or actual window grant')

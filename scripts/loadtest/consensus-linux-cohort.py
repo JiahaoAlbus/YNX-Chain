@@ -475,6 +475,9 @@ class Window:
         require(not (stdin_pipe and stdin_path is not None), "one original stdin transport required")
         self.sample()
         require(stop is None or not stop.is_set(), "normal helper cancelled before launch; preserve UNKNOWN")
+        verifier_deadline = getattr(stop, 'ynx_verifier_admission_deadline_ns', None) if name.endswith('-normal-verifier') else None
+        require(verifier_deadline is None or time.monotonic_ns() < verifier_deadline,
+                "normal verifier admission deadline elapsed; preserve UNKNOWN")
         log = open(self.work / (".private" if private_log else "public") / (name + ".log"),
                    "xb", buffering=0)
         os.chmod(log.name, 0o600); self.logs.append((name, log))
@@ -489,6 +492,8 @@ class Window:
             shim="import json,os,resource,sys\nos.sched_setaffinity(0,json.loads(sys.argv[1]))\ncap=int(sys.argv[2])\nresource.setrlimit(resource.RLIMIT_FSIZE,(cap,cap))\nos.execvp(sys.argv[3],sys.argv[3:])\n"
             actual_command=[sys.executable,"-I","-c",shim,json.dumps(self.cpus),str(CAPS["newBytes"]),*command]
         try:
+            require(verifier_deadline is None or (not stop.is_set() and time.monotonic_ns() < verifier_deadline),
+                    "normal verifier admission deadline elapsed before Popen; preserve UNKNOWN")
             proc = subprocess.Popen(actual_command, cwd=self.source, env=self.env, stdin=subprocess.PIPE if stdin_pipe else source_input if source_input is not None else subprocess.DEVNULL,
                                     stdout=log, stderr=subprocess.STDOUT, start_new_session=True, preexec_fn=None if thread_safe else restrict,
                                     pass_fds=pass_fds)
@@ -502,6 +507,14 @@ class Window:
             self.known[proc.pid] = row["startTicks"]
         except FileNotFoundError:
             row["startTicks"] = None
+        if verifier_deadline is not None and time.monotonic_ns() >= verifier_deadline:
+            # A pre-deadline Popen can return after the boundary. Preserve its
+            # registered identity and immediately stop it; never treat it as
+            # eligible for the post-cutoff diagnostic set.
+            stop.set()
+            try:os.killpg(proc.pid, signal.SIGTERM)
+            except ProcessLookupError:pass
+            raise RuntimeError("normal verifier launch crossed admission deadline; preserve UNKNOWN")
         return proc
 
     def wait(self, proc, allow_failure=False):

@@ -40,6 +40,173 @@ def qualified(ledger,row,at):
 
 
 class IndependentLoadControls(unittest.TestCase):
+    def test_cutoff_drain_fences_launch_and_selects_only_original_started_verifiers(self):
+        class Proc:
+            def __init__(self,pid):self.pid=pid;self.code=None
+            def poll(self):return self.code
+        cutoff=time.monotonic_ns();before=Proc(101);late=Proc(102);other=Proc(103);session=Proc(104);node=Proc(105)
+        rows=[dict(name='load-00000-normal-verifier',process=before,persistent=False,startedNs=cutoff-1,startTicks=11),
+              dict(name='load-00001-normal-verifier',process=late,persistent=False,startedNs=cutoff+1,startTicks=12),
+              dict(name='load-other',process=other,persistent=False,startedNs=cutoff-1,startTicks=13),
+              dict(name='load-live-session-0',process=session,persistent=True,startedNs=cutoff-1,startTicks=14),
+              dict(name='pq-node-0',process=node,persistent=True,startedNs=cutoff-1,startTicks=15)]
+        stop=threading.Event();stop.set();sampled=[]
+        class Window:
+            lock=threading.RLock();children=rows;started=time.monotonic()
+            def sample(self):
+                self_test.assertTrue(stop.is_set());sampled.append(True);before.code=0
+        self_test=self;backend=object.__new__(driver.NormalBackend);backend.w=Window();backend.stop_event=stop;backend.helper_limit=3
+        with mock.patch.object(driver.os,'killpg') as killed:
+            report=backend.drain_cutoff_verifiers(cutoff,30,lambda:None)
+        killed.assert_not_called()
+        self.assertTrue(sampled);self.assertTrue(report['diagnosticOnly']);self.assertFalse(report['qualifiesFinality'])
+        self.assertEqual([(r['pid'],r['startTicks'],r['returnCode']) for r in report['records']],[(101,11,0)])
+
+    def test_cutoff_drain_resource_failure_preserves_guard_and_stop(self):
+        backend=object.__new__(driver.NormalBackend);backend.stop_event=threading.Event();backend.stop_event.set();backend.helper_limit=3
+        backend.w=SimpleNamespace(lock=threading.RLock(),children=[],started=time.monotonic())
+        with self.assertRaisesRegex(RuntimeError,'owned RSS exceeded 4GiB'):
+            backend.drain_cutoff_verifiers(time.monotonic_ns(),30,lambda:(_ for _ in ()).throw(RuntimeError('owned RSS exceeded 4GiB')))
+        self.assertTrue(backend.stop_event.is_set())
+
+    def test_verifier_deadline_rechecks_after_lock_and_before_popen(self):
+        with tempfile.TemporaryDirectory() as name:
+            root=Path(name);(root/'public').mkdir();stop=threading.Event();stop.ynx_verifier_admission_deadline_ns=100
+            window=object.__new__(driver.lab.Window);window.lock=threading.RLock();window.work=root
+            window.sample=lambda:None;window.logs=[];window.source=root;window.env={};window.cpus=[0]
+            with mock.patch.object(driver.lab.time,'monotonic_ns',side_effect=[99,100]), \
+                 mock.patch.object(driver.lab.subprocess,'Popen') as spawn:
+                with self.assertRaisesRegex(RuntimeError,'before Popen'):
+                    window.launch('load-00000-normal-verifier',['verifier'],thread_safe=True,stop=stop)
+            spawn.assert_not_called()
+            for _,log in window.logs:log.close()
+
+    def test_verifier_popen_crossing_cutoff_is_stopped_and_retained(self):
+        with tempfile.TemporaryDirectory() as name:
+            root=Path(name);(root/'public').mkdir();stop=threading.Event();stop.ynx_verifier_admission_deadline_ns=100
+            window=object.__new__(driver.lab.Window);window.lock=threading.RLock();window.work=root
+            window.sample=lambda:None;window.logs=[];window.source=root;window.env={};window.cpus=[0];window.children=[];window.known={}
+            proc=SimpleNamespace(pid=123)
+            with mock.patch.object(driver.lab.time,'monotonic_ns',side_effect=[99,99,101,102]), \
+                 mock.patch.object(driver.lab.subprocess,'Popen',return_value=proc), \
+                 mock.patch.object(driver.lab.guard,'bounded',return_value=b'original stat'), \
+                 mock.patch.object(driver.lab.guard,'parse_stat',return_value={'startTicks':44}), \
+                 mock.patch.object(driver.lab.os,'killpg') as killed:
+                with self.assertRaisesRegex(RuntimeError,'crossed admission deadline'):
+                    window.launch('load-00000-normal-verifier',['verifier'],thread_safe=True,stop=stop)
+            self.assertTrue(stop.is_set());self.assertEqual(window.children[0]['process'],proc)
+            self.assertEqual(window.known,{123:44});killed.assert_called_once_with(123,driver.lab.signal.SIGTERM)
+            for _,log in window.logs:log.close()
+
+    def test_diagnostic_mode_never_confirms_even_before_cutoff(self):
+        backend=object.__new__(driver.NormalBackend);backend.c=SimpleNamespace(mode='online');backend.post_cutoff_diagnostic_only=True
+        backend.live_proof=lambda *args: ({},{},{})
+        backend.confirm_original=mock.Mock(side_effect=AssertionError('diagnostic confirm must not run'))
+        handle=dict(row={},account={},case=None,started=0,tx={},path=None,request={})
+        with self.assertRaisesRegex(RuntimeError,'does not confirm'):
+            backend.finalize(handle,lambda event:None,threading.Event())
+        backend.confirm_original.assert_not_called()
+
+    def test_crossing_original_helper_is_registered_reaped_and_keeps_first_cause(self):
+        class Proc:
+            pid=123
+            def __init__(self):self.code=None
+            def poll(self):return self.code
+            def terminate(self):self.code=-15
+            def wait(self,timeout=None):return self.code
+        with tempfile.TemporaryDirectory() as name:
+            root=Path(name);(root/'public').mkdir();stop=threading.Event();stop.ynx_verifier_admission_deadline_ns=100
+            window=object.__new__(driver.lab.Window);window.lock=threading.RLock();window.work=root
+            window.sample=lambda:None;window.logs=[];window.source=root;window.env={};window.cpus=[0]
+            window.children=[];window.known={};window.closed_log_identity={}
+            backend=object.__new__(driver.NormalBackend);backend.w=window;backend.stop_event=stop
+            backend.helper_slots=threading.BoundedSemaphore(1);backend.helper_cleanup_debt=[]
+            proc=Proc();trace={}
+            with mock.patch.object(driver.lab.time,'monotonic_ns',side_effect=[10,20,30,40,101,102,103]), \
+                 mock.patch.object(driver.lab.subprocess,'Popen',return_value=proc), \
+                 mock.patch.object(driver.lab.guard,'bounded',return_value=b'original stat'), \
+                 mock.patch.object(driver.lab.guard,'parse_stat',return_value={'startTicks':44}), \
+                 mock.patch.object(driver.lab.os,'killpg'):
+                with self.assertRaisesRegex(RuntimeError,'crossed admission deadline'):
+                    backend._helper('load-00000-normal-verifier',['verifier'],None,trace)
+            self.assertTrue(stop.is_set());self.assertEqual(proc.poll(),-15)
+            self.assertEqual(window.children[0]['process'],proc)
+            self.assertTrue(window.logs[0][1].closed);self.assertEqual(backend.helper_cleanup_debt,[])
+            self.assertTrue(backend.helper_slots.acquire(blocking=False))
+
+    def test_blocked_popen_crossing_actual_deadline_cannot_be_admitted(self):
+        class Proc:
+            pid=123
+            def __init__(self):self.code=None
+            def poll(self):return self.code
+            def terminate(self):self.code=-15
+            def wait(self,timeout=None):return self.code
+        with tempfile.TemporaryDirectory() as name:
+            root=Path(name);(root/'public').mkdir();stop=threading.Event()
+            # Leave ample real time for CI scheduling to enter the barrier;
+            # the test then deliberately holds Popen until after that deadline.
+            stop.ynx_verifier_admission_deadline_ns=time.monotonic_ns()+2_000_000_000
+            window=object.__new__(driver.lab.Window);window.lock=threading.RLock();window.work=root
+            window.sample=lambda:None;window.logs=[];window.source=root;window.env={};window.cpus=[0]
+            window.children=[];window.known={};window.closed_log_identity={}
+            backend=object.__new__(driver.NormalBackend);backend.w=window;backend.stop_event=stop
+            backend.helper_slots=threading.BoundedSemaphore(1);backend.helper_cleanup_debt=[]
+            entered=threading.Event();release=threading.Event();proc=Proc();errors=[]
+            def blocked(*args,**kwargs):
+                entered.set();self.assertTrue(release.wait(2));return proc
+            def execute():
+                try:backend._helper('load-00000-normal-verifier',['verifier'],None,{})
+                except BaseException as error:errors.append(error)
+            with mock.patch.object(driver.lab.subprocess,'Popen',side_effect=blocked), \
+                 mock.patch.object(driver.lab.guard,'bounded',return_value=b'original stat'), \
+                 mock.patch.object(driver.lab.guard,'parse_stat',return_value={'startTicks':44}), \
+                 mock.patch.object(driver.lab.os,'killpg'):
+                worker=threading.Thread(target=execute);worker.start();self.assertTrue(entered.wait(1))
+                while time.monotonic_ns()<stop.ynx_verifier_admission_deadline_ns:
+                    threading.Event().wait(.005)
+                release.set();worker.join(2)
+            self.assertFalse(worker.is_alive());self.assertEqual(len(errors),1)
+            self.assertIn('crossed admission deadline',str(errors[0]));self.assertTrue(stop.is_set())
+            self.assertEqual(proc.poll(),-15);self.assertTrue(window.logs[0][1].closed)
+            self.assertEqual(backend.helper_cleanup_debt,[])
+
+    @unittest.skipUnless(sys.platform=='linux','real /proc, process group and resource guard require Linux')
+    def test_real_linux_crossing_verifier_is_reaped_under_original_guard(self):
+        original_affinity=os.sched_getaffinity(0)
+        try:
+            with tempfile.TemporaryDirectory() as name:
+                root=Path(name);(root/'.private').mkdir();(root/'public').mkdir()
+                window=driver.lab.Window(root,root);stop=threading.Event()
+                stop.ynx_verifier_admission_deadline_ns=time.monotonic_ns()+2_000_000_000
+                backend=object.__new__(driver.NormalBackend);backend.w=window;backend.stop_event=stop
+                backend.helper_slots=threading.BoundedSemaphore(1);backend.helper_cleanup_debt=[]
+                original_popen=driver.lab.subprocess.Popen
+                def controlled_return(*args,**kwargs):
+                    process=original_popen(*args,**kwargs)
+                    while time.monotonic_ns()<stop.ynx_verifier_admission_deadline_ns:
+                        time.sleep(.01)
+                    return process
+                try:
+                    with mock.patch.object(driver.lab.subprocess,'Popen',side_effect=controlled_return):
+                        with self.assertRaisesRegex(RuntimeError,'crossed admission deadline'):
+                            backend._helper('load-00000-normal-verifier',[sys.executable,'-I','-c','import time; time.sleep(15)'],None,{})
+                    child=window.children[0];self.assertGreater(child['startTicks'],0)
+                    self.assertIsNotNone(child['process'].poll());self.assertTrue(window.logs[0][1].closed)
+                    self.assertEqual(backend.helper_cleanup_debt,[]);self.assertTrue(stop.is_set())
+                    self.assertTrue(backend.helper_slots.acquire(blocking=False))
+                finally:window.stop()
+        finally:os.sched_setaffinity(0,original_affinity)
+
+    def test_verifier_completion_after_stop_cannot_enter_confirm(self):
+        backend=object.__new__(driver.NormalBackend);backend.c=SimpleNamespace(mode='online')
+        backend.live_proof=lambda *args: ({},{},{})
+        backend.confirm_original=mock.Mock(side_effect=AssertionError('late confirm must not run'))
+        stop=threading.Event();stop.set()
+        handle=dict(row={},account={},case=None,started=0,tx={},path=None,request={})
+        with self.assertRaisesRegex(RuntimeError,'diagnostic only'):
+            backend.finalize(handle,lambda event:None,stop)
+        backend.confirm_original.assert_not_called()
+
     def test_nearly_complete500_still_censors_every_full_cohort_percentile(self):
         for completed in (475,499,500):
             ledger=s.Ledger(plan(count=500,accounts=500),lambda e:None);ledger.release(5_000_000_000)
