@@ -887,6 +887,9 @@ def inspect(raw, sha256, controller, configuration_sha256):
                            observedNodes=observed_nodes, missingNodes=missing_nodes,
                            fourNodeJoinObserved=not missing_nodes, independentFinality=False)
     status = 'READY_ONLY_OBSERVED' if ready else 'OBSERVED' if load is not None else 'LOAD_RESULT_MISSING'
+    if 'commitClockReadback' in receipt:
+        clock=module('pq-commit-clock-readback.py')
+        report['originalCommitClockReadback']=clock.readback_public_originals(files,prefix,expected_source=source['commit'])
     owner_timing = public_owner_timing(receipt, load) if load is not None else None
     network = receipt.get('networkAccounting') or {}
     return dict(report, status=status,

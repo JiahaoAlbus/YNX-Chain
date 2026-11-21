@@ -36,6 +36,7 @@ lab=normal.lab
 proof_readback=module("original_public_proof_readback","pq-public-proof-readback.py")
 commit_readback=module("original_normal_commit_readback","pq-commit-observation.py")
 commit_clock=module("original_normal_commit_clock","pq-commit-clock-readback.py")
+commit_clock_ci=module("original_normal_commit_clock_ci","pq-commit-clock-source-qualification.py")
 initialization=module("original_initialization_measurements","pq-initialization-measurements.py")
 rpc_measurements=module('original_parent_rpc_measurements','pq-rpc-measurements.py')
 preload_initialization=module('original_preload_initialization','pq-preload-initialization.py')
@@ -1308,40 +1309,8 @@ def original_commit_clock_readback(result,work,private_network,source):
     """Join only retained originals while this one Window still owns them."""
     public=work/'public'
     def read(relative,limit):return commit_clock.read_original(public/relative,limit)
-    creators=[row for row in result.get('processes',[]) if row.get('name')=='create-original']
-    expected_creator=str(Path(result['commitClockBuiltBinary']['path']).with_name('ynx-consensus-pq-lab'))
-    creator_build=result['normalLiveBuildProvenance']['ynx-consensus-pq-lab']
-    comet_build=result['normalLiveBuildProvenance']['ynx-comet']
-    lab.require(commit_clock.pin(result['binaries']['ynx-consensus-pq-lab'],64)
-        and creator_build['binarySHA256']==result['binaries']['ynx-consensus-pq-lab']
-        and creator_build['originalSource']==result['source']
-        and creator_build['sourceSelectionSHA256']==comet_build['sourceSelectionSHA256']
-        and creator_build['sourceDependenciesReceiptSHA256']==comet_build['sourceDependenciesReceiptSHA256']
-        and creator_build['selectedOptionalForkTree']==comet_build['selectedOptionalForkTree']
-        and creator_build['buildCwd']==comet_build['buildCwd']
-        and creator_build['buildArgv']==['go','build','-mod=readonly','-p','1','-trimpath','-buildvcs=false',
-                                         '-o',expected_creator,'./cmd/ynx-consensus-pq-lab'],
-        'original synthetic creator build/source binding differs')
-    lab.require(len(creators)==1 and type(creators[0].get('exitCode')) is int and creators[0]['exitCode']==0
-        and type(creators[0].get('pid')) is int and creators[0]['pid']>0
-        and type(creators[0].get('startTicks')) is int and creators[0]['startTicks']>0
-        and type(creators[0].get('command')) is list and len(creators[0]['command'])>=5
-        and creators[0]['command'][0]==expected_creator
-        and creators[0]['command'][1:5]==['create','--synthetic','--root',str(private_network)],
-        'one successful original synthetic create process required')
-    creator=creators[0];physical=result['commitClockBuiltCreator'];probe=result['commitClockCreatorProbe'];parent=result['commitClockParent']
-    lab.require(physical['path']==expected_creator and physical['sha256']==result['binaries']['ynx-consensus-pq-lab']
-        and type(probe['pid']) is int and probe['pid']==creator['pid']
-        and commit_clock.decimal(probe['startTicks'],positive=True)==creator['startTicks']
-        and probe['identity']=='original-unpublished-pidfd-and-live-proc-exe'
-        and probe['binaryPath']==expected_creator and probe['binarySHA256']==physical['sha256']
-        and all(type(physical.get(key)) is int and physical[key]>0 and type(probe.get(key)) is int and probe[key]==physical[key]
-                for key in ('device','inode','size'))
-        and probe['timeNamespace']==parent['timeNamespace']
-        and commit_clock.decimal(probe['observedStartNs'])<=commit_clock.decimal(probe['observedEndNs'])
-            <=commit_clock.decimal(parent['observedStartNs']),
-        'original live creator pidfd/executable or clock binding differs')
-    created_plan=commit_clock.plan_from_original_create(read('create-original.log',4<<20),result['activation']['networkPlanSHA256'])
+    created_plan=commit_clock.creator_original_plan(result,read('create-original.log',4<<20))
+    lab.require(commit_clock.strict(created_plan,1<<20)['rootDir']==str(private_network),'original creator private root differs')
     lab.require(created_plan==commit_clock.read_original(private_network/'network-plan.json',1<<20),
         'original create log and held private plan bytes differ')
     def node_bytes(section,index):
@@ -1371,11 +1340,17 @@ def original_commit_clock_readback(result,work,private_network,source):
         def __getitem__(self,index):
             try:return read(inclusion_paths[index],4<<20)
             except (OSError,ValueError,RuntimeError,KeyError) as error:raise KeyError(index) from error
+    class OriginalOperations:
+        def __getitem__(self,index):
+            try:
+                base='load-operations/%05d/'%index
+                return dict(intent=read(base+'submission-intent.json',64<<10),transaction=read(base+'transaction.abci',1<<20))
+            except (OSError,ValueError,RuntimeError,KeyError) as error:raise KeyError(index) from error
     joined=commit_clock.reduce(result,expected_source=source,parent=result['commitClockParent'],node_evidence=nodes,
         inclusion=OriginalInclusions(),selection_raw=read('normal-live-source-selection.json',64<<10),
         dependencies_raw=read('normal-live-source-dependencies.json',64<<10),
         build_identity_raw=read('commit-clock-build-identity.log',16<<10),
-        network_plan_raw=created_plan)
+        network_plan_raw=created_plan,original_operations=OriginalOperations())
     joined['createProcessLiveExecutableObserved']=True
     joined['createProcessExecutableIndependentlyVerified']=False # One live probe is not whole-lifetime attestation.
     return joined
@@ -1411,10 +1386,17 @@ def run(args):
         trial_source = held_first_trial_source
         identity = lab.check_source(Path(args.source), args.commit)
         lab.require(identity['tree'] == HELD_TRIAL_TREE, 'exact held-session source tree differs')
+        if getattr(args,'commit_clock_observation',False):
+            clock_source=commit_clock_ci.qualification(identity)
+            lab.require(clock_source['source']==commit_clock.COMMIT_CLOCK_SOURCE==args.commit
+                and clock_source['runtimePermissionGranted'] is False and clock_source['pressureAuthorized'] is False,
+                'exact clock source/CI evidence differs; no runtime permission inferred')
         if not args.execute:
-            return dict(status='prepared-only', source=identity, configuredDemand=demand,
-                        requestedOfferedTPS=args.rate, loadConditions=load_conditions(args),
-                        processCapacity=process_capacity(args), actualLoadExecuted=False)
+            prepared=dict(status='prepared-only', source=identity, configuredDemand=demand,
+                          requestedOfferedTPS=args.rate, loadConditions=load_conditions(args),
+                          processCapacity=process_capacity(args), actualLoadExecuted=False)
+            if getattr(args,'commit_clock_observation',False):prepared['commitClockSourceCI']=clock_source
+            return prepared
         lab.require(os.environ.get('GITHUB_JOB') == 'first100-held-public-owner'
                     and os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
                     and os.environ.get('GITHUB_RUN_ATTEMPT') == '1',
@@ -1459,6 +1441,7 @@ def run(args):
     result=dict(schema="YNX-PQ-INDEPENDENT-NORMAL-RUN/v1",source=identity,caps=lab.CAPS,storageRoots=[str(p) for p in w.storage_roots],mode=args.mode,requestedOfferedTPS=args.rate,configuredDemand=demand,firstCause=None,loadExecuted=False,normalLiveCalleeUsed=False,stableFinalTPS="UNMEASURED",P95FinalConfirmation="UNMEASURED",actualHopBytesPerTx="UNMEASURED",firstSaturatedChainStage="UNMEASURED",sameHost=True,physicalFaultDomains=1,signerTransport="original per-account persistent stdin/stdout with actual DATA-ready and measured normal CLI; cold initialization retained outside offered clock, no pre-sign/reserved nonce; source703 includes other changes and is not a pure-cache A/B")
     result["toolIdentity"]=tool_identity()
     result["loadConditions"]=load_conditions(args)
+    if getattr(args,'commit_clock_observation',False):result['commitClockSourceCI']=clock_source
     result["freshResourceAdmission"]=admission
     hardware=module('original_runtime_hardware','pq-runtime-hardware.py')
     result['runtimeHardware']=hardware.capture(work)
@@ -1694,7 +1677,12 @@ def run(args):
                     relative='load-operations/%05d/four-node-inclusion.json'%index
                     try:
                         raw=commit_clock.read_original(work/'public'/relative,4<<20)
-                        refs.append(dict(index=index,path=relative,bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest()))
+                        base='load-operations/%05d/'%index
+                        intent=commit_clock.read_original(work/'public'/(base+'submission-intent.json'),64<<10)
+                        transaction=commit_clock.read_original(work/'public'/(base+'transaction.abci'),1<<20)
+                        refs.append(dict(index=index,path=relative,bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest(),
+                            intent=dict(bytes=len(intent),sha256=hashlib.sha256(intent).hexdigest()),
+                            transaction=dict(bytes=len(transaction),sha256=hashlib.sha256(transaction).hexdigest())))
                     except (OSError,ValueError,RuntimeError):pass # The original missing row remains censored.
                 result['commitClockInclusions']=refs
                 measured=sum(lab.private_bytes(root) for root in w.storage_roots);w.peak_bytes=max(w.peak_bytes,measured)

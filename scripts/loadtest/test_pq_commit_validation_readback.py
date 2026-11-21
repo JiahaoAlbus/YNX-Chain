@@ -61,6 +61,30 @@ class CommitValidationReadbackControls(unittest.TestCase):
                              commit_observation=True,commit=driver.HELD_TRIAL_SOURCE)
         with self.assertRaisesRegex(RuntimeError,'clock source/CI NOT_SUPPLIED'):driver.validate_options(args)
 
+    def test_actual_held_entry_requires_clock_ci_before_prepared_or_window(self):
+        from unittest import mock
+        args=SimpleNamespace(first_trial_profile=driver.HELD_TRIAL_PROFILE,commit_clock_observation=True,
+            commit=driver.HELD_TRIAL_SOURCE,source='/synthetic/source',execute=False,rate=100)
+        identity=dict(commit=args.commit,tree=driver.HELD_TRIAL_TREE,forkTree='c'*40)
+        with mock.patch.object(driver,'validate_options',return_value=500), \
+             mock.patch.object(driver,'sender_backend_kind',return_value='public-owner'), \
+             mock.patch.object(driver.lab,'check_source',return_value=identity), \
+             mock.patch.object(driver.lab,'Window') as window, \
+             mock.patch.object(driver.commit_clock,'COMMIT_CLOCK_SOURCE',args.commit):
+            with self.assertRaisesRegex(RuntimeError,'full same-run CI NOT_SUPPLIED'):driver.run(args)
+            window.assert_not_called()
+            with mock.patch.object(driver.commit_clock_ci,'qualification',return_value=dict(source=args.commit,
+                    runtimePermissionGranted=True,pressureAuthorized=False)):
+                with self.assertRaisesRegex(RuntimeError,'no runtime permission inferred'):driver.run(args)
+            window.assert_not_called()
+            with mock.patch.object(driver.commit_clock_ci,'qualification',return_value=dict(source=args.commit,
+                    runtimePermissionGranted=False,pressureAuthorized=False)) as qualification, \
+                 mock.patch.object(driver,'load_conditions',return_value={}), \
+                 mock.patch.object(driver,'process_capacity',return_value={}):
+                result=driver.run(args)
+            self.assertEqual(result['status'],'prepared-only');self.assertEqual(result['commitClockSourceCI']['source'],args.commit)
+            qualification.assert_called_once_with(identity);window.assert_not_called()
+
     def test_clock_join_does_not_reuse_retired_original_guard(self):
         from unittest import mock
         for cause in (None,'earlier original failure'):

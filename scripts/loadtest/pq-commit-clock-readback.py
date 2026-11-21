@@ -5,6 +5,7 @@ publishing it to any reaper, then probe that same handle while the node is live.
 Old archives have neither that evidence nor a parent clock domain: they remain
 NOT_SUPPLIED. No API here starts a node, retries work or grants runtime access.
 """
+import base64
 import hashlib
 import importlib.util
 import json
@@ -279,6 +280,8 @@ def _source_binding(receipt, source, selection_raw, dependencies_raw, build_iden
     identity_processes=[p for p in receipt['processes'] if p['name']=='commit-clock-build-identity']
     require(len(identity_processes)==1 and type(identity_processes[0]['pid']) is int and identity_processes[0]['pid']==reference['pid']
             and type(identity_processes[0]['exitCode']) is int and identity_processes[0]['exitCode']==0
+            and identity_processes[0].get('exited') is True and type(identity_processes[0].get('rawReturnCode')) is int
+            and identity_processes[0]['rawReturnCode']==0 and identity_processes[0].get('signal') is None
             and identity_processes[0]['command']==[binary_path,'synthetic-commit-clock-build-identity','--synthetic'],
             'original build identity command differs')
     declared=strict(build_identity_raw,16<<10)
@@ -289,7 +292,57 @@ def _source_binding(receipt, source, selection_raw, dependencies_raw, build_iden
     return binary,binary_path,physical
 
 
-def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, selection_raw, dependencies_raw, build_identity_raw, network_plan_raw):
+def creator_original_plan(receipt,create_raw):
+    """Bind the original create log/plan to its live-probed creator receipt."""
+    creators=[row for row in receipt.get('processes',[]) if type(row) is dict and row.get('name')=='create-original']
+    expected_creator=str(Path(receipt['commitClockBuiltBinary']['path']).with_name('ynx-consensus-pq-lab'))
+    creator_build=receipt['normalLiveBuildProvenance']['ynx-consensus-pq-lab']
+    comet_build=receipt['normalLiveBuildProvenance']['ynx-comet']
+    require(pin(receipt['binaries']['ynx-consensus-pq-lab'],64)
+        and creator_build['binarySHA256']==receipt['binaries']['ynx-consensus-pq-lab']
+        and creator_build['originalSource']==receipt['source']
+        and creator_build['sourceSelectionSHA256']==comet_build['sourceSelectionSHA256']
+        and creator_build['sourceDependenciesReceiptSHA256']==comet_build['sourceDependenciesReceiptSHA256']
+        and creator_build['selectedOptionalForkTree']==comet_build['selectedOptionalForkTree']
+        and creator_build['buildCwd']==comet_build['buildCwd']
+        and creator_build['buildArgv']==['go','build','-mod=readonly','-p','1','-trimpath','-buildvcs=false',
+                                         '-o',expected_creator,'./cmd/ynx-consensus-pq-lab'],
+        'original synthetic creator build/source binding differs')
+    require(len(creators)==1 and type(creators[0].get('exitCode')) is int and creators[0]['exitCode']==0
+        and creators[0].get('exited') is True and type(creators[0].get('rawReturnCode')) is int
+        and creators[0]['rawReturnCode']==0 and creators[0].get('signal') is None
+        and type(creators[0].get('pid')) is int and creators[0]['pid']>0
+        and type(creators[0].get('startTicks')) is int and creators[0]['startTicks']>0
+        and type(creators[0].get('command')) is list and len(creators[0]['command'])>=5
+        and creators[0]['command'][0]==expected_creator
+        and creators[0]['command'][1:4]==['create','--synthetic','--root']
+        and type(creators[0]['command'][4]) is str and Path(creators[0]['command'][4]).is_absolute()
+        and '..' not in Path(creators[0]['command'][4]).parts and str(Path(creators[0]['command'][4]))==creators[0]['command'][4],
+        'one successful original synthetic create process required')
+    creator=creators[0];physical=receipt['commitClockBuiltCreator'];probe=receipt['commitClockCreatorProbe'];parent=receipt['commitClockParent']
+    require(physical['path']==expected_creator and physical['sha256']==receipt['binaries']['ynx-consensus-pq-lab']
+        and type(probe['pid']) is int and probe['pid']==creator['pid']
+        and decimal(probe['startTicks'],positive=True)==creator['startTicks']
+        and probe['identity']=='original-unpublished-pidfd-and-live-proc-exe'
+        and probe['binaryPath']==expected_creator and probe['binarySHA256']==physical['sha256']
+        and all(type(physical.get(key)) is int and physical[key]>0 and type(probe.get(key)) is int and probe[key]==physical[key]
+                for key in ('device','inode','size'))
+        and probe['timeNamespace']==parent['timeNamespace']
+        and decimal(probe['observedStartNs'])<=decimal(probe['observedEndNs'])<=decimal(parent['observedStartNs']),
+        'original live creator pidfd/executable or clock binding differs')
+    plan_raw=plan_from_original_create(create_raw,receipt['activation']['networkPlanSHA256'])
+    plan=strict(plan_raw,1<<20);create=strict(create_raw,4<<20);root=creator['command'][4]
+    require(plan.get('rootDir')==root and create.get('planFile')==str(Path(root)/'network-plan.json')
+            and plan.get('version')=='YNX-PQ-LOOPBACK-NETWORK/v1' and plan.get('syntheticOnly') is True
+            and plan.get('publicNetwork') is False and plan.get('createEmptyBlocks') is False
+            and type(plan.get('nodes')) is list and len(plan['nodes'])==4
+            and all(type(node) is dict and type(node.get('index')) is int for node in plan['nodes'])
+            and [node['index'] for node in plan['nodes']]==list(range(4)),
+            'original creator root/plan file differs')
+    return plan_raw
+
+
+def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, selection_raw, dependencies_raw, build_identity_raw, network_plan_raw, original_operations=None):
     """Join original full-demand rows; missing/mismatched evidence stays censored.
 
     `node_evidence` contains four ordered original private snapshot bytes,
@@ -330,7 +383,8 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
         for i in range(4):
             matches=[process for process in receipt['processes'] if process['name']=='pq-node-%d'%i]
             require(len(matches)==1 and type(matches[0]['pid']) is int and matches[0]['pid']>0
-                    and type(matches[0]['startTicks']) is int and matches[0]['startTicks']>0,
+                    and type(matches[0]['startTicks']) is int and matches[0]['startTicks']>0
+                    and matches[0].get('exited') is True and type(matches[0].get('rawReturnCode')) is int,
                     'one original live identity per node required')
             original_nodes.append(matches[0])
         require(len({process['pid'] for process in original_nodes})==4
@@ -396,11 +450,33 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
             inc_raw=inclusion[row['index']]; references=[x for x in receipt['commitClockInclusions'] if x['index']==row['index']]
             require(len(references)==1 and references[0].get('path')=='load-operations/%05d/four-node-inclusion.json'%row['index']
                     and len(inc_raw)==references[0]['bytes'] and sha(inc_raw)==references[0]['sha256'], 'original inclusion bytes differ')
-            inc=strict(inc_raw,4<<20); rr=inc['rows']; tx=row['hash']; sent=row['submittedNs']
-            require(pin(tx,64) and type(sent) is int and sent>=0 and type(rr) is list and len(rr)==4, 'original submitted operation unavailable')
+            inc=strict(inc_raw,4<<20); rr=inc['rows']; tx=row['hash']; sent=row['submittedNs'];included=row['includedNs']
+            cutoff=receipt['loadResult']['observationCutoffNs']
+            require(pin(tx,64) and pin(row.get('operationId'),64) and type(row.get('ownerIndex')) is int and row['ownerIndex']>=0
+                    and type(row.get('nonce')) is int and row['nonce']>0 and type(sent) is int and 0<=sent<1<<63
+                    and type(included) is int and type(cutoff) is int and sent<=included<cutoff<1<<63
+                    and type(rr) is list and len(rr)==4 and inc.get('qualifiedFinal') is False,
+                    'original submitted and included operation unavailable')
+            operation=original_operations[row['index']]; intent_raw=operation['intent']; transaction=operation['transaction']
+            for key,value,limit in (('intent',intent_raw,64<<10),('transaction',transaction,1<<20)):
+                metadata=references[0][key]
+                require(type(value) is bytes and 0<len(value)<=limit and type(metadata) is dict
+                        and set(metadata)=={'bytes','sha256'} and type(metadata['bytes']) is int
+                        and metadata['bytes']==len(value) and metadata['sha256']==sha(value),
+                        'original business input bytes differ')
+            require(sha(transaction)==tx,'original submitted transaction hash differs')
+            intent=strict(intent_raw,64<<10)
+            require(all(intent.get(key)==value for key,value in dict(id=row['id'],operationId=row['operationId'],
+                owner=row['ownerIndex'],nonce=str(row['nonce']),transactionHash=tx,submissionAttempts=1,qualifiedFinal=False).items())
+                and type(intent.get('owner')) is int and type(intent.get('submissionAttempts')) is int
+                and intent.get('qualifiedFinal') is False,'original business submission intent differs')
             heights=[decimal(r['height'],positive=True) for r in rr]
-            require(heights[0]>0 and len(set(heights))==1 and all(r['hash'].lower()==tx and type(r['tx_result']['code']) is int and r['tx_result']['code']==0 for r in rr), 'original successful four-node inclusion differs')
-            require(type(inc['observedMonotonicNs']) is int and 0<=inc['observedMonotonicNs']<1<<63, 'original inclusion observation clock differs')
+            require(heights[0]>0 and len(set(heights))==1 and all(r['hash'].lower()==tx and type(r['tx_result']['code']) is int and r['tx_result']['code']==0
+                and type(r['tx']) is str and base64.b64decode(r['tx'],validate=True)==transaction for r in rr),
+                'original successful four-node inclusion differs')
+            require(type(inc['observedMonotonicNs']) is int and 0<=inc['observedMonotonicNs']<1<<63
+                    and origin+cutoff<1<<63 and origin+sent<=inc['observedMonotonicNs']<=origin+included
+                    and inc['observedMonotonicNs']<origin+cutoff, 'original inclusion observation clock differs')
             start=origin+sent
             hashes=[]
             for i in range(4):
@@ -415,4 +491,72 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
         except (KeyError,ValueError,TypeError,AttributeError,IndexError,OverflowError): pass
         result['rows'].append(entry)
     result.update(status='OBSERVED_OR_CENSORED',censored=demand-result['observed'])
+    return result
+
+
+def readback_public_originals(files,prefix,*,expected_source):
+    """Recompute from an already-validated public archive mapping, with no private files.
+
+    The caller still owns official run/job/artifact validation and archive SHA.
+    Missing old/corrupt evidence is NOT_SUPPLIED or censored, never finality.
+    """
+    result=dict(schema='YNX-PERF-COMMIT-CLOCK-PUBLIC-READBACK/v1',status='NOT_SUPPLIED',
+        configuredDemand=None,observed=0,censored=None,rows=[],archiveOriginIndependentlyVerified=False,
+        sourceCIIndependentlyVerified=False,runtimeAuthorized=False,independentFinality=False,
+        createProcessExecutableIndependentlyVerified=False,readbackRSS='UNKNOWN',missingEvidence=None,
+        physicalCommitMeaning='per-node local persistent ABCI Commit return upper bounds; not consensus vote or finality')
+    try:
+        require(type(prefix) is str and (prefix=='' or (prefix.endswith('/') and not Path(prefix).is_absolute()
+                and '..' not in Path(prefix).parts and '\\' not in prefix and str(Path(prefix))==prefix[:-1])),
+                'original public prefix differs')
+        receipt=strict(files[prefix+'receipt.json'],8<<20)
+        demand=receipt.get('configuredDemand')
+        require(type(demand) is int and 0<demand<=10000,'bounded original demand required')
+        result.update(configuredDemand=demand,censored=demand)
+        require(COMMIT_CLOCK_SOURCE is not None and expected_source==COMMIT_CLOCK_SOURCE,
+                'exact reviewed original Commit clock source/CI NOT_SUPPLIED')
+        plan=creator_original_plan(receipt,files[prefix+'create-original.log'])
+        probes=receipt.get('commitClockProcessProbes',[]);nodes=[]
+        for index in range(4):
+            matches=[row for row in probes if type(row) is dict and row.get('node')==index]
+            def node_file(section,expected):
+                refs=[row for row in receipt.get(section,{}).get('originalSnapshots',[]) if type(row) is dict and row.get('node')==index]
+                if len(refs)!=1 or refs[0].get('path')!=expected:return b''
+                return files.get(prefix+expected,b'')
+            nodes.append(dict(processProbe=matches[0].get('probe',{}) if len(matches)==1 else {},
+                commitOriginal=node_file('normalCommitObservation','commit-observation-node-%d-original.json'%index),
+                clockOriginal=node_file('commitMonotonicObservation','commit-monotonic-node-%d-original.json'%index)))
+        class Inclusion:
+            def __getitem__(self,index):return files[prefix+'load-operations/%05d/four-node-inclusion.json'%index]
+        class Operations:
+            def __getitem__(self,index):
+                base=prefix+'load-operations/%05d/'%index
+                return dict(intent=files[base+'submission-intent.json'],transaction=files[base+'transaction.abci'])
+        joined=reduce(receipt,expected_source=expected_source,parent=receipt['commitClockParent'],node_evidence=nodes,
+            inclusion=Inclusion(),original_operations=Operations(),network_plan_raw=plan,
+            selection_raw=files[prefix+'normal-live-source-selection.json'],
+            dependencies_raw=files[prefix+'normal-live-source-dependencies.json'],
+            build_identity_raw=files[prefix+'commit-clock-build-identity.log'])
+        require(joined['status']=='OBSERVED_OR_CENSORED','original clock evidence unavailable')
+        recorded=receipt.get('commitClockReadback')
+        require(type(recorded) is dict and recorded.get('status')=='OBSERVED_OR_CENSORED'
+            and recorded.get('configuredDemand')==demand and type(recorded.get('rows')) is list
+            and len(recorded['rows'])==demand and all(type(row) is dict and type(row.get('index')) is int
+                and row.get('status') in ('OBSERVED','CENSORED') for row in recorded['rows'])
+            and sorted(row['index'] for row in recorded['rows'])==list(range(demand))
+            and type(recorded.get('observed')) is int and recorded['observed']==sum(row['status']=='OBSERVED' for row in recorded['rows'])
+            and type(recorded.get('censored')) is int and recorded['censored']==demand-recorded['observed']
+            and recorded.get('independentFinality') is False and recorded.get('runtimeAuthorized') is False
+            and recorded.get('createProcessLiveExecutableObserved') is True
+            and recorded.get('createProcessExecutableIndependentlyVerified') is False,
+            'original in-run clock result differs from public originals')
+        originals={row['index']:row for row in recorded['rows']}
+        for row in joined['rows']:
+            if row['status']=='OBSERVED' and row!=originals[row['index']]:
+                row.update(status='CENSORED',nodesNs=[None]*4,fourNodeUpperBoundNs=None)
+        joined['observed']=sum(row['status']=='OBSERVED' for row in joined['rows'])
+        joined['censored']=demand-joined['observed']
+        result.update(status=joined['status'],observed=joined['observed'],censored=joined['censored'],rows=joined['rows'])
+    except (OSError,ValueError,RuntimeError,KeyError,TypeError,AttributeError,IndexError,OverflowError) as error:
+        result['missingEvidence']=dict(errorType=type(error).__name__,reason='required original clock/source evidence unavailable or mismatched')
     return result

@@ -1,5 +1,6 @@
 """Synthetic controls only; no node, network, finality or throughput grant."""
 import copy
+import base64
 import hashlib
 import importlib.util
 import json
@@ -27,12 +28,13 @@ class CommitClockReadbackControls(unittest.TestCase):
     def setUp(self):
         self.source_gate=mock.patch.object(r,'COMMIT_CLOCK_SOURCE','a'*40);self.source_gate.start();self.addCleanup(self.source_gate.stop)
     def fixture(self):
-        source='a'*40; binary='b'*64; tx='c'*64; app='d'*64; binary_path='/synthetic/ynx-comet'
+        source='a'*40; binary='b'*64; transaction=b'synthetic-original-transaction';tx=r.sha(transaction); app='d'*64; binary_path='/synthetic/ynx-comet'
         identity=dict(commit=source,tree='e'*40,forkTree='f'*40)
         selection=raw(dict(originalSourceCommit=source,originalSourceTree=identity['tree'],originalProductionForkTree=identity['forkTree'],
                            originalCheckoutWritten=False,fakeVCSIdentity=False,sourceDirectory='/synthetic/source',selectedOptionalForkTree='e'*40))
         deps=raw(dict(synthetic='controlled'))
-        network=raw(dict(chainId='ynx_642399-1',originalGenesisHash='e'*64))
+        network=raw(dict(version='YNX-PQ-LOOPBACK-NETWORK/v1',syntheticOnly=True,publicNetwork=False,createEmptyBlocks=False,
+                         nodes=[dict(index=i) for i in range(4)],chainId='ynx_642399-1',originalGenesisHash='e'*64,rootDir='/synthetic/private'))
         declaration=raw(dict(version='YNX-COMET-COMMIT-CLOCK-BUILD/v1',status='DECLARED',sourceRevision=source,
                              sourceBinding=r.SOURCE_BINDING,syntheticOnly=True,runtimeAuthorized=False,nodeStarted=False))
         argv=['go','build','-mod=readonly','-p','1','-trimpath','-buildvcs=false','-ldflags',
@@ -43,9 +45,9 @@ class CommitClockReadbackControls(unittest.TestCase):
                 sourceDependenciesReceiptSHA256=r.sha(deps),buildArgv=argv,buildCwd='/synthetic/source',selectedOptionalForkTree='e'*40)},
             normalLiveSourceDependencies={'sourceDependencies':json.loads(deps)},commitClockBuildIdentity=dict(path='commit-clock-build-identity.log',pid=99,**descriptor(declaration)),
             commitClockBuiltBinary=dict(path=binary_path,sha256=binary,device=1,inode=44,size=1024),
-            activation=dict(syntheticOnly=True,networkPlanSHA256=r.sha(network)),loadResult=dict(originProcessID=100,originMonotonicNs='1000',rows=[dict(index=0,id='9'*64,hash=tx,submittedNs=100)]),
+            activation=dict(syntheticOnly=True,networkPlanSHA256=r.sha(network)),loadResult=dict(originProcessID=100,originMonotonicNs='1000',observationCutoffNs=700,rows=[dict(index=0,id='9'*64,operationId='8'*64,ownerIndex=4,nonce=2,hash=tx,submittedNs=100,includedNs=550)]),
             normalCommitObservation=dict(originalSnapshots=[]),commitMonotonicObservation=dict(originalSnapshots=[]),
-            commitClockProcessProbes=[],processes=[dict(name='commit-clock-build-identity',pid=99,exitCode=0,command=[binary_path,'synthetic-commit-clock-build-identity','--synthetic'])],commitClockInclusions=[])
+            commitClockProcessProbes=[],processes=[dict(name='commit-clock-build-identity',pid=99,exitCode=0,rawReturnCode=0,exited=True,signal=None,command=[binary_path,'synthetic-commit-clock-build-identity','--synthetic'])],commitClockInclusions=[])
         evidence=[]
         original_fixture=json.loads((Path(__file__).with_name('fixtures')/'commit-observation-public-schema.json').read_bytes())['cases']['gap-and-overflow']
         for node in range(4):
@@ -68,12 +70,13 @@ class CommitClockReadbackControls(unittest.TestCase):
             receipt['normalCommitObservation']['originalSnapshots'].append(dict(common,path='commit-observation-node-%d-original.json'%node,**descriptor(commit)))
             receipt['commitMonotonicObservation']['originalSnapshots'].append(dict(common,path='commit-monotonic-node-%d-original.json'%node,**descriptor(clock)))
             receipt['commitClockProcessProbes'].append(dict(node=node,probe=probe))
-            receipt['processes'].append(dict(name='pq-node-%d'%node,pid=pid,startTicks=19,command=['original-shim',binary_path]))
+            receipt['processes'].append(dict(name='pq-node-%d'%node,pid=pid,startTicks=19,exited=True,rawReturnCode=0,exitCode=0,signal=None,command=['original-shim',binary_path]))
             evidence.append(dict(processProbe=probe,commitOriginal=commit,clockOriginal=clock))
-        inclusion=raw(dict(observedMonotonicNs=1500,rows=[dict(hash=tx.upper(),height='5',tx_result=dict(code=0)) for _ in range(4)]))
-        receipt['commitClockInclusions'].append(dict(index=0,path='load-operations/00000/four-node-inclusion.json',**descriptor(inclusion)))
+        inclusion=raw(dict(observedMonotonicNs=1500,qualifiedFinal=False,rows=[dict(hash=tx.upper(),height='5',tx=base64.b64encode(transaction).decode(),tx_result=dict(code=0)) for _ in range(4)]))
+        intent=raw(dict(id='9'*64,operationId='8'*64,owner=4,nonce='2',transactionHash=tx,submissionAttempts=1,qualifiedFinal=False))
+        receipt['commitClockInclusions'].append(dict(index=0,path='load-operations/00000/four-node-inclusion.json',**descriptor(inclusion),intent=descriptor(intent),transaction=descriptor(transaction)))
         kwargs=dict(expected_source=source,parent=parent,node_evidence=evidence,inclusion={0:inclusion},selection_raw=selection,
-                    dependencies_raw=deps,build_identity_raw=declaration,network_plan_raw=network)
+                    dependencies_raw=deps,build_identity_raw=declaration,network_plan_raw=network,original_operations={0:dict(intent=intent,transaction=transaction)})
         return receipt,kwargs
 
     def test_exact_original_joins_four_individual_upper_bounds(self):
@@ -139,11 +142,15 @@ class CommitClockReadbackControls(unittest.TestCase):
         receipt,kwargs=self.fixture()
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp).resolve();public=root/'public';private=root/'private';public.mkdir();private.mkdir()
+            network=json.loads(kwargs['network_plan_raw']);network['rootDir']=str(private);kwargs['network_plan_raw']=raw(network)
+            receipt['activation']['networkPlanSHA256']=r.sha(kwargs['network_plan_raw'])
             files={'normal-live-source-selection.json':kwargs['selection_raw'],
                    'normal-live-source-dependencies.json':kwargs['dependencies_raw'],
                    'commit-clock-build-identity.log':kwargs['build_identity_raw'],
-                   'create-original.log':b'{"version":"YNX-PQ-LAB-CREATED/v1","nodeStarted":false,"planSHA256":"'+r.sha(kwargs['network_plan_raw']).encode()+b'","plan":'+kwargs['network_plan_raw']+b'}',
-                   'load-operations/00000/four-node-inclusion.json':kwargs['inclusion'][0]}
+                   'create-original.log':raw(dict(version='YNX-PQ-LAB-CREATED/v1',nodeStarted=False,planSHA256=r.sha(kwargs['network_plan_raw']),planFile=str(private/'network-plan.json'),plan=network)),
+                   'load-operations/00000/four-node-inclusion.json':kwargs['inclusion'][0],
+                   'load-operations/00000/submission-intent.json':kwargs['original_operations'][0]['intent'],
+                   'load-operations/00000/transaction.abci':kwargs['original_operations'][0]['transaction']}
             for index,item in enumerate(kwargs['node_evidence']):
                 files['commit-observation-node-%d-original.json'%index]=item['commitOriginal']
                 files['commit-monotonic-node-%d-original.json'%index]=item['clockOriginal']
@@ -155,7 +162,7 @@ class CommitClockReadbackControls(unittest.TestCase):
                 binarySHA256='1'*64,originalSource=receipt['source'],sourceSelectionSHA256=r.sha(kwargs['selection_raw']),
                 sourceDependenciesReceiptSHA256=r.sha(kwargs['dependencies_raw']),selectedOptionalForkTree='e'*40,buildCwd='/synthetic/source',
                 buildArgv=['go','build','-mod=readonly','-p','1','-trimpath','-buildvcs=false','-o','/synthetic/ynx-consensus-pq-lab','./cmd/ynx-consensus-pq-lab'])
-            receipt['processes'].append(dict(name='create-original',pid=99,startTicks=17,exitCode=0,
+            receipt['processes'].append(dict(name='create-original',pid=99,startTicks=17,exitCode=0,rawReturnCode=0,exited=True,signal=None,
                 command=['/synthetic/ynx-consensus-pq-lab','create','--synthetic','--root',str(private)]))
             receipt['commitClockBuiltCreator']=dict(path='/synthetic/ynx-consensus-pq-lab',sha256='1'*64,device=1,inode=45,size=1024)
             receipt['commitClockCreatorProbe']=dict(pid=99,startTicks='17',binarySHA256='1'*64,binaryPath='/synthetic/ynx-consensus-pq-lab',
@@ -164,12 +171,30 @@ class CommitClockReadbackControls(unittest.TestCase):
             with mock.patch.object(driver.commit_clock,'COMMIT_CLOCK_SOURCE','a'*40):
                 result=driver.original_commit_clock_readback(receipt,root,private,'a'*40)
                 self.assertEqual((result['observed'],result['rows'][0]['fourNodeUpperBoundNs']),(1,203))
+                receipt['commitClockReadback']=copy.deepcopy(result)
+                public_files={'archive/public/'+name:data for name,data in files.items()}
+                public_files['archive/public/receipt.json']=raw(receipt)
+                (private/'network-plan.json').unlink() # Offline reader must use only the original public create log.
+                offline=r.readback_public_originals(public_files,'archive/public/',expected_source='a'*40)
+                self.assertEqual((offline['observed'],offline['censored']),(1,0))
+                self.assertFalse(offline['archiveOriginIndependentlyVerified'] or offline['independentFinality'])
+                missing=dict(public_files);missing.pop('archive/public/load-operations/00000/transaction.abci')
+                censored=r.readback_public_originals(missing,'archive/public/',expected_source='a'*40)
+                self.assertEqual((censored['observed'],censored['censored']),(0,1))
+                changed=dict(public_files);changed['archive/public/load-operations/00000/transaction.abci']=b'different-original'
+                censored=r.readback_public_originals(changed,'archive/public/',expected_source='a'*40)
+                self.assertEqual((censored['observed'],censored['censored']),(0,1))
+                dishonest=copy.deepcopy(receipt);dishonest['commitClockReadback']['rows'][0]['fourNodeUpperBoundNs']=999
+                changed=dict(public_files);changed['archive/public/receipt.json']=raw(dishonest)
+                censored=r.readback_public_originals(changed,'archive/public/',expected_source='a'*40)
+                self.assertEqual((censored['observed'],censored['censored']),(0,1))
+                (private/'network-plan.json').write_bytes(kwargs['network_plan_raw'])
                 bad=copy.deepcopy(receipt);bad['processes'][-1]['startTicks']=None
-                with self.assertRaisesRegex(RuntimeError,'original synthetic create process'):driver.original_commit_clock_readback(bad,root,private,'a'*40)
+                with self.assertRaisesRegex(ValueError,'original synthetic create process'):driver.original_commit_clock_readback(bad,root,private,'a'*40)
                 bad=copy.deepcopy(receipt);bad['normalLiveBuildProvenance']['ynx-consensus-pq-lab']['binarySHA256']='2'*64
-                with self.assertRaisesRegex(RuntimeError,'creator build/source binding'):driver.original_commit_clock_readback(bad,root,private,'a'*40)
+                with self.assertRaisesRegex(ValueError,'creator build/source binding'):driver.original_commit_clock_readback(bad,root,private,'a'*40)
                 bad=copy.deepcopy(receipt);bad['commitClockCreatorProbe']['inode']+=1
-                with self.assertRaisesRegex(RuntimeError,'creator pidfd/executable'):driver.original_commit_clock_readback(bad,root,private,'a'*40)
+                with self.assertRaisesRegex(ValueError,'creator pidfd/executable'):driver.original_commit_clock_readback(bad,root,private,'a'*40)
                 (public/'commit-monotonic-node-2-original.json').unlink()
                 result=driver.original_commit_clock_readback(receipt,root,private,'a'*40)
                 self.assertEqual((result['observed'],result['censored']),(0,1))
@@ -277,12 +302,15 @@ class CommitClockReadbackControls(unittest.TestCase):
 
     def test_many_rows_validate_each_original_node_once_without_pooling_heights(self):
         receipt,kwargs=self.fixture();receipt['configuredDemand']=2
-        row=copy.deepcopy(receipt['loadResult']['rows'][0]);row.update(index=1,id='8'*64,hash='7'*64)
+        transaction=b'another-original-transaction';tx=r.sha(transaction)
+        row=copy.deepcopy(receipt['loadResult']['rows'][0]);row.update(index=1,id='7'*64,hash=tx)
         receipt['loadResult']['rows'].append(row)
         payload=json.loads(kwargs['inclusion'][0])
-        for node in payload['rows']:node['hash']='7'*64
+        for node in payload['rows']:node['hash']=tx;node['tx']=base64.b64encode(transaction).decode()
         kwargs['inclusion'][1]=raw(payload)
-        receipt['commitClockInclusions'].append(dict(index=1,path='load-operations/00001/four-node-inclusion.json',**descriptor(kwargs['inclusion'][1])))
+        intent=raw(dict(id='7'*64,operationId='8'*64,owner=4,nonce='2',transactionHash=tx,submissionAttempts=1,qualifiedFinal=False))
+        kwargs['original_operations'][1]=dict(intent=intent,transaction=transaction)
+        receipt['commitClockInclusions'].append(dict(index=1,path='load-operations/00001/four-node-inclusion.json',**descriptor(kwargs['inclusion'][1]),intent=descriptor(intent),transaction=descriptor(transaction)))
         with mock.patch.object(r._commit,'validate_declared_contract',wraps=r._commit.validate_declared_contract) as validate:
             result=r.reduce(receipt,**kwargs)
         self.assertEqual((result['observed'],result['censored'],validate.call_count),(2,0,4))
@@ -294,6 +322,38 @@ class CommitClockReadbackControls(unittest.TestCase):
                 receipt,kwargs=self.fixture();payload=json.loads(kwargs['inclusion'][0]);payload['rows'][1]['height']=value
                 kwargs['inclusion'][0]=raw(payload);receipt['commitClockInclusions'][0].update(descriptor(kwargs['inclusion'][0]))
                 self.assertEqual(r.reduce(receipt,**kwargs)['censored'],1)
+
+    def test_missing_or_mismatched_original_business_is_censored(self):
+        for case in ('intent_missing','transaction_missing','transaction_swapped','reply_tx','wrong_intent','missing_ledger_inclusion','late_observation','finality_claim'):
+            with self.subTest(case=case):
+                receipt,kwargs=self.fixture();op=kwargs['original_operations'][0];ref=receipt['commitClockInclusions'][0]
+                if case=='intent_missing':op.pop('intent')
+                elif case=='transaction_missing':op.pop('transaction')
+                elif case=='transaction_swapped':op['transaction']=b'other';ref['transaction']=descriptor(op['transaction'])
+                elif case=='wrong_intent':
+                    value=json.loads(op['intent']);value['operationId']='0'*64;op['intent']=raw(value);ref['intent']=descriptor(op['intent'])
+                elif case=='missing_ledger_inclusion':receipt['loadResult']['rows'][0]['includedNs']=None
+                else:
+                    value=json.loads(kwargs['inclusion'][0])
+                    if case=='reply_tx':value['rows'][1]['tx']=base64.b64encode(b'other').decode()
+                    elif case=='late_observation':value['observedMonotonicNs']=1800
+                    else:value['qualifiedFinal']=True
+                    kwargs['inclusion'][0]=raw(value);ref.update(descriptor(kwargs['inclusion'][0]))
+                result=r.reduce(receipt,**kwargs)
+                self.assertEqual((result['observed'],result['censored']),(0,1))
+
+    def test_original_observation_clock_overflow_is_censored(self):
+        receipt,kwargs=self.fixture();origin=(1<<63)-500
+        receipt['loadResult']['originMonotonicNs']=str(origin)
+        parent=kwargs['parent'];parent['observedStartNs']=str(origin-200);parent['observedEndNs']=str(origin-100)
+        for index,item in enumerate(kwargs['node_evidence']):
+            probe=item['processProbe'];probe['observedStartNs']=str(origin-60);probe['observedEndNs']=str(origin-50)
+            clock=json.loads(item['clockOriginal']);clock['samples'][0]['monotonicNs']=str(origin+300+index)
+            item['clockOriginal']=raw(clock);receipt['commitMonotonicObservation']['originalSnapshots'][index].update(descriptor(item['clockOriginal']))
+        value=json.loads(kwargs['inclusion'][0]);value['observedMonotonicNs']=origin+501
+        kwargs['inclusion'][0]=raw(value);receipt['commitClockInclusions'][0].update(descriptor(kwargs['inclusion'][0]))
+        result=r.reduce(receipt,**kwargs)
+        self.assertEqual((result['observed'],result['censored']),(0,1))
 
     def test_boolean_pid_cannot_alias_original_pid_one(self):
         receipt,kwargs=self.fixture();item=kwargs['node_evidence'][0]
