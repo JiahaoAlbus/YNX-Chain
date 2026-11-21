@@ -240,8 +240,14 @@ func (n *NativePayService) PrepareRefund(ctx context.Context, merchant, id, refu
 	if grant.Principal != merchant || settled.Status != "confirmed" || settled.Effect == nil || grant.LedgerNonce == math.MaxUint64 {
 		return NativePaySigningRequest{}, errors.New("original merchant and verified settlement required")
 	}
-	termsHash, _ := hex.DecodeString(state.TermsHash)
-	settlementHash, _ := hex.DecodeString(settled.NativeHash[2:])
+	termsHash, termsErr := hex.DecodeString(state.TermsHash)
+	if termsErr != nil || len(termsHash) != 32 || settled.NativeHash != state.SettlementOperation || len(settled.NativeHash) != 66 || settled.NativeHash[:2] != "0x" {
+		return NativePaySigningRequest{}, errors.New("original terms or settlement identity requires recovery")
+	}
+	settlementHash, settlementErr := hex.DecodeString(settled.NativeHash[2:])
+	if settlementErr != nil || len(settlementHash) != 32 {
+		return NativePaySigningRequest{}, errors.New("original terms or settlement identity requires recovery")
+	}
 	var reserved uint64
 	for key, hash := range state.RefundOperations {
 		if key == refundID && state.Operations[hash].Status != "confirmed_failed" {
@@ -254,10 +260,14 @@ func (n *NativePayService) PrepareRefund(ctx context.Context, merchant, id, refu
 		if op.Status != "confirmed" || op.Effect == nil {
 			return NativePaySigningRequest{}, errors.New("original refund outcome unresolved")
 		}
-		if op.Effect.Principal > state.Terms.Amount-reserved {
+		original, err := originalRefundReservation(state, key, hash, op)
+		if err != nil {
+			return NativePaySigningRequest{}, err
+		}
+		if original.Amount > state.Terms.Amount-reserved {
 			return NativePaySigningRequest{}, errors.New("refund totals require recovery")
 		}
-		reserved += op.Effect.Principal
+		reserved += original.Amount
 	}
 	if amount == 0 || amount > state.Terms.Amount-reserved {
 		return NativePaySigningRequest{}, errors.New("refund exceeds remaining original principal")

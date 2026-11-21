@@ -162,6 +162,46 @@ func TestNativeRefundReservationBindsOriginalInvoiceAndMember(t *testing.T) {
 		})
 	}
 }
+
+func TestNativeRefundReviewRejectsChangedOriginalReservation(t *testing.T) {
+	f := newNativeServiceFixture(t)
+	termsHash := bytes.Repeat([]byte{0x44}, 32)
+	settlementHash := bytes.Repeat([]byte{0x55}, 32)
+	settlement := fmt.Sprintf("0x%x", settlementHash)
+	payload := ynxauth.InvoiceRefundPayload{InvoiceID: f.terms.InvoiceID, RefundID: "refund-original", TermsHash: termsHash, SettlementHash: settlementHash, Amount: 30}
+	wire := f.sign(t, ynxauth.ActionInvoiceRefund, payload, 2)
+	hash := consensus.SignedTransactionHash(wire)
+	op := NativePayOperation{NativePayOriginal: NativePayOriginal{Merchant: f.merchant, InvoiceID: f.terms.InvoiceID, NativeHash: hash, Member: wire}, Kind: ynxauth.ActionInvoiceRefund, Owner: f.merchant, Status: "confirmed", Effect: &consensus.PQInvoiceEffect{Principal: 30}}
+	state := NativePayInvoice{Merchant: f.merchant, InvoiceID: f.terms.InvoiceID, SessionID: f.terms.SessionID, SourceOrder: "order-100", TermsHash: fmt.Sprintf("%x", termsHash), Terms: f.terms, SettlementOperation: settlement, RefundOperations: map[string]string{payload.RefundID: hash}, Operations: map[string]NativePayOperation{settlement: {NativePayOriginal: NativePayOriginal{NativeHash: settlement}, Status: "confirmed", Effect: &consensus.PQInvoiceEffect{}}, hash: op}}
+	store := func() {
+		t.Helper()
+		if err := f.service.parent.store.Update(func(data *Snapshot) error { return f.service.save(data, state) }); err != nil {
+			t.Fatal(err)
+		}
+	}
+	store()
+	if _, err := f.service.PrepareRefund(context.Background(), f.merchant, f.terms.InvoiceID, "refund-next", 70); err != nil {
+		t.Fatal("valid original reservation rejected", err)
+	}
+	badSettlement := state.Operations[settlement]
+	badSettlement.NativeHash = ""
+	state.Operations[settlement] = badSettlement
+	store()
+	if _, err := f.service.PrepareRefund(context.Background(), f.merchant, f.terms.InvoiceID, "refund-next", 70); err == nil {
+		t.Fatal("missing original settlement identity accepted")
+	}
+	badSettlement.NativeHash = settlement
+	state.Operations[settlement] = badSettlement
+	op.Effect = &consensus.PQInvoiceEffect{Principal: 20}
+	state.Operations[hash] = op
+	store()
+	if _, err := f.service.PrepareRefund(context.Background(), f.merchant, f.terms.InvoiceID, "refund-next", 80); err == nil {
+		t.Fatal("changed original refund allowed a new review")
+	}
+	if f.writes != 0 {
+		t.Fatal("review dispatched a money operation")
+	}
+}
 func TestNativePayTermsUnknownColdReplayDoesNotResendOrClaimRPCPayment(t *testing.T) {
 	f := newNativeServiceFixture(t)
 	f.loss = true
