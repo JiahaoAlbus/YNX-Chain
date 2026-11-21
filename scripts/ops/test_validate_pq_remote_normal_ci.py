@@ -2169,7 +2169,8 @@ def assert_workflow_contract(raw):
     delivery_job, delivery_steps = workflow_steps(raw, "protocol-delivery")
     mac_job, _ = workflow_steps(raw, "proof-verifier-macos")
     push_condition = ("github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || "
-                      "github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')")
+                      "github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' || "
+                      "github.ref == 'refs/heads/codex/chain-commit-monotonic-20261121')")
     need(re.findall(r"(?m)^    needs: (.+)$", delivery_job) == ["[focused-go, caddy-source]"]
          and "    timeout-minutes: 12\n" in delivery_job)
     # One build-cache shape covers the original tests and later pinned ELFs.
@@ -4897,7 +4898,12 @@ class FuturePerfSourceBranchControls(unittest.TestCase):
         self.assertTrue(self.evaluate(self.condition(raw,'focused-go'),ref,'push'))
         self.assertFalse(self.evaluate(self.condition(raw,'focused-go'),ref+'-other','push'))
         self.assertFalse(self.evaluate(self.condition(raw,'verify'),ref,'push'))
-        self.assertFalse(self.evaluate(self.condition(raw,'protocol-delivery'),ref,'push'))
+        for name in ('caddy-source','protocol-delivery'):
+            condition=self.condition(raw,name)
+            self.assertTrue(self.evaluate(condition,ref,'push'),name)
+            self.assertFalse(self.evaluate(condition,ref+'-other','push'),name)
+            self.assertFalse(self.evaluate(condition,ref,'workflow_dispatch'),name)
+        self.assertFalse(self.evaluate(self.condition(raw,'proof-verifier-macos'),ref,'push'))
         self.assertFalse(self.evaluate(self.condition(raw,'pq-paired-n1'),ref,'push'))
         self.assertNotIn(ref.removeprefix('refs/heads/'),gate.NORMAL_BRANCHES)
         for old,new in (("github.ref == '"+ref+"'", "github.ref == '"+ref+"-other'"),

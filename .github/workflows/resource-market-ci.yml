@@ -605,7 +605,7 @@ jobs:
           JS
 
   caddy-source:
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' || github.ref == 'refs/heads/codex/chain-commit-monotonic-20261121')
     runs-on: ubuntu-24.04
     timeout-minutes: 6
     steps:
@@ -4447,7 +4447,7 @@ jobs:
   # same run/source. Only the closed public fixture catalog crosses runners.
   protocol-delivery:
     needs: [focused-go, caddy-source]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108') && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' || github.ref == 'refs/heads/codex/chain-commit-monotonic-20261121') && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     env:
