@@ -764,7 +764,10 @@ class Window:
                         proc.kill();proc.wait(timeout=self._cleanup_wait_remaining())
                 except Exception as error:
                     errors.setdefault(proc.pid,[]).append(dict(operation="wait",errorType=type(error).__name__))
-                self.direct_cleanup_after_failure.append(dict(name=child["name"],pid=proc.pid,startTicks=child.get("startTicks"),rawReturnCode=proc.returncode,exited=proc.returncode is not None,**(dict(errors=errors[proc.pid]) if proc.pid in errors else {})))
+                # Even an unmanaged/partially registered handle must not
+                # replace the original refusal with a missing metadata error.
+                code=vars(proc).get('returncode')
+                self.direct_cleanup_after_failure.append(dict(name=child["name"],pid=proc.pid,startTicks=child.get("startTicks"),rawReturnCode=code,exited=code is not None,**(dict(errors=errors[proc.pid]) if proc.pid in errors else {})))
             with getattr(self, 'lock', contextlib.nullcontext()):
                 pending_logs = {v['log'] for v in getattr(self, 'pending_launches', {}).values()}
                 for _,log in self.logs:
