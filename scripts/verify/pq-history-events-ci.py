@@ -22,6 +22,16 @@ CASES = {
  ('comet-layout', 2): (True, ['TestCometJournalOperatorApplicationRealRegistryScheduleColdContinuation', 'TestCometJournalLayoutOptionsNeverFallBackToStockOrAtomic', 'TestCometJournalRuntimeAndCustodyModesRetainIndependentConfiguration', 'TestCometJournalRuntimePlanRefusesBeforeOpeningOriginalState']),
 }
 
+REQUIRED_CHILDREN = {
+ ('signed-history', 1): ['TestProductionRoleScriptsPreserveSignedStateAndUnknownResults/existing-signed-install'],
+ ('signed-history', 2): ['TestProductionRollbackCallerRefusesBeforeTransport/without-archive'],
+ ('signed-history', 3): ['TestProductionRoleScriptsPreserveSignedStateAndUnknownResults/existing-signed-install', 'TestProductionRollbackCallerRefusesBeforeTransport/without-archive'],
+ ('journal', 1): ['TestPQEngineStateReadActualLayoutsRegistryRotationRevocation/'+n for n in ('atomic-json','snapshot-journal','block-journal')],
+ ('journal', 2): ['TestPQEngineStateReadActualLayoutsRegistryRotationRevocation/'+n for n in ('atomic-json','snapshot-journal','block-journal')],
+ ('comet-layout', 1): ['TestCometJournalOperatorApplicationRealRegistryScheduleColdContinuation/'+n for n in ('atomic-json','snapshot-journal','block-journal')],
+ ('comet-layout', 2): ['TestCometJournalOperatorApplicationRealRegistryScheduleColdContinuation/'+n for n in ('atomic-json','snapshot-journal','block-journal')],
+}
+
 def qualify(raw, case, index, exit_code):
     positive, required = CASES[case, index]
     if (exit_code == 0) != positive:
@@ -29,7 +39,7 @@ def qualify(raw, case, index, exit_code):
     if len(raw) > 8 * 1024 * 1024:
         raise ValueError('original log too large')
     package = 'github.com/JiahaoAlbus/YNX-Chain/' + ('cmd/ynx-consensus-key-init' if case == 'ceremony' and index == 3 else 'cmd/ynx-comet' if case == 'comet-layout' else 'internal/consensus')
-    outcomes = re.findall(r'(?m)^(ok|FAIL)\s+(\S+)(?:\s|$)', raw)
+    outcomes = re.findall(r'(?m)^(ok|FAIL)[ \t]+([^\s]+)(?:[ \t]|$)', raw)
     if outcomes != [('ok' if positive else 'FAIL', package)]:
         raise ValueError('package result missing, foreign, or duplicated')
     events = {}
@@ -45,12 +55,17 @@ def qualify(raw, case, index, exit_code):
             positions.setdefault(m.group(2), []).append(pos)
     if set(name.split('/')[0] for name in events) != set(required):
         raise ValueError('top-level test set changed, missing, or empty')
+    if not set(REQUIRED_CHILDREN.get((case,index), ())) <= set(events):
+        raise ValueError('required original subtest missing')
     for name, actions in events.items():
         if actions not in (['run', 'pass'], ['run', 'fail']):
             raise ValueError('repeated, missing, skipped, or unordered event: ' + name)
         top = name.split('/')[0]
-        if '/' in name and not positions[top][0] < positions[name][0] < positions[name][1] < positions[top][1]:
-            raise ValueError('child outside top-level test: ' + name)
+        if '/' in name:
+            later = [v[0] for k,v in positions.items() if '/' not in k and v[0] > positions[top][0]]
+            next_top = min(later, default=len(raw.splitlines()))
+            if not positions[top][0] < positions[name][0] < positions[top][1] < positions[name][1] < next_top:
+                raise ValueError('child outside original Go verbose parent result: ' + name)
         if positive and actions != ['run', 'pass']:
             raise ValueError('green test failed: ' + name)
     if not positive and not any(events[name] == ['run', 'fail'] for name in required):
