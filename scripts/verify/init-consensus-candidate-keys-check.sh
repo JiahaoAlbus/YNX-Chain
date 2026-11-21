@@ -3,6 +3,7 @@ set -Eeuo pipefail
 umask 077
 repo="$(cd "$(dirname "$0")/../.." && pwd -P)"
 tmp="$(mktemp -d)"
+tmp="$(cd "$tmp" && pwd -P)"
 case_root=''
 finish_controls() {
   local original_status="$1" path case_name="${case_root##*/}" count=0
