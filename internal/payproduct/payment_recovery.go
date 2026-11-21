@@ -40,7 +40,7 @@ func (s *Service) paymentDispatch(data Snapshot, invoiceID string) (paymentDispa
 	}
 	raw, err := s.open(record.ResultCipher)
 	var p paymentDispatch
-	if err != nil || strictJSON([]byte(raw), &p) != nil || p.InvoiceID != invoiceID || record.Operation != "payment.settle" || record.Account != p.Payer || record.RequestHash != p.RequestHash || record.IdempotencyKey != p.Key {
+	if err != nil || strictJSON([]byte(raw), &p) != nil || p.InvoiceID != invoiceID || record.Operation != "payment.settle" || record.Account != p.Payer || record.RequestHash != p.RequestHash || record.IdempotencyKey != p.Key || (record.Phase != "unknown" && record.Phase != "confirmed") {
 		return p, record, true, errors.New("original payment dispatch requires recovery")
 	}
 	return p, record, true, nil
@@ -121,7 +121,14 @@ func (s *Service) ReconcilePaymentOutcome(ctx context.Context, session WalletSes
 		if p.Provider != payProviderIdentity(s.pay) {
 			return errors.New("original payment provider unavailable")
 		}
-		invoice = data.Invoices[invoiceID]
+		var ok bool
+		invoice, ok = data.Invoices[invoiceID]
+		if !ok || invoice.ID != invoiceID || invoice.MerchantID != record.MerchantID {
+			return errors.New("original payment invoice requires recovery")
+		}
+		if record.Phase == "confirmed" && (invoice.Settlement == nil || invoice.Settlement.TransactionHash != p.TransactionHash || invoice.Settlement.Payer != p.Payer || invoice.Settlement.IdempotencyKey != p.Key) {
+			return errors.New("original confirmed payment evidence requires recovery")
+		}
 		return nil
 	})
 	if err != nil {

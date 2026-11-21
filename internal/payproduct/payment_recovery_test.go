@@ -71,6 +71,31 @@ func TestPaymentFlowUnknownColdReadNeverResubmitsAndLateFundsNeedReview(t *testi
 	if p.writes != 1 {
 		t.Fatal("unknown original operation was submitted again")
 	}
+	// Corrupt only this isolated fixture's phase, then restore the same record;
+	// an unrecognized durable phase must never be promoted by provider readback.
+	slot := paymentDispatchSlot(invoice.ID)
+	if err = s.store.Update(func(data *Snapshot) error {
+		record := data.BusinessDispatches[slot]
+		record.Phase = "unexpected"
+		data.BusinessDispatches[slot] = record
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.ReconcilePaymentOutcome(context.Background(), session, invoice.ID); err == nil {
+		t.Fatal("invalid original phase accepted")
+	}
+	if p.writes != 1 {
+		t.Fatal("invalid phase resent original payment")
+	}
+	if err = s.store.Update(func(data *Snapshot) error {
+		record := data.BusinessDispatches[slot]
+		record.Phase = "unknown"
+		data.BusinessDispatches[slot] = record
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
 	now = now.Add(11 * time.Minute)
 	session.ExpiresAt = now.Add(time.Minute)
 	outcome, err := s.ReconcilePaymentOutcome(context.Background(), session, invoice.ID)
@@ -93,6 +118,20 @@ func TestPaymentFlowUnknownColdReadNeverResubmitsAndLateFundsNeedReview(t *testi
 	}
 	if outcome.Invoice.Settlement.IntentDigest != result.IntentDigest || outcome.Invoice.Settlement.RequestNonce != result.RequestID {
 		t.Fatal("original Wallet proof lost on recovery")
+	}
+	if err = s.store.Update(func(data *Snapshot) error {
+		saved := data.Invoices[invoice.ID]
+		saved.Settlement = nil
+		data.Invoices[invoice.ID] = saved
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.ReconcilePaymentOutcome(context.Background(), session, invoice.ID); err == nil {
+		t.Fatal("confirmed journal without its original receipt was accepted")
+	}
+	if p.writes != 1 {
+		t.Fatal("missing confirmed receipt resent original payment")
 	}
 	wrong := session
 	wrong.Account = m.PayoutAddress
