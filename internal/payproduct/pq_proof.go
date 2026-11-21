@@ -284,6 +284,21 @@ func (n *NativePayService) PrepareRefund(ctx context.Context, merchant, id, refu
 	if err = n.fence(ctx, grant); err != nil {
 		return NativePaySigningRequest{}, err
 	}
+	if err = n.parent.store.View(func(data Snapshot) error {
+		if err := n.fence(ctx, grant); err != nil {
+			return err
+		}
+		current, found, err := n.load(data, merchant, id)
+		if err != nil {
+			return err
+		}
+		if !found || hashJSON(current) != hashJSON(state) {
+			return errors.New("original invoice changed during refund review")
+		}
+		return nil
+	}); err != nil {
+		return NativePaySigningRequest{}, err
+	}
 	return NativePaySigningRequest{Kind: action.Kind, Action: action, Message: message, Status: "awaiting_original_native_signature"}, nil
 }
 

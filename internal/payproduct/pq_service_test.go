@@ -23,13 +23,17 @@ import (
 )
 
 type nativeSourceFixture struct {
-	grant  NativePayAuthorization
-	denied bool
+	grant        NativePayAuthorization
+	denied       bool
+	duringReview func()
 }
 
-func (f *nativeSourceFixture) Authorize(context.Context, NativePayAccess) (NativePayAuthorization, error) {
+func (f *nativeSourceFixture) Authorize(_ context.Context, access NativePayAccess) (NativePayAuthorization, error) {
 	if f.denied {
 		return f.grant, ErrNativePayUnavailable
+	}
+	if access.Operation == "review_refund" && f.duringReview != nil {
+		f.duringReview()
 	}
 	return f.grant, nil
 }
@@ -183,6 +187,18 @@ func TestNativeRefundReviewRejectsChangedOriginalReservation(t *testing.T) {
 	if _, err := f.service.PrepareRefund(context.Background(), f.merchant, f.terms.InvoiceID, "refund-next", 70); err != nil {
 		t.Fatal("valid original reservation rejected", err)
 	}
+	f.source.duringReview = func() {
+		changed := state
+		changed.SourceOrder = "changed-order"
+		if err := f.service.parent.store.Update(func(data *Snapshot) error { return f.service.save(data, changed) }); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := f.service.PrepareRefund(context.Background(), f.merchant, f.terms.InvoiceID, "refund-next", 70); err == nil {
+		t.Fatal("changed original invoice produced a stale review")
+	}
+	f.source.duringReview = nil
+	store()
 	badSettlement := state.Operations[settlement]
 	badSettlement.NativeHash = ""
 	state.Operations[settlement] = badSettlement
