@@ -25,6 +25,9 @@ class OriginalEvents(unittest.TestCase):
                 for bad in (raw.replace('=== RUN', '=== OMIT',1),raw.replace('--- PASS:', '--- SKIP:',1) if positive else raw.replace('--- FAIL:', '--- SKIP:',1),raw.replace(package,package+'-wrong'),raw+'=== RUN   '+names[0]+'\n'):
                     with self.assertRaises(ValueError): history.qualify(bad,slug,index,status)
                 with self.assertRaises(ValueError): history.qualify(raw,slug,index,1-status)
+                if not positive:
+                    for signal_exit in (124,130,137,143):
+                        with self.assertRaises(ValueError): history.qualify(raw,slug,index,signal_exit)
 
     def test_go_verbose_parent_first_and_child_boundaries(self):
         p='TestProductionRoleScriptsPreserveSignedStateAndUnknownResults'; c=p+'/existing-signed-install'
@@ -73,13 +76,18 @@ class OriginalEvents(unittest.TestCase):
             for name,slug in pairs:
                 pattern=r'(?ms)^      - name: '+re.escape(name)+r'\n(.*?)(?=^      - (?:name:|uses:)|\Z)'
                 matches=re.findall(pattern,history_job)
-                if len(matches)!=1 or "steps.identity.outcome == 'success'" not in matches[0] or 'run: bash scripts/verify/pq-history-'+slug+'-ci.sh' not in matches[0] or 'continue-on-error:' in matches[0]: raise ValueError('history case missing or bypassed')
+                expected_condition="${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+                if len(matches)!=1 or re.findall(r'(?m)^        if: (.+)$',matches[0]) != [expected_condition] or 'run: bash scripts/verify/pq-history-'+slug+'-ci.sh' not in matches[0] or 'continue-on-error:' in matches[0]: raise ValueError('history case missing or bypassed')
                 source=(root/('pq-history-'+slug+'-ci.sh')).read_text()
                 if 'reuse-pq-history-counterexamples.sh' in source or 'source scripts/verify/pq-history-events-ci.sh' not in source or 'YNX_HISTORY_EVENT_CASE='+slug not in source or 'test ! -e "$YNX_HISTORY_EVENT_DIR/$YNX_HISTORY_EVENT_CASE.invalid"' not in source: raise ValueError('history execution or event check absent')
+            for name in ('Verify same-run history and Finalize event controls','Qualify the twelve original history test event streams','Retain only same-run original history test events'):
+                match=re.findall(r'(?ms)^      - name: '+re.escape(name)+r'\n(.*?)(?=^      - (?:name:|uses:)|\Z)',history_job)
+                expected="${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+                if len(match)!=1 or re.findall(r'(?m)^        if: (.+)$',match[0]) != [expected]: raise ValueError('history evidence control bypassed')
             if 'Retain only same-run original history test events' not in history_job or 'if-no-files-found: error' not in history_job: raise ValueError('history artifact not required')
             if "needs.held-optional-live-source.result == 'success'" not in delivery: raise ValueError('getter not required')
         check(raw)
-        for old,new in (('    needs: [detached-source-checks, source-history-counterexamples]','    needs: detached-source-checks'),('python3 -B scripts/verify/pq-ci-replay-entry-identity.py','true'),('run: bash scripts/verify/pq-history-journal-ci.sh','run: true'),('if-no-files-found: error','if-no-files-found: warn')):
+        for old,new in (('    needs: [detached-source-checks, source-history-counterexamples]','    needs: detached-source-checks'),('python3 -B scripts/verify/pq-ci-replay-entry-identity.py','true'),('run: bash scripts/verify/pq-history-journal-ci.sh','run: true'),("steps.identity.outcome == 'success'","steps.identity.outcome == 'success' && false"),('if-no-files-found: error','if-no-files-found: warn')):
             # Alter only the intended history job, not another workflow job.
             if old.startswith('    needs:'): mutated=raw.replace(old,new,1)
             else:

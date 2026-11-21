@@ -20,7 +20,7 @@ for case,idx in sorted(h.CASES):
     data=lp.read_bytes();meta=json.loads(mp.read_text())
     positive,_=h.CASES[case,idx]
     status=meta.get('exit')
-    if type(status) is not int or (status==0)!=positive: raise SystemExit('history exit differs')
+    if type(status) is not int or status != (0 if positive else 1): raise SystemExit('history exit differs')
     events=h.qualify(data.decode(),case,idx,status)
     if meta != dict(case=case,index=idx,exit=status,source=os.environ['GITHUB_SHA'],run=os.environ['GITHUB_RUN_ID'],attempt=os.environ['GITHUB_RUN_ATTEMPT'],bytes=len(data),sha256=hashlib.sha256(data).hexdigest(),events=events):
         raise SystemExit('history source, bytes, or events differ')

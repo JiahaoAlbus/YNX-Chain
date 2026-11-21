@@ -34,7 +34,7 @@ REQUIRED_CHILDREN = {
 
 def qualify(raw, case, index, exit_code):
     positive, required = CASES[case, index]
-    if (exit_code == 0) != positive:
+    if exit_code != (0 if positive else 1):
         raise ValueError('unexpected Go exit status')
     if len(raw) > 8 * 1024 * 1024:
         raise ValueError('original log too large')

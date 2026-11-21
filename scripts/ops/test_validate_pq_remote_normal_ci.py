@@ -2295,6 +2295,12 @@ def assert_workflow_contract(raw):
     need("test \"$(git rev-parse HEAD)\" = '${{ github.sha }}'" in detached_job)
     history_job, history_steps = workflow_steps(raw, 'source-history-counterexamples')
     need('    timeout-minutes: 12\n' in history_job and 'continue-on-error:' not in history_job)
+    need('    needs: [detached-source-checks, source-history-counterexamples]\n' in job)
+    history_expected = "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    history_required = ('Verify same-run history and Finalize event controls', 'Verify original key ceremony retains partial custody and never creates during resume', 'Reproduce signed-history overwrite and unsafe rollback callers', 'Reproduce source-authority initialization coupling and verify independent execution', 'Reproduce JSON-only signing source and verify real journal recovery', 'Reproduce atomic-only Comet operator startup and verify normal journal selection', 'Qualify the twelve original history test event streams', 'Retain only same-run original history test events')
+    for name in history_required:
+        found = [step for step in history_steps if step.startswith('      - name: ' + name + '\n')]
+        need(len(found) == 1 and condition(found[0]) == history_expected and 'continue-on-error:' not in found[0])
     combined = steps + delivery_steps + detached_steps + history_steps
     by_name = lambda name: [step for step in combined if step.startswith("      - name: " + name + "\n")]
     copy_controls = by_name("Verify original-copy observation controls without touching the original case")
