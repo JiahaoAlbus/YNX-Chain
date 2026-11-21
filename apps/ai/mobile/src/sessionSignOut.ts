@@ -1,5 +1,8 @@
 // Local logout, remote revocation and Native cleanup are separate outcomes.
 // A lost response is not proof of remote revocation and is never replayed here.
+export function mayRestoreSavedSession(token:string,deviceId:string,pendingRevocation:boolean){
+ return !!token && !!deviceId && !pendingRevocation;
+}
 export async function finishSessionSignOut(clear:()=>Promise<void>,revoke:(()=>Promise<void>)|null,close:Promise<void>,retain:(()=>Promise<void>)|null=null){
  const closeOutcome=close.then(()=>true,()=>false);
  const custody=await Promise.allSettled([retain?Promise.resolve().then(retain):Promise.resolve()]);

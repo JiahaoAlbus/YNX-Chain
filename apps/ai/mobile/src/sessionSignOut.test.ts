@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {finishSessionSignOut,signOutNotice} from './sessionSignOut';
+import {finishSessionSignOut,mayRestoreSavedSession,signOutNotice} from './sessionSignOut';
+
+test('an unfinished original revocation blocks automatic session restoration',()=>{
+ assert.equal(mayRestoreSavedSession('PUBLIC-token','PUBLIC-device',true),false);
+ assert.equal(mayRestoreSavedSession('PUBLIC-token','PUBLIC-device',false),true);
+ assert.equal(mayRestoreSavedSession('','PUBLIC-device',false),false);
+});
 
 test('Wallet-required or lost remote revoke is reported without replay',async()=>{
  let calls=0;const result=await finishSessionSignOut(async()=>{},async()=>{calls++;throw Error('WALLET_REVOCATION_REQUIRED')},Promise.resolve());
