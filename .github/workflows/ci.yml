@@ -73,6 +73,17 @@ jobs:
       - name: Test Pay current and original order recovery
         run: node --test apps/pay/native/r6/client-current-boundary.test.mjs apps/pay/native/r6/original-order.test.mjs apps/pay/native/r6/direct-review-unknown.test.mjs
 
+  pay-webhook-recovery:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/v5-p06-pay'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+      - name: Test original webhook retry and cold recovery
+        run: go test ./internal/payproduct -run '^TestWebhook(RetryBudgetSurvivesColdStoreAndDirectCalls|PersistsAttemptBeforeSending|ManualReplayKeepsOriginalSignedEvent|AttemptProofRotationAndLostAckRemainOriginal)$' -count=1 -v
+
   pay-ui-lifecycle:
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/v5-p06-pay'
     runs-on: macos-latest
