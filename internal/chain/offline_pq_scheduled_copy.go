@@ -66,12 +66,12 @@ func syncOfflinePQDirectory(path string) error {
 // source process was stopped, that pins are independently trusted, or that a
 // same-user adversary did not mutate paths. It starts no listener or producer.
 func PrepareOfflinePQScheduledCopy(source, target string, pins OfflinePQCopyPins) (result OfflinePQCopyResult, resultErr error) {
-	return prepareOfflinePQScheduledCopy(source, target, pins, nil)
+	return prepareOfflinePQScheduledCopy(source, target, pins, nil, nil)
 }
 
 // afterSchedule is an in-package fault-injection hook. Production always
 // passes nil; it never supplies an operation or an alternate source.
-func prepareOfflinePQScheduledCopy(source, target string, pins OfflinePQCopyPins, afterSchedule func() error) (result OfflinePQCopyResult, resultErr error) {
+func prepareOfflinePQScheduledCopy(source, target string, pins OfflinePQCopyPins, afterSchedule func() error, spaceCheck func(string, uint64) error) (result OfflinePQCopyResult, resultErr error) {
 	if !offlinePQHash(pins.OriginalGenesisHash) || !offlinePQHash(pins.SourceStateHash) || pins.AdmissionHeight == 0 || pins.AdmissionHeight <= pins.SourceHeight {
 		return result, errors.New("explicit canonical genesis, source state, height and future admission pins required")
 	}
@@ -100,6 +100,11 @@ func prepareOfflinePQScheduledCopy(source, target string, pins OfflinePQCopyPins
 	if err != nil || rel == "." || rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
 		return result, errors.New("target cannot be the source or inside it")
 	}
+	if _, err := os.Lstat(target); err == nil {
+		return result, &os.PathError{Op: "mkdir", Path: target, Err: os.ErrExist}
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return result, err
+	}
 	before, err := ExportConsensusMigrationCheckpoint(source)
 	if err != nil {
 		return result, err
@@ -111,6 +116,26 @@ func prepareOfflinePQScheduledCopy(source, target string, pins OfflinePQCopyPins
 		return result, errors.New("existing account PQ policy cannot be replaced")
 	}
 	d, err := before.RestoreSourceRuntime()
+	if err != nil {
+		return result, err
+	}
+	a, b, c, err := offlinePQCopyPlannedSizes(d, pins.AdmissionHeight)
+	if err != nil {
+		return result, err
+	}
+	required, err := offlinePQCopyRequiredBytes(a, b, c)
+	if err != nil {
+		return result, err
+	}
+	if spaceCheck == nil {
+		spaceCheck = checkOfflinePQCopySpace
+	}
+	if err := spaceCheck(parent, required); err != nil {
+		return result, err
+	}
+	// Discard the memory-only estimation state. The original persisted path
+	// starts again from the validated input and runs the normal operator API.
+	d, err = before.RestoreSourceRuntime()
 	if err != nil {
 		return result, err
 	}
@@ -166,6 +191,20 @@ func prepareOfflinePQScheduledCopy(source, target string, pins OfflinePQCopyPins
 		if err := afterSchedule(); err != nil {
 			return result, err
 		}
+	}
+	if err := checkTarget(); err != nil {
+		return result, err
+	}
+	coldBytes, err := offlinePQColdRewriteBytes(before.Network, target)
+	if err != nil {
+		return result, err
+	}
+	coldRequired, err := offlinePQColdRequiredBytes(coldBytes)
+	if err != nil {
+		return result, err
+	}
+	if err := spaceCheck(target, coldRequired); err != nil {
+		return result, err
 	}
 	if err := checkTarget(); err != nil {
 		return result, err

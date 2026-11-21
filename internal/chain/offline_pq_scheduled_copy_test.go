@@ -76,7 +76,7 @@ func TestOfflinePQScheduledCopyFaultsRetainOriginalAttempt(t *testing.T) {
 					return fault
 				}
 			}
-			result, err := prepareOfflinePQScheduledCopy(source, target, pins, hook)
+			result, err := prepareOfflinePQScheduledCopy(source, target, pins, hook, nil)
 			if !errors.Is(err, ErrOfflinePQCopyUnknown) || result != (OfflinePQCopyResult{}) {
 				t.Fatal("uncertain operation returned a success result", result, err)
 			}
