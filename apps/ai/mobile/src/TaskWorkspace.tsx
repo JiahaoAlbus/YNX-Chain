@@ -22,8 +22,9 @@ export function TaskWorkspace({session,conversationId,locale,onBack}:Props){
    if(!credentials)return;borrowed=credentials;
    if(closed){await credentials.v6?.client.close();return}
    owned=new TaskWorkspaceController(credentials.identity,createTaskAPI(API_BASE,credentials),nativeTaskPersistence,()=>`taskop_${Crypto.randomUUID().replace(/-/g,"")}`,next=>setState(next),nativeRunCursorPersistence);
+   if(!session?.taskCredentials&&credentials.v6)session?.taskRuntime?.bindWorkspace(credentials.v6.client,()=>owned!.whenClosed());
    setController(owned);await owned.restoreOriginalTask();
-  }catch(error){if(!owned&&borrowed?.v6)try{await borrowed.v6.client.close()}catch{}if(!closed)setLocalError(error instanceof Error?error.message:String(error))}})();
+  }catch(error){if(owned)owned.dispose();else if(borrowed?.v6)try{await borrowed.v6.client.close()}catch{}if(!closed)setLocalError(error instanceof Error?error.message:String(error))}})();
   return()=>{closed=true;abort.abort();owned?.dispose()};
  },[session]);
  const task=state?.projection,busy=state?.busy||false;

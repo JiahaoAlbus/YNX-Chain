@@ -1,7 +1,7 @@
 import type {OriginalAITaskActionV6Client as Client} from '../contracts/sdk047/original-ai-task-action-v6-client';
 import type {TaskCredentials} from './tasks';
 import type {V6Persistence} from './taskV6';
-export interface TaskSessionRuntime {open(signal:AbortSignal):Promise<TaskCredentials>;openWorkspace(signal:AbortSignal):Promise<TaskCredentials>;retire():Promise<void>}
+export interface TaskSessionRuntime {open(signal:AbortSignal):Promise<TaskCredentials>;openWorkspace(signal:AbortSignal):Promise<TaskCredentials>;bindWorkspace(client:Client,close:()=>Promise<void>):void;retire():Promise<void>}
 const cancelled=()=>Error('TASK_SESSION_RETIRED_OR_CANCELLED');
 // Application lifetime scheduling only. The normal composition supplies the
 // sole zero-input SDK opener; no product route/provider can install authority.
@@ -10,6 +10,7 @@ export class TaskSessionLifetime implements TaskSessionRuntime {
  private clients=new Set<Client>();private flights=new Set<Promise<unknown>>();
  private cleanupPresent=false;private cleanupCause:unknown;
  private workspaceTail:Promise<void>=Promise.resolve();
+ private workspaceClosers=new Map<Client,()=>Promise<void>>();
  constructor(private identity:string,private acquireOriginal:()=>Promise<Client>,private journal:V6Persistence,private newOperationId:()=>string){}
  private remember(error:unknown){if(!this.cleanupPresent){this.cleanupPresent=true;this.cleanupCause=error}}
  open(signal:AbortSignal):Promise<TaskCredentials>{
@@ -47,14 +48,18 @@ export class TaskSessionLifetime implements TaskSessionRuntime {
    });
    const credentials=await this.open(signal);const client=credentials.v6!.client;const close=client.close.bind(client);
    let workspaceClose:Promise<void>|null=null;
-   client.close=()=>{if(!workspaceClose)workspaceClose=close().then(()=>{release()},error=>{release();throw error});return workspaceClose};
+   client.close=()=>{if(!workspaceClose)workspaceClose=close().then(()=>{this.workspaceClosers.delete(client);release()},error=>{release();throw error});return workspaceClose};
    if(this.retired||signal.aborted){await client.close();throw cancelled()}
    return credentials;
   }catch(error){release();throw error}
  }
+ bindWorkspace(client:Client,close:()=>Promise<void>){
+  if(this.retired||!this.clients.has(client)||this.workspaceClosers.has(client))throw Error('TASK_WORKSPACE_OWNER_UNAVAILABLE');
+  this.workspaceClosers.set(client,close);
+ }
  retire():Promise<void>{
   if(this.closing)return this.closing;this.retired=true;
-  const existing=[...this.clients].map(c=>c.close());
-  this.closing=(async()=>{await Promise.allSettled([...existing,...this.flights]);await Promise.allSettled([...this.clients].map(c=>c.close()));if(this.cleanupPresent)throw this.cleanupCause})();return this.closing;
+  const existing=[...this.clients].map(c=>{const close=this.workspaceClosers.get(c);return close?Promise.resolve().then(close):c.close()});
+  this.closing=(async()=>{const [results]=await Promise.all([Promise.allSettled(existing),Promise.allSettled([...this.flights])]);for(const result of results)if(result.status==='rejected')this.remember(result.reason);await Promise.allSettled([...this.clients].filter(c=>!this.workspaceClosers.has(c)).map(c=>c.close()));if(this.cleanupPresent)throw this.cleanupCause})();return this.closing;
  }
 }
