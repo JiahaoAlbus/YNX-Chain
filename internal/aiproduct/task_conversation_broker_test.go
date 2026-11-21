@@ -21,15 +21,16 @@ import (
 // typed sole policy + encrypted Store. Auth result/Source/capability are PUBLIC
 // stand-ins: no real SQLite reservation, signature or Native C/D/F admission.
 type p08ConversationAuthority struct {
-	t         *testing.T
-	base      *p08RuntimeAuthorityFixture
-	resource  *OriginalTaskReadResource
-	held      *p08OriginalHeldFixture
-	template  policy.TaskEffectBinding
-	latest    OriginalTaskGrantAuthorization
-	operation string
-	request   OriginalTaskResourceReadRequest
-	queries   int
+	t              *testing.T
+	base           *p08RuntimeAuthorityFixture
+	resource       *OriginalTaskReadResource
+	held           *p08OriginalHeldFixture
+	template       policy.TaskEffectBinding
+	latest         OriginalTaskGrantAuthorization
+	operation      string
+	request        OriginalTaskResourceReadRequest
+	queries        int
+	foreignBinding bool
 }
 
 func (a *p08ConversationAuthority) Current(ctx context.Context) error      { return ctx.Err() }
@@ -62,7 +63,15 @@ func (a *p08ConversationAuthority) queryOriginalTaskMaterial(ctx context.Context
 	if !r.QueryOriginal || r.Step.ID != a.latest.Binding.StepID || !bytes.Equal(r.Input, a.request.RawInput) {
 		return originalBrokerQueryMaterial{}, errToolConflict
 	}
-	return originalBrokerQueryMaterial{State: r.Step.ToolStep.AuthorityReferenceState, Binding: a.latest.Binding, Call: originalclient.TaskAuthorityCall{Grant: a.latest.Grant, Holder: a.latest.Holder, OriginalOperation: a.operation}}, ctx.Err()
+	state := r.Step.ToolStep.AuthorityReferenceState
+	if state == "" {
+		state = "UNKNOWN"
+	}
+	binding := a.latest.Binding
+	if a.foreignBinding {
+		binding.Account = "PUBLIC-foreign-account"
+	}
+	return originalBrokerQueryMaterial{State: state, Binding: binding, Call: originalclient.TaskAuthorityCall{Grant: a.latest.Grant, Holder: a.latest.Holder, OriginalOperation: a.operation}}, ctx.Err()
 }
 
 type p08ConversationClient struct {
@@ -71,6 +80,8 @@ type p08ConversationClient struct {
 	endpoint                     *taskCallerEndpoint
 	effects, inputReads, queries int
 	lostACK                      bool
+	lostLocator                  bool
+	foreignQuery                 bool
 	corrupt                      bool
 	last                         originalclient.TaskAuthorityResult
 }
@@ -115,6 +126,9 @@ func (c *p08ConversationClient) AuthorizeAtEffect(ctx context.Context, call orig
 	}
 	c.last = originalclient.TaskAuthorityResult{State: "COMMITTED", OriginalOperation: c.a.operation, Original: string(actual.Original)}
 	if c.lostACK {
+		if c.lostLocator {
+			return originalclient.TaskAuthorityResult{}, errors.New("PUBLIC original Auth ACK and locator lost")
+		}
 		return originalclient.TaskAuthorityResult{State: "UNKNOWN", OriginalOperation: c.a.operation}, errors.New("PUBLIC original Auth ACK lost after real resource commit")
 	}
 	result := c.last
@@ -125,6 +139,9 @@ func (c *p08ConversationClient) AuthorizeAtEffect(ctx context.Context, call orig
 }
 func (c *p08ConversationClient) QueryOriginalEffect(ctx context.Context, call originalclient.TaskAuthorityCall) (originalclient.TaskAuthorityResult, error) {
 	c.queries++
+	if c.foreignQuery {
+		return originalclient.TaskAuthorityResult{State: "UNKNOWN", OriginalOperation: strings.Repeat("b", 64)}, errors.New("PUBLIC foreign query reply")
+	}
 	if call.OriginalOperation != c.a.operation {
 		return originalclient.TaskAuthorityResult{}, errToolConflict
 	}
@@ -133,6 +150,57 @@ func (c *p08ConversationClient) QueryOriginalEffect(ctx context.Context, call or
 		return originalclient.TaskAuthorityResult{}, err
 	}
 	return originalclient.TaskAuthorityResult{State: actual.State, OriginalOperation: actual.OperationID, Original: string(actual.Original)}, nil
+}
+
+func TestP08ConversationQueryPinsOriginalBeforeForeignReply(t *testing.T) {
+	f, a, c := newP08ConversationLoop(t)
+	c.lostACK, c.lostLocator = true, true
+	request := f.request()
+	request.AuthorizationRef = "PUBLIC_QUERY_REF"
+	pending, err := f.server.runTaskModel(context.Background(), f.session, f.task.ID, request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	approveConversationLoop(t, f, pending)
+	request.Resume, request.Prompt = true, ""
+	if _, err = f.server.runTaskModel(context.Background(), f.session, f.task.ID, request); err == nil {
+		t.Fatal("lost locator accepted")
+	}
+	// Model a cold consumer whose original local locator was never delivered;
+	// the PUBLIC receiver shares this test Store and normally writes it directly.
+	f.server.store.mu.Lock()
+	missing := f.server.store.state.Actions[pending.Steps[0]]
+	binding := *missing.ToolStep
+	binding.AuthorityOperationID, binding.AuthorityReferenceState = "", ""
+	missing.ToolStep = &binding
+	f.server.store.state.Actions[missing.ID] = missing
+	f.server.store.mu.Unlock()
+	step := f.server.store.state.Actions[pending.Steps[0]]
+	if step.ToolStep.AuthorityOperationID != "" {
+		t.Fatalf("unexpected local locator: %s state %s, queries %d", step.ToolStep.AuthorityOperationID, step.ToolStep.AuthorityReferenceState, c.queries)
+	}
+	a.foreignBinding = true
+	if _, err = f.server.runTaskModel(context.Background(), f.session, f.task.ID, request); err == nil {
+		t.Fatal("foreign query binding accepted")
+	}
+	step = f.server.store.state.Actions[pending.Steps[0]]
+	if step.ToolStep.AuthorityOperationID != "" || c.queries != 0 {
+		t.Fatal("foreign binding pinned an operation or queried")
+	}
+	a.foreignBinding = false
+	c.foreignQuery = true
+	if _, err = f.server.runTaskModel(context.Background(), f.session, f.task.ID, request); err == nil {
+		t.Fatal("foreign query reply accepted")
+	}
+	step = f.server.store.state.Actions[pending.Steps[0]]
+	if step.ToolStep.AuthorityOperationID != a.operation || step.ToolStep.AuthorityReferenceState != "UNKNOWN" || c.effects != 1 || c.queries != 1 {
+		t.Fatal("original locator lost or replacement effect sent")
+	}
+	c.foreignQuery = false
+	answer, err := f.server.runTaskModel(context.Background(), f.session, f.task.ID, request)
+	if err != nil || answer.Status != "COMPLETED" || c.effects != 1 || c.queries != 2 {
+		t.Fatalf("original query recovery failed: %+v %v", answer, err)
+	}
 }
 
 func newP08ConversationLoop(t *testing.T) (*p08ModelFixture, *p08ConversationAuthority, *p08ConversationClient) {

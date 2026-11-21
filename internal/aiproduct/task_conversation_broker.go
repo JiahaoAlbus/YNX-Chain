@@ -54,10 +54,22 @@ func (b *originalTaskAuthorityBroker) reconcileConversation(ctx context.Context,
 	if !originalBrokerOperation(material.Call.OriginalOperation) {
 		return taskReadReceipt{}, errToolConflict
 	}
+	binding, step := material.Binding, request.Step.ToolStep
+	if step == nil || binding.Account != request.Task.Account || binding.Task.Kind != "task" || binding.Task.ID != request.Task.ID || binding.Task.Revision != strconv.FormatUint(step.TaskRevision, 10) || binding.Generation != strconv.FormatUint(step.Generation, 10) || binding.Holder.ID != step.Holder || binding.StepID != request.Step.ID || binding.Tool.ID != step.ToolID || binding.Tool.Operation != step.ToolID || binding.Tool.Version != "1" || binding.Tool.Risk != "read" || binding.Tool.Schema != shopAuthBind(taskModelTools()[0].Parameters) || binding.Input != shopAuthBind(request.Input) || len(binding.Resources) != 1 || binding.Resources[0].Kind != "conversation" || binding.Resources[0].ID != request.Task.ConversationID || len(binding.Sources) != 1 || binding.Sources[0].Resource != binding.Resources[0] || (step.TaskGrantRef != "" && binding.GrantID != step.TaskGrantRef) {
+		return taskReadReceipt{}, errToolConflict
+	}
 	if request.Step.ToolStep.AuthorityOperationID != "" && request.Step.ToolStep.AuthorityOperationID != material.Call.OriginalOperation {
 		return taskReadReceipt{}, errToolConflict
 	}
+	// Pin the authenticated historical locator before querying. A lost or
+	// unrelated query response must not select a different operation locally.
+	if err := retainOriginalBrokerReference(e.store, request, originalclient.TaskAuthorityResult{State: material.State, OriginalOperation: material.Call.OriginalOperation}); err != nil {
+		return taskReadReceipt{}, err
+	}
 	material.Call.RawInput = bytes.Clone(request.Input)
+	if err := e.runtime.queryCurrent(ctx); err != nil {
+		return taskReadReceipt{}, err
+	}
 	result, queryErr := b.client.QueryOriginalEffect(ctx, material.Call)
 	retainErr := retainOriginalBrokerReference(e.store, request, result)
 	if queryErr != nil || retainErr != nil {
