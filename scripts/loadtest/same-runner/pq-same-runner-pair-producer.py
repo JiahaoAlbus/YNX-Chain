@@ -480,10 +480,12 @@ def run_pair(output, *, pair, plans, adapters, environment=None, clock=time.mono
             except BaseException as error:
                 arm_state['boundaryFailure'] = failure(error)
                 primary = primary or error
-            arm_state['payloadFiles'] = copy_payload(output/arm, originals)
-            # The sealed disk copies and their hashes are authoritative. Do not
-            # keep the complete prior-arm byte map resident during the next arm.
-            del originals
+            try:
+                arm_state['payloadFiles'] = copy_payload(output/arm, originals)
+            finally:
+                # Sealed disk copies and hashes are authoritative. Drop this
+                # local reference on success and on an unsuccessful copy.
+                del originals
             write_new(output/(arm+'-SEALED.json'), arm_state, expected_parent=output_identity)
             try:
                 require(adapter.admit(tuple(retained)) is None,

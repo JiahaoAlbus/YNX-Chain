@@ -156,6 +156,34 @@ class SameRunnerProducerTests(unittest.TestCase):
             self.assertTrue((case.adapters['before'].work/'.private/original-UNKNOWN').exists())
             self.assertTrue((case.root/'producer/before').is_dir())
 
+    def test_copy_failure_releases_public_byte_map_and_preserves_original_cause(self):
+        class TrackedFiles(dict):
+            pass
+        with tempfile.TemporaryDirectory() as name:
+            case=Case(Path(name)); refs={}; original=producer.public_files;readiness=[0]
+            def tracked(work):
+                value=TrackedFiles(original(work));refs[work.name]=weakref.ref(value);return value
+            def failing_copy(destination, files):
+                destination.mkdir();(destination/'partial-original').write_bytes(b'preserve')
+                raise OSError('original controlled copy failure')
+            original_readiness=case.adapters['before'].port_readiness
+            def check_after_failure():
+                readiness[0]+=1
+                if readiness[0]>1:
+                    self.assertTrue(refs[case.adapters['before'].work.name]() is None,
+                                    'failed copy still holds the original public map')
+                return original_readiness()
+            case.adapters['before'].port_readiness=check_after_failure
+            with mock.patch.object(producer,'public_files',new=tracked), \
+                 mock.patch.object(producer,'copy_payload',new=failing_copy):
+                result=case.run()
+            self.assertEqual(result['status'],'INCOMPLETE')
+            self.assertEqual(result['firstCause'],producer.failure(OSError('original controlled copy failure')))
+            self.assertIsNotNone(result['pairPortReadiness'])
+            self.assertEqual((case.root/'producer/before/partial-original').read_bytes(),b'preserve')
+            self.assertTrue((case.adapters['before'].work/'.private/original-UNKNOWN').exists())
+            self.assertFalse(case.adapters['after'].work.exists())
+
     def test_sequential_producer_upload_seal_reader_round_trip_preserves_unknown_and_private(self):
         with tempfile.TemporaryDirectory() as name:
             case = Case(Path(name)); result = case.run()
