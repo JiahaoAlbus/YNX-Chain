@@ -178,15 +178,8 @@ func capturePQEngineState(path string) (_ *pqEngineStateRead, result error) {
 // A short EOF remains a successful byte read (and fails the caller's identity
 // check), while any non-EOF I/O error, including one returned with bytes, wins.
 func readPQEngineStateBytes(source io.Reader, size int64) ([]byte, error) {
-	if size < 0 {
-		return nil, errors.New("committed source size cannot fit its bounded read")
-	}
-	if size >= 8<<20 {
+	if size < 0 || size >= 8<<20 {
 		return io.ReadAll(io.LimitReader(source, size+1))
-	}
-	maxInt := int64(int(^uint(0) >> 1))
-	if size >= maxInt {
-		return nil, errors.New("committed source size cannot fit its bounded read")
 	}
 	data := make([]byte, int(size)+1)
 	read := 0

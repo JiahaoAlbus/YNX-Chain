@@ -73,15 +73,9 @@ func TestPQStateCaptureKnownSizeDoesNotReadPastGrowthSentinel(t *testing.T) {
 			t.Fatal("known-size read lost its original growth sentinel or consumed later bytes", size, len(got), r.Len(), err)
 		}
 	}
-	for _, size := range []int64{-1} {
-		r := bytes.NewReader([]byte("preserve"))
-		if got, err := readPQEngineStateBytes(r, size); err == nil || got != nil || r.Len() != 8 {
-			t.Fatal("impossible allocation size was read or accepted", size, err)
-		}
-	}
-	// The large-file path preserves the original read and error ordering even
-	// at 32-bit MaxInt and at the int64 addition boundary.
-	for _, size := range []int64{math.MaxInt32, math.MaxInt64 - 1, math.MaxInt64} {
+	// Negative and large sizes preserve the exact old read and error ordering,
+	// including 32-bit MaxInt and the int64 addition boundary.
+	for _, size := range []int64{math.MinInt64, -2, -1, math.MaxInt32, math.MaxInt64 - 1, math.MaxInt64} {
 		for _, terminal := range []error{io.EOF, errors.New("synthetic original I/O error")} {
 			beforeReader := &pqCaptureChunkReader{data: []byte("preserve"), chunk: 2, terminal: terminal}
 			afterReader := &pqCaptureChunkReader{data: []byte("preserve"), chunk: 2, terminal: terminal}
