@@ -159,6 +159,7 @@ on:
       - 'scripts/verify/public-bft-production-candidate-check.sh'
       - 'scripts/verify/public-bft-production-driver-check.sh'
       - 'scripts/verify/pq-remote-window-entry-check.sh'
+      - 'scripts/verify/pq-ci-replay-entry-identity.py'
       - 'scripts/verify/reuse-pq-history-counterexamples.sh'
       - 'scripts/verify/reuse-pq-history-counterexamples-check.sh'
       - 'scripts/verify/lib/owner-handover.mjs'
@@ -241,6 +242,7 @@ on:
       - 'scripts/loadtest/fixtures/finalize-1b-public/**'
       - 'scripts/ops/test_validate_pq_wallet_policy_ci.py'
       - 'scripts/ops/test_validate_pq_current4_ci.py'
+      - 'scripts/verify/pq-ci-replay-entry-identity.py'
       - 'scripts/ops/test_validate_pq_source_parent_ci.py'
       - 'scripts/verify/committed-account-proof-check.sh'
       - 'scripts/ops/collect_pq_committed_account_tests.py'
@@ -1666,9 +1668,9 @@ jobs:
             test "$YNX_ENTRY_CANDIDATE_SHA" = "$YNX_ENTRY_GITHUB_SHA"
             if [ "${YNX_ENTRY_FRESH_BUSINESS:-false}" = 'true' ]; then
               if [[ "$YNX_ENTRY_REF" =~ ^refs/heads/codex/ynx-pq-remote-([0-9a-f]{9,40})$ ]]; then
-                [[ "$YNX_ENTRY_CANDIDATE_SHA" == "${BASH_REMATCH[1]}"* ]]
+                [[ "$YNX_ENTRY_CANDIDATE_SHA" == "${BASH_REMATCH[1]}"* ]] || exit 1
               else
-                [[ "$YNX_ENTRY_REF" == refs/heads/main || "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-public-upgrade || "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-perf-integration ]]
+                [[ "$YNX_ENTRY_REF" == refs/heads/main || "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-public-upgrade || "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-perf-integration ]] || exit 1
               fi
             elif [[ "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-remote-* || "$YNX_ENTRY_REMOTE_RETAINED" == 'true' ]]; then
               bash scripts/ops/validate-pq-remote-window-entry.sh \
@@ -4435,30 +4437,7 @@ jobs:
           go version
           git status --porcelain
           bash scripts/verify/pq-remote-window-entry-check.sh
-          if [ "$YNX_ENTRY_EVENT" = 'workflow_dispatch' ]; then
-            test "$YNX_ENTRY_CANDIDATE_SHA" = "$YNX_ENTRY_GITHUB_SHA"
-            if [ "${YNX_ENTRY_FRESH_BUSINESS:-false}" = 'true' ]; then
-              if [[ "$YNX_ENTRY_REF" =~ ^refs/heads/codex/ynx-pq-remote-([0-9a-f]{9,40})$ ]]; then
-                [[ "$YNX_ENTRY_CANDIDATE_SHA" == "${BASH_REMATCH[1]}"* ]]
-              else
-                [[ "$YNX_ENTRY_REF" == refs/heads/main || "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-public-upgrade || "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-perf-integration ]]
-              fi
-            elif [[ "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-remote-* || "$YNX_ENTRY_REMOTE_RETAINED" == 'true' ]]; then
-              bash scripts/ops/validate-pq-remote-window-entry.sh \
-                "$YNX_ENTRY_EVENT" "$YNX_ENTRY_REF" "$YNX_ENTRY_GITHUB_SHA" "$YNX_ENTRY_CANDIDATE_SHA" \
-                "$YNX_ENTRY_REMOTE_RETAINED" "$YNX_ENTRY_PAIRED" "$YNX_ENTRY_LOCAL" \
-                "$YNX_ENTRY_LOCAL_RETAINED" "$YNX_ENTRY_REMOTE_PROCESS"
-            fi
-            YNX_WINDOW_SELECTIONS=0
-            for YNX_WINDOW_SELECTED in "$YNX_ENTRY_PAIRED" "$YNX_ENTRY_LOCAL" "$YNX_ENTRY_LOCAL_RETAINED" "$YNX_ENTRY_REMOTE_RETAINED" "$YNX_ENTRY_REMOTE_PROCESS" "${YNX_ENTRY_FRESH_BUSINESS:-false}"; do
-              case "$YNX_WINDOW_SELECTED" in
-                true) YNX_WINDOW_SELECTIONS=$((YNX_WINDOW_SELECTIONS + 1)) ;;
-                false|'') ;;
-                *) exit 1 ;;
-              esac
-            done
-            test "$YNX_WINDOW_SELECTIONS" -le 1
-          fi
+          python3 -B scripts/verify/pq-ci-replay-entry-identity.py
       - name: Reproduce and repair real Commit and engine checkpoint read ordering
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3

@@ -5012,7 +5012,11 @@ class IndependentSourceChecksControls(unittest.TestCase):
         focus_identity = [s for s in workflow_steps(raw, 'focused-go')[1] if s.startswith('      - name: Record exact candidate identity\n')]
         detached_identity = [s for s in steps if s.startswith('      - name: Record exact candidate identity\n')]
         self.assertEqual(len(focus_identity), 1)
-        self.assertEqual(detached_identity, focus_identity)
+        self.assertEqual(len(detached_identity), 1)
+        marker = '          if [ "$YNX_ENTRY_EVENT" = ' + "'workflow_dispatch'" + ' ]; then\n'
+        self.assertEqual(focus_identity[0].count(marker), 1)
+        self.assertEqual(detached_identity[0], focus_identity[0].split(marker)[0]
+                         + '          python3 -B scripts/verify/pq-ci-replay-entry-identity.py\n')
         original = ('Reproduce and repair real Commit and engine checkpoint read ordering',
                     'Verify explicit ordinary observer fork role without starting a node',
                     'Verify original Auth r2 cross-process Current4 DATA interoperability',
@@ -5052,6 +5056,30 @@ class IndependentSourceChecksControls(unittest.TestCase):
             self.assertNotEqual(changed, raw)
             with self.subTest(index=index), self.assertRaises(AssertionError):
                 self.assert_detached_gate(changed)
+
+    def test_detached_identity_executes_only_the_original_caller(self):
+        import os
+        root = Path(__file__).resolve().parents[2]
+        spec = importlib.util.spec_from_file_location('entry_replay', root / 'scripts/verify/pq-ci-replay-entry-identity.py')
+        entry = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(entry)
+        raw = (root / '.github/workflows/resource-market-ci.yml').read_text()
+        body = entry.extract_caller(raw)
+        self.assertIn('bash scripts/ops/validate-pq-remote-window-entry.sh', body)
+        self.assertIn('YNX_WINDOW_SELECTIONS', body)
+        marker = '          if [ "$YNX_ENTRY_EVENT" = ' + "'workflow_dispatch'" + ' ]; then\n'
+        for bad in (raw.replace(marker, '', 1), raw + marker,
+                    raw.replace('bash scripts/ops/validate-pq-remote-window-entry.sh', 'true', 1)):
+            with self.assertRaises(ValueError):
+                entry.extract_caller(bad)
+        with patch.dict(os.environ, YNX_ENTRY_EVENT='push', YNX_ENTRY_GITHUB_SHA='a' * 40), patch.object(entry.subprocess, 'run') as run:
+            entry.main()
+        args, kwargs = run.call_args
+        self.assertEqual(args[0], ['bash', '-e', '-c', body])
+        self.assertEqual(kwargs['env']['YNX_ENTRY_EVENT'], 'push')
+        self.assertEqual(kwargs['env']['YNX_ENTRY_GITHUB_SHA'], 'a' * 40)
+        self.assertTrue(kwargs['check'])
+        self.assertEqual(kwargs['timeout'], 30)
 
 if __name__ == "__main__":
     unittest.main()
