@@ -12,11 +12,14 @@ REQUIRED = {
     "bftgateway": (
         "TestEVMUnversionedValueUnitsHeldBeforeBroadcast",
         "TestEVMOriginalBalanceUnitCompatibility",
+        "TestEVMAccountReadRejectsSnapshotHeightMismatch",
+        "TestEVMNativeSignedTransferProjectionUsesWei",
         "TestEVMOriginalSignedTransactionAndReceiptUnits",
         "TestEVMOriginalSignedBroadcastAndReadback",
         "TestOriginalNativeEthereumEstimateWei",
         "TestOriginalFeeModelConfiguredABCIObservation",
         "TestOriginalFeeModelMissingPolicyFailsClosed",
+        "TestGatewayRoutesCommittedFeeHistory",
     ),
 }
 

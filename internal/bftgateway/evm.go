@@ -258,12 +258,12 @@ func (g *Gateway) evmCommittedAccountResult(ctx context.Context, method string, 
 	if height != status.Height {
 		return nil, errors.New("historical account state is not available from the current CometBFT gateway")
 	}
-	var account chain.ConsensusAccount
-	if err := g.queryABCIJSON(ctx, "/accounts/"+address, &account); err != nil {
-		if err.Error() == "YNX account not found" {
-			return "0x0", nil
-		}
+	account, found, err := g.evmAccountAtHeight(ctx, address, height)
+	if err != nil {
 		return nil, err
+	}
+	if !found {
+		return "0x0", nil
 	}
 	if account.Address != address || account.Balance < 0 {
 		return nil, errors.New("ABCI account evidence is invalid")
@@ -1182,6 +1182,8 @@ func evmCommittedTransaction(t chain.Transaction, index uint32, raws ...[]byte) 
 			// the original RLP value, not a rewritten signed transaction.
 			value = ethnative.Quantity(ethnative.Wei(ethereumTx.Value))
 		}
+	} else if native, err := consensus.DecodeSignedTransaction(raw); err == nil && native.Verify(6423) == nil && native.From == t.From && native.To == t.To && native.Amount == t.Amount && native.Nonce == t.Nonce && consensus.SignedTransactionHash(raw) == t.Hash {
+		value = ethnative.Quantity(ethnative.Wei(native.Amount))
 	} else if action, err := consensus.DecodeSignedApplicationAction(raw); err == nil && action.Action == consensus.ActionIDEContractCall {
 		var payload consensus.IDEContractCallPayload
 		if json.Unmarshal(action.Payload, &payload) == nil {

@@ -94,11 +94,8 @@ func TestGatewayRoutesCommittedFeeHistory(t *testing.T) {
 	server := httptest.NewServer(gateway.Handler())
 	defer server.Close()
 
-	result := assertRPCObject(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":1,"method":"eth_feeHistory","params":["0x2","latest"]}`)
-	if result["oldestBlock"] != "0x10" {
-		t.Fatalf("unexpected routed fee history: %+v", result)
-	}
-	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":2,"method":"eth_feeHistory","params":["0x1","latest",[50]]}`, -32602)
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":1,"method":"eth_feeHistory","params":["0x2","latest"]}`, -32004)
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":2,"method":"eth_feeHistory","params":["0x1","latest",[50]]}`, -32004)
 }
 
 type feeHistoryFixture struct {

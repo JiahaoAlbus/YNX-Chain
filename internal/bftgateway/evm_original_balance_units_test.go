@@ -60,6 +60,30 @@ func TestEVMUnversionedValueUnitsHeldBeforeBroadcast(t *testing.T) {
 	}
 }
 
+func TestEVMNativeSignedTransferProjectionUsesWei(t *testing.T) {
+	key := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 51))
+	recipient, err := consensus.NativeAddress(secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 52)).PubKey().SerializeCompressed())
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := consensus.NewSignedTransfer(key, 6423, recipient, 2, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := consensus.EncodeSignedTransaction(tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mapped, err := mappedTransaction(raw, 4, strings.Repeat("b", 64), time.Unix(4, 0).UTC())
+	if err != nil {
+		t.Fatal(err)
+	}
+	projected := evmCommittedTransaction(mapped, 0, raw)
+	if projected["value"] != "0x1bc16d674ec80000" || projected["hash"] != consensus.SignedTransactionHash(raw) {
+		t.Fatalf("native ledger value or signed identity changed: %+v", projected)
+	}
+}
+
 // The original public native-Ethereum route reports its ledger integer in
 // wei. This exercises the normal JSON-RPC entry with a configured Comet RPC;
 // neither a key nor a transaction signature is created by this fixture.
@@ -83,7 +107,7 @@ func TestEVMOriginalBalanceUnitCompatibility(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{"code": 0, "value": base64.StdEncoding.EncodeToString(account)}}})
+			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{"code": 0, "height": "1", "value": base64.StdEncoding.EncodeToString(account)}}})
 		default:
 			t.Error("unexpected Comet path", r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)

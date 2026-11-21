@@ -1763,19 +1763,14 @@ func (g *Gateway) handleEVM(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		result = fmt.Sprintf("0x%x", status.Height)
-	case "eth_gasPrice", "eth_maxPriorityFeePerGas":
+	case "eth_maxPriorityFeePerGas", "eth_feeHistory":
+		writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": -32004, "message": "standard EIP-1559 submission is unavailable; original native adapter uses fixed legacy fees"}})
+		return
+	case "eth_gasPrice":
 		var err error
 		result, err = evmFeeSuggestionResult(request.Method, request.Params)
 		if err != nil {
 			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": -32602, "message": err.Error()}})
-			return
-		}
-	case "eth_feeHistory":
-		var code int
-		var err error
-		result, code, err = g.evmFeeHistory(r.Context(), request.Params)
-		if err != nil {
-			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": code, "message": err.Error()}})
 			return
 		}
 	case "eth_sendRawTransaction":
