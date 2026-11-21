@@ -209,15 +209,43 @@ class Journal:
 class Monitor:
     def __init__(self,window,stop):
         self.w=window;self.stop_event=stop;self.finished=threading.Event();self.error=None
+        self.failure_lock=threading.Lock();self.first_failure=None
+        lab.require(callable(getattr(window,'_sample',None)) and getattr(window,'_pq_resource_monitor',None) is None,
+                    'one observer of the original Window sampler required')
+        original=window._sample
+        def sample_original(*args,**kwargs):
+            try:return original(*args,**kwargs)
+            except BaseException as error:
+                self.latch(error,'original Window._sample');raise
+        # Window.sample, including any previously captured bound callback,
+        # dispatches through this same instance's _sample under its original
+        # lock. No guard values, checks, cadence or return/exception change.
+        window._sample=sample_original;window._pq_resource_monitor=self
         self.thread=threading.Thread(target=self.loop,name="owned-original-resource-observer",daemon=True)
+    def latch(self,error,source):
+        with self.failure_lock:
+            if self.error is None:
+                self.error=str(error)
+                try:observed=time.monotonic_ns()
+                except Exception:observed=None
+                self.first_failure=dict(schema='YNX-PERF-ORIGINAL-RESOURCE-FIRST-FAILURE/v1',
+                    originalError=self.error,errorType=type(error).__name__,source=source,
+                    observedMonotonicNs=observed,callerThread=threading.current_thread().name,
+                    guardLimitsChanged=False,exceptionSuppressed=False)
+        self.stop_event.set()
     def loop(self):
         while not self.finished.is_set():
             try:self.w.sample()
-            except BaseException as error:self.error=str(error);self.stop_event.set();return
+            except BaseException as error:self.latch(error,'original monitor sampling');return
             self.finished.wait(.2)
     def check(self):
-        if self.error:raise RuntimeError(self.error)
-    def close(self):self.finished.set();self.thread.join(timeout=10)
+        with self.failure_lock:error=self.error
+        if error:raise RuntimeError(error)
+    def failure_snapshot(self):
+        with self.failure_lock:return None if self.first_failure is None else dict(self.first_failure)
+    def close(self):
+        self.finished.set()
+        if self.thread.ident is not None:self.thread.join(timeout=10)
 
 
 class SenderSession:
@@ -1478,6 +1506,10 @@ def run(args, *, source_metadata_reader=None):
                 result["ownedStorageAccounting"]=dict(status="UNKNOWN",reason=str(error),actualLoadWindowCommitCount=None)
                 result["firstCause"]=result["firstCause"] or "original store accounting failed"
         result["resourceGuardStageElapsed"]=w.sample_stage_report()
+        if monitor is not None:
+            result['resourceFirstFailure']=monitor.failure_snapshot()
+            try:monitor.check()
+            except BaseException as error:result['firstCause']=result['firstCause'] or str(error)
         result["peakRSSSample"] = getattr(w, "peak_rss_sample", None)
         result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,processes=w.process_receipt(),retiredSamplingEvidence=w.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=w.rss_fallback_samples)
         if ceremony is not None:
