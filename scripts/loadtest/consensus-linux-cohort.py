@@ -575,7 +575,9 @@ class Window:
             meaning='sampleIncludingLockWait encloses component spans and child work may overlap; no sum across nesting or subtraction from Go CPU; failed original guard and clock errors retained')
 
     def process_rss_report(self):
-        if not self.lock.acquire(timeout=1):
+        # This optional export must not spend more cleanup budget waiting for
+        # a blocked sampler. A contended final snapshot is explicitly unknown.
+        if not self.lock.acquire(blocking=False):
             value=ProcessRSSObservation().report()
             value.update(status='UNKNOWN',reason='original resource guard lock unavailable',
                          observations=None,omittedObservations=None,records=[])

@@ -174,7 +174,7 @@ class ProcessRSSObservationControls(unittest.TestCase):
         window = SimpleNamespace(lock=mock.Mock())
         window.lock.acquire.return_value = False
         report = lab.Window.process_rss_report(window)
-        window.lock.acquire.assert_called_once_with(timeout=1)
+        window.lock.acquire.assert_called_once_with(blocking=False)
         window.lock.release.assert_not_called()
         self.assertEqual(self.reduce(report)['status'], 'UNKNOWN')
         self.assertIsNone(report['observations'])
