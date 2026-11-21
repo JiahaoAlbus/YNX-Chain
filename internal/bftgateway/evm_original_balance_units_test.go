@@ -79,8 +79,15 @@ func TestEVMNativeSignedTransferProjectionUsesWei(t *testing.T) {
 		t.Fatal(err)
 	}
 	projected := evmCommittedTransaction(mapped, 0, raw)
-	if projected["value"] != "0x1bc16d674ec80000" || projected["hash"] != consensus.SignedTransactionHash(raw) {
+	if projected["value"] != "0x1bc16d674ec80000" || projected["gasPrice"] != "0xde0b6b3a7640000" || projected["hash"] != consensus.SignedTransactionHash(raw) {
 		t.Fatalf("native ledger value or signed identity changed: %+v", projected)
+	}
+	receipt := evmCommittedReceipt(mapped, 0, 1, 1, raw)
+	if receipt["gasUsed"] != "0x1" || receipt["effectiveGasPrice"] != "0xde0b6b3a7640000" {
+		t.Fatalf("native charged fee was not projected in wei: %+v", receipt)
+	}
+	if evmCommittedReceipt(mapped, 0, 2, 2, raw) != nil {
+		t.Fatal("native transfer receipt accepted mismatched gas evidence")
 	}
 }
 

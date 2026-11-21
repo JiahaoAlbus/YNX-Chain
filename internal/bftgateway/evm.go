@@ -223,7 +223,11 @@ func (g *Gateway) evmCommittedResult(ctx context.Context, method string, raw jso
 		} else if err.Error() != "EVM receipt not found" {
 			return nil, err
 		}
-		return evmCommittedReceipt(tx, upstream.Index, gasUsed, cumulativeGasUsed, upstream.Tx), nil
+		receipt := evmCommittedReceipt(tx, upstream.Index, gasUsed, cumulativeGasUsed, upstream.Tx)
+		if receipt == nil {
+			return nil, errors.New("native transfer gas evidence does not match its execution profile")
+		}
+		return receipt, nil
 	case "eth_getLogs":
 		filter, err := g.committedLogFilter(ctx, params)
 		if err != nil {
@@ -1182,8 +1186,9 @@ func evmCommittedTransaction(t chain.Transaction, index uint32, raws ...[]byte) 
 			// the original RLP value, not a rewritten signed transaction.
 			value = ethnative.Quantity(ethnative.Wei(ethereumTx.Value))
 		}
-	} else if native, err := consensus.DecodeSignedTransaction(raw); err == nil && native.Verify(6423) == nil && native.From == t.From && native.To == t.To && native.Amount == t.Amount && native.Nonce == t.Nonce && consensus.SignedTransactionHash(raw) == t.Hash {
+	} else if native, ok := verifiedNativeEVMTransfer(t, raw); ok {
 		value = ethnative.Quantity(ethnative.Wei(native.Amount))
+		gasPrice = ethnative.Quantity(ethnative.Wei(native.Fee))
 	} else if action, err := consensus.DecodeSignedApplicationAction(raw); err == nil && action.Action == consensus.ActionIDEContractCall {
 		var payload consensus.IDEContractCallPayload
 		if json.Unmarshal(action.Payload, &payload) == nil {
@@ -1215,6 +1220,14 @@ func evmCommittedTransaction(t chain.Transaction, index uint32, raws ...[]byte) 
 		}
 	}
 	return result
+}
+
+func verifiedNativeEVMTransfer(t chain.Transaction, raw []byte) (consensus.SignedTransaction, bool) {
+	native, err := consensus.DecodeSignedTransaction(raw)
+	if err != nil || native.Verify(6423) != nil || native.From != t.From || native.To != t.To || native.Amount != t.Amount || native.Fee != t.Fee || native.Nonce != t.Nonce || consensus.SignedTransactionHash(raw) != t.Hash {
+		return consensus.SignedTransaction{}, false
+	}
+	return native, true
 }
 
 func evmIDEReceipt(t chain.Transaction, index uint32, gasUsed, cumulativeGasUsed uint64, receipt consensus.BFTEVMReceipt, logs []map[string]any, raws ...[]byte) map[string]any {
@@ -1249,6 +1262,11 @@ func evmCommittedReceipt(t chain.Transaction, index uint32, gasUsed, cumulativeG
 		if ethereumTx, err := consensus.DecodeEthereumValueTransfer(raws[0]); err == nil {
 			effectiveGasPrice = hexEVMQuantity(ethereumTx.GasPrice)
 			txType = hexEVMQuantity(uint64(ethereumTx.TransactionType))
+		} else if native, ok := verifiedNativeEVMTransfer(t, raws[0]); ok {
+			if gasUsed != 1 {
+				return nil
+			}
+			effectiveGasPrice = ethnative.Quantity(ethnative.Wei(native.Fee))
 		}
 	}
 	return map[string]any{
