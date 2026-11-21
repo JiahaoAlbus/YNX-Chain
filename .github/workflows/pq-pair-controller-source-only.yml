@@ -3,7 +3,7 @@ name: Pair controller source-only controls
 on:
   push:
     branches:
-      - codex/perf-controller-clock-preflight-20261122
+      - codex/perf-pair-clock-readback-20261122
 
 permissions:
   contents: read
@@ -23,5 +23,7 @@ jobs:
             /.github/workflows/pq-normal-process.yml
             /.github/workflows/pq-pair-controller-source-only.yml
             /scripts/loadtest/same-runner/
+      - name: Verify exact source checkout identity
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - name: Verify original and cross-arm controls without a window
         run: python3 -I -B scripts/loadtest/same-runner/pq-same-runner-controls.py

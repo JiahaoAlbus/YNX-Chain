@@ -288,6 +288,20 @@ def arm_read(raw, label, declaration, pair, expected):
                 accountShape=sorted((a['ownerIndex'], a['nextNonce'], a['capacity']) for a in owners))
 
 
+def clock_projection(arms):
+    """Keep absence distinct from complete original per-arm clock DATA."""
+    clocks = [arm['report'].get('originalCommitClockReadback') for arm in arms]
+    configured = [arm['report'].get('commitClockReadbackConfigured') is True for arm in arms]
+    clock_complete = (len(arms) == 2 and all(configured) and all(type(clock) is dict
+        and clock.get('status') == 'OBSERVED_OR_CENSORED'
+        and type(clock.get('configuredDemand')) is int and clock['configuredDemand'] == 500
+        and type(clock.get('observed')) is int and clock['observed'] == clock['configuredDemand']
+        and type(clock.get('censored')) is int and clock['censored'] == 0 for clock in clocks))
+    return (dict(clockObservationConfiguredPerArm=configured,
+                 completeOriginalCommitClockDataPerArm=clock_complete,
+                 clockObservationQualified=False) if any(configured) else {})
+
+
 def inspect(manifest_raw, before_raw, after_raw, *, metadata, controller, manifest_sha256, expected):
     """Read original ZIP bytes only. No altered run IDs or fabricated legacy legs."""
     require(digest(manifest_raw) == pin(manifest_sha256), 'externally pinned manifest archive differs')
@@ -334,6 +348,7 @@ def inspect(manifest_raw, before_raw, after_raw, *, metadata, controller, manife
     if a.get('status') != 'OBSERVED' or b.get('status') != 'OBSERVED': hardware_differences.append('status')
     for arm in arms:
         arm['report']['sameRunnerArtifactOriginBound'] = True
+    clock_data = clock_projection(arms)
     return copy.deepcopy(dict(schema=SCHEMA, status='PAIRED_ORIGINALS_BOUND', actionsOrigin=bound,
         manifestArchiveSHA256=manifest_sha256, pairID=pair['pairID'], clock=pair['clock'],
         before=left['report'], after=right['report'], configuredDemandPerArm=500,
@@ -341,6 +356,7 @@ def inspect(manifest_raw, before_raw, after_raw, *, metadata, controller, manife
         sameActionsJobAndRunnerBound=True, controllerReportedSameBoot=True,
         configurationDifferences=differences, hardwareDifferences=hardware_differences,
         sameReportedConditions=not differences and not hardware_differences,
+        **clock_data,
         originalMetadataCallerSupplied=True, originalsModified=False, unknownReplayed=False,
         independentFinality=False, identicalPhysicalHostProven=False, canonicalInputEqualityProven=False,
         throughputGainAttributed=False, sustainedTPSQualified=False, pressureAuthorized=False,

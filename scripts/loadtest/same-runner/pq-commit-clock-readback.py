@@ -1,0 +1,573 @@
+"""Synthetic-only physical Commit clock reader; never source or finality authority.
+
+The producer must bind a pidfd immediately after its original Popen, before
+publishing it to any reaper, then probe that same handle while the node is live.
+Old archives have neither that evidence nor a parent clock domain: they remain
+NOT_SUPPLIED. No API here starts a node, retries work or grants runtime access.
+"""
+import base64
+import hashlib
+import importlib.util
+import json
+import os
+from functools import lru_cache
+from pathlib import Path
+import re
+import select
+import stat
+import time
+
+
+SOURCE_BINDING = 'linker-declared-requires-original-manifest-build-binary-and-process-proof'
+BOUNDARY = 'local-persistent-ABCI-Commit-return-upper-bound-before-mempool-update;not-consensus-vote-or-finality'
+# The owning source/CI controller must bind one exact reviewed Core successor.
+# No caller, environment variable or historical receipt can fill this gate.
+COMMIT_CLOCK_SOURCE = None
+# The isolated paired reader may be frozen by its original owner for exactly
+# two reviewed source identities. This DATA-only list grants no CI or runtime.
+COMMIT_CLOCK_SOURCES = None
+_commit_spec=importlib.util.spec_from_file_location('original_commit_clock_snapshot',Path(__file__).with_name('pq-commit-clock-original-commit-observation.py'))
+_commit=importlib.util.module_from_spec(_commit_spec);_commit_spec.loader.exec_module(_commit)
+
+
+def require(ok, message):
+    if not ok: raise ValueError(message)
+
+
+def sha(raw): return hashlib.sha256(raw).hexdigest()
+def pin(value, size):
+    return type(value) is str and re.fullmatch('[0-9a-f]{%d}' % size, value) is not None
+
+
+def source_allowed(value):
+    if COMMIT_CLOCK_SOURCE is not None:
+        return pin(COMMIT_CLOCK_SOURCE,40) and value == COMMIT_CLOCK_SOURCE
+    return (type(COMMIT_CLOCK_SOURCES) is tuple and len(COMMIT_CLOCK_SOURCES) == 2
+            and all(pin(item,40) for item in COMMIT_CLOCK_SOURCES)
+            and len(set(COMMIT_CLOCK_SOURCES)) == 2 and value in COMMIT_CLOCK_SOURCES)
+
+
+def decimal(value, *, positive=False):
+    require(type(value) is str and re.fullmatch(r'0|[1-9][0-9]*',value) is not None, 'canonical original decimal required')
+    number=int(value)
+    require(number < 1<<63 and (number>0 or not positive), 'bounded original decimal required')
+    return number
+
+
+def strict(raw, limit):
+    require(type(raw) is bytes and 0<len(raw)<=limit, 'bounded original JSON bytes required')
+    def pairs(items):
+        result={}
+        for key,value in items:
+            require(key not in result, 'duplicate original JSON field')
+            result[key]=value
+        return result
+    def invalid(value):raise ValueError('nonfinite original JSON')
+    return json.loads(raw,object_pairs_hook=pairs,parse_constant=invalid)
+
+
+def read_original(path,limit):
+    """Read one anchored regular original; never follow a replaced path."""
+    path=Path(path)
+    require(path.is_absolute() and type(limit) is int and limit>0 and '..' not in path.parts,
+            'absolute bounded original path required')
+    directory=os.open('/',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+    try:
+        for part in path.parts[1:-1]:
+            next_fd=os.open(part,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=directory)
+            os.close(directory);directory=next_fd
+        fd=os.open(path.name,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC,dir_fd=directory)
+        try:
+            before=os.fstat(fd)
+            require(stat.S_ISREG(before.st_mode) and before.st_nlink==1 and 0<before.st_size<=limit,
+                    'bounded regular original identity differs')
+            chunks=[];size=0
+            while True:
+                part=os.read(fd,min(65536,limit+1-size))
+                if not part:break
+                size+=len(part);require(size<=limit,'original input grew beyond bound');chunks.append(part)
+            after=os.fstat(fd);named=os.stat(path.name,dir_fd=directory,follow_symlinks=False);current=path.lstat()
+            fields=lambda item:(item.st_dev,item.st_ino,item.st_mode,item.st_nlink,item.st_size,item.st_mtime_ns,item.st_ctime_ns)
+            require(path.resolve(strict=True)==path and fields(before)==fields(after)==fields(named)==fields(current)
+                    and size==before.st_size,'original input changed during read')
+            return b''.join(chunks)
+        finally:os.close(fd)
+    finally:os.close(directory)
+
+
+def plan_from_original_create(raw,expected_sha):
+    """Recover exact plan bytes already emitted by the original create log."""
+    require(pin(expected_sha,64),'original plan SHA required')
+    create=strict(raw,4<<20)
+    require(type(create) is dict and create.get('version')=='YNX-PQ-LAB-CREATED/v1'
+            and create.get('nodeStarted') is False and create.get('planSHA256')==expected_sha
+            and type(create.get('plan')) is dict,'original create output identity differs')
+    text=raw.decode('utf-8');matches=list(re.finditer(r'"plan"\s*:\s*',text))
+    require(len(matches)==1,'one original plan field required')
+    start=matches[0].end();value,end=json.JSONDecoder().raw_decode(text,start)
+    plan_raw=text[start:end].encode('utf-8')
+    require(value==create['plan'] and strict(plan_raw,1<<20)==value and sha(plan_raw)==expected_sha,
+            'original create plan bytes differ from independent plan SHA')
+    return plan_raw
+
+
+def parent_domain():
+    require(os.name == 'posix' and Path('/proc/thread-self/ns/time').exists(), 'Linux parent clock domain unavailable')
+    boot = Path('/proc/sys/kernel/random/boot_id').read_text().strip()
+    ns = os.stat('/proc/thread-self/ns/time')
+    start = time.monotonic_ns(); raw = time.clock_gettime_ns(time.CLOCK_MONOTONIC); end = time.monotonic_ns()
+    require(start <= raw <= end, 'original parent monotonic clock differs')
+    return dict(processID=os.getpid(),bootID=boot,timeNamespace='%d:%d' % (ns.st_dev,ns.st_ino),
+                clock='CLOCK_MONOTONIC',observedStartNs=str(start),observedEndNs=str(end))
+
+
+def _live(fd, pid):
+    # pidfd is acquired before any other owner can reap/publish the Popen.
+    fields = Path('/proc/self/fdinfo/%d' % fd).read_text().splitlines()
+    values = [line.split(':',1)[1].strip() for line in fields if line.startswith('Pid:')]
+    poll = select.poll(); poll.register(fd, select.POLLIN | select.POLLHUP | select.POLLERR)
+    require(values == [str(pid)] and not poll.poll(0), 'original pidfd exited or refers to another process')
+
+
+def bind_unpublished_process(proc):
+    """Caller must own Popen exclusively and call before publishing to monitors."""
+    spec=importlib.util.spec_from_file_location('clock_original_owner_pidfd',Path(__file__).with_name('pq-experimental-owner-pidfd.py'))
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    anchor=module.OriginalOwnerPidfd(proc)
+    try:
+        with anchor.lock: _live(anchor.fd, proc.pid)
+    except BaseException:
+        anchor.close(); raise
+    return anchor
+
+
+def _digest_fd(fd):
+    h=hashlib.sha256()
+    while True:
+        block=os.read(fd,1<<20)
+        if not block: return h.hexdigest()
+        h.update(block)
+
+
+def capture_built_binary(binary_path):
+    """Pin the actual completed original build file, never a CLI assertion."""
+    path=Path(binary_path)
+    require(path.is_absolute() and path.resolve(strict=True)==path, 'canonical built binary required')
+    fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
+    try:
+        before=os.fstat(fd);require(stat.S_ISREG(before.st_mode) and before.st_size>0, 'original built binary is not regular')
+        digest=_digest_fd(fd);after=os.fstat(fd);named=os.stat(path,follow_symlinks=False)
+        fields=lambda item:(item.st_dev,item.st_ino,item.st_size,item.st_mtime_ns,item.st_ctime_ns)
+        require(fields(before)==fields(after)==fields(named), 'original built binary changed during pin')
+        return dict(path=str(path),sha256=digest,device=before.st_dev,inode=before.st_ino,size=before.st_size)
+    finally:os.close(fd)
+
+
+def retain_after_stop(window, descriptors, source):
+    """Retain only each stopped node's bounded original clock bytes."""
+    require(pin(source,40) and type(descriptors) is list and len(descriptors)==4
+            and [d.get('node') for d in descriptors]==list(range(4)), 'four original clock descriptors required')
+    result=dict(schema='YNX-PERF-ORIGINAL-COMMIT-MONOTONIC/v1',originalSnapshots=[],errors=[],independentFinality=False)
+    for descriptor in descriptors:
+        node=descriptor['node'];name='pq-node-%d'%node
+        try:
+            require(descriptor['processName']==name,'original node name differs')
+            children=[row for row in window.children if row['name']==name]
+            require(len(children)==1 and children[0]['process'].poll() is not None,'original clock node not stopped')
+            proc=children[0]['process'];path=Path(descriptor['path'])
+            require(path.is_absolute() and path.resolve(strict=True)==path,'original clock path redirected')
+            fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
+            try:
+                before=os.fstat(fd)
+                require(stat.S_ISREG(before.st_mode) and stat.S_IMODE(before.st_mode)==0o600
+                        and before.st_nlink==1 and 0<before.st_size<=512<<10,'original clock file identity differs')
+                chunks=[];size=0
+                while True:
+                    part=os.read(fd,65536)
+                    if not part:break
+                    size+=len(part);require(size<=512<<10,'original clock file grew');chunks.append(part)
+                after=os.fstat(fd);named=path.lstat()
+                fields=lambda item:(item.st_dev,item.st_ino,item.st_mode,item.st_nlink,item.st_size,item.st_mtime_ns,item.st_ctime_ns)
+                require(fields(before)==fields(after)==fields(named) and size==before.st_size,'original clock file changed')
+                raw=b''.join(chunks)
+            finally:os.close(fd)
+            snapshot=strict(raw,512<<10)
+            require(snapshot.get('version')=='YNX-COMET-COMMIT-MONOTONIC/v1'
+                    and type(snapshot.get('processID')) is int and snapshot['processID']==proc.pid
+                    and snapshot.get('sourceRevision')==source and snapshot.get('sourceBinding')==SOURCE_BINDING,
+                    'original stopped clock producer identity differs')
+            directory=window.work/'public';target_name='commit-monotonic-node-%d-original.json'%node
+            folder=os.open(directory,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+            try:
+                folder_info=os.fstat(folder)
+                out=os.open(target_name,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600,dir_fd=folder)
+                try:
+                    remaining=memoryview(raw)
+                    while remaining:
+                        written=os.write(out,remaining);require(written>0,'original clock copy short write');remaining=remaining[written:]
+                    os.fsync(out);os.fsync(folder)
+                    created=os.fstat(out);named=os.stat(target_name,dir_fd=folder,follow_symlinks=False);current=directory.lstat()
+                    require(fields(created)==fields(named) and stat.S_ISREG(created.st_mode)
+                            and stat.S_IMODE(created.st_mode)==0o600 and created.st_nlink==1 and created.st_size==len(raw)
+                            and (folder_info.st_dev,folder_info.st_ino)==(current.st_dev,current.st_ino)
+                            and stat.S_ISDIR(current.st_mode),'original clock copy or directory identity differs')
+                finally:os.close(out)
+            finally:os.close(folder)
+            result['originalSnapshots'].append(dict(node=node,processName=name,pid=proc.pid,path=target_name,
+                bytes=len(raw),sha256=sha(raw),sourceStopped=True,usable=snapshot.get('status')=='OBSERVED'))
+        except (OSError,ValueError,KeyError,TypeError,AttributeError,IndexError) as error:
+            result['errors'].append(dict(node=node,errorType=type(error).__name__,missingStagesAreUnknown=True))
+    result['fourOriginalSnapshotsUsable']=len(result['originalSnapshots'])==4 and all(row['usable'] for row in result['originalSnapshots']) and not result['errors']
+    return result
+
+
+def _start_ticks(pid):
+    data=Path('/proc/%d/stat' % pid).read_text()
+    end=data.rfind(')'); require(end > 0, 'original process stat malformed')
+    fields=data[end+2:].split(); require(len(fields)>19 and fields[19].isdigit(), 'original start time unavailable')
+    return fields[19]
+
+
+def capture_owned_executable(proc, anchor, binary_path, binary_sha):
+    """No numeric-PID fallback: hash the currently running original exe FD."""
+    require(anchor.pid==proc.pid, 'original process pidfd differs')
+    with anchor.lock:
+        require(anchor.fd is not None, 'original process pidfd already retired')
+        return _capture_owned_executable(proc,anchor.fd,binary_path,binary_sha)
+
+
+def _capture_owned_executable(proc, pidfd, binary_path, binary_sha):
+    require(pin(binary_sha,64), 'exact original binary digest required')
+    path=Path(binary_path)
+    require(path.is_absolute() and path.resolve(strict=True)==path, 'canonical original executable path required')
+    start=time.monotonic_ns(); pid=proc.pid; _live(pidfd,pid); before=_start_ticks(pid)
+    expected=os.open(binary_path,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
+    try:
+        actual=os.open('/proc/%d/exe' % pid,os.O_RDONLY|os.O_CLOEXEC)
+        try:
+            e=os.fstat(expected); a=os.fstat(actual)
+            require(stat.S_ISREG(e.st_mode) and stat.S_ISREG(a.st_mode)
+                    and (e.st_dev,e.st_ino,e.st_size)==(a.st_dev,a.st_ino,a.st_size), 'original process executable differs')
+            require(_digest_fd(actual)==binary_sha and _digest_fd(expected)==binary_sha, 'original executable digest differs')
+            a2=os.fstat(actual); e2=os.fstat(expected)
+            current=os.stat(binary_path,follow_symlinks=False)
+            require((a.st_dev,a.st_ino,a.st_size,a.st_mtime_ns,a.st_ctime_ns)==(a2.st_dev,a2.st_ino,a2.st_size,a2.st_mtime_ns,a2.st_ctime_ns)
+                    and (e.st_dev,e.st_ino,e.st_size,e.st_mtime_ns,e.st_ctime_ns)==(e2.st_dev,e2.st_ino,e2.st_size,e2.st_mtime_ns,e2.st_ctime_ns)
+                    and (e.st_dev,e.st_ino,e.st_size,e.st_mtime_ns,e.st_ctime_ns)==(current.st_dev,current.st_ino,current.st_size,current.st_mtime_ns,current.st_ctime_ns), 'original executable changed while read')
+            ns=os.stat('/proc/%d/ns/time' % pid); _live(pidfd,pid)
+            require(_start_ticks(pid)==before, 'original process start identity changed')
+            return dict(pid=pid,startTicks=before,binarySHA256=binary_sha,binaryPath=str(binary_path),device=a.st_dev,inode=a.st_ino,size=a.st_size,
+                        observedStartNs=str(start),observedEndNs=str(time.monotonic_ns()),
+                        timeNamespace='%d:%d' % (ns.st_dev,ns.st_ino),identity='original-unpublished-pidfd-and-live-proc-exe')
+        finally: os.close(actual)
+    finally: os.close(expected)
+
+
+def _source_binding(receipt, source, selection_raw, dependencies_raw, build_identity_raw):
+    require(pin(source,40) and receipt['source']['commit']==source, 'exact new Core source required')
+    build=receipt['normalLiveBuildProvenance']['ynx-comet']; identity=receipt['source']
+    binary=receipt['binaries']['ynx-comet']; require(pin(binary,64), 'original binary digest missing')
+    require(build['binarySHA256']==binary and build['originalSource']==identity, 'original build source or binary differs')
+    require(sha(selection_raw)==build['sourceSelectionSHA256'] and sha(dependencies_raw)==build['sourceDependenciesReceiptSHA256'], 'original source manifest digest differs')
+    selection=strict(selection_raw,64<<10); dependencies=strict(dependencies_raw,64<<10)
+    require(selection['originalSourceCommit']==source and selection['originalSourceTree']==identity['tree']
+            and selection['originalProductionForkTree']==identity['forkTree']
+            and selection['originalCheckoutWritten'] is False and selection['fakeVCSIdentity'] is False
+            and selection['selectedOptionalForkTree']==build['selectedOptionalForkTree'],
+            'original composed source manifest differs')
+    require(dependencies==receipt['normalLiveSourceDependencies']['sourceDependencies'], 'original native dependency manifest differs')
+    argv=build['buildArgv']; require(type(argv) is list and len(argv)==14, 'original synthetic build argv shape differs')
+    binary_path=argv[-2]
+    require(argv==['go','build','-mod=readonly','-p','1','-trimpath','-buildvcs=false','-ldflags',
+                   '-X main.operatorCommitBuildSource='+source,'-tags','ynx_live_wire_observation','-o',binary_path,'./cmd/ynx-comet']
+            and build['buildCwd']==selection['sourceDirectory'], 'original synthetic linker build argv differs')
+    physical=receipt['commitClockBuiltBinary']
+    require(physical['path']==binary_path and physical['sha256']==binary
+            and all(type(physical.get(key)) is int and physical[key]>0 for key in ('device','inode','size')),
+            'original physical built binary identity differs')
+    reference=receipt['commitClockBuildIdentity']
+    require(reference['path']=='commit-clock-build-identity.log' and len(build_identity_raw)==reference['bytes']
+            and sha(build_identity_raw)==reference['sha256'], 'original binary identity bytes differ')
+    identity_processes=[p for p in receipt['processes'] if p['name']=='commit-clock-build-identity']
+    require(len(identity_processes)==1 and type(identity_processes[0]['pid']) is int and identity_processes[0]['pid']==reference['pid']
+            and type(identity_processes[0]['exitCode']) is int and identity_processes[0]['exitCode']==0
+            and identity_processes[0].get('exited') is True and type(identity_processes[0].get('rawReturnCode')) is int
+            and identity_processes[0]['rawReturnCode']==0 and identity_processes[0].get('signal') is None
+            and identity_processes[0]['command']==[binary_path,'synthetic-commit-clock-build-identity','--synthetic'],
+            'original build identity command differs')
+    declared=strict(build_identity_raw,16<<10)
+    require(declared['version']=='YNX-COMET-COMMIT-CLOCK-BUILD/v1' and declared['status']=='DECLARED'
+            and declared['sourceRevision']==source and declared['sourceBinding']==SOURCE_BINDING
+            and declared['syntheticOnly'] is True and declared['runtimeAuthorized'] is False and declared['nodeStarted'] is False,
+            'actual original binary build declaration differs')
+    return binary,binary_path,physical
+
+
+def creator_original_plan(receipt,create_raw):
+    """Bind the original create log/plan to its live-probed creator receipt."""
+    creators=[row for row in receipt.get('processes',[]) if type(row) is dict and row.get('name')=='create-original']
+    expected_creator=str(Path(receipt['commitClockBuiltBinary']['path']).with_name('ynx-consensus-pq-lab'))
+    creator_build=receipt['normalLiveBuildProvenance']['ynx-consensus-pq-lab']
+    comet_build=receipt['normalLiveBuildProvenance']['ynx-comet']
+    require(pin(receipt['binaries']['ynx-consensus-pq-lab'],64)
+        and creator_build['binarySHA256']==receipt['binaries']['ynx-consensus-pq-lab']
+        and creator_build['originalSource']==receipt['source']
+        and creator_build['sourceSelectionSHA256']==comet_build['sourceSelectionSHA256']
+        and creator_build['sourceDependenciesReceiptSHA256']==comet_build['sourceDependenciesReceiptSHA256']
+        and creator_build['selectedOptionalForkTree']==comet_build['selectedOptionalForkTree']
+        and creator_build['buildCwd']==comet_build['buildCwd']
+        and creator_build['buildArgv']==['go','build','-mod=readonly','-p','1','-trimpath','-buildvcs=false',
+                                         '-o',expected_creator,'./cmd/ynx-consensus-pq-lab'],
+        'original synthetic creator build/source binding differs')
+    require(len(creators)==1 and type(creators[0].get('exitCode')) is int and creators[0]['exitCode']==0
+        and creators[0].get('exited') is True and type(creators[0].get('rawReturnCode')) is int
+        and creators[0]['rawReturnCode']==0 and creators[0].get('signal') is None
+        and type(creators[0].get('pid')) is int and creators[0]['pid']>0
+        and type(creators[0].get('startTicks')) is int and creators[0]['startTicks']>0
+        and type(creators[0].get('command')) is list and len(creators[0]['command'])>=5
+        and creators[0]['command'][0]==expected_creator
+        and creators[0]['command'][1:4]==['create','--synthetic','--root']
+        and type(creators[0]['command'][4]) is str and Path(creators[0]['command'][4]).is_absolute()
+        and '..' not in Path(creators[0]['command'][4]).parts and str(Path(creators[0]['command'][4]))==creators[0]['command'][4],
+        'one successful original synthetic create process required')
+    creator=creators[0];physical=receipt['commitClockBuiltCreator'];probe=receipt['commitClockCreatorProbe'];parent=receipt['commitClockParent']
+    require(physical['path']==expected_creator and physical['sha256']==receipt['binaries']['ynx-consensus-pq-lab']
+        and type(probe['pid']) is int and probe['pid']==creator['pid']
+        and decimal(probe['startTicks'],positive=True)==creator['startTicks']
+        and probe['identity']=='original-unpublished-pidfd-and-live-proc-exe'
+        and probe['binaryPath']==expected_creator and probe['binarySHA256']==physical['sha256']
+        and all(type(physical.get(key)) is int and physical[key]>0 and type(probe.get(key)) is int and probe[key]==physical[key]
+                for key in ('device','inode','size'))
+        and probe['timeNamespace']==parent['timeNamespace']
+        and decimal(probe['observedStartNs'])<=decimal(probe['observedEndNs'])<=decimal(parent['observedStartNs']),
+        'original live creator pidfd/executable or clock binding differs')
+    plan_raw=plan_from_original_create(create_raw,receipt['activation']['networkPlanSHA256'])
+    plan=strict(plan_raw,1<<20);create=strict(create_raw,4<<20);root=creator['command'][4]
+    require(plan.get('rootDir')==root and create.get('planFile')==str(Path(root)/'network-plan.json')
+            and plan.get('version')=='YNX-PQ-LOOPBACK-NETWORK/v1' and plan.get('syntheticOnly') is True
+            and plan.get('publicNetwork') is False and plan.get('createEmptyBlocks') is False
+            and type(plan.get('nodes')) is list and len(plan['nodes'])==4
+            and all(type(node) is dict and type(node.get('index')) is int for node in plan['nodes'])
+            and [node['index'] for node in plan['nodes']]==list(range(4)),
+            'original creator root/plan file differs')
+    return plan_raw
+
+
+def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, selection_raw, dependencies_raw, build_identity_raw, network_plan_raw, original_operations=None):
+    """Join original full-demand rows; missing/mismatched evidence stays censored.
+
+    `node_evidence` contains four ordered original private snapshot bytes,
+    their receipt-bound monotonic snapshot bytes and the original live pidfd
+    executable probes. `inclusion` maps the original operation index to the
+    existing four-node original RPC receipt bytes, pinned by the original receipt.
+    The caller must retain those exact
+    originals; this function cannot create them or upgrade their provenance.
+    """
+    rows=receipt.get('loadResult',{}).get('rows',[]); demand=receipt.get('configuredDemand')
+    require(type(demand) is int and 0<demand<=10000 and type(rows) is list and len(rows)==demand
+            and all(type(row) is dict and type(row.get('index')) is int and pin(row.get('id'),64) for row in rows)
+            and sorted(row['index'] for row in rows)==list(range(demand))
+            and len({row['id'] for row in rows})==demand, 'original unique full demand required')
+    hashes=[row.get('hash') for row in rows if row.get('hash') is not None]
+    require(all(pin(value,64) for value in hashes) and len(hashes)==len(set(hashes)), 'original transaction hashes cannot be reused')
+    result=dict(status='NOT_SUPPLIED',configuredDemand=demand,observed=0,censored=demand,rows=[],
+                independentFinality=False,runtimeAuthorized=False,physicalCommitMeaning='per-node local persistent ABCI Commit return upper bounds; not consensus vote or finality')
+    try:
+        require(source_allowed(expected_source),
+                'exact reviewed original Commit clock source/CI NOT_SUPPLIED')
+        require(receipt.get('sameHost') is True and type(receipt.get('physicalFaultDomains')) is int and receipt['physicalFaultDomains']==1
+                and receipt['activation'].get('syntheticOnly') is True, 'original synthetic same-host receipt required')
+        binary,binary_path,physical=_source_binding(receipt,expected_source,selection_raw,dependencies_raw,build_identity_raw)
+        require(sha(network_plan_raw)==receipt['activation']['networkPlanSHA256'], 'original network plan bytes differ')
+        network=strict(network_plan_raw,1<<20)
+        require(network['chainId']=='ynx_642399-1' and pin(network['originalGenesisHash'],64), 'original synthetic network identity differs')
+        require(parent['processID']==receipt['commitClockParent']['processID'] and parent==receipt['commitClockParent']
+                and type(parent['processID']) is int and parent['processID']>0
+                and receipt['loadResult']['originProcessID']==parent['processID']
+                and re.fullmatch(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',parent['bootID'])
+                and re.fullmatch(r'[0-9]+:[0-9]+',parent['timeNamespace'])
+                and parent['clock']=='CLOCK_MONOTONIC', 'original physical parent clock identity differs')
+        origin=decimal(receipt['loadResult']['originMonotonicNs'])
+        require(decimal(parent['observedStartNs'])<=decimal(parent['observedEndNs'])<=origin, 'parent domain observation occurs after origin')
+        require(type(node_evidence) is list and len(node_evidence)==4, 'four original node evidence slots required')
+        original_nodes=[]
+        for i in range(4):
+            matches=[process for process in receipt['processes'] if process['name']=='pq-node-%d'%i]
+            require(len(matches)==1 and type(matches[0]['pid']) is int and matches[0]['pid']>0
+                    and type(matches[0]['startTicks']) is int and matches[0]['startTicks']>0
+                    and matches[0].get('exited') is True and type(matches[0].get('rawReturnCode')) is int,
+                    'one original live identity per node required')
+            original_nodes.append(matches[0])
+        require(len({process['pid'] for process in original_nodes})==4
+                and all(process['pid']!=parent['processID'] for process in original_nodes), 'original node process identities reused')
+    except (KeyError,ValueError,TypeError,IndexError,OverflowError): return result
+    descriptors=receipt.get('normalCommitObservation',{}).get('originalSnapshots',[])
+    clock_descriptors=receipt.get('commitMonotonicObservation',{}).get('originalSnapshots',[])
+    @lru_cache(maxsize=4)
+    def original_node_heights(i):
+        try:
+            e=node_evidence[i]; probe=e['processProbe']; raw=e['commitOriginal']; clock_raw=e['clockOriginal']
+            olds=[x for x in descriptors if x['node']==i]; news=[x for x in clock_descriptors if x['node']==i]
+            require(len(olds)==len(news)==1, 'duplicate or absent original snapshot binding')
+            old,new=olds[0],news[0]
+            require(old.get('path')=='commit-observation-node-%d-original.json'%i
+                    and new.get('path')=='commit-monotonic-node-%d-original.json'%i
+                    and old.get('processName')==new.get('processName')=='pq-node-%d'%i
+                    and old.get('sourceStopped') is True and new.get('sourceStopped') is True
+                    and old.get('usable') is True and new.get('usable') is True, 'original stopped node snapshots required')
+            require(sha(raw)==old['sha256'] and len(raw)==old['bytes'] and sha(clock_raw)==new['sha256'] and len(clock_raw)==new['bytes'], 'original snapshot bytes differ')
+            commit=strict(raw,512<<10); clock=strict(clock_raw,512<<10)
+            probes=[x for x in receipt['commitClockProcessProbes'] if x['node']==i]
+            require(len(probes)==1 and probes[0]['probe']==probe, 'original node probe is not receipt-bound')
+            process=original_nodes[i]
+            require(all(type(value) is int for value in (old['pid'],new['pid'],probe['pid'],commit['processID'],clock['processID']))
+                    and process['pid']==old['pid']==new['pid']==probe['pid']==commit['processID']==clock['processID']
+                    and probe['identity']=='original-unpublished-pidfd-and-live-proc-exe' and probe['binarySHA256']==binary
+                    and probe['binaryPath']==binary_path and process['command'].count(binary_path)==1
+                    and all(type(probe.get(key)) is int and probe[key]==physical[key] for key in ('device','inode','size'))
+                    and process['startTicks']==decimal(probe['startTicks'],positive=True) and probe['timeNamespace']==parent['timeNamespace']
+                    and decimal(probe['observedStartNs'])<=decimal(probe['observedEndNs'])<=origin, 'original node process/executable differs')
+            require(commit['version']=='YNX-COMET-COMMIT-OBSERVATION/v1' and commit['scope']=='synthetic-loopback-lab/v1'
+                    and commit['coverage']['notificationCaptureComplete'] is True and commit['independentFinality'] is False,
+                    'original node Commit coverage unavailable')
+            _commit.validate_declared_contract(commit,process['pid'],network['chainId'],network['originalGenesisHash'])
+            require(clock['version']=='YNX-COMET-COMMIT-MONOTONIC/v1' and clock['status']=='OBSERVED'
+                    and clock['scope']=='synthetic-loopback-lab/v1' and clock['sourceRevision']==expected_source
+                    and clock['sourceBinding']==SOURCE_BINDING and clock['clock']=='CLOCK_MONOTONIC'
+                    and clock['bootID']==parent['bootID'] and clock['timeNamespace']==parent['timeNamespace']
+                    and clock['captureBoundary']==BOUNDARY and clock['independentFinality'] is False
+                    and clock['chainID']==commit['chainID']==network['chainId']
+                    and clock['originalGenesisHash']==commit['originalGenesisHash']==network['originalGenesisHash'], 'original clock domain/source differs')
+            samples=clock['samples']; old_samples=commit['samples']
+            require(type(samples) is list and type(old_samples) is list and len(samples)==len(old_samples)
+                    and all(type(s['height']) is int and s['height']>0 and type(s['monotonicNs']) is str and re.fullmatch(r'0|[1-9][0-9]*',s['monotonicNs']) for s in samples)
+                    and all(a['height']==b['height'] and a['appHash']==b['appHash'] for a,b in zip(samples,old_samples)),
+                    'original node sample sequence differs')
+            heights=[s['height'] for s in samples]; times=[decimal(s['monotonicNs']) for s in samples]
+            require(len(heights)==len(set(heights)) and all(a<b for a,b in zip(heights,heights[1:]))
+                    and all(a<=b for a,b in zip(times,times[1:])), 'original node clock order or height differs')
+            return {clock_sample['height']:(decimal(clock_sample['monotonicNs']),clock_sample['appHash'])
+                    for committed,clock_sample in zip(old_samples,samples)
+                    if committed['appHash']==clock_sample['appHash'] and pin(clock_sample['appHash'],64)
+                    and committed['persistence']['height']==clock_sample['height']
+                    and committed['persistence']['durable'] is True}
+        except (KeyError,ValueError,RuntimeError,TypeError,AttributeError,IndexError,StopIteration,OverflowError): return None
+    def one_node(i,height):
+        values=original_node_heights(i)
+        return None if values is None else values.get(height)
+    for row in rows:
+        entry=dict(index=row['index'],id=row['id'],nodesNs=[None]*4,fourNodeUpperBoundNs=None,status='CENSORED')
+        try:
+            inc_raw=inclusion[row['index']]; references=[x for x in receipt['commitClockInclusions'] if x['index']==row['index']]
+            require(len(references)==1 and references[0].get('path')=='load-operations/%05d/four-node-inclusion.json'%row['index']
+                    and len(inc_raw)==references[0]['bytes'] and sha(inc_raw)==references[0]['sha256'], 'original inclusion bytes differ')
+            inc=strict(inc_raw,4<<20); rr=inc['rows']; tx=row['hash']; sent=row['submittedNs'];included=row['includedNs']
+            cutoff=receipt['loadResult']['observationCutoffNs']
+            require(pin(tx,64) and pin(row.get('operationId'),64) and type(row.get('ownerIndex')) is int and row['ownerIndex']>=0
+                    and type(row.get('nonce')) is int and row['nonce']>0 and type(sent) is int and 0<=sent<1<<63
+                    and type(included) is int and type(cutoff) is int and sent<=included<cutoff<1<<63
+                    and type(rr) is list and len(rr)==4 and inc.get('qualifiedFinal') is False,
+                    'original submitted and included operation unavailable')
+            operation=original_operations[row['index']]; intent_raw=operation['intent']; transaction=operation['transaction']
+            for key,value,limit in (('intent',intent_raw,64<<10),('transaction',transaction,1<<20)):
+                metadata=references[0][key]
+                require(type(value) is bytes and 0<len(value)<=limit and type(metadata) is dict
+                        and set(metadata)=={'bytes','sha256'} and type(metadata['bytes']) is int
+                        and metadata['bytes']==len(value) and metadata['sha256']==sha(value),
+                        'original business input bytes differ')
+            require(sha(transaction)==tx,'original submitted transaction hash differs')
+            intent=strict(intent_raw,64<<10)
+            require(all(intent.get(key)==value for key,value in dict(id=row['id'],operationId=row['operationId'],
+                owner=row['ownerIndex'],nonce=str(row['nonce']),transactionHash=tx,submissionAttempts=1,qualifiedFinal=False).items())
+                and type(intent.get('owner')) is int and type(intent.get('submissionAttempts')) is int
+                and intent.get('qualifiedFinal') is False,'original business submission intent differs')
+            heights=[decimal(r['height'],positive=True) for r in rr]
+            require(heights[0]>0 and len(set(heights))==1 and all(r['hash'].lower()==tx and type(r['tx_result']['code']) is int and r['tx_result']['code']==0
+                and type(r['tx']) is str and base64.b64decode(r['tx'],validate=True)==transaction for r in rr),
+                'original successful four-node inclusion differs')
+            require(type(inc['observedMonotonicNs']) is int and 0<=inc['observedMonotonicNs']<1<<63
+                    and origin+cutoff<1<<63 and origin+sent<=inc['observedMonotonicNs']<=origin+included
+                    and inc['observedMonotonicNs']<origin+cutoff, 'original inclusion observation clock differs')
+            start=origin+sent
+            hashes=[]
+            for i in range(4):
+                sample=one_node(i,heights[0])
+                if sample is not None:
+                    boundary,app_hash=sample
+                    if start<=boundary<=inc['observedMonotonicNs']:
+                        entry['nodesNs'][i]=boundary-start; hashes.append(app_hash)
+            if len(hashes)==4 and len(set(hashes))!=1: entry['nodesNs']=[None]*4
+            if all(value is not None for value in entry['nodesNs']):
+                entry.update(status='OBSERVED',fourNodeUpperBoundNs=max(entry['nodesNs'])); result['observed']+=1
+        except (KeyError,ValueError,TypeError,AttributeError,IndexError,OverflowError): pass
+        result['rows'].append(entry)
+    result.update(status='OBSERVED_OR_CENSORED',censored=demand-result['observed'])
+    return result
+
+
+def readback_public_originals(files,prefix,*,expected_source):
+    """Recompute from an already-validated public archive mapping, with no private files.
+
+    The caller still owns official run/job/artifact validation and archive SHA.
+    Missing old/corrupt evidence is NOT_SUPPLIED or censored, never finality.
+    """
+    result=dict(schema='YNX-PERF-COMMIT-CLOCK-PUBLIC-READBACK/v1',status='NOT_SUPPLIED',
+        configuredDemand=None,observed=0,censored=None,rows=[],archiveOriginIndependentlyVerified=False,
+        sourceCIIndependentlyVerified=False,runtimeAuthorized=False,independentFinality=False,
+        createProcessExecutableIndependentlyVerified=False,readbackRSS='UNKNOWN',missingEvidence=None,
+        physicalCommitMeaning='per-node local persistent ABCI Commit return upper bounds; not consensus vote or finality')
+    try:
+        require(type(prefix) is str and (prefix=='' or (prefix.endswith('/') and not Path(prefix).is_absolute()
+                and '..' not in Path(prefix).parts and '\\' not in prefix and str(Path(prefix))==prefix[:-1])),
+                'original public prefix differs')
+        receipt=strict(files[prefix+'receipt.json'],8<<20)
+        demand=receipt.get('configuredDemand')
+        require(type(demand) is int and 0<demand<=10000,'bounded original demand required')
+        result.update(configuredDemand=demand,censored=demand)
+        require(source_allowed(expected_source),
+                'exact reviewed original Commit clock source/CI NOT_SUPPLIED')
+        plan=creator_original_plan(receipt,files[prefix+'create-original.log'])
+        probes=receipt.get('commitClockProcessProbes',[]);nodes=[]
+        for index in range(4):
+            matches=[row for row in probes if type(row) is dict and row.get('node')==index]
+            def node_file(section,expected):
+                refs=[row for row in receipt.get(section,{}).get('originalSnapshots',[]) if type(row) is dict and row.get('node')==index]
+                if len(refs)!=1 or refs[0].get('path')!=expected:return b''
+                return files.get(prefix+expected,b'')
+            nodes.append(dict(processProbe=matches[0].get('probe',{}) if len(matches)==1 else {},
+                commitOriginal=node_file('normalCommitObservation','commit-observation-node-%d-original.json'%index),
+                clockOriginal=node_file('commitMonotonicObservation','commit-monotonic-node-%d-original.json'%index)))
+        class Inclusion:
+            def __getitem__(self,index):return files[prefix+'load-operations/%05d/four-node-inclusion.json'%index]
+        class Operations:
+            def __getitem__(self,index):
+                base=prefix+'load-operations/%05d/'%index
+                return dict(intent=files[base+'submission-intent.json'],transaction=files[base+'transaction.abci'])
+        joined=reduce(receipt,expected_source=expected_source,parent=receipt['commitClockParent'],node_evidence=nodes,
+            inclusion=Inclusion(),original_operations=Operations(),network_plan_raw=plan,
+            selection_raw=files[prefix+'normal-live-source-selection.json'],
+            dependencies_raw=files[prefix+'normal-live-source-dependencies.json'],
+            build_identity_raw=files[prefix+'commit-clock-build-identity.log'])
+        require(joined['status']=='OBSERVED_OR_CENSORED','original clock evidence unavailable')
+        recorded=receipt.get('commitClockReadback')
+        require(type(recorded) is dict and recorded.get('status')=='OBSERVED_OR_CENSORED'
+            and recorded.get('configuredDemand')==demand and type(recorded.get('rows')) is list
+            and len(recorded['rows'])==demand and all(type(row) is dict and type(row.get('index')) is int
+                and row.get('status') in ('OBSERVED','CENSORED') for row in recorded['rows'])
+            and sorted(row['index'] for row in recorded['rows'])==list(range(demand))
+            and type(recorded.get('observed')) is int and recorded['observed']==sum(row['status']=='OBSERVED' for row in recorded['rows'])
+            and type(recorded.get('censored')) is int and recorded['censored']==demand-recorded['observed']
+            and recorded.get('independentFinality') is False and recorded.get('runtimeAuthorized') is False
+            and recorded.get('createProcessLiveExecutableObserved') is True
+            and recorded.get('createProcessExecutableIndependentlyVerified') is False,
+            'original in-run clock result differs from public originals')
+        originals={row['index']:row for row in recorded['rows']}
+        for row in joined['rows']:
+            if row['status']=='OBSERVED' and row!=originals[row['index']]:
+                row.update(status='CENSORED',nodesNs=[None]*4,fourNodeUpperBoundNs=None)
+        joined['observed']=sum(row['status']=='OBSERVED' for row in joined['rows'])
+        joined['censored']=demand-joined['observed']
+        result.update(status=joined['status'],observed=joined['observed'],censored=joined['censored'],rows=joined['rows'])
+    except (OSError,ValueError,RuntimeError,KeyError,TypeError,AttributeError,IndexError,OverflowError) as error:
+        result['missingEvidence']=dict(errorType=type(error).__name__,reason='required original clock/source evidence unavailable or mismatched')
+    return result

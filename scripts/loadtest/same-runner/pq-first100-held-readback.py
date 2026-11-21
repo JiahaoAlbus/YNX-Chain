@@ -28,6 +28,31 @@ CONTEXT_FAILURE_DIGESTS = {
 }
 MIGRATION_JSON_FAILURE = 'duplicate or malformed original migration JSON'
 MIGRATION_JSON_FAILURE_DIGEST = hashlib.sha256(MIGRATION_JSON_FAILURE.encode('ascii')).hexdigest()
+# Frozen only by the original owner after exact per-arm source and CI review.
+# A caller's archive or expected source cannot populate this DATA-only gate.
+CLOCK_PUBLIC_READBACK_BINDINGS = None
+
+
+def original_commit_clock_readback(files, prefix, source, tools):
+    """Recompute a single original arm without sharing mutable source gates."""
+    clock = module('pq-commit-clock-readback.py')
+    binding = CLOCK_PUBLIC_READBACK_BINDINGS
+    keys = ('source', 'sourceTree', 'forkTree', 'tools', 'toolsTree')
+    allowed = False
+    if (type(binding) is dict and set(binding) == {'before', 'after'}
+            and all(type(value) is dict and set(value) == set(keys)
+                    and all(type(value[k]) is str and re.fullmatch('[0-9a-f]{40}', value[k])
+                            for k in keys) for value in binding.values())
+            and binding['before']['source'] != binding['after']['source']
+            and clock.COMMIT_CLOCK_SOURCE is None
+            and type(clock.COMMIT_CLOCK_SOURCES) is tuple
+            and len(clock.COMMIT_CLOCK_SOURCES) == 2
+            and set(clock.COMMIT_CLOCK_SOURCES) == {value['source'] for value in binding.values()}):
+        identity = dict(source=source['commit'], sourceTree=source['tree'], forkTree=source.get('forkTree'),
+                        tools=tools['commit'], toolsTree=tools['tree'])
+        allowed = sum(identity == value for value in binding.values()) == 1
+    return clock.readback_public_originals(files, prefix,
+                                           expected_source=source['commit'] if allowed else None)
 
 
 def verify_archive_origin(run, job, artifacts, controller, sha256, size):
@@ -752,12 +777,20 @@ def inspect(raw, sha256, controller, configuration_sha256):
             and configuration['nodeCount'] == 4 and configuration['pressureLevel'] == 1
             and re.fullmatch('[0-9a-f]{40}', controller),
             'fixed held first100 profile required')
+    options = configuration.get('options', {})
+    require(type(options) is dict, 'original clock configuration options differ')
+    clock_enabled = options.get('commit_clock_observation', False)
+    require(type(clock_enabled) is bool, 'original clock configuration must be boolean')
     receipts = [name for name in files if name in ('receipt.json', 'public/receipt.json') or name.endswith('/public/receipt.json')]
     require(len(receipts) <= 1, 'duplicate original runtime receipt')
     report = dict(archiveSHA256=sha256, configurationSHA256=configuration_sha256, controller=controller,
                   configuredDemand=500, files=manifest, archiveOriginIndependentlyVerified=False,
                   stable1000TPSQualified=False, fullCohort=None)
     if not receipts:
+        if clock_enabled:
+            clock = module('pq-commit-clock-readback.py').readback_public_originals({}, '', expected_source=None)
+            clock.update(configuredDemand=500, censored=500)
+            report.update(commitClockReadbackConfigured=True, originalCommitClockReadback=clock)
         return dict(report, status='NO_RUNTIME_RECEIPT')
     name = receipts[0]
     prefix = name.removesuffix('receipt.json')
@@ -887,6 +920,16 @@ def inspect(raw, sha256, controller, configuration_sha256):
                            observedNodes=observed_nodes, missingNodes=missing_nodes,
                            fourNodeJoinObserved=not missing_nodes, independentFinality=False)
     status = 'READY_ONLY_OBSERVED' if ready else 'OBSERVED' if load is not None else 'LOAD_RESULT_MISSING'
+    require(clock_enabled or 'commitClockReadback' not in receipt,
+            'disabled original clock observation cannot supply clock readback')
+    if clock_enabled:
+        report['commitClockReadbackConfigured'] = True
+        clock = original_commit_clock_readback(files, prefix, source, tools)
+        if type(clock.get('configuredDemand')) is not int or clock['configuredDemand'] != 500:
+            clock.update(status='NOT_SUPPLIED', configuredDemand=500, observed=0, censored=500, rows=[],
+                         missingEvidence=dict(errorType='ValueError',
+                             reason='original clock demand differs from frozen full500 plan'))
+        report['originalCommitClockReadback'] = clock
     owner_timing = public_owner_timing(receipt, load) if load is not None else None
     network = receipt.get('networkAccounting') or {}
     return dict(report, status=status,

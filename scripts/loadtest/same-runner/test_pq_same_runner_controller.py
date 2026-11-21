@@ -71,8 +71,9 @@ class ControllerControls(unittest.TestCase):
     def test_candidate_ci_only_pushes_this_ref_and_runs_original_control_entry(self):
         root=c.controller_root(__file__)
         workflow=(root/'.github/workflows/pq-pair-controller-source-only.yml').read_text()
-        self.assertIn('codex/perf-controller-clock-preflight-20261122',workflow)
+        self.assertIn('codex/perf-pair-clock-readback-20261122',workflow)
         self.assertIn('ref: ${{ github.sha }}',workflow)
+        self.assertIn('test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',workflow)
         self.assertIn('python3 -I -B scripts/loadtest/same-runner/pq-same-runner-controls.py',workflow)
         self.assertNotIn('workflow_dispatch:',workflow)
         self.assertNotIn('pq-normal-process.yml@',workflow)
