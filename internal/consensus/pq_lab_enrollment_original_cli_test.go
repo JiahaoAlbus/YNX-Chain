@@ -20,6 +20,8 @@ import (
 	cmtconsensus "github.com/cometbft/cometbft/consensus"
 	cmted "github.com/cometbft/cometbft/crypto/ed25519"
 	cmtjson "github.com/cometbft/cometbft/libs/json"
+	cmtmath "github.com/cometbft/cometbft/libs/math"
+	"github.com/cometbft/cometbft/light"
 	sm "github.com/cometbft/cometbft/state"
 	blockstore "github.com/cometbft/cometbft/store"
 	cmttypes "github.com/cometbft/cometbft/types"
@@ -207,6 +209,15 @@ func TestPQLabEnrollmentOriginalCLIConfirmAndRestart(t *testing.T) {
 	}
 	fundingExpected, fundingProof := makeProof(fundHeight, PQTransferType, fundWire, fundEnvelope)
 	migrationExpected, migrationProof := makeProof(migrationHeight, PQMigrationType, migrationWire, migrationEnvelope)
+	// The synthetic engine advances each vote timestamp by a second while it
+	// generates blocks much faster than wall time. Exercise the unchanged
+	// Comet future-header rejection with those actual signed headers.
+	trustedHeader := l.block(t, schedule.ActivationHeight)
+	latestHeader := l.block(t, migrationHeight+1)
+	tooEarly := latestHeader.Time.Add(-2 * time.Second)
+	if e := light.Verify(trustedHeader.SignedHeader, trustedHeader.ValidatorSet, latestHeader.SignedHeader, latestHeader.ValidatorSet, time.Hour, tooEarly, time.Second, cmtmath.Fraction{Numerator: 1, Denominator: 3}); e == nil || !strings.Contains(e.Error(), "time from the future") {
+		t.Fatal("future synthetic header was not rejected by the normal verifier", e)
+	}
 	migrationRaw, err := migration.CanonicalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -286,6 +297,17 @@ func TestPQLabEnrollmentOriginalCLIConfirmAndRestart(t *testing.T) {
 			t.Fatalf("normal CLI failure: %v: %s", e, stderr.String())
 		}
 		return stdout.Bytes()
+	}
+	// Keep the real CLI clock and its original one-second drift. Wait for
+	// generated headers to become historical instead of admitting future data.
+	wallNow := time.Now().UTC()
+	delay := latestHeader.Time.Add(100 * time.Millisecond).Sub(wallNow)
+	t.Logf("synthetic trusted=%s latest=%s wall=%s catchup=%s", trustedHeader.Time.Format(time.RFC3339Nano), latestHeader.Time.Format(time.RFC3339Nano), wallNow.Format(time.RFC3339Nano), delay)
+	if delay > 0 {
+		if delay > 30*time.Second {
+			t.Fatalf("synthetic headers are unexpectedly far in the future: %s", delay)
+		}
+		time.Sleep(delay)
 	}
 	responseRaw := invoke(cmd)
 	var response struct {
