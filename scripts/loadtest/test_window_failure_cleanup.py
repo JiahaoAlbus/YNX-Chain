@@ -4,6 +4,7 @@ from pathlib import Path
 import signal
 import sys
 import tempfile
+import threading
 import unittest
 from unittest import mock
 
@@ -13,7 +14,7 @@ lab=importlib.util.module_from_spec(spec);spec.loader.exec_module(lab)
 
 class FailedInventoryCleanupControls(unittest.TestCase):
     def test_one_unresolved_wait_does_not_skip_later_owned_handles_or_replace_firstcause(self):
-        w=object.__new__(lab.Window);first=mock.Mock(pid=123,returncode=None);second=mock.Mock(pid=124,returncode=-signal.SIGTERM)
+        w=object.__new__(lab.Window);w.lock=threading.RLock();first=mock.Mock(pid=123,returncode=None);second=mock.Mock(pid=124,returncode=-signal.SIGTERM)
         first.poll.return_value=None;first.wait.side_effect=RuntimeError('specific wait unavailable');second.poll.return_value=None
         second_wait=second.wait
         lab.bind_process_lifecycle(first);lab.bind_process_lifecycle(second)
@@ -25,7 +26,7 @@ class FailedInventoryCleanupControls(unittest.TestCase):
         self.assertEqual(w.direct_cleanup_after_failure[0]['errors'][0]['operation'],'wait')
 
     def test_inventory_failure_still_stops_exact_direct_children_and_is_not_success(self):
-        w=object.__new__(lab.Window);process=mock.Mock(pid=123,returncode=None)
+        w=object.__new__(lab.Window);w.lock=threading.RLock();process=mock.Mock(pid=123,returncode=None)
         process.poll.return_value=None
         def wait(timeout):process.returncode=-signal.SIGTERM;return process.returncode
         process.wait.side_effect=wait

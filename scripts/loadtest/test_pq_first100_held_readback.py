@@ -455,7 +455,7 @@ class HeldReadbackTests(unittest.TestCase):
             reader.compare_business(before, dict(after, archiveOriginIndependentlyVerified=False))
 
     def fixture(self, with_receipt=True, accounts=500, prefix='fixture/public/', confirmed=None,
-                ready_lanes=None, replaced_node=False):
+                ready_lanes=None, replaced_node=False, clock_data=None):
         source = dict(commit='a' * 40, tree='b' * 40)
         tools = dict(commit='c' * 40, tree='d' * 40)
         config = dict(profile='first100-held-public-owner', nodeCount=4, pressureLevel=1,
@@ -471,6 +471,8 @@ class HeldReadbackTests(unittest.TestCase):
             if with_receipt:
                 archive.writestr(prefix + 'FIRST100-HELD-CI.json', encode(dict(plan, controllerCommit=self.controller)))
                 receipt = dict(source=source, toolIdentity=tools, loadExecuted=False, firstCause='stopped before release')
+                if clock_data is not None:
+                    receipt.update(configuredDemand=500,commitClockReadback=clock_data)
                 if ready_lanes is not None:
                     census = dict(schema='YNX-PERF-ORIGINAL-INITIALIZED-ACCOUNT-CENSUS/v1',
                                   configuredLoadAccounts=500, completeFourNodeAccountReadback=True,
@@ -522,6 +524,14 @@ class HeldReadbackTests(unittest.TestCase):
             self.assertIsNone(report['fullCohort'])
             if has_receipt:
                 self.assertEqual(report['firstCause'], 'stopped before release')
+                self.assertNotIn('originalCommitClockReadback',report)
+
+    def test_opt_in_clock_projection_stays_unqualified_when_source_gate_missing(self):
+        raw,pin=self.fixture(clock_data=dict(status='NOT_SUPPLIED'))
+        report=reader.inspect(raw,sha(raw),self.controller,pin)
+        clock=report['originalCommitClockReadback']
+        self.assertEqual((clock['status'],clock['configuredDemand'],clock['observed'],clock['censored']),('NOT_SUPPLIED',500,0,500))
+        self.assertFalse(clock['archiveOriginIndependentlyVerified'] or clock['independentFinality'] or clock['runtimeAuthorized'])
 
     def test_ready_requires_four_lanes_and_preserves_unreleased_demand(self):
         raw, pin = self.fixture(ready_lanes=range(4))

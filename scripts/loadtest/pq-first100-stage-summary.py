@@ -25,6 +25,7 @@ def module(name, filename):
 d24 = module('first100_stage_d24_reader', 'pq-first100-d24-readback.py')
 original = d24.cohort_module
 require, strict = d24.require, d24.strict
+commit_detail = module('original_commit_validation_detail', 'pq-commit-observation.py')
 COMMIT_STAGES = ('validate', 'json_encode', 'write', 'file_sync', 'directory_sync')
 
 
@@ -114,6 +115,16 @@ def commit_stages(readback):
                 denominatorMeaning='Retained successful samples for this node/storage; all Commit attempts remain unknown.',
                 persistenceElapsed=samples([r['persistence'].get('elapsedNs') for r in rows], len(rows)),
                 stages={name: samples([r['persistence'].get('stagesNs', {}).get(name) for r in rows], len(rows)) for name in sorted(names)})
+            details=[commit_detail.validate_validation_detail(row) if 'validation' in row else None for row in rows]
+            if any(detail is not None for detail in details):
+                base['byStorage'][storage]['validationDetail']=dict(
+                    denominator=len(rows),observed=sum(detail is not None for detail in details),
+                    elapsed=samples([detail['elapsedNs'] if detail is not None else None for detail in details],len(rows)),
+                    phases={name:samples([detail['phaseNs'][name] if detail is not None else None for detail in details],len(rows))
+                            for name in commit_detail.VALIDATION_PHASES},
+                    hashChildren={name:samples([detail[name] if detail is not None else None for detail in details],len(rows))
+                                  for name in ('hashDocumentNs','hashEncodeDigestNs')},
+                    childrenOverlapParent=True,stagesAdded=False,independentFinality=False)
     return dict(nodes=nodes, pooledAcrossNodes=False, pooledAcrossStorage=False, stagesAdded=False,
                 allCommitAttemptsMeasured=False, signerFsyncMeasured=False, independentFinality=False)
 

@@ -32,6 +32,27 @@ class Process:
 
 
 class PendingLaunchControls(unittest.TestCase):
+    def test_previously_reaped_anchored_child_does_not_resignal_numeric_pid(self):
+        original=Process();original.returncode=-9
+        lab.bind_process_lifecycle(original)
+        original._ynx_original_pidfd_required=True
+        original._ynx_original_pidfd=SimpleNamespace(send=mock.Mock(side_effect=ProcessLookupError('reaped')))
+        self.window.children.append(dict(name='load-original',process=original,startTicks=20,persistent=False))
+        with mock.patch.object(lab.os,'killpg',side_effect=AssertionError('numeric fallback forbidden')):
+            self.assertTrue(self.window.stop())
+        original._ynx_original_pidfd.send.assert_not_called()
+
+    def test_failed_pidfd_binding_never_falls_back_during_stop_cleanup(self):
+        original=Process();lab.bind_process_lifecycle(original)
+        original._ynx_original_pidfd_required=True
+        self.window.children.append(dict(name='load-original',process=original,startTicks=20,persistent=False))
+        with mock.patch.object(self.window,'_stop',side_effect=RuntimeError('original stop failure')), \
+             mock.patch.object(lab.os,'killpg',side_effect=AssertionError('numeric group signal forbidden')), \
+             mock.patch.object(original,'kill',side_effect=AssertionError('numeric child signal forbidden')):
+            with self.assertRaisesRegex(RuntimeError,'original stop failure'):self.window.stop()
+        self.assertTrue(self.window.launch_cleanup_debt)
+        self.assertIn('errors',self.window.direct_cleanup_after_failure[-1])
+
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.window=resource.ResourceGuardSamplingControls().window(Path(self.temp.name))
@@ -381,6 +402,27 @@ class LinuxPendingLaunchControls(unittest.TestCase):
             os.sched_setaffinity(0,affinity)
             self.assertEqual(os.sched_getaffinity(0),affinity)
         self.addCleanup(restore)
+
+    def test_real_pidfd_child_reaped_before_actual_window_stop(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);(root/'.private').mkdir();(root/'public').mkdir()
+            window=lab.Window(Path(__file__).resolve().parents[2],root)
+            child=window.launch('load-original-owner',[sys.executable,'-I','-c','import time; time.sleep(.25)'],
+                                stdin_pipe=True,thread_safe=True,original_pidfd=True)
+            anchor=child._ynx_original_pidfd
+            try:
+                self.assertEqual(child.wait(timeout=3),0)
+                with mock.patch.object(lab.os,'killpg',side_effect=AssertionError('numeric fallback forbidden')):
+                    self.assertTrue(window.stop())
+                self.assertEqual(child.returncode,0)
+            finally:
+                if child.poll() is None:child.kill();child.wait(timeout=1)
+                if child.stdin is not None:
+                    cut=child.stdin.cut_once(timeout=.05)
+                    self.assertEqual(cut['status'],'CUT_AND_CLOSED')
+                    self.assertFalse(cut['cleanupDebt'])
+                self.assertTrue(anchor.close_bounded())
+                self.assertIsNone(anchor.fd)
 
     def test_real_child_is_sampled_before_popen_wrapper_returns(self):
         # Real Python child only. It is not a node, signer, or performance sample.

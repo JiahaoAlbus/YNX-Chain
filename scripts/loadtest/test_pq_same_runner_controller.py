@@ -78,6 +78,50 @@ class ControllerControls(unittest.TestCase):
                     self.assertFalse(plan['configured']); self.assertFalse(plan['runtimePermissionGranted'])
             prepare.assert_not_called(); api.assert_not_called(); child.assert_not_called()
 
+    def test_original_clock_log_transport_is_arm_and_source_bound(self):
+        fixture=original.module('clock_pair_fixture','test_pq_commit_clock_source_qualification.py').ClockSourceQualificationControls()
+        binding,identity,run,focused,jobs=fixture.fixture()
+        requirements,raw=fixture.original_log(binding)
+        selected=arm();selected['source']=binding['source']
+        opts=types.SimpleNamespace(commit_clock_observation=True,commit_clock_ci_original_log=None)
+        self.assertIsNone(c.CLOCK_LOG_BINDING)
+        with self.assertRaisesRegex(RuntimeError,'NOT_SUPPLIED'):
+            c.clock_log_reader_for_arm('before',original,selected,opts)
+        with tempfile.TemporaryDirectory() as temp:
+            path=Path(temp).resolve()/'original.log';path.write_bytes(raw)
+            entry=dict(source=binding['source'],tools=selected['tools'],run=binding['run'],
+                job=binding['focusedJob'],attempt=1,sha256=requirements['sha256'],path=str(path))
+            static=dict(before=entry,after=dict(entry,source='f'*40))
+            with mock.patch.object(c,'CLOCK_LOG_BINDING',static), \
+                 mock.patch.object(original.commit_clock_ci,'BINDING',binding), \
+                 mock.patch.object(original.commit_clock_ci,'LOG_REQUIREMENTS',requirements), \
+                 mock.patch.object(original.commit_clock,'COMMIT_CLOCK_SOURCE',binding['source']):
+                read=c.clock_log_reader_for_arm('before',original,selected,opts)
+                self.assertEqual(read(binding['run'],binding['focusedJob'],1),raw)
+                with self.assertRaisesRegex(RuntimeError,'already attempted'):read(binding['run'],binding['focusedJob'],1)
+                with self.assertRaisesRegex(RuntimeError,'source/Tools binding differs'):
+                    c.clock_log_reader_for_arm('after',original,selected,opts)
+                for key,value in (('run',999),('sha256','b'*64),('source','c'*40),('tools','d'*40)):
+                    with self.subTest(key=key),mock.patch.dict(entry,{key:value}),self.assertRaises(RuntimeError):
+                        c.clock_log_reader_for_arm('before',original,selected,opts)
+                opts.commit_clock_ci_original_log=str(path)
+                with self.assertRaisesRegex(RuntimeError,'ambiguous'):
+                    c.clock_log_reader_for_arm('before',original,selected,opts)
+            pair_arm=arm();pair_arm['source']=binding['source']
+            pair_arm['sourceQualification']['source']=binding['source']
+            pair=dict(schema='YNX-PERF-ORIGINAL-PAIR-BINDING/v1',arms=dict(before=pair_arm,after=copy.deepcopy(pair_arm)))
+            with mock.patch.object(c,'CLOCK_LOG_BINDING',dict(before=entry,after=dict(entry))):
+                configs=c.validate_binding(pair)
+                self.assertTrue(all(v['options']['commit_clock_observation'] is True for v in configs.values()))
+                changed=copy.deepcopy(pair);changed['arms']['after']['source']='f'*40
+                with self.assertRaisesRegex(RuntimeError,'pair arm identities differ'):c.validate_binding(changed)
+        tool=arm()['toolsCI'];tool_run,tool_job=tools_metadata(tool)
+        with self.assertRaisesRegex(RuntimeError,'clock original evidence readback'):
+            c.verify_tools_ci(tool,tool_run,tool_job,clock_observation=True)
+        tool_job['steps'].append(dict(name='Verify synthetic Commit clock original evidence readback',status='completed',conclusion='success'))
+        self.assertIn('Verify synthetic Commit clock original evidence readback',
+                      c.verify_tools_ci(tool,tool_run,tool_job,clock_observation=True)['requiredSteps'])
+
     def test_configuration_full500_and_no_external_binding_override(self):
         value = arm(); config = c.configuration(value)
         self.assertEqual((config['options']['rate'],config['options']['seconds'],config['options']['accounts']), (100,5,500))

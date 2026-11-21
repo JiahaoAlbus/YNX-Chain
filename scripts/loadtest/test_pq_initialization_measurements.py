@@ -140,6 +140,8 @@ class OriginalDriverInitializationControls(unittest.TestCase):
                     if name=='create-original':(work/'public/create-original.log').write_text('{}')
                     return object()
                 w.pending_launches={};w.launches_closed=True
+                w.lock=__import__('threading').RLock()
+                w.commit_clock_cleanup_debt=[]
                 w.launch_cleanup_debt=[] if cleanup else [dict(operation='Window.stop',errorType='RuntimeError',meaning='synthetic unresolved cleanup control')]
                 w.launch_cleanup_report=lambda:original_launch_report(w)
                 w.sample_stage_report=lambda:dict(status='NOT_OBSERVED',stages={},runtimeMeasured=False)

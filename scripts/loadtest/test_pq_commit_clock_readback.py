@@ -1,0 +1,578 @@
+"""Synthetic controls only; no node, network, finality or throughput grant."""
+import copy
+import base64
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import threading
+from types import SimpleNamespace
+import unittest
+from unittest import mock
+
+spec=importlib.util.spec_from_file_location('commit_clock_reader',Path(__file__).with_name('pq-commit-clock-readback.py'))
+r=importlib.util.module_from_spec(spec);spec.loader.exec_module(r)
+spec=importlib.util.spec_from_file_location('clock_window',Path(__file__).with_name('consensus-linux-cohort.py'))
+lab=importlib.util.module_from_spec(spec);spec.loader.exec_module(lab)
+
+
+def raw(value): return json.dumps(value,sort_keys=True,separators=(',',':')).encode()
+def descriptor(value): return dict(bytes=len(value),sha256=hashlib.sha256(value).hexdigest())
+
+
+def original_window_fixture():
+    value=lab.Window.__new__(lab.Window)
+    value.launch_lock=threading.Lock();value.pending_launches={};value.launches_closed=False
+    value.closed_for_launch=False
+    value.launch_guard_failure=None;value.launch_cleanup_debt=[];value.launch_cleanup_deadline=None
+    value.closed_log_identity={}
+    return value
+
+
+class CommitClockReadbackControls(unittest.TestCase):
+    def setUp(self):
+        self.source_gate=mock.patch.object(r,'COMMIT_CLOCK_SOURCE','a'*40);self.source_gate.start();self.addCleanup(self.source_gate.stop)
+    def fixture(self):
+        source='a'*40; binary='b'*64; transaction=b'synthetic-original-transaction';tx=r.sha(transaction); app='d'*64; binary_path='/synthetic/ynx-comet'
+        identity=dict(commit=source,tree='e'*40,forkTree='f'*40)
+        selection=raw(dict(originalSourceCommit=source,originalSourceTree=identity['tree'],originalProductionForkTree=identity['forkTree'],
+                           originalCheckoutWritten=False,fakeVCSIdentity=False,sourceDirectory='/synthetic/source',selectedOptionalForkTree='e'*40))
+        deps=raw(dict(synthetic='controlled'))
+        network=raw(dict(version='YNX-PQ-LOOPBACK-NETWORK/v1',syntheticOnly=True,publicNetwork=False,createEmptyBlocks=False,
+                         nodes=[dict(index=i) for i in range(4)],chainId='ynx_642399-1',originalGenesisHash='e'*64,rootDir='/synthetic/private'))
+        declaration=raw(dict(version='YNX-COMET-COMMIT-CLOCK-BUILD/v1',status='DECLARED',sourceRevision=source,
+                             sourceBinding=r.SOURCE_BINDING,syntheticOnly=True,runtimeAuthorized=False,nodeStarted=False))
+        argv=['go','build','-mod=readonly','-p','1','-trimpath','-buildvcs=false','-ldflags',
+              '-X main.operatorCommitBuildSource='+source,'-tags','ynx_live_wire_observation','-o',binary_path,'./cmd/ynx-comet']
+        parent=dict(processID=100,bootID='00000000-0000-0000-0000-000000000000',timeNamespace='1:2',clock='CLOCK_MONOTONIC',observedStartNs='800',observedEndNs='900')
+        receipt=dict(source=identity,configuredDemand=1,binaries={'ynx-comet':binary},commitClockParent=parent,sameHost=True,physicalFaultDomains=1,
+            normalLiveBuildProvenance={'ynx-comet':dict(binarySHA256=binary,originalSource=identity,sourceSelectionSHA256=r.sha(selection),
+                sourceDependenciesReceiptSHA256=r.sha(deps),buildArgv=argv,buildCwd='/synthetic/source',selectedOptionalForkTree='e'*40)},
+            normalLiveSourceDependencies={'sourceDependencies':json.loads(deps)},commitClockBuildIdentity=dict(path='commit-clock-build-identity.log',pid=99,**descriptor(declaration)),
+            commitClockBuiltBinary=dict(path=binary_path,sha256=binary,device=1,inode=44,size=1024),
+            activation=dict(syntheticOnly=True,networkPlanSHA256=r.sha(network)),loadResult=dict(originProcessID=100,originMonotonicNs='1000',observationCutoffNs=700,rows=[dict(index=0,id='9'*64,operationId='8'*64,ownerIndex=4,nonce=2,hash=tx,submittedNs=100,includedNs=550)]),
+            normalCommitObservation=dict(originalSnapshots=[]),commitMonotonicObservation=dict(originalSnapshots=[]),
+            commitClockProcessProbes=[],processes=[dict(name='commit-clock-build-identity',pid=99,exitCode=0,rawReturnCode=0,exited=True,signal=None,command=[binary_path,'synthetic-commit-clock-build-identity','--synthetic'])],commitClockInclusions=[])
+        evidence=[]
+        original_fixture=json.loads((Path(__file__).with_name('fixtures')/'commit-observation-public-schema.json').read_bytes())['cases']['gap-and-overflow']
+        for node in range(4):
+            pid=200+node
+            snapshot=copy.deepcopy(original_fixture)
+            snapshot.update(processID=pid,chainID='ynx_642399-1',originalGenesisHash='e'*64,
+                captureBoundary=r._commit.CAPTURE_BOUNDARY,independentFinality=False,successNotifications=1,errorNotifications=0,
+                droppedSuccessSamples=0,sampleOverflow=False,latestTimingAvailable=True,lastFailure=None,unobservedLatest=None,
+                finalCheckpoint=dict(height=5,appHash=app),rejectedNotifications={})
+            snapshot['coverage'].update(notificationCaptureComplete=True,observedHeightGaps=[])
+            snapshot['samples'][0].update(height=5,appHash=app);snapshot['samples'][0]['persistence']['height']=5
+            commit=raw(snapshot)
+            clock=raw(dict(version='YNX-COMET-COMMIT-MONOTONIC/v1',status='OBSERVED',scope='synthetic-loopback-lab/v1',processID=pid,
+                chainID='ynx_642399-1',originalGenesisHash='e'*64,independentFinality=False,sourceRevision=source,
+                sourceBinding=r.SOURCE_BINDING,clock='CLOCK_MONOTONIC',bootID=parent['bootID'],timeNamespace=parent['timeNamespace'],
+                captureBoundary=r.BOUNDARY,samples=[dict(height=5,appHash=app,monotonicNs=str(1300+node))]))
+            probe=dict(pid=pid,startTicks='19',binarySHA256=binary,binaryPath=binary_path,device=1,inode=44,size=1024,timeNamespace='1:2',observedStartNs='940',observedEndNs='950',
+                       identity='original-unpublished-pidfd-and-live-proc-exe')
+            common=dict(node=node,pid=pid,processName='pq-node-%d'%node,sourceStopped=True,usable=True)
+            receipt['normalCommitObservation']['originalSnapshots'].append(dict(common,path='commit-observation-node-%d-original.json'%node,**descriptor(commit)))
+            receipt['commitMonotonicObservation']['originalSnapshots'].append(dict(common,path='commit-monotonic-node-%d-original.json'%node,**descriptor(clock)))
+            receipt['commitClockProcessProbes'].append(dict(node=node,probe=probe))
+            receipt['processes'].append(dict(name='pq-node-%d'%node,pid=pid,startTicks=19,exited=True,rawReturnCode=0,exitCode=0,signal=None,command=['original-shim',binary_path]))
+            evidence.append(dict(processProbe=probe,commitOriginal=commit,clockOriginal=clock))
+        inclusion=raw(dict(observedMonotonicNs=1500,qualifiedFinal=False,rows=[dict(hash=tx.upper(),height='5',tx=base64.b64encode(transaction).decode(),tx_result=dict(code=0)) for _ in range(4)]))
+        intent=raw(dict(id='9'*64,operationId='8'*64,owner=4,nonce='2',transactionHash=tx,submissionAttempts=1,qualifiedFinal=False))
+        receipt['commitClockInclusions'].append(dict(index=0,path='load-operations/00000/four-node-inclusion.json',**descriptor(inclusion),intent=descriptor(intent),transaction=descriptor(transaction)))
+        kwargs=dict(expected_source=source,parent=parent,node_evidence=evidence,inclusion={0:inclusion},selection_raw=selection,
+                    dependencies_raw=deps,build_identity_raw=declaration,network_plan_raw=network,original_operations={0:dict(intent=intent,transaction=transaction)})
+        return receipt,kwargs
+
+    def test_exact_original_joins_four_individual_upper_bounds(self):
+        receipt,kwargs=self.fixture(); result=r.reduce(receipt,**kwargs)
+        self.assertEqual((result['observed'],result['censored']),(1,0))
+        self.assertEqual(result['rows'][0]['nodesNs'],[200,201,202,203])
+        self.assertEqual(result['rows'][0]['fourNodeUpperBoundNs'],203)
+        self.assertFalse(result['independentFinality'] or result['runtimeAuthorized'])
+
+    def test_stopped_original_clock_bytes_are_retained_once_and_unknown_is_censored(self):
+        receipt,kwargs=self.fixture()
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();private=root/'private';public=root/'public';private.mkdir();public.mkdir()
+            children=[];descriptors=[]
+            for i,item in enumerate(kwargs['node_evidence']):
+                path=private/('clock-%d.json'%i);path.write_bytes(item['clockOriginal']);path.chmod(0o600)
+                children.append(dict(name='pq-node-%d'%i,process=SimpleNamespace(pid=200+i,poll=lambda:0)))
+                descriptors.append(dict(node=i,path=str(path),processName='pq-node-%d'%i))
+            window=SimpleNamespace(work=root,children=children)
+            got=r.retain_after_stop(window,descriptors,'a'*40)
+            self.assertTrue(got['fourOriginalSnapshotsUsable']);self.assertEqual(len(got['originalSnapshots']),4)
+            for i,item in enumerate(kwargs['node_evidence']):
+                item['clockOriginal']=(public/('commit-monotonic-node-%d-original.json'%i)).read_bytes()
+            receipt['commitMonotonicObservation']=got
+            self.assertEqual(r.reduce(receipt,**kwargs)['rows'][0]['fourNodeUpperBoundNs'],203)
+            repeated=r.retain_after_stop(window,descriptors,'a'*40)
+            self.assertFalse(repeated['fourOriginalSnapshotsUsable']);self.assertEqual(len(repeated['errors']),4)
+
+    def test_unstopped_or_aliased_clock_never_becomes_usable(self):
+        receipt,kwargs=self.fixture()
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();private=root/'private';public=root/'public';private.mkdir();public.mkdir()
+            children=[];descriptors=[]
+            for i,item in enumerate(kwargs['node_evidence']):
+                path=private/('clock-%d.json'%i);path.write_bytes(item['clockOriginal']);path.chmod(0o600)
+                children.append(dict(name='pq-node-%d'%i,process=SimpleNamespace(pid=200+i,poll=lambda:0)))
+                descriptors.append(dict(node=i,path=str(path),processName='pq-node-%d'%i))
+            children[1]['process'].poll=lambda:None
+            os.link(descriptors[2]['path'],private/'alias')
+            got=r.retain_after_stop(SimpleNamespace(work=root,children=children),descriptors,'a'*40)
+            self.assertFalse(got['fourOriginalSnapshotsUsable']);self.assertEqual({x['node'] for x in got['errors']},{1,2})
+            self.assertFalse((public/'commit-monotonic-node-1-original.json').exists())
+            self.assertFalse((public/'commit-monotonic-node-2-original.json').exists())
+
+    def test_original_unknown_clock_is_retained_but_never_usable(self):
+        _,kwargs=self.fixture()
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();private=root/'private';public=root/'public';private.mkdir();public.mkdir()
+            children=[];descriptors=[]
+            for i,item in enumerate(kwargs['node_evidence']):
+                path=private/('clock-%d.json'%i);value=json.loads(item['clockOriginal'])
+                if i==2:value['status']='UNKNOWN';value['unknownReason']='synthetic clock unavailable'
+                path.write_bytes(raw(value));path.chmod(0o600)
+                children.append(dict(name='pq-node-%d'%i,process=SimpleNamespace(pid=200+i,poll=lambda:0)))
+                descriptors.append(dict(node=i,path=str(path),processName='pq-node-%d'%i))
+            result=r.retain_after_stop(SimpleNamespace(work=root,children=children),descriptors,'a'*40)
+            self.assertFalse(result['fourOriginalSnapshotsUsable']);self.assertFalse(result['originalSnapshots'][2]['usable'])
+            self.assertEqual(json.loads((public/'commit-monotonic-node-2-original.json').read_bytes())['status'],'UNKNOWN')
+
+    def test_original_driver_joins_only_retained_files_and_private_original_plan(self):
+        spec=importlib.util.spec_from_file_location('clock_original_driver',Path(__file__).with_name('pq-independent-load.py'))
+        driver=importlib.util.module_from_spec(spec);spec.loader.exec_module(driver)
+        receipt,kwargs=self.fixture()
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();public=root/'public';private=root/'private';public.mkdir();private.mkdir()
+            network=json.loads(kwargs['network_plan_raw']);network['rootDir']=str(private);kwargs['network_plan_raw']=raw(network)
+            receipt['activation']['networkPlanSHA256']=r.sha(kwargs['network_plan_raw'])
+            files={'normal-live-source-selection.json':kwargs['selection_raw'],
+                   'normal-live-source-dependencies.json':kwargs['dependencies_raw'],
+                   'commit-clock-build-identity.log':kwargs['build_identity_raw'],
+                   'create-original.log':raw(dict(version='YNX-PQ-LAB-CREATED/v1',nodeStarted=False,planSHA256=r.sha(kwargs['network_plan_raw']),planFile=str(private/'network-plan.json'),plan=network)),
+                   'load-operations/00000/four-node-inclusion.json':kwargs['inclusion'][0],
+                   'load-operations/00000/submission-intent.json':kwargs['original_operations'][0]['intent'],
+                   'load-operations/00000/transaction.abci':kwargs['original_operations'][0]['transaction']}
+            for index,item in enumerate(kwargs['node_evidence']):
+                files['commit-observation-node-%d-original.json'%index]=item['commitOriginal']
+                files['commit-monotonic-node-%d-original.json'%index]=item['clockOriginal']
+            for name,data in files.items():
+                path=public/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(data)
+            (private/'network-plan.json').write_bytes(kwargs['network_plan_raw'])
+            receipt['binaries']['ynx-consensus-pq-lab']='1'*64
+            receipt['normalLiveBuildProvenance']['ynx-consensus-pq-lab']=dict(
+                binarySHA256='1'*64,originalSource=receipt['source'],sourceSelectionSHA256=r.sha(kwargs['selection_raw']),
+                sourceDependenciesReceiptSHA256=r.sha(kwargs['dependencies_raw']),selectedOptionalForkTree='e'*40,buildCwd='/synthetic/source',
+                buildArgv=['go','build','-mod=readonly','-p','1','-trimpath','-buildvcs=false','-o','/synthetic/ynx-consensus-pq-lab','./cmd/ynx-consensus-pq-lab'])
+            receipt['processes'].append(dict(name='create-original',pid=99,startTicks=17,exitCode=0,rawReturnCode=0,exited=True,signal=None,
+                command=['/synthetic/ynx-consensus-pq-lab','create','--synthetic','--root',str(private)]))
+            receipt['commitClockBuiltCreator']=dict(path='/synthetic/ynx-consensus-pq-lab',sha256='1'*64,device=1,inode=45,size=1024)
+            receipt['commitClockCreatorProbe']=dict(pid=99,startTicks='17',binarySHA256='1'*64,binaryPath='/synthetic/ynx-consensus-pq-lab',
+                device=1,inode=45,size=1024,timeNamespace='1:2',observedStartNs='750',observedEndNs='790',
+                identity='original-unpublished-pidfd-and-live-proc-exe')
+            with mock.patch.object(driver.commit_clock,'COMMIT_CLOCK_SOURCE','a'*40):
+                result=driver.original_commit_clock_readback(receipt,root,private,'a'*40)
+                self.assertEqual((result['observed'],result['rows'][0]['fourNodeUpperBoundNs']),(1,203))
+                receipt['commitClockReadback']=copy.deepcopy(result)
+                public_files={'archive/public/'+name:data for name,data in files.items()}
+                public_files['archive/public/receipt.json']=raw(receipt)
+                (private/'network-plan.json').unlink() # Offline reader must use only the original public create log.
+                offline=r.readback_public_originals(public_files,'archive/public/',expected_source='a'*40)
+                self.assertEqual((offline['observed'],offline['censored']),(1,0))
+                self.assertFalse(offline['archiveOriginIndependentlyVerified'] or offline['independentFinality'])
+                missing=dict(public_files);missing.pop('archive/public/load-operations/00000/transaction.abci')
+                censored=r.readback_public_originals(missing,'archive/public/',expected_source='a'*40)
+                self.assertEqual((censored['observed'],censored['censored']),(0,1))
+                changed=dict(public_files);changed['archive/public/load-operations/00000/transaction.abci']=b'different-original'
+                censored=r.readback_public_originals(changed,'archive/public/',expected_source='a'*40)
+                self.assertEqual((censored['observed'],censored['censored']),(0,1))
+                dishonest=copy.deepcopy(receipt);dishonest['commitClockReadback']['rows'][0]['fourNodeUpperBoundNs']=999
+                changed=dict(public_files);changed['archive/public/receipt.json']=raw(dishonest)
+                censored=r.readback_public_originals(changed,'archive/public/',expected_source='a'*40)
+                self.assertEqual((censored['observed'],censored['censored']),(0,1))
+                (private/'network-plan.json').write_bytes(kwargs['network_plan_raw'])
+                bad=copy.deepcopy(receipt);bad['processes'][-1]['startTicks']=None
+                with self.assertRaisesRegex(ValueError,'original synthetic create process'):driver.original_commit_clock_readback(bad,root,private,'a'*40)
+                bad=copy.deepcopy(receipt);bad['normalLiveBuildProvenance']['ynx-consensus-pq-lab']['binarySHA256']='2'*64
+                with self.assertRaisesRegex(ValueError,'creator build/source binding'):driver.original_commit_clock_readback(bad,root,private,'a'*40)
+                bad=copy.deepcopy(receipt);bad['commitClockCreatorProbe']['inode']+=1
+                with self.assertRaisesRegex(ValueError,'creator pidfd/executable'):driver.original_commit_clock_readback(bad,root,private,'a'*40)
+                (public/'commit-monotonic-node-2-original.json').unlink()
+                result=driver.original_commit_clock_readback(receipt,root,private,'a'*40)
+                self.assertEqual((result['observed'],result['censored']),(0,1))
+
+    def test_offline_create_log_retains_exact_original_plan_bytes(self):
+        plan=raw(dict(chainId='ynx_642399-1',originalGenesisHash='e'*64));pin=r.sha(plan)
+        create=b'{"version":"YNX-PQ-LAB-CREATED/v1","nodeStarted":false,"planSHA256":"'+pin.encode()+b'","plan":'+plan+b'}'
+        self.assertEqual(r.plan_from_original_create(create,pin),plan)
+        for invalid in (create.replace(b'"nodeStarted":false',b'"nodeStarted":true'),
+                        create.replace(b'"plan":',b'"plan":{},"plan":'),
+                        create.replace(b'ynx_642399-1',b'ynx_642399-2')):
+            with self.assertRaises((ValueError,KeyError)):r.plan_from_original_create(invalid,pin)
+
+    def test_original_read_refuses_file_and_parent_symlinks_and_hardlinks(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();directory=root/'original';directory.mkdir();item=directory/'item';item.write_bytes(b'original')
+            self.assertEqual(r.read_original(item,100),b'original')
+            alias=root/'alias';alias.symlink_to(item)
+            with self.assertRaises(OSError):r.read_original(alias,100)
+            parent=root/'redirect';parent.symlink_to(directory,target_is_directory=True)
+            with self.assertRaises(OSError):r.read_original(parent/'item',100)
+            os.link(item,root/'hardlink')
+            with self.assertRaisesRegex(ValueError,'identity differs'):r.read_original(item,100)
+
+    def test_original_read_refuses_parent_replacement_during_fd_read(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();directory=root/'original';directory.mkdir();item=directory/'item';item.write_bytes(b'original')
+            real_read=os.read;changed=False
+            def replace(fd,size):
+                nonlocal changed
+                chunk=real_read(fd,size)
+                if chunk and not changed:
+                    changed=True;directory.rename(root/'old');directory.mkdir();(directory/'item').write_bytes(b'original')
+                return chunk
+            with mock.patch.object(r.os,'read',side_effect=replace):
+                with self.assertRaisesRegex(ValueError,'changed during read'):r.read_original(item,100)
+
+    def test_original_guard_rejects_log_closed_by_stop_without_retirement_identity(self):
+        import time
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();path=root/'original.log';stream=path.open('wb');stream.write(b'original');stream.close()
+            window=original_window_fixture();window.lock=threading.RLock();window.started=time.monotonic()
+            window.sample_stage_totals={};window.known={};window.children=[];window.logs=[('original',stream)]
+            window.closed_log_identity={};window.last_storage_sample=time.monotonic();window.storage_bytes=0
+            window.peak_rss=0;window.peak_bytes=0;window.peak_rss_sample=None;window.work=root;window.storage_roots=[]
+            window.samples=[];window.stopping=True
+            with mock.patch.object(lab.guard,'proc_inventory',return_value=({},None)), \
+                 mock.patch.object(lab.guard,'owned_set',return_value=set()), \
+                 mock.patch.object(lab.shutil,'disk_usage',return_value=SimpleNamespace(free=2<<30)):
+                with self.assertRaisesRegex(RuntimeError,'retired original process log identity changed'):window.sample()
+
+    def test_old_missing_source_or_parent_remains_not_supplied(self):
+        receipt,kwargs=self.fixture()
+        for mutate in ('source','parent','manifest','build_argv'):
+            with self.subTest(mutate=mutate):
+                item=copy.deepcopy(receipt); options=copy.deepcopy(kwargs)
+                if mutate=='source':options['expected_source']='1'*40
+                elif mutate=='parent':item.pop('commitClockParent')
+                elif mutate=='manifest':options['selection_raw']+=b' '
+                else:item['normalLiveBuildProvenance']['ynx-comet']['buildArgv'].remove('-buildvcs=false')
+                result=r.reduce(item,**options)
+                self.assertEqual((result['status'],result['observed'],result['censored']),('NOT_SUPPLIED',0,1))
+
+    def test_caller_cannot_supply_an_unqualified_source(self):
+        receipt,kwargs=self.fixture()
+        with mock.patch.object(r,'COMMIT_CLOCK_SOURCE',None):
+            result=r.reduce(receipt,**kwargs)
+        self.assertEqual((result['status'],result['observed'],result['censored']),('NOT_SUPPLIED',0,1))
+
+    def test_each_unbound_node_makes_the_transaction_censored(self):
+        for kind in ('pid','executable','inode','namespace','clock_order','wrong_height_hash','duplicate_height','duplicate_json','duplicate_node_descriptor','future_clock','inclusion_bytes'):
+            with self.subTest(kind=kind):
+                receipt,kwargs=self.fixture(); item=kwargs['node_evidence'][1]
+                if kind in ('pid','executable','inode','namespace'):
+                    if kind=='pid':item['processProbe']['pid']+=1
+                    elif kind=='executable':item['processProbe']['binarySHA256']='1'*64
+                    elif kind=='inode':item['processProbe']['inode']+=1
+                    else:item['processProbe']['timeNamespace']='9:9'
+                elif kind=='inclusion_bytes':kwargs['inclusion'][0]+=b' '
+                elif kind=='duplicate_node_descriptor':receipt['commitMonotonicObservation']['originalSnapshots'].append(copy.deepcopy(receipt['commitMonotonicObservation']['originalSnapshots'][1]))
+                elif kind=='duplicate_json':
+                    item['clockOriginal']=item['clockOriginal'].replace(b'{',b'{"status":"OBSERVED",',1)
+                    receipt['commitMonotonicObservation']['originalSnapshots'][1].update(descriptor(item['clockOriginal']))
+                else:
+                    clock=json.loads(item['clockOriginal'])
+                    if kind=='clock_order':clock['samples'].append(dict(height=6,appHash='d'*64,monotonicNs='1'))
+                    elif kind=='wrong_height_hash':clock['samples'][0]['appHash']='1'*64
+                    elif kind=='duplicate_height':clock['samples'].append(clock['samples'][0])
+                    else:clock['samples'][0]['monotonicNs']='1600'
+                    item['clockOriginal']=raw(clock)
+                    receipt['commitMonotonicObservation']['originalSnapshots'][1].update(descriptor(item['clockOriginal']))
+                result=r.reduce(receipt,**kwargs)
+                self.assertEqual((result['observed'],result['censored']),(0,1))
+                self.assertIsNone(result['rows'][0]['fourNodeUpperBoundNs'])
+
+    def test_original_full_demand_indices_and_ids_are_mandatory(self):
+        receipt,kwargs=self.fixture();receipt['loadResult']['rows'][0]['index']=1
+        with self.assertRaisesRegex(ValueError,'unique full demand'):r.reduce(receipt,**kwargs)
+
+    def test_original_transaction_hash_cannot_fill_two_demand_rows(self):
+        receipt,kwargs=self.fixture();receipt['configuredDemand']=2
+        other=copy.deepcopy(receipt['loadResult']['rows'][0]);other.update(index=1,id='8'*64)
+        receipt['loadResult']['rows'].append(other)
+        with self.assertRaisesRegex(ValueError,'hashes cannot be reused'):r.reduce(receipt,**kwargs)
+
+    def test_many_rows_validate_each_original_node_once_without_pooling_heights(self):
+        receipt,kwargs=self.fixture();receipt['configuredDemand']=2
+        transaction=b'another-original-transaction';tx=r.sha(transaction)
+        row=copy.deepcopy(receipt['loadResult']['rows'][0]);row.update(index=1,id='7'*64,hash=tx)
+        receipt['loadResult']['rows'].append(row)
+        payload=json.loads(kwargs['inclusion'][0])
+        for node in payload['rows']:node['hash']=tx;node['tx']=base64.b64encode(transaction).decode()
+        kwargs['inclusion'][1]=raw(payload)
+        intent=raw(dict(id='7'*64,operationId='8'*64,owner=4,nonce='2',transactionHash=tx,submissionAttempts=1,qualifiedFinal=False))
+        kwargs['original_operations'][1]=dict(intent=intent,transaction=transaction)
+        receipt['commitClockInclusions'].append(dict(index=1,path='load-operations/00001/four-node-inclusion.json',**descriptor(kwargs['inclusion'][1]),intent=descriptor(intent),transaction=descriptor(transaction)))
+        with mock.patch.object(r._commit,'validate_declared_contract',wraps=r._commit.validate_declared_contract) as validate:
+            result=r.reduce(receipt,**kwargs)
+        self.assertEqual((result['observed'],result['censored'],validate.call_count),(2,0,4))
+        self.assertEqual([row['fourNodeUpperBoundNs'] for row in result['rows']],[203,203])
+
+    def test_original_rpc_height_requires_canonical_decimal_string(self):
+        for value in (True,5,5.0,'05','+5','5.0'):
+            with self.subTest(value=value):
+                receipt,kwargs=self.fixture();payload=json.loads(kwargs['inclusion'][0]);payload['rows'][1]['height']=value
+                kwargs['inclusion'][0]=raw(payload);receipt['commitClockInclusions'][0].update(descriptor(kwargs['inclusion'][0]))
+                self.assertEqual(r.reduce(receipt,**kwargs)['censored'],1)
+
+    def test_missing_or_mismatched_original_business_is_censored(self):
+        for case in ('intent_missing','transaction_missing','transaction_swapped','reply_tx','wrong_intent','missing_ledger_inclusion','late_observation','finality_claim'):
+            with self.subTest(case=case):
+                receipt,kwargs=self.fixture();op=kwargs['original_operations'][0];ref=receipt['commitClockInclusions'][0]
+                if case=='intent_missing':op.pop('intent')
+                elif case=='transaction_missing':op.pop('transaction')
+                elif case=='transaction_swapped':op['transaction']=b'other';ref['transaction']=descriptor(op['transaction'])
+                elif case=='wrong_intent':
+                    value=json.loads(op['intent']);value['operationId']='0'*64;op['intent']=raw(value);ref['intent']=descriptor(op['intent'])
+                elif case=='missing_ledger_inclusion':receipt['loadResult']['rows'][0]['includedNs']=None
+                else:
+                    value=json.loads(kwargs['inclusion'][0])
+                    if case=='reply_tx':value['rows'][1]['tx']=base64.b64encode(b'other').decode()
+                    elif case=='late_observation':value['observedMonotonicNs']=1800
+                    else:value['qualifiedFinal']=True
+                    kwargs['inclusion'][0]=raw(value);ref.update(descriptor(kwargs['inclusion'][0]))
+                result=r.reduce(receipt,**kwargs)
+                self.assertEqual((result['observed'],result['censored']),(0,1))
+
+    def test_original_observation_clock_overflow_is_censored(self):
+        receipt,kwargs=self.fixture();origin=(1<<63)-500
+        receipt['loadResult']['originMonotonicNs']=str(origin)
+        parent=kwargs['parent'];parent['observedStartNs']=str(origin-200);parent['observedEndNs']=str(origin-100)
+        for index,item in enumerate(kwargs['node_evidence']):
+            probe=item['processProbe'];probe['observedStartNs']=str(origin-60);probe['observedEndNs']=str(origin-50)
+            clock=json.loads(item['clockOriginal']);clock['samples'][0]['monotonicNs']=str(origin+300+index)
+            item['clockOriginal']=raw(clock);receipt['commitMonotonicObservation']['originalSnapshots'][index].update(descriptor(item['clockOriginal']))
+        value=json.loads(kwargs['inclusion'][0]);value['observedMonotonicNs']=origin+501
+        kwargs['inclusion'][0]=raw(value);receipt['commitClockInclusions'][0].update(descriptor(kwargs['inclusion'][0]))
+        result=r.reduce(receipt,**kwargs)
+        self.assertEqual((result['observed'],result['censored']),(0,1))
+
+    def test_boolean_pid_cannot_alias_original_pid_one(self):
+        receipt,kwargs=self.fixture();item=kwargs['node_evidence'][0]
+        receipt['processes'][1]['pid']=1;item['processProbe']['pid']=1
+        for field,key in (('commitOriginal','normalCommitObservation'),('clockOriginal','commitMonotonicObservation')):
+            payload=json.loads(item[field]);payload['processID']=1;item[field]=raw(payload)
+            receipt[key]['originalSnapshots'][0].update(pid=1,**descriptor(item[field]))
+        receipt['normalCommitObservation']['originalSnapshots'][0]['pid']=True
+        result=r.reduce(receipt,**kwargs)
+        self.assertEqual((result['observed'],result['censored']),(0,1))
+
+    def test_one_original_process_cannot_impersonate_four_nodes(self):
+        receipt,kwargs=self.fixture();first=copy.deepcopy(kwargs['node_evidence'][0])
+        first_process=receipt['processes'][1]
+        for node in range(1,4):
+            kwargs['node_evidence'][node]=copy.deepcopy(first)
+            receipt['commitClockProcessProbes'][node]['probe']=copy.deepcopy(first['processProbe'])
+            receipt['processes'][node+1].update(pid=first_process['pid'],startTicks=first_process['startTicks'])
+            for key,raw_key in (('normalCommitObservation','commitOriginal'),('commitMonotonicObservation','clockOriginal')):
+                receipt[key]['originalSnapshots'][node].update(pid=first_process['pid'],**descriptor(first[raw_key]))
+        result=r.reduce(receipt,**kwargs)
+        self.assertEqual((result['status'],result['observed'],result['censored']),('NOT_SUPPLIED',0,1))
+
+    def test_same_node_self_consistency_cannot_hide_another_network(self):
+        receipt,kwargs=self.fixture();item=kwargs['node_evidence'][1]
+        for key,receipt_key in (('commitOriginal','normalCommitObservation'),('clockOriginal','commitMonotonicObservation')):
+            value=json.loads(item[key]);value['originalGenesisHash']='f'*64;item[key]=raw(value)
+            receipt[receipt_key]['originalSnapshots'][1].update(descriptor(item[key]))
+        result=r.reduce(receipt,**kwargs)
+        self.assertEqual((result['observed'],result['censored']),(0,1))
+        self.assertIsNone(result['rows'][0]['fourNodeUpperBoundNs'])
+
+    def test_node_pidfd_is_bound_before_original_child_publication(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);(root/'public').mkdir()
+            window=original_window_fixture()
+            window.lock=threading.RLock();window.children=[];window.known={};window.logs=[];window.work=root;window.source=root;window.env={};window.cpus=[0];window.sample=lambda:None
+            child=SimpleNamespace(pid=12345,returncode=None);anchor=mock.Mock()
+            def bind(process):
+                self.assertIs(process,child);self.assertEqual(window.children,[])
+                self.assertTrue(process._ynx_clock_pidfd_required)
+                return anchor
+            spec=SimpleNamespace(loader=SimpleNamespace(exec_module=lambda module:None))
+            module=SimpleNamespace(OriginalOwnerPidfd=bind)
+            with mock.patch.object(lab.subprocess,'Popen',return_value=child),mock.patch.object(lab.guard,'bounded',return_value=b''), \
+                 mock.patch.object(lab.guard,'parse_stat',return_value=dict(startTicks=123)), \
+                 mock.patch.object(lab.importlib.util,'spec_from_file_location',return_value=spec), \
+                 mock.patch.object(lab.importlib.util,'module_from_spec',return_value=module):
+                try:
+                    self.assertIs(window.launch('pq-node-0',['original-node'],True,original_pidfd_node=True),child)
+                    self.assertIs(child._ynx_clock_pidfd,anchor);self.assertEqual(len(window.children),1)
+                    self.assertFalse(hasattr(child,'_ynx_original_pidfd')) # group retirement stays original
+                finally:
+                    for _,log in window.logs:log.close()
+
+    def test_creator_pidfd_is_bound_before_original_child_publication(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();(root/'public').mkdir()
+            window=original_window_fixture();window.lock=threading.RLock();window.children=[];window.known={};window.logs=[]
+            window.work=root;window.source=root;window.env={};window.cpus=[0];window.sample=lambda:None
+            child=SimpleNamespace(pid=12345,returncode=None);anchor=mock.Mock()
+            def bind(process):
+                self.assertIs(process,child);self.assertEqual(window.children,[]);self.assertTrue(process._ynx_clock_pidfd_required)
+                return anchor
+            spec=SimpleNamespace(loader=SimpleNamespace(exec_module=lambda module:None));module=SimpleNamespace(OriginalOwnerPidfd=bind)
+            with mock.patch.object(lab.subprocess,'Popen',return_value=child),mock.patch.object(lab.guard,'bounded',return_value=b''), \
+                 mock.patch.object(lab.guard,'parse_stat',return_value=dict(startTicks=123)), \
+                 mock.patch.object(lab.importlib.util,'spec_from_file_location',return_value=spec), \
+                 mock.patch.object(lab.importlib.util,'module_from_spec',return_value=module):
+                try:
+                    self.assertIs(window.launch('create-original',['original'],original_pidfd_creator=True),child)
+                    self.assertIs(child._ynx_clock_pidfd,anchor);self.assertEqual(len(window.children),1)
+                    self.assertFalse(hasattr(child,'_ynx_original_pidfd'))
+                finally:
+                    for _,log in window.logs:log.close()
+
+    def test_failed_creator_pidfd_binding_preserves_child_and_cleanup_debt(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();(root/'public').mkdir()
+            window=original_window_fixture();window.lock=threading.RLock();window.children=[];window.known={};window.logs=[]
+            window.work=root;window.source=root;window.env={};window.cpus=[0];window.sample=lambda:None
+            child=SimpleNamespace(pid=12345,returncode=0)
+            spec=SimpleNamespace(loader=SimpleNamespace(exec_module=lambda module:None))
+            def refused(process):raise OSError('original creator pidfd unavailable')
+            module=SimpleNamespace(OriginalOwnerPidfd=refused)
+            with mock.patch.object(lab.subprocess,'Popen',return_value=child),mock.patch.object(lab.guard,'bounded',return_value=b''), \
+                 mock.patch.object(lab.guard,'parse_stat',return_value=dict(startTicks=123)), \
+                 mock.patch.object(lab.importlib.util,'spec_from_file_location',return_value=spec), \
+                 mock.patch.object(lab.importlib.util,'module_from_spec',return_value=module):
+                try:
+                    with self.assertRaisesRegex(OSError,'creator pidfd unavailable'):
+                        window.launch('create-original',['original'],original_pidfd_creator=True)
+                    self.assertIs(window.children[0]['process'],child)
+                    window._stop_owned=lambda:True
+                    self.assertFalse(window.stop());self.assertEqual(window.commit_clock_cleanup_debt,['create-original'])
+                finally:
+                    for _,log in window.logs:log.close()
+
+    def test_original_node_pidfd_close_requires_original_process_retirement(self):
+        for retired in (False,True):
+            with self.subTest(retired=retired):
+                window=original_window_fixture();window.lock=threading.RLock()
+                anchor=mock.Mock();anchor.close_bounded.return_value=True;child=SimpleNamespace(returncode=0 if retired else None,_ynx_clock_pidfd=anchor)
+                window.children=[dict(name='pq-node-0',process=child)];window._stop_owned=lambda:True
+                result=window.stop()
+                self.assertEqual(result,retired)
+                self.assertEqual(window.commit_clock_cleanup_debt,[] if retired else ['pq-node-0'])
+                self.assertEqual(anchor.close_bounded.call_count,1 if retired else 0)
+                window.pending_launches={};window.launch_cleanup_debt=[];window.launches_closed=True
+                lifecycle=window.launch_cleanup_report()
+                self.assertEqual(lifecycle['clockIdentityCleanupDebt'],[] if retired else ['pq-node-0'])
+                if not retired:self.assertEqual(lifecycle['status'],'UNKNOWN')
+
+    def test_failed_original_node_pidfd_binding_retains_original_child(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);(root/'public').mkdir()
+            window=original_window_fixture();window.lock=threading.RLock();window.children=[];window.known={};window.logs=[]
+            window.work=root;window.source=root;window.env={};window.cpus=[0];window.sample=lambda:None
+            child=SimpleNamespace(pid=12345,returncode=None)
+            spec=SimpleNamespace(loader=SimpleNamespace(exec_module=lambda module:None))
+            def refused(process):raise OSError('original pidfd unavailable')
+            module=SimpleNamespace(OriginalOwnerPidfd=refused)
+            with mock.patch.object(lab.subprocess,'Popen',return_value=child),mock.patch.object(lab.guard,'bounded',return_value=b''), \
+                 mock.patch.object(lab.guard,'parse_stat',return_value=dict(startTicks=123)), \
+                 mock.patch.object(lab.importlib.util,'spec_from_file_location',return_value=spec), \
+                 mock.patch.object(lab.importlib.util,'module_from_spec',return_value=module):
+                try:
+                    with self.assertRaisesRegex(OSError,'original pidfd unavailable'):
+                        window.launch('pq-node-0',['original-node'],True,original_pidfd_node=True)
+                    self.assertEqual(len(window.children),1);self.assertIs(window.children[0]['process'],child)
+                    self.assertTrue(child._ynx_clock_pidfd_required)
+                finally:
+                    for _,log in window.logs:log.close()
+
+    def test_node_anchor_close_failure_never_replaces_original_stop_error(self):
+        window=original_window_fixture();window.lock=threading.RLock()
+        anchor=mock.Mock();anchor.close_bounded.side_effect=OSError('secondary identity close')
+        window.children=[dict(name='pq-node-0',process=SimpleNamespace(returncode=0,_ynx_clock_pidfd=anchor))]
+        def original_failure():raise RuntimeError('original stop failure')
+        window._stop_owned=original_failure
+        with self.assertRaisesRegex(RuntimeError,'original stop failure'):window.stop()
+        self.assertEqual(window.commit_clock_cleanup_debt,['pq-node-0'])
+
+    def test_busy_original_pidfd_lock_returns_cleanup_debt(self):
+        spec=importlib.util.spec_from_file_location('bounded_clock_pidfd',Path(__file__).with_name('pq-experimental-owner-pidfd.py'))
+        identity=importlib.util.module_from_spec(spec);spec.loader.exec_module(identity)
+        anchor=identity.OriginalOwnerPidfd.__new__(identity.OriginalOwnerPidfd)
+        anchor.lock=threading.Lock();anchor.fd=os.open(os.devnull,os.O_RDONLY);anchor.pid=123
+        anchor.lock.acquire()
+        try:
+            started=__import__('time').monotonic();self.assertFalse(anchor.close_bounded(timeout=.01))
+            self.assertLess(__import__('time').monotonic()-started,1);self.assertIsNotNone(anchor.fd)
+        finally:anchor.lock.release();anchor.close()
+
+    @unittest.skipUnless(sys.platform=='linux','real original pidfd and /proc require Linux')
+    def test_real_linux_parent_clock_and_original_process_executable(self):
+        domain=r.parent_domain();self.assertEqual(domain['processID'],os.getpid())
+        binary=os.path.realpath('/bin/sleep');digest=hashlib.sha256(Path(binary).read_bytes()).hexdigest()
+        built=r.capture_built_binary(binary);self.assertEqual((built['path'],built['sha256']),(binary,digest))
+        child=subprocess.Popen([binary,'30'])
+        try:
+            fd=r.bind_unpublished_process(child)
+            try:
+                probe=r.capture_owned_executable(child,fd,binary,digest)
+                self.assertEqual((probe['pid'],probe['binarySHA256'],probe['timeNamespace']),(child.pid,digest,domain['timeNamespace']))
+                self.assertEqual(tuple(probe[key] for key in ('device','inode','size')),tuple(built[key] for key in ('device','inode','size')))
+                with self.assertRaises(ValueError):r.capture_owned_executable(child,fd,binary,'0'*64)
+            finally:fd.close()
+        finally:child.terminate();child.wait(timeout=5)
+
+    @unittest.skipUnless(sys.platform=='linux','real original Window and pidfd require Linux')
+    def test_real_linux_window_binds_and_retires_exact_original_node(self):
+        binary=os.path.realpath('/bin/sleep');digest=hashlib.sha256(Path(binary).read_bytes()).hexdigest()
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);(root/'public').mkdir()
+            window=original_window_fixture();window.lock=threading.RLock();window.children=[];window.known={};window.logs=[]
+            window.work=root;window.source=root;window.env=dict(os.environ);window.cpus=sorted(os.sched_getaffinity(0));window.sample=lambda:None
+            child=window.launch('pq-node-0',[binary,'30'],True,original_pidfd_node=True)
+            try:
+                probe=window.capture_clock_node(child,binary,digest)
+                self.assertEqual(probe['pid'],child.pid);self.assertEqual(probe['binarySHA256'],digest)
+                with self.assertRaisesRegex(RuntimeError,'one original node clock probe'):
+                    window.capture_clock_node(child,binary,digest)
+                def retire():child.terminate();child.wait(timeout=5);return True
+                window._stop_owned=retire
+                self.assertTrue(window.stop());self.assertEqual(window.commit_clock_cleanup_debt,[])
+                self.assertIsNone(child._ynx_clock_pidfd.fd)
+            finally:
+                if child.poll() is None:child.terminate();child.wait(timeout=5)
+                for _,log in window.logs:log.close()
+
+    @unittest.skipUnless(sys.platform=='linux','real original creator pidfd and /proc require Linux')
+    def test_real_linux_window_binds_original_creator_before_publication(self):
+        binary=os.path.realpath('/bin/sleep');digest=hashlib.sha256(Path(binary).read_bytes()).hexdigest()
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();(root/'public').mkdir()
+            window=original_window_fixture();window.lock=threading.RLock();window.children=[];window.known={};window.logs=[]
+            window.work=root;window.source=root;window.env=dict(os.environ);window.cpus=sorted(os.sched_getaffinity(0));window.sample=lambda:None
+            child=window.launch('create-original',[binary,'30'],original_pidfd_creator=True)
+            try:
+                self.assertFalse(hasattr(child,'_ynx_original_pidfd'))
+                probe=window.capture_clock_node(child,binary,digest)
+                self.assertEqual((probe['pid'],probe['binarySHA256']),(child.pid,digest))
+                def retire():child.terminate();child.wait(timeout=5);return True
+                window._stop_owned=retire
+                self.assertTrue(window.stop());self.assertEqual(window.commit_clock_cleanup_debt,[])
+                self.assertIsNone(child._ynx_clock_pidfd.fd)
+            finally:
+                if child.poll() is None:child.terminate();child.wait(timeout=5)
+                for _,log in window.logs:log.close()
+
+
+if __name__=='__main__':unittest.main(verbosity=2)

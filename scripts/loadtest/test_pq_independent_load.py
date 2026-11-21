@@ -45,6 +45,7 @@ class IndependentLoadControls(unittest.TestCase):
         window.work=root;window.sample=lambda:None;window.logs=[];window.source=root;window.env={};window.cpus=[0]
         window.children=[];window.known={};window.closed_log_identity={};window.pending_launches={}
         window.launches_closed=False;window.launch_cleanup_debt=[];window.launch_guard_failure=None;window.launch_cleanup_deadline=None
+        window.closed_for_launch=False
         return window
     def test_cutoff_drain_fences_launch_and_selects_only_original_started_verifiers(self):
         class Proc:

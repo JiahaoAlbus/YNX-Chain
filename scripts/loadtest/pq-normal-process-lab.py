@@ -292,7 +292,10 @@ class Ceremony:
                     info=os.fstat(fd)
                     lab.require(stat.S_ISREG(info.st_mode) and info.st_size==32 and info.st_mode&0o077==0 and info.st_nlink==1,"original private recovery file required")
                     command=fd3_command([str(self.bins/"ynx-comet"),*a["args"],*observed],fd)
-                    proc=self.w.launch("pq-node-%d"%n["index"],command,True,pass_fds=(fd,))
+                    if getattr(self,'commit_clock_observation_enabled',False):
+                        proc=self.w.launch("pq-node-%d"%n["index"],command,True,pass_fds=(fd,),original_pidfd_node=True)
+                    else:
+                        proc=self.w.launch("pq-node-%d"%n["index"],command,True,pass_fds=(fd,))
                 finally:os.close(fd)
             self.nodes.append(proc)
 
@@ -368,7 +371,12 @@ class Ceremony:
                 if len(self.quiet_observations)<128:self.quiet_observations.append(dict(index=self.quiet_calls-1,minimumHeight=minimum,requestedTimeoutSeconds=timeout,allocatedTimeoutSeconds=allocated,globalActiveLimitSeconds=lab.CAPS['totalSeconds']-lab.CAPS['cleanupSeconds'],startedMonotonicNs=started,returnedMonotonicNs=time.monotonic_ns(),attempts=attempts,outcome=outcome,stableObservations=stable,lastCheckpoint=None if last is None else dict(height=last[0],appHash=last[1]),firstSuccessfulRPCObservationByNode=first_rpc,firstInitialHeightOrLaterObservedByNode=first_height,firstCommonInitializedObservation=first_common,quietConfirmedMonotonicNs=confirmed,lastError=last_error,terminalError=terminal_error,errorCounts=errors,lastOriginalNodeMetadata=last_nodes,lastRPCErrors=last_rpc_errors,lastRPCMetadata=last_rpc_metadata,originalProcessObservations=processes,spansNs=totals,intervalsAreParentElapsed=True,authorityGranted=False))
 
     def readiness_report(self):
-        with self.w.lock:return dict(schema='YNX-PERF-ORIGINAL-READINESS-OBSERVATIONS/v1',calls=getattr(self,'quiet_calls',0),retained=len(getattr(self,'quiet_observations',[])),omitted=max(0,getattr(self,'quiet_calls',0)-len(getattr(self,'quiet_observations',[]))),recordLimit=128,records=__import__('copy').deepcopy(getattr(self,'quiet_observations',[])),meaning='Original disk/RPC readiness only. RPC/height timestamps are first observations, not exact service/commit times; original node logs retain those. Full original JSON decoded, only checkpoint metadata retained. Parent spans include failures/transport; never Go CPU or business finality.')
+        if not self.w.lock.acquire(timeout=1):
+            return dict(schema='YNX-PERF-ORIGINAL-READINESS-OBSERVATIONS/v1',status='UNKNOWN',
+                        calls=None,retained=None,omitted=None,recordLimit=128,records=None,
+                        meaning='Original readiness lock unavailable; calls and records not observed')
+        try:return dict(schema='YNX-PERF-ORIGINAL-READINESS-OBSERVATIONS/v1',calls=getattr(self,'quiet_calls',0),retained=len(getattr(self,'quiet_observations',[])),omitted=max(0,getattr(self,'quiet_calls',0)-len(getattr(self,'quiet_observations',[]))),recordLimit=128,records=__import__('copy').deepcopy(getattr(self,'quiet_observations',[])),meaning='Original disk/RPC readiness only. RPC/height timestamps are first observations, not exact service/commit times; original node logs retain those. Full original JSON decoded, only checkpoint metadata retained. Parent spans include failures/transport; never Go CPU or business finality.')
+        finally:self.w.lock.release()
 
     def post_once(self,name,raw,expected):
         original_hash=expected;expected=comet_hash(expected)
