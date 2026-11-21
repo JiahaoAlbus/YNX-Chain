@@ -804,6 +804,10 @@ func detachDevnetSnapshot(source devnetSnapshot) (devnetSnapshot, error) {
 		if history[i].Transactions == nil {
 			continue
 		}
+		if cloned, ok := detachOrdinaryTransactions(history[i].Transactions); ok {
+			detached.Blocks[i].Transactions = cloned
+			continue
+		}
 		encoded, err := json.Marshal(history[i].Transactions)
 		if err != nil {
 			return devnetSnapshot{}, fmt.Errorf("detach checkpoint transactions: %w", err)
