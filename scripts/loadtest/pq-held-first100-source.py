@@ -26,6 +26,52 @@ REQUIRED_STEPS = (
     'Preserve only public optional live source evidence',
 )
 
+# These fixtures run in the producer's delivery job, not in focused-go.  This
+# additional contract is intentionally separate from the frozen 59f gate: it
+# cannot qualify a successor until its exact source and CI are bound by the
+# owning controller.
+DELIVERY_STEPS = (
+    'Verify initial registration and funded transfer through the original proof CLI',
+    'Verify exact transaction Host selection and original acquire-current',
+    'Verify normal Host source producer with original signed transaction fixture',
+)
+# This commit's three steps explicitly assert the corresponding fixture PASS.
+# A successful same-named step in another revision need not reject a Go skip.
+DELIVERY_SOURCE = 'c697abae262c3be7859f235f45e9e8447bbccf63'
+DELIVERY_BRANCH = 'codex/ynx-pq-perf-source-20261108'
+
+
+def validate_delivery(run, jobs, *, source, branch):
+    """Check the original same-run delivery job; grant no runtime permission."""
+    import re
+    if not (type(source) is str and re.fullmatch(r'[0-9a-f]{40}', source)
+            and source == DELIVERY_SOURCE and branch == DELIVERY_BRANCH
+            and type(run) is dict and type(run.get('id')) is int and run['id'] > 0
+            and run.get('head_sha') == source and run.get('head_branch') == branch
+            and run.get('event') == 'push' and run.get('run_attempt') == 1
+            and run.get('workflow_id') == 322643672
+            and run.get('repository', {}).get('full_name') == REPOSITORY
+            and run.get('path') == '.github/workflows/resource-market-ci.yml'
+            and run.get('status') == 'completed' and run.get('conclusion') == 'success'):
+        raise RuntimeError('exact successful original push run required for delivery')
+    if not (type(jobs) is list and len(jobs) <= 100):
+        raise RuntimeError('bounded original same-run job inventory required')
+    matches = [job for job in jobs if type(job) is dict and job.get('name') == 'protocol-delivery']
+    if len(matches) != 1:
+        raise RuntimeError('unique original protocol-delivery job required')
+    job = matches[0]
+    if not (type(job.get('id')) is int and job['id'] > 0 and job.get('run_id') == run['id']
+            and job.get('run_attempt') == 1 and job.get('head_sha') == source
+            and job.get('head_branch') == branch and job.get('status') == 'completed'
+            and job.get('conclusion') == 'success' and type(job.get('steps')) is list):
+        raise RuntimeError('original same-run delivery identity or outcome differs')
+    for name in DELIVERY_STEPS:
+        steps = [step for step in job['steps'] if type(step) is dict and step.get('name') == name]
+        if len(steps) != 1 or (steps[0].get('status'), steps[0].get('conclusion')) != ('completed', 'success'):
+            raise RuntimeError('original delivery fixture step incomplete: ' + name)
+    return dict(source=source, run=run['id'], job=job['id'], requiredSteps=list(DELIVERY_STEPS),
+                runtimePermissionGranted=False, independentFinality=False)
+
 
 def validate(run, job):
     def succeeded(value):
@@ -45,6 +91,14 @@ def validate(run, job):
             raise RuntimeError('held first100 CI step incomplete: ' + name)
     return dict(source=SOURCE, sourceTree=TREE, run=RUN, job=JOB, requiredSteps=list(REQUIRED_STEPS),
                 sourceOnlyQualified=True, runtimePermissionGranted=False)
+
+
+def validate_successor(run, focused_job, jobs):
+    """Both original jobs must pass for a future exact successor qualification."""
+    focused = validate(run, focused_job)
+    delivery = validate_delivery(run, jobs, source=SOURCE, branch=BRANCH)
+    return dict(focused=focused, delivery=delivery, sourceOnlyQualified=True,
+                runtimePermissionGranted=False)
 
 
 def qualification():

@@ -22,6 +22,43 @@ def args(**changes):
 
 
 class BackendSelection(unittest.TestCase):
+    def test_successor_delivery_requires_same_push_and_all_original_fixture_steps(self):
+        q = d.module('held_delivery_contract', 'pq-held-first100-source.py')
+        source, branch = q.DELIVERY_SOURCE, q.DELIVERY_BRANCH
+        run = dict(id=123, event='push', run_attempt=1, workflow_id=322643672,
+                   repository={'full_name': q.REPOSITORY}, path='.github/workflows/resource-market-ci.yml',
+                   head_sha=source, head_branch=branch, status='completed', conclusion='success')
+        job = dict(id=456, run_id=123, run_attempt=1, name='protocol-delivery', head_sha=source,
+                   head_branch=branch, status='completed', conclusion='success',
+                   steps=[dict(name=name, status='completed', conclusion='success') for name in q.DELIVERY_STEPS])
+        result = q.validate_delivery(run, [job], source=source, branch=branch)
+        self.assertEqual(result['job'], 456)
+        self.assertFalse(result['runtimePermissionGranted'] or result['independentFinality'])
+        with self.assertRaises(RuntimeError):
+            q.validate_delivery(run, [job], source='b'*40, branch=branch)
+        for key, value in (('event', 'workflow_dispatch'), ('run_attempt', 2), ('head_sha', 'b'*40),
+                           ('conclusion', 'failure')):
+            with self.subTest(run=key), self.assertRaises(RuntimeError):
+                q.validate_delivery(dict(run, **{key: value}), [job], source=source, branch=branch)
+        for key, value in (('run_id', 999), ('run_attempt', 2), ('head_sha', 'b'*40),
+                           ('conclusion', 'skipped')):
+            with self.subTest(job=key), self.assertRaises(RuntimeError):
+                q.validate_delivery(run, [dict(job, **{key: value})], source=source, branch=branch)
+        for steps in (job['steps'][:-1], job['steps'] + [job['steps'][0]],
+                      [dict(job['steps'][0], conclusion='skipped'), *job['steps'][1:]]):
+            with self.subTest(steps=steps), self.assertRaises(RuntimeError):
+                q.validate_delivery(run, [dict(job, steps=steps)], source=source, branch=branch)
+        for jobs in ([], [job, job]):
+            with self.subTest(jobs=jobs), self.assertRaises(RuntimeError):
+                q.validate_delivery(run, jobs, source=source, branch=branch)
+        with mock.patch.object(q, 'validate', return_value=dict(sourceOnlyQualified=True)):
+            with mock.patch.object(q, 'SOURCE', source), mock.patch.object(q, 'BRANCH', branch):
+                combined = q.validate_successor(run, {'name': 'focused-go'}, [job])
+                self.assertTrue(combined['sourceOnlyQualified'])
+                self.assertFalse(combined['runtimePermissionGranted'])
+                with self.assertRaises(RuntimeError):
+                    q.validate_successor(run, {'name': 'focused-go'}, [])
+
     def test_legacy_auto_and_explicit_public_capacity_keep_original_caps(self):
         self.assertEqual(d.sender_backend_kind(args(sender_backend='auto')),'bounded-cold')
         self.assertEqual(d.sender_backend_kind(args(sender_backend='auto',staged_publication=False)),'per-account')
