@@ -129,6 +129,32 @@ class SerialVerifierControls(unittest.TestCase):
             with self.assertRaisesRegex(OSError,'uncertain release'):self.invoke(0)
         self.assertTrue(all(row['process'].returncode==0 for row in self.w.children))
         self.assertTrue(self.b.stop_event.is_set());self.assertEqual(self.b.verifier_admission.report()['active'],1)
+    def test_unreaped_real_control_keeps_permit_and_original_failure(self):
+        self.enable();original=helpers.OriginalWaitFailure('UNIT original wait failed before retirement')
+        launch=self.w.launch
+        with contextlib.ExitStack() as patches:
+            def uncertain_launch(*args,**kwargs):
+                proc=launch(*args,**kwargs)
+                patches.enter_context(mock.patch.object(proc,'terminate'))
+                patches.enter_context(mock.patch.object(proc,'kill'))
+                patches.enter_context(mock.patch.object(proc,'wait',side_effect=d.subprocess.TimeoutExpired('CONTROL',1)))
+                return proc
+            patches.enter_context(mock.patch.object(self.w,'launch',side_effect=uncertain_launch))
+            patches.enter_context(mock.patch.object(self.w,'wait',side_effect=original))
+            with self.assertRaises(helpers.OriginalWaitFailure) as caught:self.invoke(0)
+            self.assertIs(caught.exception,original)
+            self.assertIsNone(self.w.children[0]['process'].poll())
+            state=self.b.verifier_admission.report()
+            self.assertEqual((state['active'],state['released'],state['cleanupDebt']),(1,0,True))
+            record=self.b.helper_timing_report()['records'][0]
+            self.assertEqual(record['verifierAdmission']['status'],'UNKNOWN_RETIREMENT')
+            self.assertEqual(record['errorType'],'OriginalWaitFailure')
+            with self.assertRaisesRegex(RuntimeError,'cleanup unresolved'):self.invoke(1)
+            self.assertEqual(len(self.w.children),1)
+        # Only this test's original CONTROL process is now allowed to exit;
+        # the production permit remains debt and is never retried or released.
+        (self.root/'release').touch();self.w.children[0]['process'].wait(timeout=2)
+        self.assertEqual(self.b.verifier_admission.report()['active'],1)
     def test_closed_window_identity_and_waiter_bounds_refuse(self):
         with self.assertRaisesRegex(RuntimeError,'opt-in'):gate.SerialVerifierAdmission(threading.Event())
         self.b.configure_serial_verifier()
