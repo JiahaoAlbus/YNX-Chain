@@ -62,12 +62,14 @@ export type WorkspaceState={tasks:Task[];projection:TaskProjection|null;run:Task
 
 export class TaskWorkspaceController{
  state:WorkspaceState={tasks:[],projection:null,run:null,receipt:null,record:{selectedTask:"",runId:"",deliveries:[]},busy:false,error:"",hasMore:false,nextId:""};
- private disposed=false;private epoch=0;private request:AbortController|null=null;private cancellation:AbortController|null=null;private writes:Promise<void>=Promise.resolve();private hydrated=false;private originalClosing:Promise<void>|null=null;private follower:OriginalRunReconnect|null=null;private followerKey="";
+ private disposed=false;private epoch=0;private request:AbortController|null=null;private cancellation:AbortController|null=null;private writes:Promise<void>=Promise.resolve();private flights=new Set<Promise<unknown>>();private hydrated=false;private originalClosing:Promise<void>|null=null;private follower:OriginalRunReconnect|null=null;private followerKey="";
  constructor(private identity:string,private api:TaskAPI,private storage:TaskPersistence,private newID:()=>string,private changed:(state:WorkspaceState)=>void=()=>{},private runCursors?:RunCursorPersistence){}
  private emit(){if(!this.disposed)this.changed({...this.state,record:{...this.state.record,deliveries:[...this.state.record.deliveries]}})}
  private persist(record:WorkspaceRecord){const snapshot=JSON.parse(JSON.stringify(record)) as WorkspaceRecord;const next=this.writes.catch(()=>{}).then(()=>this.storage.write(this.identity,snapshot));this.writes=next;return next}
  private async hydrate(){if(this.hydrated)return;const saved=await this.storage.read(this.identity);if(saved){if(!Array.isArray(saved.deliveries)||saved.deliveries.some(d=>!d||(d.version!==undefined&&d.version!=="2"&&d.version!=="6")))throw Error("TASK_JOURNAL_VERSION_INVALID");segmentOrEmpty(saved.selectedTask);segmentOrEmpty(saved.runId);if(saved.selectedResultStep!==undefined){if(!saved.selectedTask||typeof saved.selectedResultStep!=="string")throw Error("TASK_JOURNAL_INVALID");segment(saved.selectedResultStep)}this.state.record=saved;}this.hydrated=true}
- private async work<T>(fn:(signal:AbortSignal)=>Promise<T>,apply:(value:T)=>void){
+ private track<T>(flight:Promise<T>){this.flights.add(flight);void flight.then(()=>this.flights.delete(flight),()=>this.flights.delete(flight));return flight}
+ private work<T>(fn:(signal:AbortSignal)=>Promise<T>,apply:(value:T)=>void){return this.track(this.performWork(fn,apply))}
+ private async performWork<T>(fn:(signal:AbortSignal)=>Promise<T>,apply:(value:T)=>void){
   if(this.disposed||this.state.busy)return;const epoch=++this.epoch;const request=new AbortController();this.request=request;this.state.busy=true;this.state.error="";this.emit();
   try{const value=await fn(request.signal);if(!this.disposed&&epoch===this.epoch){apply(value)}}catch(error){
    if(!this.disposed&&epoch===this.epoch){
@@ -152,7 +154,8 @@ export class TaskWorkspaceController{
  async create(conversationId:string){segment(conversationId);await this.mutate("create",null,"","",s=>this.api.create(conversationId,s),value=>{const task=value as Task;this.state.tasks=[task,...this.state.tasks]},conversationId)}
  async prepare(expected:Task){const task=this.current(expected);await this.mutate("prepare",task,"","",s=>this.api.prepare(task,s),value=>{this.state.projection={...this.state.projection!,...(value as {task:Task}).task}})}
  async cancel(expected:Task){const task=this.current(expected);if(this.state.busy){await this.cancelInFlight(task);return}await this.mutate("cancel",task,"","",s=>this.api.cancel(task,s),value=>{this.state.projection={...this.state.projection!,...(value as {task:Task}).task};this.state.run=null})}
- private async cancelInFlight(task:Task){
+ private cancelInFlight(task:Task){return this.track(this.performCancelInFlight(task))}
+ private async performCancelInFlight(task:Task){
   if(this.disposed||this.cancellation)return;const binding=["cancel",task.id,"","",task.revision,task.generation,""].join(":");if(this.state.record.deliveries.some(d=>d.binding===binding))throw new Error("ORIGINAL_DELIVERY_RETAINED_QUERY_BEFORE_RETRY");if(this.state.record.deliveries.length>=64)throw new Error("TASK_DELIVERY_JOURNAL_FULL");
   if('adapter' in this.api&&this.state.record.deliveries.some(d=>d.version!=="6"&&d.taskId===task.id))throw new Error("LEGACY_V2_TASK_QUERY_ONLY");
   const request=new AbortController();this.cancellation=request;const delivery:Delivery={version:'adapter' in this.api?"6":"2",id:this.newID(),binding,action:"cancel",taskId:task.id,revision:task.revision,generation:task.generation,state:"PENDING"};this.state.record={...this.state.record,deliveries:[...this.state.record.deliveries,delivery]};
@@ -224,6 +227,6 @@ export class TaskWorkspaceController{
  async retainedOriginalOperations(){if(!('adapter' in this.api))throw new Error("V6_ORIGINAL_ADAPTER_UNAVAILABLE");return this.api.adapter.retained()}
  async recoverOriginalOperation(operationId:string,signal:AbortSignal){if(!('adapter' in this.api))throw new Error("V6_ORIGINAL_ADAPTER_UNAVAILABLE");return this.api.adapter.lookupOriginal(operationId,signal)}
  async recoverLegacyRun(taskId:string,runId:string,signal:AbortSignal){if(!this.legacyTask(taskId))throw Error("LEGACY_ORIGINAL_DELIVERY_REQUIRED");const retained=this.state.record.deliveries.some(d=>d.version!=="6"&&d.taskId===taskId&&d.runId===runId&&["run","resume"].includes(d.action));if(!retained)throw new Error("LEGACY_ORIGINAL_DELIVERY_REQUIRED");return 'legacyRecovery' in this.api?this.api.legacyRecovery.runView(taskId,runId,signal):this.api.runView(taskId,runId,signal)}
- dispose(){if(this.disposed)return;this.disposed=true;this.epoch++;this.request?.abort();this.cancellation?.abort();this.originalClosing=(async()=>{await this.follower?.close();if('adapter' in this.api)await this.api.adapter.close()})();void this.originalClosing.catch(()=>{this.state.error="V6_ORIGINAL_CLEANUP_UNRESOLVED"})}
+ dispose(){if(this.disposed)return;this.disposed=true;this.epoch++;this.request?.abort();this.cancellation?.abort();this.originalClosing=(async()=>{await this.follower?.close();await Promise.allSettled([...this.flights]);await this.writes;if('adapter' in this.api)await this.api.adapter.close()})();void this.originalClosing.catch(()=>{this.state.error="V6_ORIGINAL_CLEANUP_UNRESOLVED"})}
  async whenClosed(){if(!this.disposed)this.dispose();await this.originalClosing}
 }

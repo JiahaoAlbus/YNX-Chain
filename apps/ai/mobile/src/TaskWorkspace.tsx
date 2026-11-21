@@ -18,7 +18,7 @@ export function TaskWorkspace({session,conversationId,locale,onBack}:Props){
   const abort=new AbortController();let closed=false;let owned:TaskWorkspaceController|null=null;let borrowed:import("./tasks").TaskCredentials|undefined;
   setOwner(source);setController(null);setState(null);setGrantRef("");setPrompt("");setRunId("");setShopTools(false);setNewHolder("");setLocalError("");
   void (async()=>{try{
-   const credentials=session?.taskCredentials??await session?.taskRuntime?.open(abort.signal);
+   const credentials=session?.taskCredentials??await session?.taskRuntime?.openWorkspace(abort.signal);
    if(!credentials)return;borrowed=credentials;
    if(closed){await credentials.v6?.client.close();return}
    owned=new TaskWorkspaceController(credentials.identity,createTaskAPI(API_BASE,credentials),nativeTaskPersistence,()=>`taskop_${Crypto.randomUUID().replace(/-/g,"")}`,next=>setState(next),nativeRunCursorPersistence);

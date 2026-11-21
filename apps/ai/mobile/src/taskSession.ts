@@ -1,7 +1,7 @@
 import type {OriginalAITaskActionV6Client as Client} from '../contracts/sdk047/original-ai-task-action-v6-client';
 import type {TaskCredentials} from './tasks';
 import type {V6Persistence} from './taskV6';
-export interface TaskSessionRuntime {open(signal:AbortSignal):Promise<TaskCredentials>;retire():Promise<void>}
+export interface TaskSessionRuntime {open(signal:AbortSignal):Promise<TaskCredentials>;openWorkspace(signal:AbortSignal):Promise<TaskCredentials>;retire():Promise<void>}
 const cancelled=()=>Error('TASK_SESSION_RETIRED_OR_CANCELLED');
 // Application lifetime scheduling only. The normal composition supplies the
 // sole zero-input SDK opener; no product route/provider can install authority.
@@ -9,6 +9,7 @@ export class TaskSessionLifetime implements TaskSessionRuntime {
  private retired=false;private closing:Promise<void>|null=null;
  private clients=new Set<Client>();private flights=new Set<Promise<unknown>>();
  private cleanupPresent=false;private cleanupCause:unknown;
+ private workspaceTail:Promise<void>=Promise.resolve();
  constructor(private identity:string,private acquireOriginal:()=>Promise<Client>,private journal:V6Persistence,private newOperationId:()=>string){}
  private remember(error:unknown){if(!this.cleanupPresent){this.cleanupPresent=true;this.cleanupCause=error}}
  open(signal:AbortSignal):Promise<TaskCredentials>{
@@ -29,6 +30,27 @@ export class TaskSessionLifetime implements TaskSessionRuntime {
    return {identity:this.identity,v6:{client,journal:this.journal,newOperationId:this.newOperationId}};
   });
   this.flights.add(flight);void flight.then(()=>this.flights.delete(flight),()=>this.flights.delete(flight));return flight;
+ }
+ // A workspace owns both the original client and its local journals. A new
+ // screen waits for the old adapter to drain and close before reading them.
+ async openWorkspace(signal:AbortSignal):Promise<TaskCredentials>{
+  if(this.retired||signal.aborted)throw cancelled();
+  const previous=this.workspaceTail;let release!:()=>void;
+  const held=new Promise<void>(resolve=>{release=resolve});
+  this.workspaceTail=previous.then(()=>held);
+  try{
+   await new Promise<void>((resolve,reject)=>{
+    const abort=()=>{signal.removeEventListener('abort',abort);reject(cancelled())};
+    signal.addEventListener('abort',abort,{once:true});
+    if(signal.aborted){abort();return}
+    void previous.then(()=>{signal.removeEventListener('abort',abort);resolve()},error=>{signal.removeEventListener('abort',abort);reject(error)});
+   });
+   const credentials=await this.open(signal);const client=credentials.v6!.client;const close=client.close.bind(client);
+   let workspaceClose:Promise<void>|null=null;
+   client.close=()=>{if(!workspaceClose)workspaceClose=close().then(()=>{release()},error=>{release();throw error});return workspaceClose};
+   if(this.retired||signal.aborted){await client.close();throw cancelled()}
+   return credentials;
+  }catch(error){release();throw error}
  }
  retire():Promise<void>{
   if(this.closing)return this.closing;this.retired=true;

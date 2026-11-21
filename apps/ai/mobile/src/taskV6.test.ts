@@ -80,6 +80,29 @@ test('vendored SDK047 types are byte-exact supplier contracts, with no executabl
 test('normal workspace disposal owns original SDK close exactly once and exposes cleanup failure',async()=>{
  const {TaskWorkspaceController}=await import('./tasks');const f=fixture();let n=0;f.client.close=async()=>{n++;throw Error('PUBLIC close retained')};const api=createTaskAPI('http://127.0.0.1:6438',{identity:'PUBLIC',v6:f.original});const c=new TaskWorkspaceController('PUBLIC',api,{read:async()=>null,write:async()=>{}},()=> 'unused');c.dispose();c.dispose();await assert.rejects(c.whenClosed(),/close retained/);assert.equal(n,1);assert.equal(c.state.error,'V6_ORIGINAL_CLEANUP_UNRESOLVED');
 });
+test('reopened workspace waits for the original UNKNOWN delivery to reach storage',async()=>{
+ const {TaskWorkspaceController}=await import('./tasks');const {TaskSessionLifetime}=await import('./taskSession');const f=fixture();let acquired=0;
+ const life=new TaskSessionLifetime('PUBLIC',async()=>{acquired++;return f.client},f.original.journal,f.original.newOperationId);
+ const credentials=await life.openWorkspace(new AbortController().signal);let saved:import('./tasks').WorkspaceRecord|null=null;
+ let entered!:()=>void,release!:()=>void;const writing=new Promise<void>(r=>entered=r),gate=new Promise<void>(r=>release=r);
+ const storage:import('./tasks').TaskPersistence={read:async()=>saved&&structuredClone(saved),write:async(_identity,value)=>{if(value.deliveries.some(d=>d.state==='UNKNOWN')){entered();await gate}saved=structuredClone(value)}};
+ const c=new TaskWorkspaceController('PUBLIC',createTaskAPI('http://127.0.0.1:6438',credentials),storage,()=> 'delivery_original');
+ await c.discover();await c.select(t.id);assert.ok(c.state.projection);
+ f.client.send=async()=>{throw Error('PUBLIC lost acknowledgement')};const pending=c.cancel(c.state.projection!);await writing;
+ c.dispose();const closing=c.whenClosed();const reopened=life.openWorkspace(new AbortController().signal);
+ await new Promise<void>(r=>setTimeout(r,0));assert.equal(acquired,1);assert.equal(f.calls.filter(call=>call==='close').length,0);
+ release();await pending;await closing;const next=await reopened;assert.equal(acquired,2);assert.equal(saved!.deliveries[0]!.state,'UNKNOWN');await next.v6!.client.close();await life.retire();
+});
+test('failed UNKNOWN delivery write retains the workspace lease and refuses reopening',async()=>{
+ const {TaskWorkspaceController}=await import('./tasks');const {TaskSessionLifetime}=await import('./taskSession');const f=fixture();let acquired=0;
+ const life=new TaskSessionLifetime('PUBLIC',async()=>{acquired++;return f.client},f.original.journal,f.original.newOperationId);
+ const credentials=await life.openWorkspace(new AbortController().signal);let saved:import('./tasks').WorkspaceRecord|null=null;
+ const storage:import('./tasks').TaskPersistence={read:async()=>saved&&structuredClone(saved),write:async(_identity,value)=>{if(value.deliveries.some(d=>d.state==='UNKNOWN'))throw Error('PUBLIC workspace write failed');saved=structuredClone(value)}};
+ const c=new TaskWorkspaceController('PUBLIC',createTaskAPI('http://127.0.0.1:6438',credentials),storage,()=> 'delivery_original');
+ await c.discover();await c.select(t.id);f.client.send=async()=>{throw Error('PUBLIC lost acknowledgement')};await c.cancel(c.state.projection!);
+ c.dispose();await assert.rejects(c.whenClosed(),/workspace write failed/);assert.equal(c.state.error,'V6_ORIGINAL_CLEANUP_UNRESOLVED');
+ const abort=new AbortController();const reopened=life.openWorkspace(abort.signal);await new Promise<void>(r=>setTimeout(r,0));assert.equal(acquired,1);abort.abort();await assert.rejects(reopened,/CANCELLED/);await life.retire();
+});
 test('corrupt falsy cold journal is not mistaken for absent storage',async()=>{const f=fixture();f.original.journal.read=async()=>false as never;const a=new NativeTaskV6Adapter('PUBLIC',f.original);await assert.rejects(a.execute(request(),new AbortController().signal),/JOURNAL_INVALID/);assert.equal(f.calls.length,0);assert.equal(f.writes.length,0)});
 test('cached task DATA cannot be mutated through a caller-owned list result',async()=>{const f=fixture(),api=createTaskV6API('PUBLIC',f.original),s=new AbortController().signal;const list=await api.list(s);list.tasks[0]!.revision=999;await api.task(t.id,s);assert.equal(f.intents[1]!.taskRevision,'2')});
 test('foreign conversation or current-task response is never cached as this task',async()=>{

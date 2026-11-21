@@ -10,6 +10,29 @@ test('workspace reopen acquires a fresh original client, preserving local partit
  const clients=[client(),client()];let opens=0;const life=new TaskSessionLifetime('local-partition',async(...args)=>{assert.equal(args.length,0);return clients[opens++]!.value},journal,()=>{throw Error('unexpected new operation')});
  const first=await life.open(new AbortController().signal);assert.equal(first.identity,'local-partition');assert.equal(first.v6!.journal,journal);await first.v6!.client.close();const second=await life.open(new AbortController().signal);assert.notEqual(second.v6!.client,first.v6!.client);assert.equal(opens,2);await life.retire();await second.v6!.client.close();assert.deepEqual(clients.map(c=>c.closes),[1,1]);
 });
+test('workspace reopen waits for the original client physical close before acquiring another',async()=>{
+ let finish!:()=>void,started!:()=>void;const closingStarted=new Promise<void>(r=>started=r),closeGate=new Promise<void>(r=>finish=r);
+ const first=client(async()=>{started();await closeGate}),second=client();let acquired=0;
+ const life=new TaskSessionLifetime('PUBLIC',async()=>++acquired===1?first.value:second.value,journal,()=> 'unused');
+ const old=await life.openWorkspace(new AbortController().signal);const closing=old.v6!.client.close();await closingStarted;
+ const next=life.openWorkspace(new AbortController().signal);await Promise.resolve();await Promise.resolve();assert.equal(acquired,1);
+ finish();await closing;const reopened=await next;assert.equal(acquired,2);await reopened.v6!.client.close();await life.retire();
+});
+test('cancelled workspace waiter never opens a replacement client',async()=>{
+ const first=client(),second=client();let acquired=0;
+ const life=new TaskSessionLifetime('PUBLIC',async()=>++acquired===1?first.value:second.value,journal,()=> 'unused');
+ const old=await life.openWorkspace(new AbortController().signal);const abort=new AbortController();
+ const waiting=life.openWorkspace(abort.signal);abort.abort();await assert.rejects(waiting,/RETIRED_OR_CANCELLED/);
+ assert.equal(acquired,1);await old.v6!.client.close();const next=await life.openWorkspace(new AbortController().signal);
+ assert.equal(acquired,2);await next.v6!.client.close();await life.retire();
+});
+test('failed original workspace close prevents the waiting client from opening',async()=>{
+ const first=client(async()=>{throw Error('PUBLIC close unresolved')});let acquired=0;
+ const life=new TaskSessionLifetime('PUBLIC',async()=>{acquired++;return first.value},journal,()=> 'unused');
+ const old=await life.openWorkspace(new AbortController().signal);const waiting=life.openWorkspace(new AbortController().signal);
+ await assert.rejects(old.v6!.client.close(),/close unresolved/);await assert.rejects(waiting,/close unresolved/);
+ assert.equal(acquired,1);await assert.rejects(life.retire(),/close unresolved/);
+});
 test('cancel during async original acquire drains the late client before returning and never prepares',async()=>{
  let release!:(c:Client)=>void;const pending=new Promise<Client>(r=>release=r),c=client();let entered!:()=>void;const started=new Promise<void>(r=>entered=r);const life=new TaskSessionLifetime('PUBLIC',async()=>{entered();return pending},journal,()=>{throw Error('new op')});const abort=new AbortController();const opening=life.open(abort.signal);await started;abort.abort();release(c.value);await assert.rejects(opening,/RETIRED_OR_CANCELLED/);assert.equal(c.closes,1);await life.retire();assert.equal(c.closes,1);
 });
