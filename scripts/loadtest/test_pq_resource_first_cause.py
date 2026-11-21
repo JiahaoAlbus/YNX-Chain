@@ -83,5 +83,27 @@ class ResourceFirstCauseControls(unittest.TestCase):
             popen.assert_not_called()
         with self.assertRaisesRegex(RuntimeError,'owned RSS exceeded'):monitor.check()
 
+    def test_empty_original_guard_exception_keeps_typed_nonempty_first_cause(self):
+        monitor=self.monitor();error=RuntimeError()
+        with mock.patch.object(self.lab,'owned_rss',side_effect=error):caught=self.in_worker(self.window.sample)
+        self.assertIs(caught[0],error);self.assertTrue(self.stop.is_set())
+        with self.assertRaisesRegex(RuntimeError,'RuntimeError.*empty'):monitor.check()
+        snapshot=monitor.failure_snapshot()
+        self.assertEqual(snapshot['errorType'],'RuntimeError')
+        self.assertEqual(snapshot['originalMessage'],'');self.assertEqual(snapshot['messageStatus'],'EMPTY')
+        self.assertTrue(snapshot['originalError'])
+
+    def test_unprintable_guard_exception_is_not_replaced_by_its_str_failure(self):
+        class BadMessage(Exception):
+            def __str__(self):raise ValueError('CONTROL stringify failed')
+        monitor=self.monitor();error=BadMessage()
+        with mock.patch.object(self.lab,'owned_rss',side_effect=error):caught=self.in_worker(self.window.sample)
+        self.assertIs(caught[0],error);self.assertTrue(self.stop.is_set())
+        with self.assertRaisesRegex(RuntimeError,'BadMessage.*unavailable'):monitor.check()
+        snapshot=monitor.failure_snapshot()
+        self.assertEqual(snapshot['errorType'],'BadMessage')
+        self.assertIsNone(snapshot['originalMessage']);self.assertEqual(snapshot['messageStatus'],'STR_FAILED')
+        self.assertEqual(snapshot['messageFormattingErrorType'],'ValueError')
+
 
 if __name__=='__main__':unittest.main(verbosity=2)

@@ -225,11 +225,17 @@ class Monitor:
     def latch(self,error,source):
         with self.failure_lock:
             if self.error is None:
-                self.error=str(error)
+                error_type=type(error).__name__;formatting_error=None
+                try:message=str(error)
+                except BaseException as formatting:
+                    message=None;formatting_error=type(formatting).__name__
+                status='STR_FAILED' if message is None else 'EMPTY' if message=='' else 'NONEMPTY'
+                self.error=(message if status=='NONEMPTY' else error_type+': original resource exception message '+('empty' if status=='EMPTY' else 'unavailable'))
                 try:observed=time.monotonic_ns()
                 except Exception:observed=None
                 self.first_failure=dict(schema='YNX-PERF-ORIGINAL-RESOURCE-FIRST-FAILURE/v1',
-                    originalError=self.error,errorType=type(error).__name__,source=source,
+                    originalError=self.error,errorType=error_type,originalMessage=message,messageStatus=status,
+                    messageFormattingErrorType=formatting_error,source=source,
                     observedMonotonicNs=observed,callerThread=threading.current_thread().name,
                     guardLimitsChanged=False,exceptionSuppressed=False)
         self.stop_event.set()
@@ -240,7 +246,7 @@ class Monitor:
             self.finished.wait(.2)
     def check(self):
         with self.failure_lock:error=self.error
-        if error:raise RuntimeError(error)
+        if error is not None:raise RuntimeError(error or 'original resource guard failure with empty stored message')
     def failure_snapshot(self):
         with self.failure_lock:return None if self.first_failure is None else dict(self.first_failure)
     def close(self):
