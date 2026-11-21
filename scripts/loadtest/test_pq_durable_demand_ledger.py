@@ -251,5 +251,38 @@ os._exit(0)
         with self.assertRaisesRegex(ValueError,'read-only'):audit.export_rows(target,max_bytes=64<<10)
         self.assertFalse(target.exists());self.assertEqual(audit.audit()['claimed'],1)
 
+    def test_admission_cutoff_drains_original_pre_cutoff_events_without_new_claims(self):
+        ledger=self.ledger();ledger.release_observed(0,1,0);row,_=ledger.reserve(1)
+        events=self.events_for(row,2)
+        for event in events[:4]:ledger.event(event)
+        ledger.begin_cutoff(10)
+        with self.assertRaisesRegex(ValueError,'no new claims'):ledger.reserve(11)
+        with self.assertRaisesRegex(ValueError,'no new releases'):ledger.release(20_000_000)
+        ledger.event(events[4]) # Original observation6, received during retirement.
+        self.assertEqual(ledger.row(0)['finalNs'],6)
+        ledger.event(dict(index=0,id=row['id'],kind='unknown',atNs=10,error='late original'))
+        with self.assertRaisesRegex(ValueError,'cutoff differ'):ledger.seal(11)
+        ledger.seal(10);before=ledger.report(10)
+        ledger.event(events[4]) # The final seal never accepts an older replay.
+        after=ledger.report(10)
+        self.assertEqual((after['qualified'],after['lateOriginalEvents']),(1,2))
+        self.assertEqual(after['accountState'],before['accountState'])
+        self.assertEqual(ledger.terminal_count,1)
+
+    def test_post_seal_retirement_quarantines_original_pending_with_actual_clock(self):
+        ledger=self.ledger();ledger.release(0);row,_=ledger.reserve(1)
+        with self.assertRaisesRegex(ValueError,'retirement clock'):ledger.retire_unresolved(2,'not sealed')
+        ledger.begin_cutoff(10);ledger.seal(10)
+        with self.assertRaisesRegex(ValueError,'retirement clock'):ledger.retire_unresolved(9,'before cutoff')
+        self.assertEqual(ledger.retire_unresolved(20,'original pending at retirement'),1)
+        self.assertEqual(ledger.retire_unresolved(21,'never repeat a terminal outcome'),0)
+        row=ledger.row(0);account=ledger.audit()['originalPending'][0]
+        self.assertEqual((row['status'],row['terminalNs']),('unknown',20))
+        self.assertEqual((account['pending'],account['nextNonce'],account['quarantined']),(0,2,True))
+        self.assertEqual(ledger.terminal_count,1)
+        stored=json.loads(ledger.db.execute("SELECT data FROM events WHERE kind='retirement_unknown'").fetchone()[0])
+        self.assertEqual((stored['atNs'],stored['original']['atNs']),(20,20))
+        self.assertEqual(ledger.report(10)['qualified'],0)
+
 
 if __name__=='__main__':unittest.main(verbosity=2)

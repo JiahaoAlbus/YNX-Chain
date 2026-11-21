@@ -162,7 +162,8 @@ class DurableLedger:
             self.plan_sha256=hashlib.sha256(encoded(metadata,MAX_PLAN_BYTES).encode()).hexdigest()
             with self._transaction():
                 for key,value in dict(schema=SCHEMA,plan=encoded(metadata,MAX_PLAN_BYTES),planSHA256=self.plan_sha256,
-                                      released='0',claimed='0',lastRelease='-1',freeTail=str(len(plan['accounts'])),sealed='false').items():
+                                      released='0',claimed='0',lastRelease='-1',freeTail=str(len(plan['accounts'])),
+                                      terminalCount='0',qualifiedCount='0',cutoffBoundary='false',sealed='false').items():
                     self.db.execute('INSERT INTO metadata VALUES(?,?)',(key,value))
                 for turn,owner in enumerate(plan['accounts']):
                     account=dict(owner,pending=None,quarantined=False,used=0)
@@ -210,7 +211,9 @@ class DurableLedger:
     @property
     def next_release(self):return int(self._meta('released'))
     @property
-    def terminal_count(self):return self.db.execute("SELECT count(*) FROM rows WHERE status IN ('qualified','failed','unknown')").fetchone()[0]
+    def terminal_count(self):
+        value=self.db.execute("SELECT value FROM metadata WHERE key='terminalCount'").fetchone()
+        return int(value[0]) if value else self.db.execute("SELECT count(*) FROM rows WHERE status IN ('qualified','failed','unknown')").fetchone()[0]
 
     def _record(self,event):
         require(type(event.get('atNs')) is int and 0<=event['atNs']<1<<63,'bounded original event clock required')
@@ -226,7 +229,8 @@ class DurableLedger:
             self.failed=self.failed or str(error);raise # The committed claim stays durable.
 
     def release(self,now):
-        require(self._meta('sealed')=='false','original observation cutoff is sealed; no new releases')
+        require(self._meta('sealed')=='false' and self._meta('cutoffBoundary')=='false',
+                'original observation cutoff is sealed; no new releases')
         require(type(now) is int and 0<=now<1<<63,'original monotonic release required')
         old=self.next_release
         end=min(self.plan['configuredDemand'],now*self.plan['requestedOfferedTPS']//1_000_000_000+1)
@@ -237,6 +241,19 @@ class DurableLedger:
             self.db.execute('INSERT INTO releases VALUES(?,?,?)',(old,end,now))
             self._set('released',end);self._set('lastRelease',now);self._record(event)
         self._publish(event)
+
+    def release_observed(self,first,end,now):
+        require(type(first) is int and type(end) is int and first==self.next_release
+                and first<end==min(self.plan['configuredDemand'],now*self.plan['requestedOfferedTPS']//1_000_000_000+1),
+                'complete contiguous original arrival observation required')
+        self.release(now)
+
+    def queue_state(self):
+        # Work proportional to the bounded OWNER pool, never to demand rows.
+        pending=self.db.execute('SELECT count(*) FROM owners WHERE pending IS NOT NULL').fetchone()[0]
+        available=self.db.execute('SELECT count(*) FROM owners WHERE pending IS NULL AND quarantined=0 AND used<capacity').fetchone()[0]
+        return dict(logicalReleased=self.next_release,queued=self.next_release-int(self._meta('claimed')),
+                    pendingAccounts=pending,availableAccounts=available,terminal=self.terminal_count)
 
     def row(self,index):
         require(type(index) is int and 0<=index<self.plan['configuredDemand'],'original demand index required')
@@ -270,7 +287,8 @@ class DurableLedger:
                                 (name,row['index'],value))
 
     def reserve(self,now):
-        require(self._meta('sealed')=='false','original observation cutoff is sealed; no new claims')
+        require(self._meta('sealed')=='false' and self._meta('cutoffBoundary')=='false',
+                'original observation cutoff is sealed; no new claims')
         require(type(now) is int and 0<=now<1<<63,'original monotonic claim required')
         with self._transaction():
             index=int(self._meta('claimed'))
@@ -295,7 +313,8 @@ class DurableLedger:
             require(event.get('id')==row['id'] and type(event.get('atNs')) is int and 0<=event['atNs']<1<<63,
                     'original operation event identity/clock differs')
             cutoff=self._meta('sealed')
-            if cutoff!='false':
+            boundary=self._meta('cutoffBoundary')
+            if cutoff!='false' or boundary!='false' and event['atNs']>=int(boundary):
                 self._record(dict(kind='late_original_event',index=row['index'],id=row['id'],atNs=event['atNs'],original=event))
                 # The caller must drain the original observation queue BEFORE
                 # seal. Receipt accounting is frozen even if a later consumer
@@ -311,21 +330,62 @@ class DurableLedger:
             if reducer.free:
                 turn=int(self._meta('freeTail'));self._set('freeTail',turn+1)
             self._save_row(row);self._save_account(account,turn);self._record(event)
+            if reducer.terminal_count:self._set('terminalCount',self.terminal_count+1)
+            if event['kind']=='qualified':self._set('qualifiedCount',int(self._meta('qualifiedCount'))+1)
         self._publish(event)
+
+    def begin_cutoff(self,cutoff):
+        """Stop new admissions, then drain existing callbacks by ORIGINAL time.
+
+        The final seal is taken after worker retirement. Pre-cutoff callbacks
+        may finish accounting in this interval but cannot admit another nonce.
+        Post-cutoff originals are retained without changing business state.
+        """
+        require(type(cutoff) is int and 0<=cutoff<1<<63 and self._meta('sealed')=='false'
+                and self._meta('cutoffBoundary')=='false','one original admission cutoff required')
+        with self._transaction():
+            last=self.db.execute('SELECT max(at_ns) FROM events').fetchone()[0]
+            require(last is None or last<cutoff,'cutoff precedes an already-applied original event')
+            self._set('cutoffBoundary',cutoff)
+            self._record(dict(kind='admission_cutoff',atNs=cutoff))
 
     def seal(self,cutoff):
         require(type(cutoff) is int and 0<=cutoff<1<<63 and self._meta('sealed')=='false',
                 'one original observation cutoff required')
+        require(self._meta('cutoffBoundary') in ('false',str(cutoff)),'original admission and observation cutoff differ')
         with self._transaction():
             # The controller seals after draining observations made BEFORE the
             # cutoff. Never retroactively censor a nonce already released here.
             require(int(self._meta('lastRelease'))<cutoff,'cutoff precedes an already-applied original release')
-            last_event=self.db.execute('SELECT max(at_ns) FROM events').fetchone()[0]
+            last_event=self.db.execute("SELECT max(at_ns) FROM events WHERE kind NOT IN ('late_original_event','admission_cutoff')").fetchone()[0]
             require(last_event is None or last_event<cutoff,'cutoff precedes an already-applied original event')
             for key in CLOCKS:
                 last=self.db.execute('SELECT max('+key+') FROM rows').fetchone()[0]
                 require(last is None or last<cutoff,'cutoff precedes an already-applied original observation')
             self._set('sealed',cutoff);self._record(dict(kind='observation_cutoff',atNs=cutoff))
+
+    def retire_unresolved(self,now,error):
+        """After seal, only quarantine unfinished originals; never apply success."""
+        require(type(now) is int and self._meta('sealed')!='false' and int(self._meta('sealed'))<=now<1<<63,
+                'original post-cutoff retirement clock required')
+        # At most one pending operation per bounded owner, not one per demand.
+        indices=[row[0] for row in self.db.execute("SELECT rows.idx FROM rows JOIN owners ON owners.pending=rows.idx WHERE rows.status NOT IN ('qualified','failed','unknown') ORDER BY owners.owner")]
+        require(len(indices)<=len(self.plan['accounts']),'original pending owner bound exceeded')
+        for index in indices:
+            with self._transaction():
+                row=self.row(index)
+                value=self.db.execute('SELECT data,free_turn FROM owners WHERE owner=?',(row['ownerIndex'],)).fetchone()
+                account=json.loads(value[0]);event=dict(kind='unknown',index=index,id=row['id'],atNs=now,error=error)
+                reducer=SimpleNamespace(plan=self.plan,rows=_OneRow(row,self.plan['configuredDemand']),
+                    accounts={account['ownerIndex']:account},free=collections.deque(),terminal_count=0,emit=lambda event:None)
+                original.Ledger.event(reducer,event)
+                require(not reducer.free and account['pending']==index and account['quarantined'],
+                        'retirement cannot release the original pending operation')
+                self._save_row(row);self._save_account(account,value[1])
+                self._record(dict(kind='retirement_unknown',index=index,id=row['id'],atNs=now,original=event))
+                self._set('terminalCount',self.terminal_count+1)
+            self._publish(event)
+        return len(indices)
 
     def report(self,cutoff,first_cause=None):
         require(type(cutoff) is int and 0<=cutoff<1<<63,'original cutoff required')
@@ -385,6 +445,26 @@ class DurableLedger:
 
     def close(self):
         if not self.closed:self.db.close();self.closed=True
+
+    def artifact(self):
+        require(self.closed,'close original ledger before pinning its artifact')
+        self._budget();digest=hashlib.sha256();size=0
+        fd=os.open(self.path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+        try:
+            before=os.fstat(fd)
+            require(stat.S_ISREG(before.st_mode) and (before.st_dev,before.st_ino)==self.identity,
+                    'original closed ledger identity differs')
+            while True:
+                raw=os.read(fd,1<<20)
+                if not raw:break
+                size+=len(raw);require(size<=self.max_db_bytes,'original ledger artifact exceeded page bound')
+                digest.update(raw);self._budget()
+            after=os.fstat(fd);path=self.path.lstat()
+            fields=lambda info:(info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns,info.st_ctime_ns,info.st_nlink)
+            require(fields(before)==fields(after)==fields(path) and size==before.st_size,'original ledger changed while pinning')
+        finally:os.close(fd)
+        return dict(path=str(self.path),bytes=size,sha256=digest.hexdigest(),planSHA256=self.plan_sha256,
+                    privateOriginalArtifact=True,businessSuccessProven=False)
 
 
 def open_readonly(path,plan,expected_plan_sha256,*,max_db_bytes=1<<30):
