@@ -20,6 +20,11 @@ class SerialVerifierAdmission:
         self.stop=stop;self.condition=threading.Condition();self.queue=collections.deque()
         self.owner=None;self.bound=False;self.debt=False;self.origin=None;self.deadline=None
         self.attempted=0;self.admitted=0;self.released=0;self.peak_waiters=0
+    def retain_retirement_debt(self):
+        # Sticky, fail-closed notification from the original helper exception
+        # path. Never take the possibly unavailable admission lock, release a
+        # permit, alter counters or clear this flag. No error formatting or IO.
+        self.debt=True
     def bind_window(self,origin,deadline):
         require(type(origin) is int and type(deadline) is int and 0<origin<deadline<1<<63
                 and deadline-origin<=180_000_000_000,'same finite original monotonic window required')
@@ -99,10 +104,15 @@ class SerialVerifierAdmission:
                     and 0<=cutoff<=self.deadline-self.origin):
                 result.update(actualCutoffStatus='ORIGINAL_SCHEDULER_OBSERVED',
                               actualObservationCutoffMonotonicNs=self.origin+cutoff)
-        if not self.condition.acquire(timeout=.05):return result
+        if not self.condition.acquire(timeout=.05):
+            # Counters remain unobserved, but an already known retirement
+            # failure is not erased merely because the queue lock is busy.
+            if self.debt:result['cleanupDebt']=True
+            return result
         try:
-            result.update(status='OBSERVED' if self.bound and not self.debt else 'UNKNOWN',
+            debt=self.debt
+            result.update(status='OBSERVED' if self.bound and not debt else 'UNKNOWN',
                 attempted=self.attempted,admitted=self.admitted,released=self.released,
-                queued=len(self.queue),active=int(self.owner is not None),peakQueued=self.peak_waiters,cleanupDebt=self.debt)
+                queued=len(self.queue),active=int(self.owner is not None),peakQueued=self.peak_waiters,cleanupDebt=debt)
             return result
         finally:self.condition.release()

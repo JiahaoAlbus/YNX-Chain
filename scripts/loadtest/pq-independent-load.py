@@ -477,6 +477,7 @@ class NormalBackend:
                                 'original verifier child retirement unresolved; permit retained')
                 except BaseException as error:
                     release_error=error
+                    self.verifier_admission.retain_retirement_debt()
                     self.stop_event.set()
                     self.helper_cleanup_debt.append(dict(name=name,errorType=type(error).__name__,
                         meaning='original verifier admission permit remains unresolved; preserve first cause and UNKNOWN'))

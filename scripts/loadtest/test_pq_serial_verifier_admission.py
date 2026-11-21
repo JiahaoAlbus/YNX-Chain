@@ -120,6 +120,8 @@ class SerialVerifierControls(unittest.TestCase):
             with self.assertRaises(helpers.OriginalWaitFailure) as caught:self.invoke(0)
         self.assertIs(caught.exception,error);self.assertTrue(self.b.stop_event.is_set())
         self.assertEqual(self.b.verifier_admission.report()['active'],1)
+        self.assertEqual(self.b.verifier_admission.report()['status'],'UNKNOWN')
+        self.assertIs(self.b.verifier_admission.report()['cleanupDebt'],True)
         self.assertEqual(self.b.helper_cleanup_debt[0]['errorType'],'OSError')
         self.assertEqual(self.b.helper_timing_report()['records'][0]['errorType'],'OriginalWaitFailure')
         self.assertFalse(self.w.children)
@@ -129,6 +131,43 @@ class SerialVerifierControls(unittest.TestCase):
             with self.assertRaisesRegex(OSError,'uncertain release'):self.invoke(0)
         self.assertTrue(all(row['process'].returncode==0 for row in self.w.children))
         self.assertTrue(self.b.stop_event.is_set());self.assertEqual(self.b.verifier_admission.report()['active'],1)
+        self.assertEqual(self.b.verifier_admission.report()['status'],'UNKNOWN')
+        self.assertIs(self.b.verifier_admission.report()['cleanupDebt'],True)
+    def test_real_retirement_lock_contention_keeps_known_debt_in_nested_report(self):
+        self.enable();(self.root/'release').touch()
+        locked=threading.Event();unlock=threading.Event()
+        def hold():
+            with self.b.verifier_admission.condition:locked.set();unlock.wait(2)
+        holder=threading.Thread(target=hold);original=helpers.OriginalWaitFailure('UNIT original wait boundary failure')
+        real_wait=self.w.wait
+        def fail_after_exit(proc):
+            real_wait(proc);holder.start();self.assertTrue(locked.wait(1));raise original
+        try:
+            with mock.patch.object(self.w,'wait',side_effect=fail_after_exit):
+                with self.assertRaises(helpers.OriginalWaitFailure) as caught:self.invoke(0)
+            self.assertIs(caught.exception,original)
+            self.assertEqual(self.b.helper_cleanup_debt[0]['errorType'],'RuntimeError')
+            # Snapshot cannot acquire the same real lock. A known retirement
+            # error must still be debt; unknown counters must remain null.
+            report=self.b.verifier_admission.report()
+            self.assertEqual(report['status'],'UNKNOWN');self.assertIs(report['cleanupDebt'],True)
+            self.assertIsNone(report['active'])
+        finally:
+            unlock.set()
+            if holder.ident is not None:holder.join(2)
+        self.assertFalse(holder.is_alive())
+        report=self.b.verifier_admission.report()
+        self.assertEqual((report['status'],report['active'],report['released'],report['cleanupDebt']),('UNKNOWN',1,0,True))
+    def test_exception_after_actual_permit_release_is_sticky_debt_without_inventing_active_child(self):
+        self.enable();(self.root/'release').touch();release=self.b.verifier_admission.release
+        def failed_return(*args,**kwargs):
+            self.assertTrue(release(*args,**kwargs));raise OSError('UNIT uncertain release return')
+        with mock.patch.object(self.b.verifier_admission,'release',side_effect=failed_return):
+            with self.assertRaisesRegex(OSError,'uncertain release return'):self.invoke(0)
+        report=self.b.verifier_admission.report()
+        self.assertEqual((report['status'],report['active'],report['released'],report['cleanupDebt']),('UNKNOWN',0,1,True))
+        with self.assertRaisesRegex(RuntimeError,'cleanup unresolved'):self.invoke(1)
+        self.assertEqual(len(self.w.children),1)
     def test_unreaped_real_control_keeps_permit_and_original_failure(self):
         self.enable();original=helpers.OriginalWaitFailure('UNIT original wait failed before retirement')
         launch=self.w.launch
