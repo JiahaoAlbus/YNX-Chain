@@ -496,8 +496,8 @@ class Window:
     def _launch(self, name, command, persistent, pass_fds, stdin_path, stdin_pipe, thread_safe, private_log, stop=None, original_pidfd=False):
         require(not getattr(self,'closed_for_launch',False), 'original Window has already entered terminal stop')
         require(not (stdin_pipe and stdin_path is not None), "one original stdin transport required")
-        require(type(original_pidfd) is bool and (not original_pidfd or (persistent and thread_safe and stdin_pipe)),
-                'original pidfd only for one persistent owned stdin stream')
+        require(type(original_pidfd) is bool and (not original_pidfd or (thread_safe and stdin_pipe)),
+                'original pidfd only for one thread-safe owned stdin stream')
         self.sample()
         require(not getattr(self,'closed_for_launch',False), 'original Window has already entered terminal stop')
         require(stop is None or not stop.is_set(), "normal helper cancelled before launch; preserve UNKNOWN")
@@ -531,6 +531,11 @@ class Window:
             except FileNotFoundError:
                 row["startTicks"] = None
             if original_pidfd:
+                # Wrap before publishing the process: every subsequent stdin
+                # write/flush shares the exact same retirement lock.
+                stream_spec=importlib.util.spec_from_file_location('original_guarded_stdin',Path(__file__).with_name('pq-guarded-original-stdin.py'))
+                stream_module=importlib.util.module_from_spec(stream_spec);stream_spec.loader.exec_module(stream_module)
+                proc.stdin=stream_module.GuardedOriginalStdin(proc.stdin)
                 # Before publishing this child the observer cannot poll/reap it.
                 spec=importlib.util.spec_from_file_location('original_owner_pidfd',Path(__file__).with_name('pq-experimental-owner-pidfd.py'))
                 identity=importlib.util.module_from_spec(spec);spec.loader.exec_module(identity)

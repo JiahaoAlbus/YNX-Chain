@@ -134,6 +134,7 @@ def session_class(Base, normal, lab):
                 lab.require(sys.platform=='linux' and hasattr(os,'pidfd_open') and hasattr(signal,'pidfd_send_signal'),
                             'Linux original pidfd required before experimental process launch')
             self.poison_retirement=poison_retirement
+            self.require_guarded_stream=poison_retirement
             self.trace_lock=threading.Lock();self.traces=[];self.attempts=0
             self.launched_ns=time.monotonic_ns()
             fd=os.open(ceremony.root/'workload/private-senders/recovery.raw',os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
@@ -196,18 +197,31 @@ def session_class(Base, normal, lab):
                 except BaseException as error:failed(error);return None
             try:
                 if p.stdin is not None and not p.stdin.closed:
-                    nullfd=None
-                    try:
-                        nullfd=os.open(os.devnull,os.O_WRONLY|os.O_CLOEXEC)
-                        os.dup2(nullfd,p.stdin.fileno(),inheritable=False)
-                        out['stdinCut']=True
-                        p.stdin.close()
-                    except BaseException as error:
-                        out['stdinCloseErrorType']=type(error).__name__
-                    finally:
-                        if nullfd is not None:
-                            try:os.close(nullfd)
-                            except BaseException as error:failed(error)
+                    if callable(getattr(p.stdin,'cut_once',None)):
+                        cut=p.stdin.cut_once(timeout=.05)
+                        out['stdinRetirement']=cut
+                        out['stdinCut']=cut.get('status')=='CUT_AND_CLOSED'
+                        if cut.get('cleanupDebt') is not False:
+                            out['stdinCloseErrorType']=cut.get('errorType','ORIGINAL_STREAM_UNKNOWN')
+                    elif getattr(self,'require_guarded_stream',False):
+                        # Never touch a pipe whose original writers did not
+                        # share the guard from process creation.
+                        out['stdinCloseErrorType']='ORIGINAL_STREAM_GUARD_MISSING'
+                    else:
+                        # Legacy test-only constructed sessions; the explicit
+                        # runtime candidate always requires the original guard.
+                        nullfd=None
+                        try:
+                            nullfd=os.open(os.devnull,os.O_WRONLY|os.O_CLOEXEC)
+                            os.dup2(nullfd,p.stdin.fileno(),inheritable=False)
+                            out['stdinCut']=True
+                            p.stdin.close()
+                        except BaseException as error:
+                            out['stdinCloseErrorType']=type(error).__name__
+                        finally:
+                            if nullfd is not None:
+                                try:os.close(nullfd)
+                                except BaseException as error:failed(error)
                 if out['stdinCut'] and alive() is True:
                     try:
                         p.wait(timeout=1)
@@ -343,6 +357,8 @@ def session_class(Base, normal, lab):
                 if self.proc.poll() is None:return dict(status='ORIGINAL_PROCESS_NOT_REAPED',closed=False)
                 try:handle.close()
                 except BaseException as error:return dict(status='IDENTITY_CLOSE_FAILED',closed=False,errorType=type(error).__name__)
+                if getattr(self,'require_guarded_stream',False) and self.proc.stdin is not None and not self.proc.stdin.closed:
+                    return dict(status='ORIGINAL_STDIN_CLEANUP_DEBT',closed=False,identityClosed=True)
                 return dict(status='ORIGINAL_IDENTITY_CLOSED_AFTER_REAP',closed=True)
             finally:self.lock.release()
 
@@ -355,6 +371,7 @@ def session_class(Base, normal, lab):
                             automaticRetry=False,authorityGranted=False)
                 if getattr(self,'poison_retirement',False):
                     result['experimentalPoisonRetirement']=dict(stopStreamLockDeferred=getattr(self,'stopStreamLockDeferred',False),
-                        cleanupReport=getattr(self,'poison_retirement_report',None),physicalWipeProven=False)
+                        cleanupReport=getattr(self,'poison_retirement_report',None),
+                        stopStreamRetirement=getattr(self,'stopStreamRetirement',None),physicalWipeProven=False)
                 return result
     return PublicOwnerSession

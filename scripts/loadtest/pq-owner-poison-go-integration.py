@@ -25,10 +25,12 @@ def main():
         child=subprocess.Popen([str(test_binary),'-test.run=^'+helper+'$', '-test.timeout=20s'],
                                stdin=subprocess.PIPE,stdout=output,stderr=output,env=env,pass_fds=(3,))
         try:
+            guarded=module('pq-guarded-original-stdin')
+            child.stdin=guarded.GuardedOriginalStdin(child.stdin)
             Session=t.session_class(d.SenderSession,n,d.lab);s=Session.__new__(Session)
             s.c=SimpleNamespace(w=SimpleNamespace(work=work),measurements=SimpleNamespace(record=lambda *a,**k:None))
             s.name='real-go-sender';s.owners=(0,1);s.offset=0;s.partial=b'';s.ready=None;s.prepare_source=False
-            s.path=log;s.proc=child;s.lock=threading.Lock();s.poisoned=False;s.poison_retirement=True
+            s.path=log;s.proc=child;s.lock=threading.Lock();s.poisoned=False;s.poison_retirement=True;s.require_guarded_stream=True
             s.trace_lock=threading.Lock();s.traces=[];s.attempts=0
             stop=threading.Event();ready=s.wait_ready(stop,time.monotonic()+15,lambda:None)
             assert ready['signed'] is False and ready['nonceReserved'] is False

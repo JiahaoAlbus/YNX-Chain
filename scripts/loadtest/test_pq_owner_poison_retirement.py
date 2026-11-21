@@ -120,7 +120,9 @@ class PoisonControls(unittest.TestCase):
         s.lock.acquire()
         try:
             with mock.patch.object(driver.os,'killpg'):
-                started=__import__('time').monotonic();backend.stop();elapsed=__import__('time').monotonic()-started
+                started=__import__('time').monotonic()
+                with self.assertRaisesRegex(RuntimeError,'preserve cleanup debt'):backend.stop()
+                elapsed=__import__('time').monotonic()-started
             self.assertLess(elapsed,1);self.assertFalse(process.stdin.touched)
             self.assertTrue(s.stopStreamLockDeferred)
         finally:s.lock.release()
@@ -195,14 +197,14 @@ class PoisonControls(unittest.TestCase):
             root=Path(temp);(root/'public').mkdir()
             w=driver.lab.Window.__new__(driver.lab.Window)
             w.lock=threading.Lock();w.children=[];w.known={};w.logs=[];w.work=root;w.source=root;w.env={};w.cpus=[0];w.sample=lambda:None
-            process=SimpleNamespace(pid=12345,returncode=None)
+            process=SimpleNamespace(pid=12345,returncode=None,stdin=object())
             handle=SimpleNamespace(send=lambda sig:None)
             def bind(original):
                 self.assertIs(original,process);self.assertEqual(w.children,[])
                 self.assertTrue(original._ynx_original_pidfd_required)
                 return handle
             spec=SimpleNamespace(loader=SimpleNamespace(exec_module=lambda m:None))
-            mod=SimpleNamespace(OriginalOwnerPidfd=bind)
+            mod=SimpleNamespace(OriginalOwnerPidfd=bind,GuardedOriginalStdin=lambda raw:raw)
             with mock.patch.object(driver.lab.subprocess,'Popen',return_value=process), \
                  mock.patch.object(driver.lab.guard,'bounded',return_value=b''), \
                  mock.patch.object(driver.lab.guard,'parse_stat',return_value=dict(startTicks=123)), \
@@ -220,10 +222,10 @@ class PoisonControls(unittest.TestCase):
             root=Path(temp);(root/'public').mkdir()
             w=driver.lab.Window.__new__(driver.lab.Window)
             w.lock=threading.Lock();w.children=[];w.known={};w.logs=[];w.work=root;w.source=root;w.env={};w.cpus=[0];w.sample=lambda:None
-            process=SimpleNamespace(pid=12345,returncode=None)
+            process=SimpleNamespace(pid=12345,returncode=None,stdin=object())
             spec=SimpleNamespace(loader=SimpleNamespace(exec_module=lambda m:None))
             def refused(original):raise OSError('pidfd refused')
-            mod=SimpleNamespace(OriginalOwnerPidfd=refused)
+            mod=SimpleNamespace(OriginalOwnerPidfd=refused,GuardedOriginalStdin=lambda raw:raw)
             with mock.patch.object(driver.lab.subprocess,'Popen',return_value=process), \
                  mock.patch.object(driver.lab.guard,'bounded',return_value=b''), \
                  mock.patch.object(driver.lab.guard,'parse_stat',return_value=dict(startTicks=123)), \
@@ -245,7 +247,7 @@ class PoisonControls(unittest.TestCase):
             w=driver.lab.Window.__new__(driver.lab.Window)
             w.lock=threading.Lock();w.children=[];w.known={};w.logs=[];w.work=root;w.source=root;w.env={};w.cpus=[0];w.sample=lambda:None
             entered=threading.Event();release=threading.Event();reaper=threading.Event();errors=[]
-            process=SimpleNamespace(pid=12345,returncode=None);handle=SimpleNamespace(send=lambda sig:None)
+            process=SimpleNamespace(pid=12345,returncode=None,stdin=object());handle=SimpleNamespace(send=lambda sig:None)
             def bind(original):
                 entered.set()
                 if not release.wait(2):raise RuntimeError('test binding timeout')
@@ -255,7 +257,7 @@ class PoisonControls(unittest.TestCase):
                 reaper.set();return True
             w._stop_locked=finish_stop
             spec=SimpleNamespace(loader=SimpleNamespace(exec_module=lambda m:None))
-            mod=SimpleNamespace(OriginalOwnerPidfd=bind)
+            mod=SimpleNamespace(OriginalOwnerPidfd=bind,GuardedOriginalStdin=lambda raw:raw)
             def launch():
                 try:w.launch('load-public-owners',['no-exec'],True,stdin_pipe=True,thread_safe=True,original_pidfd=True)
                 except BaseException as e:errors.append(e)
@@ -290,7 +292,7 @@ class PoisonControls(unittest.TestCase):
             w=driver.lab.Window.__new__(driver.lab.Window)
             w.lock=threading.Lock();w.children=[];w.known={};w.logs=[];w.work=root;w.source=root;w.env={};w.cpus=[0];w.sample=lambda:None
             w.stopping=True;w.closed_for_launch=False
-            process=SimpleNamespace(pid=12345,returncode=None)
+            process=SimpleNamespace(pid=12345,returncode=None,stdin=object())
             with mock.patch.object(driver.lab.subprocess,'Popen',return_value=process), \
                  mock.patch.object(driver.lab.guard,'bounded',return_value=b''), \
                  mock.patch.object(driver.lab.guard,'parse_stat',return_value=dict(startTicks=123)):
