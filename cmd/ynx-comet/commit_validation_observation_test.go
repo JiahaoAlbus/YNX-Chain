@@ -2,12 +2,15 @@ package main
 
 import (
 	"encoding/json"
+	"maps"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
 	"testing"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	cfg "github.com/cometbft/cometbft/config"
 	cmtflags "github.com/cometbft/cometbft/libs/cli/flags"
 	"github.com/cometbft/cometbft/libs/log"
@@ -132,5 +135,46 @@ func TestCommitValidationRequiresSyntheticCommitObservation(t *testing.T) {
 	p := pqOptions{commitValidationObservation: true}
 	if err := p.validateCommitObservation(); err == nil {
 		t.Fatal("validation accepted without original synthetic Commit scope")
+	}
+}
+
+func TestCommitValidationPhaseContractRejectsAmbiguousDetail(t *testing.T) {
+	base := consensus.CommitValidationTimingSample{Valid: true, ElapsedNs: 38, PhaseNs: map[string]int64{}, HashDocumentNs: 2, HashEncodeDigestNs: 3}
+	for _, name := range operatorCommitValidationPhases {
+		base.PhaseNs[name] = 1
+	}
+	base.PhaseNs["app_hash"] = 5
+	if !validCommitValidationTiming(base, 38) {
+		t.Fatal("complete original phase contract rejected")
+	}
+	for _, name := range []string{"missing", "unknown", "sum", "hash_children", "overflow", "outer", "failed"} {
+		t.Run(name, func(t *testing.T) {
+			value := base
+			value.PhaseNs = maps.Clone(base.PhaseNs)
+			parent := int64(38)
+			switch name {
+			case "missing":
+				delete(value.PhaseNs, "app_hash")
+				value.HashDocumentNs = 0
+				value.HashEncodeDigestNs = 0
+				value.ElapsedNs = 33
+			case "unknown":
+				delete(value.PhaseNs, "anchor")
+				value.PhaseNs["invented"] = 1
+			case "sum":
+				value.PhaseNs["anchor"] = 0
+			case "hash_children":
+				value.HashEncodeDigestNs = 4
+			case "overflow":
+				value.PhaseNs["anchor"] = math.MaxInt64
+			case "outer":
+				parent = 37
+			case "failed":
+				value.FailedPhase = "anchor"
+			}
+			if validCommitValidationTiming(value, parent) {
+				t.Fatal("invalid original detail accepted")
+			}
+		})
 	}
 }

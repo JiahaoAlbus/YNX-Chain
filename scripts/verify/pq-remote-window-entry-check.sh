@@ -109,6 +109,10 @@ def job_if(name):
 
 expected_verify = "github.ref != 'refs/heads/main' && github.ref != 'refs/heads/codex/ynx-pq-public-upgrade' && github.ref != 'refs/heads/codex/ynx-pq-perf-integration' && github.ref != 'refs/heads/codex/ynx-pq-perf-source-20261108' && !startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') && !(github.event_name == 'workflow_dispatch' && (inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))"
 expected_focused = "(github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/codex/ynx-pq-perf-source-20261108' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))"
+# Exact additive source-only branch route; all original remote and main-ref
+# expressions remain byte-for-byte required by the original checks below.
+expected_verify = expected_verify.replace("github.ref != 'refs/heads/codex/ynx-pq-perf-source-20261108' && !startsWith", "github.ref != 'refs/heads/codex/ynx-pq-perf-source-20261108' && github.ref != 'refs/heads/codex/chain-commit-monotonic-20261121' && !startsWith")
+expected_focused = expected_focused.replace("(github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')", "(github.event_name == 'push' && (github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' || github.ref == 'refs/heads/codex/chain-commit-monotonic-20261121'))")
 sha = 'a123456789abcdef0123456789abcdef01234567'
 other_sha = 'b123456789abcdef0123456789abcdef01234567'
 frozen = 'refs/heads/codex/ynx-pq-remote-' + sha[:9]
@@ -235,6 +239,21 @@ if job_if('verify') != expected_verify or job_if('focused-go') != expected_focus
 push_branches = text.split('  push:\n', 1)[1].split('    paths:\n', 1)[0]
 if push_branches.splitlines().count("      - 'main'") != 1:
     raise RuntimeError('normal production main push trigger missing')
+if push_branches.splitlines().count("      - 'codex/chain-commit-monotonic-20261121'") != 1:
+    raise RuntimeError('exact synthetic Commit candidate source-only push route missing')
+clock_marker = "if [ \"$YNX_ENTRY_REF\" = 'refs/heads/codex/chain-commit-monotonic-20261121' ]; then"
+if text.count(clock_marker) != 1:
+    raise RuntimeError('one exact synthetic Commit candidate identity guard required')
+clock_guard = text.split(clock_marker,1)[1].split('\n          fi',1)[0]
+clock_guard = clock_marker + clock_guard + '\nfi\n'
+clock_fields = ('YNX_ENTRY_PAIRED','YNX_ENTRY_LOCAL','YNX_ENTRY_LOCAL_RETAINED',
+                'YNX_ENTRY_REMOTE_RETAINED','YNX_ENTRY_REMOTE_PROCESS','YNX_ENTRY_FRESH_BUSINESS')
+for event, selected in [('push', None), ('workflow_dispatch', None), *[('push', field) for field in clock_fields]]:
+    environment = dict(PATH='/usr/bin:/bin', YNX_ENTRY_REF='refs/heads/codex/chain-commit-monotonic-20261121',
+                       YNX_ENTRY_EVENT=event, **{field:('true' if field == selected else '') for field in clock_fields})
+    checked = subprocess.run(['bash','-c','set -Eeuo pipefail\n'+clock_guard],env=environment,capture_output=True,timeout=5)
+    if (checked.returncode == 0) != (event == 'push' and selected is None):
+        raise RuntimeError('synthetic Commit source-only identity guard differs')
 normal_push = "github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')"
 for name in ('caddy-source', 'artifact-release-cabi'):
     if job_if(name) != normal_push:

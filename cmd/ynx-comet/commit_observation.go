@@ -305,6 +305,35 @@ func observedCommitSample(app *consensus.Application, height int64) (*operatorCo
 	return &operatorCommitSample{Height: height, AppHash: point.AppHash, Persistence: first}, ""
 }
 
+// Keep the original successful validation contract aligned with the normal
+// pqFreshValidationObservationLine producer; child intervals are not added.
+var operatorCommitValidationPhases = [...]string{
+	"anchor", "validator_registry", "engine_schedule", "engine_snapshot", "pq_state",
+	"migration_trace_lots", "legacy_sponsor", "legacy_resource_market", "legacy_contracts",
+	"legacy_pay", "legacy_ai", "legacy_trust", "ledger_records", "pay", "resource",
+	"resource_sponsor", "trust", "ide", "pq_resources", "pq_dex", "pq_contracts",
+	"pq_native_actions", "pq_ethereum", "pq_ordered_resources", "fee_events", "governance",
+	"dex", "asset_auth", "account_abstraction", "account_abstraction_policy",
+	"ownership_and_vault_supply", "staking", "supply", "app_hash",
+}
+
+func validCommitValidationTiming(detail consensus.CommitValidationTimingSample, parent int64) bool {
+	if !detail.Valid || detail.FailedPhase != "" || detail.ElapsedNs < 0 || detail.ElapsedNs > parent || len(detail.PhaseNs) != len(operatorCommitValidationPhases) {
+		return false
+	}
+	var sum int64
+	for _, phase := range operatorCommitValidationPhases {
+		ns, exists := detail.PhaseNs[phase]
+		if !exists || ns < 0 || ns > detail.ElapsedNs || sum > detail.ElapsedNs-ns {
+			return false
+		}
+		sum += ns
+	}
+	hash := detail.PhaseNs["app_hash"]
+	return sum == detail.ElapsedNs && detail.HashDocumentNs >= 0 && detail.HashEncodeDigestNs >= 0 &&
+		detail.HashDocumentNs <= hash && detail.HashEncodeDigestNs <= hash-detail.HashDocumentNs
+}
+
 // Bracket detail with the original persistence identity to reject a concurrent Commit.
 func observedCommitValidation(app *consensus.Application, sample *operatorCommitSample) (*operatorCommitValidation, string) {
 	first, ok := app.LastCommitTiming()
@@ -320,20 +349,7 @@ func observedCommitValidation(app *consensus.Application, sample *operatorCommit
 		return nil, "validation-attempt-changed"
 	}
 	parent, exists := sample.Persistence.StagesNs["validate"]
-	if !exists || detail.ElapsedNs < 0 || detail.ElapsedNs > parent || detail.HashDocumentNs < 0 || detail.HashEncodeDigestNs < 0 || len(detail.PhaseNs) == 0 || len(detail.PhaseNs) > 64 {
-		return nil, "validation-malformed"
-	}
-	for name, ns := range detail.PhaseNs {
-		if len(name) == 0 || len(name) > 64 || ns < 0 || ns > detail.ElapsedNs {
-			return nil, "validation-malformed"
-		}
-		for _, c := range name {
-			if !(c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '_') {
-				return nil, "validation-malformed"
-			}
-		}
-	}
-	if detail.HashDocumentNs > detail.PhaseNs["app_hash"] || detail.HashEncodeDigestNs > detail.PhaseNs["app_hash"] {
+	if !exists || !validCommitValidationTiming(detail, parent) {
 		return nil, "validation-malformed"
 	}
 	return &operatorCommitValidation{Version: "YNX-COMET-COMMIT-VALIDATION/v1", Height: detail.Height, ElapsedNs: detail.ElapsedNs, PhaseNs: detail.PhaseNs, HashDocumentNs: detail.HashDocumentNs, HashEncodeDigestNs: detail.HashEncodeDigestNs}, ""
