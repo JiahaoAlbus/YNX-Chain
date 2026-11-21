@@ -350,6 +350,48 @@ func TestP08ModelReturnRejectsChangedFenceDuringCheck(t *testing.T) {
 	}
 }
 
+func TestP08ModelReturnCancellationPreservesUnknownDebt(t *testing.T) {
+	f, gate := newP08ReturnFixture(t, false, nil)
+	gate.onCheck = func(n int) error {
+		if n != 2 {
+			return nil
+		}
+		f.server.store.mu.Lock()
+		f.server.store.state.Actions["PUBLIC-original-pending"] = ActionRecord{ID: "PUBLIC-original-pending", Account: f.session.Account, Status: "UNKNOWN", ToolStep: &ToolStepBinding{TaskID: f.task.ID}}
+		f.server.store.mu.Unlock()
+		_, err := f.server.store.CancelTask(f.session.Account, f.task.ID, f.task.Revision, f.task.Generation, f.session.DeviceID)
+		return err
+	}
+	request := f.request()
+	view, err := f.server.runTaskModel(context.Background(), f.session, f.task.ID, request)
+	if err == nil || view.Status != "UNKNOWN" || view.Content != "" || f.requests.Load() != 1 {
+		t.Fatalf("cancelled unknown debt overwritten or answer released: %+v %v", view, err)
+	}
+	before := f.server.store.state.TaskRuns[view.ID]
+	if !before.Cancelled || before.ReturnState != taskModelReturnBlocked || before.AnswerCipher == "" {
+		t.Fatal("original cancelled answer/debt was not retained")
+	}
+	request.Prompt, request.Resume = "", true
+	if _, err = f.server.runTaskModel(context.Background(), f.session, f.task.ID, request); err == nil {
+		t.Fatal("cancelled return reauthorized")
+	}
+	after := f.server.store.state.TaskRuns[view.ID]
+	if !reflect.DeepEqual(before, after) || f.requests.Load() != 1 {
+		t.Fatal("retry changed cancelled original or recalled provider")
+	}
+	cold, err := NewStore(f.server.store.path, f.key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restarted := &Server{store: cold, taskModel: f.provider, toolEffects: f.server.toolEffects, taskModelAdmit: gate.check}
+	if _, err = restarted.runTaskModel(context.Background(), f.session, f.task.ID, request); err == nil {
+		t.Fatal("cold cancelled return reauthorized")
+	}
+	if !reflect.DeepEqual(before, cold.state.TaskRuns[view.ID]) || f.requests.Load() != 1 {
+		t.Fatal("cold retry changed cancelled original or recalled provider")
+	}
+}
+
 func TestP08ModelReturnShopEffectsAndCheckpointPreserved(t *testing.T) {
 	f := newP08ShopFixture(t, false)
 	original := f.server.taskModelAdmit

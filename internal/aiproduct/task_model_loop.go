@@ -641,6 +641,16 @@ func (s *Server) authorizeTaskModelReturn(ctx context.Context, session ProductSe
 		s.store.mu.Unlock()
 		return view, err
 	}
+	// Cancellation already classified the original run, including outstanding
+	// tool debt. A return retry cannot claim or reclassify that cancelled run.
+	if run.Cancelled {
+		view, err := s.taskModelRunViewLocked(run)
+		s.store.mu.Unlock()
+		if err != nil {
+			return taskRunView{}, err
+		}
+		return view, &taskModelReturnFailure{cause: errToolConflict}
+	}
 	if run.Active && run.RuntimeID == s.taskRuntimeID {
 		s.store.mu.Unlock()
 		return taskRunView{}, errTaskEffectUnresolved
@@ -703,8 +713,12 @@ func (s *Server) authorizeTaskModelReturn(ctx context.Context, session ProductSe
 	current.Active = false
 	current.UpdatedAt = s.store.now().UTC()
 	if gateErr != nil {
+		cancelStatus := current.Status
 		current.Status, current.ReturnState = "RETURN_BLOCKED", taskModelReturnBlocked
-		if fenceErr != nil {
+		if current.Cancelled {
+			// CancelTask owns UNKNOWN versus STOPPED; do not erase debt.
+			current.Status = cancelStatus
+		} else if fenceErr != nil {
 			current.Status = "STOPPED"
 		}
 		if current.FirstCause == "" {
