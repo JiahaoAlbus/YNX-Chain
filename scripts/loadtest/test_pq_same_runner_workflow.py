@@ -176,7 +176,7 @@ class WorkflowControls(unittest.TestCase):
         raw=self.candidate();block=raw.split('# BEGIN YNX_PAIR_RUNTIME_STEPS',1)[1]
         pure=raw.split('# BEGIN YNX_PAIR_PURE_CONTROLS',1)[1].split('# END YNX_PAIR_PURE_CONTROLS',1)[0]
         self.assertEqual(pure.count("if: github.event_name != 'workflow_dispatch' || inputs.load_profile == '"+w.PROFILE+"'"),2)
-        self.assertIn('sparse-checkout: /scripts/loadtest/same-runner/',pure)
+        self.assertIn('sparse-checkout: |\n            /.github/workflows/pq-normal-process.yml\n            /scripts/loadtest/same-runner/',pure)
         self.assertIn('same-runner/pq-same-runner-controls.py',pure)
         self.assertNotIn('--execute',pure)
         self.assertLess(block.index('workflow.py checkouts'),block.index('path: source-before'))

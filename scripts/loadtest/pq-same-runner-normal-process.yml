@@ -934,7 +934,9 @@ jobs:
           path: pair-controller
           persist-credentials: false
           sparse-checkout-cone-mode: false
-          sparse-checkout: /scripts/loadtest/same-runner/
+          sparse-checkout: |
+            /.github/workflows/pq-normal-process.yml
+            /scripts/loadtest/same-runner/
       - name: Verify same-runner profile lifecycle and official upload contracts without a window
         if: github.event_name != 'workflow_dispatch' || inputs.load_profile == 'first100-held-public-owner-sequential-pair'
         run: python3 -I -B pair-controller/scripts/loadtest/same-runner/pq-same-runner-controls.py
