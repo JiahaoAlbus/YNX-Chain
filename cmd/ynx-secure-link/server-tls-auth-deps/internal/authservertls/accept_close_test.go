@@ -34,6 +34,23 @@ func (l *acceptTestListener) Accept() (net.Conn, error) { l.calls++; return l.c,
 func (l *acceptTestListener) Close() error              { return nil }
 func (l *acceptTestListener) Addr() net.Addr            { return nil }
 
+func TestOriginalAcceptRejectsNilConnectionWithoutError(t *testing.T) {
+	underlying := &acceptTestListener{}
+	s := &leaseState{listener: underlying, changed: make(chan struct{})}
+	l := &originalListener{borrow: &borrowState{owner: s}}
+	calls := 0
+	conn, err := l.acceptWithCurrent(func() error { calls++; return nil })
+	if conn != nil || !errors.Is(err, ErrUnknown) || IsOriginalAcceptRetrySafe(err) {
+		t.Fatalf("nil Accept result escaped or became retryable: %v %v", conn, err)
+	}
+	if calls != 1 || underlying.calls != 1 || s.acceptChecks != 0 || !s.retired || !errors.Is(s.first, ErrUnknown) {
+		t.Fatalf("owner not retired cleanly: checks=%d retired=%t first=%v", s.acceptChecks, s.retired, s.first)
+	}
+	if _, err := l.acceptWithCurrent(func() error { return nil }); !errors.Is(err, ErrDenied) || underlying.calls != 1 {
+		t.Fatalf("retired listener was reused: %v calls=%d", err, underlying.calls)
+	}
+}
+
 func TestOriginalAcceptPendingCloseOwnership(t *testing.T) {
 	for _, tc := range []struct {
 		name       string

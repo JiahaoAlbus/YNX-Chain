@@ -678,6 +678,17 @@ func (l *originalListener) acceptWithCurrent(current func() error) (net.Conn, er
 	s.acceptChecks++
 	s.mu.Unlock()
 	c, e := s.listener.Accept()
+	// A listener returning neither a connection nor an error violates the
+	// net.Listener contract. Never let a nil connection escape or call Close
+	// on it; retire this owner instead of advertising a retryable result.
+	if c == nil && e == nil {
+		s.mu.Lock()
+		s.retireLocked(ErrUnknown)
+		s.acceptChecks--
+		s.wake()
+		s.mu.Unlock()
+		return nil, ErrUnknown
+	}
 	if e != nil {
 		if c != nil {
 			return l.finishAccepted(c, func() error { return e })

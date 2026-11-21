@@ -39,7 +39,7 @@ function goEvents(names = SERVER_TLS_REQUIRED_TESTS, Package = 'github.com/Jiaha
 test('server TLS driver snapshots exact qualified Auth source and supplier CAS without Root', () => {
   const verified = verifyAuthSnapshot(); assert.equal(verified.sources.length, 6);
   assert.equal(verified.supplierInputs.length, 1);
-  assert.equal(verified.sources.find(row => row.repositoryPath.endsWith('/lease.go')).descriptor.bytes, 21984);
+  assert.equal(verified.sources.find(row => row.repositoryPath.endsWith('/lease.go')).descriptor.bytes, 22347);
   assert.ok(verified.sources.every(row => row.originalSupplier.relativePath === row.repositoryPath));
   const publicFiles = ['ORIGINALS.json', 'PROVENANCE.json'];
   for (const name of publicFiles) assert.doesNotMatch(fs.readFileSync(path.join(dependencies, name), 'utf8'), /\/Volumes\/|\/Users\/|\/home\//);
@@ -114,15 +114,16 @@ test('server TLS driver requires actual normal empty-Root and PUBLIC consumer te
   ]) assert.throws(() => qualifyServerTLSTestEvents(text, exit, signal, error));
 });
 
-test('server TLS driver requires all twelve Auth qualification, error and accepted close controls from their actual package', () => {
+test('server TLS driver requires all thirteen Auth qualification, error and accepted close controls from their actual package', () => {
   const pkg = 'github.com/JiahaoAlbus/YNX-Chain/internal/authservertls';
   const raw = goEvents(AUTH_SERVER_TLS_REQUIRED_TESTS, pkg);
   const qualified = qualifyAuthServerTLSTestEvents(raw, 0, null, null);
-  assert.equal(qualified.pass, 12); assert.equal(qualified.productionRootRows, 0);
+  assert.equal(qualified.pass, 13); assert.equal(qualified.productionRootRows, 0);
   assert.equal(qualified.SourceAdmission, false);
   for (const bad of [
     goEvents(AUTH_SERVER_TLS_REQUIRED_TESTS.slice(1), pkg),
     goEvents(AUTH_SERVER_TLS_REQUIRED_TESTS.filter(name => name !== 'TestAcceptRetireDuringPostCurrentKeepsChildUntilClose'), pkg),
+    goEvents(AUTH_SERVER_TLS_REQUIRED_TESTS.filter(name => name !== 'TestOriginalAcceptRejectsNilConnectionWithoutError'), pkg),
     goEvents([...AUTH_SERVER_TLS_REQUIRED_TESTS, AUTH_SERVER_TLS_REQUIRED_TESTS[0]], pkg),
     raw.replaceAll(pkg, 'github.com/JiahaoAlbus/YNX-Chain/internal/securelink'),
     raw.replace('"pass"', '"skip"'),

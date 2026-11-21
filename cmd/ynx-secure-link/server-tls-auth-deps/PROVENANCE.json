@@ -20,8 +20,8 @@
       "sha256": "8c7e6f187e2ec7e103eb7a37838ae853e64072c58d1eaa7ac82a90c6b0318739"
     },
     "productionRootRows": 0,
-    "sourceCommit": "9240e3ff130e1bda797f0d2622c4e03f1cd18aaa",
-    "sourceTree": "a4d4523b4f1282de37eb8c94fa9cd01961801f8f",
+    "sourceCommit": "468dbb6970316b09925a555f87e1cb9926c7ace9",
+    "sourceTree": "cbc56d14e68470c856ce6642b3923e98976442d7",
     "predecessorSourceManifest": {
       "bytes": 2322,
       "sha256": "99aba4bd1fb36aedd0e3cf12cfbddd2fe99f12f12655878e7430d86351dd1d96"
@@ -30,9 +30,9 @@
   "sources": [
     {
       "path": "internal/authservertls/lease.go",
-      "bytes": 21984,
-      "sha256": "6d61316883ac8c3ab84da7649fbd1eb03f1da35b2afeaa0113874c551d8ab7de",
-      "gitBlob": "14e66e1545c5074278b8dd97a245671255654cc9",
+      "bytes": 22347,
+      "sha256": "e2e99d83412e50cc91d7d47d36606e0b519ff5353f74df594c26d8162426e45c",
+      "gitBlob": "6f284b967a6404fde45e5f70323f86aeffdd1567",
       "mode": "100644"
     },
     {
@@ -65,9 +65,9 @@
     },
     {
       "path": "internal/authservertls/accept_close_test.go",
-      "bytes": 5143,
-      "sha256": "76f8a06cc6f6f4235b3138d43001aec2e9f31f49a751fca2e43621149ab5268b",
-      "gitBlob": "2ffca7ca10c586c944b1ee96dc596681fe3d1135",
+      "bytes": 6052,
+      "sha256": "d09ea8fce3689a6d48ebe0959cc11d1d8bc59438149c491461759f6502ce8481",
+      "gitBlob": "e0ebd66310d3e14892ae3487c8a9b63773a26dcc",
       "mode": "100644"
     }
   ]
