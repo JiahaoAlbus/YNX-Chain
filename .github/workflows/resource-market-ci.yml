@@ -10,6 +10,8 @@ on:
       - 'scripts/verify/qualify_pq_private_synthetic_ci.py'
       - 'scripts/verify/*qualify_original_ethereum_ci.py'
       - 'scripts/verify/original-ethereum-gateway-ci.sh'
+      - 'scripts/verify/*offline-pq-copy-ci*'
+      - 'scripts/verify/*qualify_offline_pq_copy_ci.py'
       - 'scripts/verify/test_qualify_held_optional_live_getter.py'
       - 'scripts/verify/qualify_held_optional_live_getter.py'
       - 'scripts/verify/test_wire_live_matching_source_ci.py'
@@ -217,6 +219,8 @@ on:
       - 'scripts/verify/qualify_pq_private_synthetic_ci.py'
       - 'scripts/verify/*qualify_original_ethereum_ci.py'
       - 'scripts/verify/original-ethereum-gateway-ci.sh'
+      - 'scripts/verify/*offline-pq-copy-ci*'
+      - 'scripts/verify/*qualify_offline_pq_copy_ci.py'
       - 'scripts/verify/test_qualify_held_optional_live_getter.py'
       - 'scripts/verify/qualify_held_optional_live_getter.py'
       - 'scripts/verify/test_wire_live_matching_source_ci.py'
@@ -2222,6 +2226,7 @@ jobs:
           fi
           cat "$RUNNER_TEMP/ynx-legacy-native-integration.jsonl"
           cat "$RUNNER_TEMP/ynx-legacy-native-integration.stderr" >&2
+          bash scripts/verify/offline-pq-copy-ci.sh chain
           python3 -B - <<'PY'
           import json, os
           from pathlib import Path
@@ -2316,6 +2321,7 @@ jobs:
           PY
           go vet ./internal/consensus
           go test -p 1 -count=1 -timeout=90s -run '^(TestExportConsensusState|TestRunNodeConsensusExport|TestConsensusExport)' ./cmd/ynx-chaind
+          bash scripts/verify/offline-pq-copy-ci.sh chaind
           go test -p 1 -count=1 -timeout=90s ./cmd/ynx-consensus-package
           python3 -B - <<'PY'
           import json, os

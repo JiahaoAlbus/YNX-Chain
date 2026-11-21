@@ -2353,6 +2353,9 @@ def assert_workflow_contract(raw):
     for name in ("Verify complete state bridge and sponsor continuity", "Verify Whole BFT gateway and native container readback"):
         need(by_name(name)[0] in steps)
     gateway = by_name("Verify Whole BFT gateway and native container readback")[0]
+    for name, mode in (("Verify native ledger and HTTP PQ integration", "chain"), ("Compile production entry points", "chaind")):
+        step = by_name(name)[0]
+        need(step.count("bash scripts/verify/offline-pq-copy-ci.sh " + mode + "\n") == 1)
     need("YNX_PQ_CONTRACT_DEPLOY_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-contract-deploy-public-interop.json" in gateway)
     need("          bash scripts/verify/original-ethereum-gateway-ci.sh\n" in gateway
          and gateway.count("bash scripts/verify/original-ethereum-gateway-ci.sh") == 1)
@@ -2544,6 +2547,9 @@ def assert_legacy_snapshot_stream_contract(raw):
     marker = "          ethers_required = ['TestEthereumIndependentEthersLifecycle', 'TestEthereumIndependentEthersDurabilityWait', 'TestEthereumIndependentEthersDurabilityRefusals']\n"
     need(expected.count(marker) == 1)
     expected = expected.replace(marker, policy_result + marker, 1)
+    marker = '          cat "$RUNNER_TEMP/ynx-legacy-native-integration.stderr" >&2\n          python3 -B - <<\'PY\'\n'
+    need(expected.count(marker) == 1)
+    expected = expected.replace(marker, '          cat "$RUNNER_TEMP/ynx-legacy-native-integration.stderr" >&2\n          bash scripts/verify/offline-pq-copy-ci.sh chain\n          python3 -B - <<\'PY\'\n', 1)
     need(found[0] == expected)
     push = raw.split("  push:\n", 1)[1].split("  pull_request:\n", 1)[0]
     pull_request = raw.split("  pull_request:\n", 1)[1].split("  workflow_dispatch:\n", 1)[0]
@@ -2629,6 +2635,17 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
         self.assertIn('test_qualify_original_ethereum_ci.py', script)
         self.assertNotIn('|| true', script)
 
+    def test_offline_copy_gate_is_required_and_triggers_source_changes(self):
+        root = Path(__file__).resolve().parents[2]
+        raw = (root / '.github/workflows/resource-market-ci.yml').read_text()
+        assert_workflow_contract(raw)
+        for mode in ('chain', 'chaind'):
+            with self.subTest(mode=mode), self.assertRaises(AssertionError):
+                assert_workflow_contract(raw.replace('bash scripts/verify/offline-pq-copy-ci.sh ' + mode, 'true', 1))
+        script = (root / 'scripts/verify/offline-pq-copy-ci.sh').read_text()
+        for required in ('set -euo pipefail', 'go test -json -p 1 -count=1 -timeout=90s', 'qualify_offline_pq_copy_ci.py chain', 'qualify_offline_pq_copy_ci.py chaind', 'test_qualify_offline_pq_copy_ci.py'):
+            self.assertIn(required, script)
+
     def test_extracted_controls_trigger_push_and_pull_request(self):
         path = Path(__file__).resolve().parents[2] / '.github/workflows/resource-market-ci.yml'
         raw = path.read_text()
@@ -2637,7 +2654,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
         for section in (push, pr):
             for name in ('pq-clock-ab-ci.sh', 'pq-enrollment-command-ci.sh', 'qualify_pq_portable_ci.py', 'qualify_pq_private_synthetic_ci.py'):
                 self.assertEqual(section.count("      - 'scripts/verify/" + name + "'\n"), 1)
-            for name in ('*qualify_original_ethereum_ci.py', 'original-ethereum-gateway-ci.sh'):
+            for name in ('*qualify_original_ethereum_ci.py', 'original-ethereum-gateway-ci.sh', '*offline-pq-copy-ci*', '*qualify_offline_pq_copy_ci.py'):
                 self.assertEqual(section.count("      - 'scripts/verify/" + name + "'\n"), 1)
 
 
