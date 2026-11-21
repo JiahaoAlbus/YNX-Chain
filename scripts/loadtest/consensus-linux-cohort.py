@@ -393,6 +393,14 @@ class ProcessRSSObservation:
 
 
 
+@contextlib.contextmanager
+def bounded_original_lifecycle(lock, timeout=1):
+    if not lock.acquire(timeout=max(0,timeout)):
+        raise RuntimeError('original process lifecycle lock unavailable; preserve UNKNOWN and cleanup debt')
+    try:yield
+    finally:lock.release()
+
+
 def bind_process_lifecycle(proc):
     """Bind the original Popen before publication; keep its identity and pipes.
 
@@ -406,14 +414,15 @@ def bind_process_lifecycle(proc):
     originals = {name:getattr(proc,name) for name in ('poll','wait','send_signal','terminate','kill') if callable(getattr(proc,name,None))}
     def locked(method):
         def invoke(*args, **kwargs):
-            with lock:return method(*args, **kwargs)
+            with bounded_original_lifecycle(lock):return method(*args, **kwargs)
         return invoke
     for name, method in originals.items():
         if name != 'wait':setattr(proc,name,locked(method))
     def wait(timeout=None):
         until = None if timeout is None else time.monotonic()+timeout
         while True:
-            with lock:
+            remaining=1 if until is None else min(1,max(0,until-time.monotonic()))
+            with bounded_original_lifecycle(lock,remaining):
                 try:return originals['wait'](timeout=0)
                 except subprocess.TimeoutExpired as error:
                     if until is not None and time.monotonic() >= until:
@@ -424,11 +433,11 @@ def bind_process_lifecycle(proc):
     return proc
 
 
-def signal_process_group(proc, sig):
+def signal_process_group(proc, sig, *, timeout=1):
     """Atomic original-handle liveness and group signal, never a bare PID."""
     lock = vars(proc).get('_ynx_lifecycle_lock')
     require(lock is not None, 'unmanaged original process group refused; preserve UNKNOWN')
-    with lock:
+    with bounded_original_lifecycle(lock,timeout):
         if proc.poll() is None:
             try:os.killpg(proc.pid, sig)
             except ProcessLookupError:pass
@@ -456,15 +465,16 @@ def signal_owned_descendant(pid, expected, sig):
             if original is None:raise
 
 
-def signal_original_child(process, signum, *, group=True):
+def signal_original_child(process, signum, *, group=True, timeout=1):
     """Use an attached original pidfd when supplied; never downgrade it."""
+    until=time.monotonic()+max(0,timeout)
     identity=vars(process).get('_ynx_original_pidfd')
     if identity is not None:
         lock=vars(process).get('_ynx_lifecycle_lock')
         require(lock is not None, 'original pidfd lifecycle lock missing; preserve UNKNOWN')
-        with lock:
+        with bounded_original_lifecycle(lock,timeout):
             if process.poll() is not None:return
-            try:identity.send(signum)
+            try:identity.send(signum,timeout=min(.05,max(0,until-time.monotonic())))
             except ProcessLookupError:
                 # Only the same Popen's confirmed exit discharges ESRCH. A
                 # missing or still-live identity remains an explicit failure.
@@ -472,10 +482,13 @@ def signal_original_child(process, signum, *, group=True):
     elif vars(process).get('_ynx_original_pidfd_required',False):
         raise RuntimeError('original owner pidfd missing; no numeric signal fallback')
     elif group:
-        signal_process_group(process,signum)
+        signal_process_group(process,signum,timeout=timeout)
     else:
-        if signum==signal.SIGKILL:process.kill()
-        else:process.send_signal(signum)
+        lock=vars(process).get('_ynx_lifecycle_lock')
+        require(lock is not None,'unmanaged original process signal refused; preserve UNKNOWN')
+        with bounded_original_lifecycle(lock,timeout):
+            if signum==signal.SIGKILL:process.kill()
+            else:process.send_signal(signum)
 
 class Window:
     def __init__(self, source, work, additional_storage=()):
@@ -545,7 +558,7 @@ class Window:
     def sample_stage_report(self):
         # Diagnostics must not indefinitely prevent retaining the original
         # failure receipt. No values are fabricated if the owner is blocked.
-        if not self.lock.acquire(timeout=1):
+        if not self.lock.acquire(timeout=self._cleanup_wait_remaining()):
             return dict(schema='YNX-PERF-ORIGINAL-RESOURCE-GUARD-STAGES/v1',
                 status='UNKNOWN',clock='parent_monotonic_ns',stages={},intervalsOverlap=True,
                 guardChecksPreserved=True,byteAccountingChanged=False,cadenceChanged=False,
@@ -782,11 +795,11 @@ class Window:
                     if active_error is None: raise
 
     def _retire_failed_launch(self, proc):
-        signal_original_child(proc, signal.SIGTERM)
+        signal_original_child(proc, signal.SIGTERM,timeout=self._cleanup_wait_remaining())
         try:
             proc.wait(timeout=self._cleanup_wait_remaining())
         except subprocess.TimeoutExpired:
-            signal_original_child(proc, signal.SIGKILL, group=False)
+            signal_original_child(proc, signal.SIGKILL, group=False,timeout=self._cleanup_wait_remaining())
             proc.wait(timeout=self._cleanup_wait_remaining())
 
     def _cleanup_wait_remaining(self):
@@ -892,6 +905,7 @@ class Window:
         finally:
             self.commit_clock_cleanup_debt=None
             clock_debt=[]
+            clock_errors=[]
             try:
                 if getattr(self,'launch_cleanup_lock_unavailable',False):clock_children=None
                 else:
@@ -905,9 +919,13 @@ class Window:
                     if vars(process).get('returncode') is None:clock_debt.append(row['name'])
                     else:
                         try:
-                            if anchor.close_bounded() is not True:clock_debt.append(row['name'])
-                        except Exception:clock_debt.append(row['name'])
+                            if anchor.close_bounded(timeout=min(.05,self._cleanup_wait_remaining())) is not True:
+                                clock_debt.append(row['name'])
+                                if getattr(anchor,'_close_error_type',None):clock_errors.append(dict(name=row['name'],errorType=anchor._close_error_type))
+                        except BaseException as error:
+                            clock_debt.append(row['name']);clock_errors.append(dict(name=row['name'],errorType=type(error).__name__))
             self.commit_clock_cleanup_debt=clock_debt if clock_children is not None else None
+            self.commit_clock_cleanup_errors=clock_errors if clock_children is not None else None
         return result and self.commit_clock_cleanup_debt == [] and not getattr(self,'launch_cleanup_failure',None)
 
     def _stop_owned(self):
@@ -949,7 +967,7 @@ class Window:
                     except subprocess.TimeoutExpired:
                         # Still the original unreaped direct child, not a
                         # numeric /proc candidate. No foreign PID is selected.
-                        signal_original_child(proc,signal.SIGKILL,group=False);proc.wait(timeout=self._cleanup_wait_remaining())
+                        signal_original_child(proc,signal.SIGKILL,group=False,timeout=self._cleanup_wait_remaining());proc.wait(timeout=self._cleanup_wait_remaining())
                 except Exception as error:
                     errors.setdefault(proc.pid,[]).append(dict(operation="wait",errorType=type(error).__name__))
                 # Even an unmanaged/partially registered handle must not
@@ -964,7 +982,7 @@ class Window:
 
     def _signal_registered_group(self, proc, sig):
         require(any(c['process'] is proc for c in self.children), 'unregistered original child refused')
-        signal_original_child(proc, sig)
+        signal_original_child(proc, sig,timeout=self._cleanup_wait_remaining())
 
     def launch_cleanup_report(self):
         if not self.lock.acquire(timeout=1):
@@ -981,18 +999,21 @@ class Window:
             if failure is not None and failure not in debt:debt.append(dict(failure))
             clock=getattr(self,'commit_clock_cleanup_debt',None)
             clock=None if clock is None else list(clock)
-            return dict(schema='YNX-ORIGINAL-WINDOW-LAUNCH-LIFECYCLE/v1',
+            report=dict(schema='YNX-ORIGINAL-WINDOW-LAUNCH-LIFECYCLE/v1',
                         status='UNKNOWN' if pending or debt or clock is None or clock else 'OBSERVED',
                         pending=pending,cleanupDebt=debt,
                         clockIdentityCleanupDebt=clock,
                         admissionClosed=getattr(self,'launches_closed',False),
                         cleanupCompleteProven=False if pending or debt or clock is None or clock else None,
                         meaning='No replay or successor admission with unresolved original launch cleanup')
+            errors=getattr(self,'commit_clock_cleanup_errors',None)
+            if errors:report['clockIdentityCloseErrors']=[dict(value) for value in errors]
+            return report
         finally:self.lock.release()
 
     @contextlib.contextmanager
     def _cleanup_lock(self):
-        if not self.lock.acquire(timeout=1):
+        if not self.lock.acquire(timeout=self._cleanup_wait_remaining()):
             self.launch_cleanup_lock_unavailable=True
             raise RuntimeError('original Window cleanup lock did not retire; preserve cleanup debt')
         try:yield
@@ -1046,19 +1067,22 @@ class Window:
                         if current["startTicks"] == expected["startTicks"]:
                             with self._cleanup_lock():
                                 direct=next((c['process'] for c in self.children if c['process'].pid==pid and c.get('startTicks')==expected['startTicks']),None)
-                            if direct is not None:signal_original_child(direct,signal.SIGKILL,group=False)
+                            if direct is not None:signal_original_child(direct,signal.SIGKILL,group=False,timeout=self._cleanup_wait_remaining())
                             else:signal_owned_descendant(pid, expected, signal.SIGKILL)
                     except ProcessLookupError: pass
                     except FileNotFoundError: pass
             with self._cleanup_lock():poll_children=list(self.children)
-            for c in poll_children:c["process"].poll()
+            for c in poll_children:
+                process=c['process'];lock=vars(process).get('_ynx_lifecycle_lock')
+                require(lock is not None,'unmanaged original process poll refused; preserve UNKNOWN')
+                with bounded_original_lifecycle(lock,self._cleanup_wait_remaining()):process.poll()
             time.sleep(.1)
         with self._cleanup_lock():
             children = list(self.children)
         for c in children:
             require(vars(c['process']).get('_ynx_lifecycle_lock') is not None,
                     'unmanaged original child retirement refused; preserve UNKNOWN')
-            signal_original_child(c["process"],signal.SIGKILL,group=False)
+            signal_original_child(c["process"],signal.SIGKILL,group=False,timeout=self._cleanup_wait_remaining())
             c["process"].wait(timeout=self._cleanup_wait_remaining())
         with self._cleanup_lock():
             pending_logs = {v['log'] for v in self.pending_launches.values()}
@@ -1084,10 +1108,22 @@ class Window:
         return not any(pid != os.getpid() and self.known.get(pid) == row["startTicks"] for pid, row in rows.items())
 
     def process_receipt(self):
+        # One deadline covers the resource snapshot and all child lifecycle
+        # locks. Never turn a busy original Popen into an empty/clean receipt.
+        until=time.monotonic()+1
+        if not self.lock.acquire(timeout=max(0,until-time.monotonic())):
+            raise RuntimeError('original process receipt inventory lock unavailable; preserve UNKNOWN')
+        try:children=list(self.children)
+        finally:self.lock.release()
         rows = []
-        for child in self.children:
+        for child in children:
             process = child["process"]
-            status = process.poll()
+            lock=vars(process).get('_ynx_lifecycle_lock')
+            require(lock is not None,'original process receipt lifecycle missing; preserve UNKNOWN')
+            if not lock.acquire(timeout=max(0,until-time.monotonic())):
+                raise RuntimeError('original process receipt lifecycle lock unavailable; preserve UNKNOWN')
+            try:status = process.poll()
+            finally:lock.release()
             rows.append(dict(name=child["name"], pid=process.pid, startTicks=child.get("startTicks"),
                              command=child["command"],
                              rawReturnCode=status, exitCode=status if status is not None and status >= 0 else None,

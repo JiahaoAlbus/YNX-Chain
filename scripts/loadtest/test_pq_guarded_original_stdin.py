@@ -73,8 +73,9 @@ class GuardedOriginalStdinControls(unittest.TestCase):
             closed=False
             def write(self,value):entered.set();release.wait(3);return len(value)
         original=BlockingWriter();stream=m.GuardedOriginalStdin(original)
-        process=SimpleNamespace(pid=34567,stdin=stream,poll=lambda:None)
-        signals=[];process._ynx_original_pidfd=SimpleNamespace(send=lambda signum:signals.append(signum))
+        process=SimpleNamespace(pid=34567,stdin=stream,poll=lambda:None,wait=lambda timeout=None:None)
+        driver.lab.bind_process_lifecycle(process)
+        signals=[];process._ynx_original_pidfd=SimpleNamespace(send=lambda signum,**kwargs:signals.append(signum))
         w=SimpleNamespace(lock=threading.Lock(),children=[dict(name='load-live-session-0',process=process)],stopping=False)
         backend=driver.NormalBackend.__new__(driver.NormalBackend)
         backend.live_lane_lock=threading.Lock();backend.live_lanes_remaining=1;backend.guarded_shutdown=True
@@ -109,8 +110,9 @@ class GuardedOriginalStdinControls(unittest.TestCase):
         class UnsafeWriter:
             closed=False
             def close(self):raise AssertionError('unguarded close forbidden')
-        process=SimpleNamespace(pid=34567,stdin=UnsafeWriter(),poll=lambda:None)
-        process._ynx_original_pidfd=SimpleNamespace(send=lambda signum:None)
+        process=SimpleNamespace(pid=34567,stdin=UnsafeWriter(),poll=lambda:None,wait=lambda timeout=None:None)
+        driver.lab.bind_process_lifecycle(process)
+        process._ynx_original_pidfd=SimpleNamespace(send=lambda signum,**kwargs:None)
         w=SimpleNamespace(lock=threading.Lock(),children=[dict(name='load-live-session-0',process=process)],stopping=False)
         backend=driver.NormalBackend.__new__(driver.NormalBackend);backend.live_lane_lock=threading.Lock()
         backend.live_lanes_remaining=1;backend.guarded_shutdown=True;backend.stop_event=threading.Event()

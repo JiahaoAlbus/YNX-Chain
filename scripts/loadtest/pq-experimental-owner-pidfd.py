@@ -16,17 +16,22 @@ class OriginalOwnerPidfd:
         self.fd=os.pidfd_open(process.pid,0)
         self.pid=process.pid
         self.lock=threading.Lock()
+        self._close_uncertain=False
+        self._close_error_type=None
 
-    def send(self, signum):
-        with self.lock:
+    def send(self, signum, *, timeout=.05):
+        if type(timeout) not in (int,float) or not 0<=timeout<=.05:
+            raise ValueError('bounded original pidfd signal wait required')
+        if not self.lock.acquire(timeout=timeout):
+            raise RuntimeError('original owner pidfd lock unavailable; preserve UNKNOWN and cleanup debt')
+        try:
             if self.fd is None:raise RuntimeError('original owner pidfd already closed')
             signal.pidfd_send_signal(self.fd,signum,None,0)
+        finally:self.lock.release()
 
     def close(self):
-        with self.lock:
-            if self.fd is not None:
-                os.close(self.fd)
-                self.fd=None
+        if not self.close_bounded(timeout=1):
+            raise RuntimeError('original pidfd close unknown; preserve cleanup debt')
 
     def close_bounded(self, timeout=0.05):
         """Retain identity debt if another original operation holds the lock."""
@@ -34,8 +39,18 @@ class OriginalOwnerPidfd:
             raise ValueError('bounded original pidfd close wait required')
         if not self.lock.acquire(timeout=timeout):return False
         try:
+            if getattr(self,'_close_uncertain',False):return False
             if self.fd is not None:
-                os.close(self.fd)
+                original=self.fd
+                # A failed close can still have released this descriptor.
+                # Disown its number before the single attempt and never send
+                # or retry it if the syscall outcome is uncertain.
                 self.fd=None
+                self._close_uncertain=True
+                try:os.close(original)
+                except BaseException as error:
+                    self._close_error_type=type(error).__name__
+                    raise
+                self._close_uncertain=False
             return True
         finally:self.lock.release()

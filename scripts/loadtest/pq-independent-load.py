@@ -1475,6 +1475,25 @@ def retain_original_readiness(result,ceremony):
         result['originalReadinessObservations']=ceremony.readiness_report()
 
 
+def retire_original_proof_pidfd(process, *, deadline=None):
+    handle=vars(process).get('_ynx_original_pidfd')
+    try:
+        remaining=lambda:1 if deadline is None else max(0,min(1,deadline-time.monotonic()))
+        lock=vars(process).get('_ynx_lifecycle_lock')
+        if handle is None or lock is None:
+            return dict(status='ORIGINAL_PROOF_CLEANUP_DEBT',closed=False)
+        with lab.bounded_original_lifecycle(lock,remaining()):status=process.poll()
+        if status is None or process.stdin is None or not process.stdin.closed:
+            return dict(status='ORIGINAL_PROOF_CLEANUP_DEBT',closed=False)
+        if not callable(getattr(handle,'close_bounded',None)) or handle.close_bounded(timeout=min(.05,remaining())) is not True:
+            failure=dict(status='ORIGINAL_PROOF_IDENTITY_CLOSE_UNKNOWN',closed=False)
+            if getattr(handle,'_close_error_type',None):failure['errorType']=handle._close_error_type
+            return failure
+        return dict(status='ORIGINAL_PROOF_IDENTITY_CLOSED_AFTER_REAP',closed=True)
+    except BaseException as error:
+        return dict(status='ORIGINAL_PROOF_IDENTITY_CLOSE_FAILED',closed=False,errorType=type(error).__name__)
+
+
 def run(args, *, source_metadata_reader=None, clock_original_log_reader=None):
     demand=validate_options(args)
     backend_kind=sender_backend_kind(args) # Source/semantic/window gates below still run before any Window.
@@ -1752,17 +1771,12 @@ def run(args, *, source_metadata_reader=None, clock_original_log_reader=None):
             identities=[]
             for session in backend.sessions.values():
                 if getattr(session,'poison_retirement',False):
-                    identities.append(session.retire_identity_after_window())
+                    identities.append(session.retire_identity_after_window(deadline=getattr(w,'launch_cleanup_deadline',None)))
             if getattr(backend,'guarded_shutdown',False):
                 for child in w.children:
                     process=child['process']
                     if child['name'].startswith('load-live-session-'):
-                        handle=vars(process).get('_ynx_original_pidfd')
-                        if handle is None or process.poll() is None or process.stdin is None or not process.stdin.closed:
-                            identities.append(dict(status='ORIGINAL_PROOF_CLEANUP_DEBT',closed=False))
-                        else:
-                            try:handle.close();identities.append(dict(status='ORIGINAL_PROOF_IDENTITY_CLOSED_AFTER_REAP',closed=True))
-                            except BaseException as error:identities.append(dict(status='ORIGINAL_PROOF_IDENTITY_CLOSE_FAILED',closed=False,errorType=type(error).__name__))
+                        identities.append(retire_original_proof_pidfd(process,deadline=getattr(w,'launch_cleanup_deadline',None)))
             if identities:
                 result['experimentalOwnerPidfdCleanup']=identities
                 if any(not item['closed'] for item in identities):
@@ -1830,8 +1844,9 @@ def run(args, *, source_metadata_reader=None, clock_original_log_reader=None):
             try:monitor.check()
             except BaseException as error:result['firstCause']=result['firstCause'] or str(error)
         result["peakRSSSample"] = getattr(w, "peak_rss_sample", None)
+        normal.retain_original_process_receipt(result,w)
         result['processRSSObservation']=w.process_rss_report()
-        result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,processes=w.process_receipt(),launchLifecycle=w.launch_cleanup_report(),retiredSamplingEvidence=w.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=w.rss_fallback_samples)
+        result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,launchLifecycle=w.launch_cleanup_report(),retiredSamplingEvidence=w.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=w.rss_fallback_samples)
         if ceremony is not None and getattr(ceremony,'commit_clock_observation_enabled',False):
             finish_commit_clock_readback(result,w,work,ceremony.root,args.commit,demand)
         if ceremony is not None:

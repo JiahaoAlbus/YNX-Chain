@@ -192,9 +192,22 @@ def normal_node_clean_exit(processes):
 
 
 def apply_normal_clean_exit(result):
+    if result.get('processes') is None:
+        result['normalNodeCleanExit']=None
+        result['firstCause']=result.get('firstCause') or 'original process receipt UNKNOWN; preserve cleanup debt'
+        return
     result["normalNodeCleanExit"]=normal_node_clean_exit(result["processes"])
     if not result["normalNodeCleanExit"]["operationalCleanExit"]:
         result["firstCause"]=result.get("firstCause") or "original eight normal nodes did not all exit0; preserve raw logs and cleanup result"
+
+
+def retain_original_process_receipt(result,window):
+    try:result['processes']=window.process_receipt()
+    except BaseException as error:
+        result['processes']=None;result['processReceiptStatus']='UNKNOWN';result['processReceiptCleanupDebt']=True
+        result['cleanupComplete']=False
+        result['processReceiptErrorType']=type(error).__name__
+        result['firstCause']=result.get('firstCause') or 'original process receipt UNKNOWN; preserve cleanup debt'
 
 
 def original_plan(created,root):
@@ -722,8 +735,9 @@ def run(args):
                 result["liveNetworkReads"]=ceremony.live_reader.evidence
         result["parentResourceSamplingElapsed"]=sampling_report()
         result["resourceGuardStageElapsed"]=w.sample_stage_report()
+        retain_original_process_receipt(result,w)
         result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,
-                      processes=w.process_receipt(),retiredSamplingEvidence=w.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=w.rss_fallback_samples,
+                      retiredSamplingEvidence=w.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=w.rss_fallback_samples,
                       completedFunctionalProofs=[p.name for p in (work/"public").glob("functional-owner-*-final-proof.json")])
         if live_requested:apply_normal_clean_exit(result)
         lab.write_new(work/"public/receipt.json",result);print(json.dumps(dict(publicArtifacts=str(work/"public"),firstCause=result["firstCause"],phaseComplete=result["phaseComplete"])))
