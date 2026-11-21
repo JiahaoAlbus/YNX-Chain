@@ -98,18 +98,21 @@ class OriginalEvents(unittest.TestCase):
             for name,slug in pairs:
                 pattern=r'(?ms)^      - name: '+re.escape(name)+r'\n(.*?)(?=^      - (?:name:|uses:)|\Z)'
                 matches=re.findall(pattern,history_job)
-                expected_condition="${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+                expected_condition="${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && !cancelled() && steps.identity.outcome == 'success') }}"
                 if len(matches)!=1 or re.findall(r'(?m)^        if: (.+)$',matches[0]) != [expected_condition] or 'run: bash scripts/verify/pq-history-'+slug+'-ci.sh' not in matches[0] or 'continue-on-error:' in matches[0]: raise ValueError('history case missing or bypassed')
                 source=(root/('pq-history-'+slug+'-ci.sh')).read_text()
                 if 'reuse-pq-history-counterexamples.sh' in source or 'source scripts/verify/pq-history-events-ci.sh' not in source or 'YNX_HISTORY_EVENT_CASE='+slug not in source or 'test ! -e "$YNX_HISTORY_EVENT_DIR/$YNX_HISTORY_EVENT_CASE.invalid"' not in source: raise ValueError('history execution or event check absent')
-            for name in ('Verify same-run history and Finalize event controls','Qualify the twelve original history test event streams','Retain only same-run original history test events'):
+            for name in ('Verify same-run history and Finalize event controls','Compile same-source history test dependencies without running tests','Qualify the twelve original history test event streams','Retain only same-run original history test events'):
                 match=re.findall(r'(?ms)^      - name: '+re.escape(name)+r'\n(.*?)(?=^      - (?:name:|uses:)|\Z)',history_job)
-                expected="${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+                expected="${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && !cancelled() && steps.identity.outcome == 'success') }}"
                 if len(match)!=1 or re.findall(r'(?m)^        if: (.+)$',match[0]) != [expected]: raise ValueError('history evidence control bypassed')
+            warm = history_job.split('      - name: Compile same-source history test dependencies without running tests\n',1)[1].split('      - name:',1)[0]
+            for part in ('go test -mod=readonly -c -p 1 -o "$RUNNER_TEMP/ynx-history-consensus-prewarm.test" ./internal/consensus', 'go test -mod=readonly -c -p 1 -o "$RUNNER_TEMP/ynx-history-key-init-prewarm.test" ./cmd/ynx-consensus-key-init', 'test -z "$(git status --porcelain --untracked-files=normal)"', 'testsExecuted=false'):
+                if part not in warm: raise ValueError('cold compilation prewarm missing')
             if 'Retain only same-run original history test events' not in history_job or 'if-no-files-found: error' not in history_job: raise ValueError('history artifact not required')
             if "needs.held-optional-live-source.result == 'success'" not in delivery: raise ValueError('getter not required')
         check(raw)
-        for old,new in (('    needs: [detached-source-checks, source-history-counterexamples]','    needs: detached-source-checks'),('python3 -B scripts/verify/pq-ci-replay-entry-identity.py','true'),('run: bash scripts/verify/pq-history-journal-ci.sh','run: true'),("steps.identity.outcome == 'success'","steps.identity.outcome == 'success' && false"),('if-no-files-found: error','if-no-files-found: warn')):
+        for old,new in (('    needs: [detached-source-checks, source-history-counterexamples]','    needs: detached-source-checks'),('python3 -B scripts/verify/pq-ci-replay-entry-identity.py','true'),('run: bash scripts/verify/pq-history-journal-ci.sh','run: true'),('go test -mod=readonly -c -p 1 -o','go test -mod=readonly -p 1 -o'),("success() && !cancelled()","!cancelled()"),("steps.identity.outcome == 'success'","steps.identity.outcome == 'success' && false"),('if-no-files-found: error','if-no-files-found: warn')):
             # Alter only the intended history job, not another workflow job.
             if old.startswith('    needs:'): mutated=raw.replace(old,new,1)
             else:

@@ -4375,33 +4375,46 @@ jobs:
           bash scripts/verify/pq-remote-window-entry-check.sh
           python3 -B scripts/verify/pq-ci-replay-entry-identity.py
       - name: Verify same-run history and Finalize event controls
-        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && !cancelled() && steps.identity.outcome == 'success') }}
         run: python3 -B scripts/verify/test-pq-history-finalize-ci.py
+      - name: Compile same-source history test dependencies without running tests
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && !cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 4
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=normal)"
+          go test -mod=readonly -c -p 1 -o "$RUNNER_TEMP/ynx-history-consensus-prewarm.test" ./internal/consensus
+          go test -mod=readonly -c -p 1 -o "$RUNNER_TEMP/ynx-history-key-init-prewarm.test" ./cmd/ynx-consensus-key-init
+          test -s "$RUNNER_TEMP/ynx-history-consensus-prewarm.test"
+          test -s "$RUNNER_TEMP/ynx-history-key-init-prewarm.test"
+          test -z "$(git status --porcelain --untracked-files=normal)"
+          printf 'YNX_HISTORY_COMPILE_DATA_ONLY source=%s testsExecuted=false\n' "$GITHUB_SHA"
       - name: Verify original key ceremony retains partial custody and never creates during resume
-        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && !cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 2
         run: bash scripts/verify/pq-history-ceremony-ci.sh
       - name: Reproduce signed-history overwrite and unsafe rollback callers
-        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && !cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         run: bash scripts/verify/pq-history-signed-history-ci.sh
       - name: Reproduce source-authority initialization coupling and verify independent execution
-        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && !cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 4
         run: bash scripts/verify/pq-history-source-authority-ci.sh
       - name: Reproduce JSON-only signing source and verify real journal recovery
-        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && !cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 4
         run: bash scripts/verify/pq-history-journal-ci.sh
       - name: Reproduce atomic-only Comet operator startup and verify normal journal selection
-        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && !cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         run: bash scripts/verify/pq-history-comet-layout-ci.sh
       - name: Qualify the twelve original history test event streams
-        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && !cancelled() && steps.identity.outcome == 'success') }}
         run: python3 -B scripts/verify/pq-history-qualify-ci.py
       - name: Retain only same-run original history test events
-        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && !cancelled() && steps.identity.outcome == 'success') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ynx-history-original-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
