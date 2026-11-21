@@ -3,6 +3,8 @@ import importlib.util
 import io
 import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import threading
 from types import SimpleNamespace
@@ -22,6 +24,66 @@ def args(**changes):
 
 
 class BackendSelection(unittest.TestCase):
+    def test_clock_original_log_reaches_normal_held_entry_without_window(self):
+        helper=d.module('clock_qualification_test_fixture','test_pq_commit_clock_source_qualification.py')
+        fixture=helper.ClockSourceQualificationControls();binding,identity,run,focused,jobs=fixture.fixture()
+        requirements,original=fixture.original_log(binding);calls=[]
+        def metadata(endpoint):
+            calls.append(endpoint)
+            return {'runs/101':run,'jobs/102':focused,'runs/101/jobs?per_page=100':dict(total_count=4,jobs=jobs)}[endpoint]
+        with tempfile.TemporaryDirectory() as temp:
+            original_path=Path(temp).resolve()/'retained.log';original_path.write_bytes(original)
+            option=args(commit=binding['source'],first_trial_profile=d.HELD_TRIAL_PROFILE,
+                initialize_before_load=True,startup_timings=True,wire_observation=True,
+                network_accounting=True,commit_observation=True,owned_storage_accounting=True,
+                commit_clock_observation=True,commit_clock_ci_original_log=str(original_path),execute=False)
+            with mock.patch.object(d,'HELD_TRIAL_SOURCE',binding['source']),mock.patch.object(d,'HELD_TRIAL_TREE',binding['tree']), \
+                 mock.patch.object(d,'PUBLIC_OWNER_ABI_SOURCES',frozenset([binding['source']])), \
+                 mock.patch.object(d,'STARTUP_TIMING_ABI_SOURCES',frozenset([binding['source']])), \
+                 mock.patch.object(d.commit_clock,'COMMIT_CLOCK_SOURCE',binding['source']), \
+                 mock.patch.object(d.commit_clock_ci,'BINDING',binding),mock.patch.object(d.commit_clock_ci,'LOG_REQUIREMENTS',requirements), \
+                 mock.patch.object(d.lab,'check_source',return_value=identity),mock.patch.object(d.lab,'Window') as window:
+                result=d.run(option,source_metadata_reader=metadata)
+                self.assertTrue(result['commitClockSourceCI']['focusedOriginalLogVerified'])
+                self.assertFalse(result['actualLoadExecuted'])
+                self.assertEqual(calls,['runs/101','jobs/102','runs/101/jobs?per_page=100','runs/101'])
+                with self.assertRaisesRegex(RuntimeError,'ambiguous log source'):
+                    d.run(option,source_metadata_reader=metadata,clock_original_log_reader=lambda *x:original)
+                option.commit_clock_ci_original_log=None;log_calls=[]
+                def supplied(run_id,job_id,attempt):
+                    log_calls.append((run_id,job_id,attempt));return original
+                self.assertTrue(d.run(option,source_metadata_reader=metadata,
+                                      clock_original_log_reader=supplied)['commitClockSourceCI']['focusedOriginalLogVerified'])
+                self.assertEqual(log_calls,[(101,102,1)])
+                with self.assertRaisesRegex(RuntimeError,'NOT_SUPPLIED'):
+                    d.run(option,source_metadata_reader=metadata)
+                with self.assertRaisesRegex(RuntimeError,'SHA differs'):
+                    d.run(option,source_metadata_reader=metadata,clock_original_log_reader=lambda *x:original+b'changed')
+                option.commit_clock_ci_original_log=str(original_path)
+                # The same callable is propagated to the original held source
+                # validator before any Window when execution is requested.
+                option.execute=True
+                with mock.patch.object(d.held_first_trial_source,'SOURCE',binding['source']), \
+                     mock.patch.dict(os.environ,{'GITHUB_JOB':'first100-held-public-owner','GITHUB_EVENT_NAME':'workflow_dispatch','GITHUB_RUN_ATTEMPT':'1'}), \
+                     mock.patch.object(d.held_first_trial_source,'qualification',side_effect=RuntimeError('original held metadata stopped')) as original_gate:
+                    with self.assertRaisesRegex(RuntimeError,'original held metadata stopped'):
+                        d.run(option,source_metadata_reader=metadata)
+                    original_gate.assert_called_once_with(metadata_reader=metadata)
+                window.assert_not_called()
+
+    def test_clock_normal_cli_remains_closed_before_original_file_access(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path=Path(temp).resolve()/'retained.log';path.write_bytes(b'original-not-read')
+            command=[sys.executable,'-B',str(Path(__file__).with_name('pq-independent-load.py')),
+                '--source','/source-not-read','--commit',d.HELD_TRIAL_SOURCE,'--mode','online',
+                '--seconds','5','--accounts','500','--per-account','1','--commit-observation',
+                '--commit-clock-observation','--commit-clock-ci-original-log',str(path),
+                '--first-trial-profile',d.HELD_TRIAL_PROFILE]
+            child=subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False)
+            self.assertNotEqual(child.returncode,0)
+            self.assertIn(b'exact synthetic held Commit clock source/CI NOT_SUPPLIED',child.stderr)
+            self.assertEqual(path.read_bytes(),b'original-not-read')
+
     def test_successor_delivery_requires_same_push_and_all_original_fixture_steps(self):
         q = d.module('held_delivery_contract', 'pq-held-first100-source.py')
         source, branch = q.DELIVERY_SOURCE, q.DELIVERY_BRANCH
@@ -90,6 +152,19 @@ class BackendSelection(unittest.TestCase):
             inventory['total_count']=3
             with self.assertRaisesRegex(RuntimeError,'complete bounded'):
                 q.qualification()
+        inventory['total_count']=2;calls=[]
+        def metadata(endpoint):
+            calls.append(endpoint)
+            return {f'runs/{q.RUN}':run,f'jobs/{q.JOB}':focused,
+                    f'runs/{q.RUN}/jobs?per_page=100':inventory}[endpoint]
+        with mock.patch.object(q.urllib.request,'build_opener') as opener:
+            self.assertEqual(q.qualification(metadata_reader=metadata)['delivery']['job'],q.JOB+1)
+            opener.assert_not_called()
+            self.assertEqual(calls,[f'runs/{q.RUN}',f'jobs/{q.JOB}',f'runs/{q.RUN}/jobs?per_page=100'])
+            def failure(endpoint):raise OSError('original metadata transport failed')
+            with self.assertRaisesRegex(OSError,'original metadata transport failed'):
+                q.qualification(metadata_reader=failure)
+            opener.assert_not_called()
 
     def test_legacy_auto_and_explicit_public_capacity_keep_original_caps(self):
         self.assertEqual(d.sender_backend_kind(args(sender_backend='auto')),'bounded-cold')

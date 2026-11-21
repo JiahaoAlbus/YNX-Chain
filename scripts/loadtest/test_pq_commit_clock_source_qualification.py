@@ -3,7 +3,9 @@ import copy
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
+import tempfile
 import unittest
 from unittest import mock
 
@@ -76,6 +78,48 @@ class ClockSourceQualificationControls(unittest.TestCase):
             m.qualification(identity,metadata_reader=metadata,focused_log_reader=lambda *x:reads.append(x))
         self.assertEqual(reads,[])
 
+    def test_retained_original_log_path_is_single_use_and_bound(self):
+        binding,*_=self.fixture();requirements,raw=self.original_log(binding)
+        clock_spec=importlib.util.spec_from_file_location('original_clock_reader',Path(__file__).with_name('pq-commit-clock-readback.py'))
+        clock=importlib.util.module_from_spec(clock_spec);clock_spec.loader.exec_module(clock)
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();path=root/'original.log';path.write_bytes(raw)
+            with mock.patch.object(m,'BINDING',binding),mock.patch.object(m,'LOG_REQUIREMENTS',requirements):
+                reader=m.retained_original_log_reader(str(path),clock.read_original)
+                self.assertEqual(reader(101,102,1),raw)
+                with self.assertRaisesRegex(RuntimeError,'never retry'):reader(101,102,1)
+                for changed in ((102,102,1),(101,103,1),(101,102,2)):
+                    reader=m.retained_original_log_reader(str(path),clock.read_original)
+                    with self.assertRaisesRegex(RuntimeError,'job identity'):reader(*changed)
+                link=root/'link.log';link.symlink_to(path)
+                with self.assertRaises((OSError,RuntimeError,ValueError)):
+                    m.retained_original_log_reader(str(link),clock.read_original)(101,102,1)
+                hard=root/'hard.log';os.link(path,hard)
+                with self.assertRaises((OSError,RuntimeError,ValueError)):
+                    m.retained_original_log_reader(str(path),clock.read_original)(101,102,1)
+            with mock.patch.object(m,'BINDING',None):
+                with self.assertRaisesRegex(RuntimeError,'NOT_SUPPLIED'):
+                    m.retained_original_log_reader(str(path),clock.read_original)(101,102,1)
+
+    def test_retained_original_log_parent_replacement_is_refused(self):
+        binding,*_=self.fixture();requirements,raw=self.original_log(binding)
+        spec=importlib.util.spec_from_file_location('original_clock_path_reader',Path(__file__).with_name('pq-commit-clock-readback.py'))
+        clock=importlib.util.module_from_spec(spec);spec.loader.exec_module(clock)
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();directory=root/'original';directory.mkdir();path=directory/'job.log';path.write_bytes(raw)
+            system_read=os.read;changed=False
+            def replace(fd,size):
+                nonlocal changed
+                chunk=system_read(fd,size)
+                if chunk and not changed:
+                    changed=True;directory.rename(root/'retained');directory.mkdir();path.write_bytes(raw)
+                return chunk
+            with mock.patch.object(m,'BINDING',binding),mock.patch.object(m,'LOG_REQUIREMENTS',requirements), \
+                 mock.patch.object(clock.os,'read',side_effect=replace):
+                reader=m.retained_original_log_reader(str(path),clock.read_original)
+                with self.assertRaisesRegex(ValueError,'changed during read'):reader(101,102,1)
+                with self.assertRaisesRegex(RuntimeError,'never retry'):reader(101,102,1)
+            self.assertEqual((root/'retained'/'job.log').read_bytes(),raw)
     def test_log_exact_identity_markers_and_tests_fail_closed(self):
         binding,*_=self.fixture();requirements,raw=self.original_log(binding)
         self.assertEqual(m.validate_original_log(binding,requirements,raw)['requiredTests'],18)

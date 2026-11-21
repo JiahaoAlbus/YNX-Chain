@@ -108,18 +108,25 @@ def validate_successor(run, focused_job, jobs):
     return dict(focused, delivery=delivery)
 
 
-def qualification():
+def qualification(*, metadata_reader=None):
+    # Both transports use the same original inventory and successor validator.
+    if metadata_reader is not None and not callable(metadata_reader):
+        raise RuntimeError('original held source metadata reader required')
     class NoRedirect(urllib.request.HTTPRedirectHandler):
         def redirect_request(self, req, fp, code, msg, headers, newurl):
             raise RuntimeError('held first100 CI metadata redirect refused')
 
-    opener = urllib.request.build_opener(NoRedirect)
-    headers = {'Accept': 'application/vnd.github+json', 'User-Agent': 'ynx-held-first100'}
-    token = os.environ.get('GH_TOKEN') or os.environ.get('GITHUB_TOKEN')
-    if token:
-        headers['Authorization'] = 'Bearer ' + token
+    if metadata_reader is None:
+        opener = urllib.request.build_opener(NoRedirect)
+        headers = {'Accept': 'application/vnd.github+json', 'User-Agent': 'ynx-held-first100'}
+        token = os.environ.get('GH_TOKEN') or os.environ.get('GITHUB_TOKEN')
+        if token:
+            headers['Authorization'] = 'Bearer ' + token
     values = []
     for endpoint in (f'runs/{RUN}', f'jobs/{JOB}', f'runs/{RUN}/jobs?per_page=100'):
+        if metadata_reader is not None:
+            values.append(metadata_reader(endpoint))
+            continue
         url = f'https://api.github.com/repos/{REPOSITORY}/actions/{endpoint}'
         with opener.open(urllib.request.Request(url, headers=headers), timeout=15) as response:
             raw = response.read((1 << 20) + 1)

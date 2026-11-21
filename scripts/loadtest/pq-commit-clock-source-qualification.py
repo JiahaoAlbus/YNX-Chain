@@ -6,6 +6,7 @@ that slot. Metadata checks do not independently attest a binary or process.
 """
 import importlib.util
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -105,6 +106,25 @@ def original_log_identity(binding,requirements):
             'frozen same-job original log identity required')
 
 
+def retained_original_log_reader(path,read_original):
+    """Read a sole collector's retained original once; never fetch or retry."""
+    require(type(path) is str and Path(path).is_absolute() and '..' not in Path(path).parts
+            and callable(read_original),'absolute retained original log path required')
+    used=False
+    def read(run,job,attempt):
+        nonlocal used
+        require(not used,'original log read already attempted; never retry')
+        used=True
+        require(BINDING is not None and LOG_REQUIREMENTS is not None,
+                'same-job original test log and fixed inventory NOT_SUPPLIED')
+        original_log_identity(BINDING,LOG_REQUIREMENTS)
+        require(type(run) is int and type(job) is int and type(attempt) is int
+                and (run,job,attempt)==(BINDING['run'],BINDING['focusedJob'],1),
+                'retained original job identity differs')
+        return read_original(path,32<<20)
+    return read
+
+
 def validate_original_log(binding,requirements,original):
     """Check a pinned, already-collected official job log, never a test summary."""
     original_log_identity(binding,requirements)
@@ -112,20 +132,24 @@ def validate_original_log(binding,requirements,original):
     require(type(original) is bytes and 0<len(original)<=32<<20
             and hashlib.sha256(original).hexdigest()==requirements['sha256'],
             'original same-job log missing, oversized or SHA differs')
-    try:lines=original.decode('utf-8','strict').splitlines()
-    except UnicodeDecodeError:raise RuntimeError('original job log is not UTF-8') from None
     # GitHub prefixes each raw job-log line with its timestamp. Do not accept a
-    # marker buried in a test's JSON Output string as a runner line.
+    # marker buried in a test's JSON Output string as a runner line. Consume
+    # lines one at a time rather than retaining decoded copies of the job log.
     def content(line):
         return re.sub(r'^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{1,9}Z ', '', line, count=1)
-    lines=[content(line) for line in lines]
-    require(lines.count(LOG_BEGIN)==1 and lines.count(LOG_END)==1,'unique original test stream markers required')
-    begin,end=lines.index(LOG_BEGIN),lines.index(LOG_END)
-    require(begin<end,'original test stream markers out of order')
     wanted={tuple(pair) for pair in expected};packages={p for p,_ in wanted}
     seen={test:[] for _,test in wanted};package_events={p:[] for p in packages};package_state={p:0 for p in packages}
-    for line in lines[begin+1:end]:
-        event=strict(line.encode('utf-8'))
+    section=0
+    for raw_line in io.BytesIO(original):
+        try:line=content(raw_line.decode('utf-8','strict').rstrip('\r\n'))
+        except UnicodeDecodeError:raise RuntimeError('original job log is not UTF-8') from None
+        if line==LOG_BEGIN:
+            require(section==0,'unique original test stream markers required');section=1;continue
+        if line==LOG_END:
+            require(section==1,'unique original test stream markers required');section=2;continue
+        if section!=1:continue
+        try:event=strict(line.encode('utf-8'))
+        except json.JSONDecodeError:raise RuntimeError('malformed original go test event') from None
         require(type(event) is dict and event.get('Action') in
                 ('start','run','pause','cont','pass','output','bench','skip','fail')
                 and type(event.get('Package')) is str,'malformed original go test event')
@@ -140,6 +164,7 @@ def validate_original_log(binding,requirements,original):
                     'original package start/pass out of order')
             package_state[package]=1 if action=='start' else 2
             package_events[package].append(action)
+    require(section==2,'unique original test stream markers required')
     require(all(seen[test]==[(package,'run'),(package,'pass')] for package,test in wanted)
             and all(events==['start','pass'] for events in package_events.values()),
             'original required tests or package start/pass missing, duplicate or out of order')
