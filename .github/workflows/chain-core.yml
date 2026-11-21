@@ -91,19 +91,29 @@ jobs:
           python3 -B scripts/loadtest/test_linux_owned_rss.py -v
           python3 -B scripts/loadtest/test_linux_thread_group_exit.py -v
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v5
+        id: source-go
         with:
           go-version: "1.25"
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "24"
           cache: npm
+      - name: Build original signed public proof offline verifier
+        env:
+          GOMAXPROCS: "1"
+          GOMEMLIMIT: "160MiB"
+          YNX_PQ_TRANSACTION_PROOF_FIXTURE_OUT: ${{ runner.temp }}/pq-perf-original-public-proof.json
+          SOURCE_GO_CACHE_HIT: ${{ steps.source-go.outputs.cache-hit }}
+        run: |
+          printf 'Original source Go cache hit: %s\n' "$SOURCE_GO_CACHE_HIT"
+          go env GOVERSION GOOS GOARCH GOTOOLCHAIN
+          go build -p 1 -o "${{ runner.temp }}/pq-perf-original-verifier" ./cmd/ynx-consensus-proof-verify
       - name: Produce original signed public proof fixture and offline verifier
         env:
           GOMAXPROCS: "1"
           GOMEMLIMIT: "160MiB"
           YNX_PQ_TRANSACTION_PROOF_FIXTURE_OUT: ${{ runner.temp }}/pq-perf-original-public-proof.json
         run: |
-          go build -p 1 -o "${{ runner.temp }}/pq-perf-original-verifier" ./cmd/ynx-consensus-proof-verify
           go test -p 1 ./internal/consensus -run '^TestPQConsensusTransactionProofPublicFixture$' -count=1 -timeout=60s -v
           test -s "$YNX_PQ_TRANSACTION_PROOF_FIXTURE_OUT"
       - name: Verify canonical PQ Whole and Native N1 clients with UNKNOWN original readback
@@ -410,5 +420,60 @@ jobs:
         with:
           name: pq-post-ready-linux-controls-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/pq-post-ready-linux-controls/
+          if-no-files-found: error
+          retention-days: 90
+
+  rss-source-controls:
+    name: Process RSS and stage source controls
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+      - name: Execute exact same-source 13 RSS and 43 stage controls
+        run: |
+          python3 -B - <<'PYRSSSOURCE'
+          import hashlib, importlib.util, json, os, pathlib, subprocess, sys, unittest
+          assert sys.platform == 'linux', 'actual Linux source controls required'
+          source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          assert source == os.environ['GITHUB_SHA'], 'exact checked-out source required'
+          destination = pathlib.Path(os.environ['RUNNER_TEMP']) / 'pq-process-rss-source-controls'
+          destination.mkdir(mode=0o700)
+          report = dict(sourceCommit=source, runID=os.environ['GITHUB_RUN_ID'],
+                        runAttempt=os.environ['GITHUB_RUN_ATTEMPT'], platform=sys.platform,
+                        groups=[], testsRun=0, skipped=0, successful=False,
+                        sourceQualificationGranted=False, normalGoOrChainEvidence=False,
+                        pressureAuthorized=False, fullVerifyRequired=True,
+                        meaning='Independent pure source controls only. The complete original verify job and run must still succeed; this job grants no Tools or runtime qualification.')
+          def retain():
+              (destination / 'RESULT.json').write_text(json.dumps(report, sort_keys=True) + '\n')
+          retain()
+          for filename, expected in [('test_pq_process_rss_observation.py', 13),
+                                     ('test_pq_first100_stage_summary.py', 43)]:
+              path = pathlib.Path('scripts/loadtest') / filename
+              spec = importlib.util.spec_from_file_location('rss_source_' + path.stem, path)
+              module = importlib.util.module_from_spec(spec); sys.modules[spec.name] = module
+              spec.loader.exec_module(module)
+              suite = unittest.defaultTestLoader.loadTestsFromModule(module)
+              assert suite.countTestCases() == expected, 'exact original source control count required'
+              result = unittest.TextTestRunner(verbosity=2).run(suite)
+              report['groups'].append(dict(file=filename, sourceSHA256=hashlib.sha256(path.read_bytes()).hexdigest(),
+                  expected=expected, testsRun=result.testsRun, skipped=len(result.skipped),
+                  failures=len(result.failures), errors=len(result.errors), successful=result.wasSuccessful()))
+              report['testsRun'] += result.testsRun; report['skipped'] += len(result.skipped)
+              retain()
+          report['successful'] = (report['testsRun'] == 56 and report['skipped'] == 0
+                                 and all(row['successful'] and row['testsRun'] == row['expected'] for row in report['groups']))
+          retain()
+          print(json.dumps(report, sort_keys=True))
+          assert report['successful'], 'all 56 original source controls must execute without skips'
+          PYRSSSOURCE
+      - name: Preserve source-only RSS and stage control result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pq-process-rss-source-controls-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pq-process-rss-source-controls/RESULT.json
           if-no-files-found: error
           retention-days: 90
