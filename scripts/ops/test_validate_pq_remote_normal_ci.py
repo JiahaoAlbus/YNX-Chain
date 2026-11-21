@@ -5497,6 +5497,8 @@ class SyntheticClockReceiptControls(unittest.TestCase):
                    rows[:3] + [rows[4], rows[3]] + rows[5:],
                    rows[:3] + rows[4:] + [rows[3]],
                    rows[:4] + [rows[-1]] + rows[4:-1],
+                   rows[:5] + [rows[-1]] + rows[5:-1],
+                   [rows[5]] + rows[:5] + rows[6:],
                    rows[:-1],
                    [dict(row, Package='foreign') if i == 3 else row for i, row in enumerate(rows)],
                    [dict(row, Test=order) if i == 3 else row for i, row in enumerate(rows)],

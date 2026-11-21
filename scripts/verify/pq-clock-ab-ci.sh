@@ -29,13 +29,18 @@ def qualify_result(rows, source):
     if not re.fullmatch(r'[0-9a-f]{40}', source):
         raise RuntimeError('synthetic A/B exact source identity malformed')
     package_events = [(i, e.get('Action')) for i, e in enumerate(rows) if e.get('Package') == package and not e.get('Test') and e.get('Action') in ('start', 'pass', 'fail', 'skip')]
-    test_events = [(i, e.get('Action')) for i, e in enumerate(rows) if e.get('Package') == package and e.get('Test') == name and e.get('Action') in ('run', 'pass', 'fail', 'skip')]
-    if [a for _, a in package_events] != ['start', 'pass'] or [a for _, a in test_events] != ['run', 'pass']:
+    if [a for _, a in package_events] != ['start', 'pass']:
         raise RuntimeError('synthetic A/B original event boundaries missing')
     package_start, package_end = package_events[0][0], package_events[1][0]
-    test_start, test_end = test_events[0][0], test_events[1][0]
-    if not package_start < test_start < test_end < package_end:
-        raise RuntimeError('synthetic A/B test outside original package execution')
+    for required in (name, order_name):
+        test_events = [(i, e.get('Package'), e.get('Action')) for i, e in enumerate(rows) if e.get('Test') == required and e.get('Action') in ('run', 'pass', 'fail', 'skip')]
+        if [(p, a) for _, p, a in test_events] != [(package, 'run'), (package, 'pass')]:
+            raise RuntimeError('synthetic A/B original test events missing')
+        first, last = test_events[0][0], test_events[1][0]
+        if not package_start < first < last < package_end:
+            raise RuntimeError('synthetic A/B test outside original package execution')
+        if required == name:
+            test_start, test_end = first, last
     output_events = [(i, e) for i, e in enumerate(rows) if e.get('Test') == name and e.get('Action') == 'output']
     if any(e.get('Package') != package or not test_start < i < test_end for i, e in output_events):
         raise RuntimeError('synthetic A/B output outside original test execution')

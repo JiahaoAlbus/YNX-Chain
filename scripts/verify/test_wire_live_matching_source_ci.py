@@ -521,6 +521,12 @@ class WireLiveSourceControls(unittest.TestCase):
     def assert_optional_partition(self, workflow):
         client = workflow_job(workflow, "client-observations")
         optional = workflow_job(workflow, "optional-live-source")
+        scope = workflow_job(workflow, "contract-tooling-scope")
+        scope_start = scope.index('git diff --name-only "$BEFORE" "$AFTER" -- \\\n            go.mod go.sum')
+        scope_end = scope.index(' > "$RUNNER_TEMP/client-observation-changes.txt"', scope_start)
+        client_paths = scope[scope_start:scope_end]
+        for path in ('scripts/verify/pq-clock-ab-ci.sh', 'scripts/verify/pq-enrollment-original-ci-receipt.py'):
+            self.assertEqual(client_paths.count(path), 1)
         for job in (client, optional):
             for line in ("    needs: contract-tooling-scope\n",
                          "    if: needs.contract-tooling-scope.outputs.client_changed == 'true'\n",
@@ -591,6 +597,10 @@ class WireLiveSourceControls(unittest.TestCase):
             self.assertIn(before, client)
             with self.assertRaises(AssertionError):
                 self.assert_optional_partition(workflow.replace(client, client.replace(before, after, 1), 1))
+        for path in ('scripts/verify/pq-clock-ab-ci.sh', 'scripts/verify/pq-enrollment-original-ci-receipt.py'):
+            scope = workflow_job(workflow, 'contract-tooling-scope')
+            with self.assertRaises(AssertionError):
+                self.assert_optional_partition(workflow.replace(scope, scope.replace(path, 'missing-original-dependency', 1), 1))
 
     def test_workflow_fetches_only_fixed_supplier_with_ephemeral_read_credential(self):
         workflow = (HERE.parents[1] / ".github/workflows/chain-core.yml").read_text()
