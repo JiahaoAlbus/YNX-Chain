@@ -122,3 +122,63 @@ func TestAmbiguousAcceptCloseRemainsOwnedAfterLeaseGC(t *testing.T) {
 		}
 	}
 }
+
+func TestAcceptRetireDuringPostCurrentKeepsChildUntilClose(t *testing.T) {
+	for _, failClose := range []bool{false, true} {
+		t.Run(map[bool]string{false: "close-confirmed", true: "close-unknown"}[failClose], func(t *testing.T) {
+			a, b := net.Pipe()
+			defer a.Close()
+			defer b.Close()
+			c := &acceptTestConn{Conn: a}
+			if failClose {
+				c.closeErr = errors.New("PUBLIC physical close failed")
+			}
+			s := &leaseState{listener: &acceptTestListener{c: c}, changed: make(chan struct{})}
+			l := &originalListener{borrow: &borrowState{owner: s}}
+			lease := &ReviewedServerTLSLease{s}
+			entered, release := make(chan struct{}), make(chan struct{})
+			type result struct {
+				conn net.Conn
+				err  error
+			}
+			done := make(chan result, 1)
+			go func() {
+				calls := 0
+				conn, err := l.acceptWithCurrent(func() error {
+					calls++
+					if calls == 2 {
+						close(entered)
+						<-release
+					}
+					return nil
+				})
+				done <- result{conn, err}
+			}()
+			<-entered
+			lease.Retire()
+			if closed, err := lease.Close(); closed || !errors.Is(err, ErrPending) {
+				t.Fatal(closed, err)
+			}
+			close(release)
+			res := <-done
+			if res.conn != nil || c.calls != 1 || IsOriginalAcceptRetrySafe(res.err) {
+				t.Fatal("connection escaped or was retried", res.err, c.calls)
+			}
+			if failClose {
+				if !errors.Is(res.err, ErrUnknown) || !errors.Is(res.err, ErrDenied) {
+					t.Fatal(res.err)
+				}
+				if closed, err := lease.Close(); closed || !errors.Is(err, ErrUnknown) {
+					t.Fatal(closed, err)
+				}
+			} else {
+				if !errors.Is(res.err, ErrDenied) {
+					t.Fatal(res.err)
+				}
+				if closed, err := lease.Close(); !closed || err != nil {
+					t.Fatal(closed, err)
+				}
+			}
+		})
+	}
+}

@@ -20,8 +20,8 @@
       "sha256": "8c7e6f187e2ec7e103eb7a37838ae853e64072c58d1eaa7ac82a90c6b0318739"
     },
     "productionRootRows": 0,
-    "sourceCommit": "f278dfcdf67fc16683bc53f81ec5f538f326c465",
-    "sourceTree": "c2c8be03e39d9c845351fdfe5176f5f1c33b7d33",
+    "sourceCommit": "9240e3ff130e1bda797f0d2622c4e03f1cd18aaa",
+    "sourceTree": "a4d4523b4f1282de37eb8c94fa9cd01961801f8f",
     "predecessorSourceManifest": {
       "bytes": 2322,
       "sha256": "99aba4bd1fb36aedd0e3cf12cfbddd2fe99f12f12655878e7430d86351dd1d96"
@@ -65,9 +65,9 @@
     },
     {
       "path": "internal/authservertls/accept_close_test.go",
-      "bytes": 3434,
-      "sha256": "ddf969a3fb2f8b7fe69eeae2b1234411ea2d7025958b52863872c18d1341b252",
-      "gitBlob": "65a342bc9574bb04b29d1391300b2f328cbe14bb",
+      "bytes": 5143,
+      "sha256": "76f8a06cc6f6f4235b3138d43001aec2e9f31f49a751fca2e43621149ab5268b",
+      "gitBlob": "2ffca7ca10c586c944b1ee96dc596681fe3d1135",
       "mode": "100644"
     }
   ]

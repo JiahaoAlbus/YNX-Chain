@@ -114,14 +114,15 @@ test('server TLS driver requires actual normal empty-Root and PUBLIC consumer te
   ]) assert.throws(() => qualifyServerTLSTestEvents(text, exit, signal, error));
 });
 
-test('server TLS driver requires all eleven Auth qualification, error and accepted close controls from their actual package', () => {
+test('server TLS driver requires all twelve Auth qualification, error and accepted close controls from their actual package', () => {
   const pkg = 'github.com/JiahaoAlbus/YNX-Chain/internal/authservertls';
   const raw = goEvents(AUTH_SERVER_TLS_REQUIRED_TESTS, pkg);
   const qualified = qualifyAuthServerTLSTestEvents(raw, 0, null, null);
-  assert.equal(qualified.pass, 11); assert.equal(qualified.productionRootRows, 0);
+  assert.equal(qualified.pass, 12); assert.equal(qualified.productionRootRows, 0);
   assert.equal(qualified.SourceAdmission, false);
   for (const bad of [
     goEvents(AUTH_SERVER_TLS_REQUIRED_TESTS.slice(1), pkg),
+    goEvents(AUTH_SERVER_TLS_REQUIRED_TESTS.filter(name => name !== 'TestAcceptRetireDuringPostCurrentKeepsChildUntilClose'), pkg),
     goEvents([...AUTH_SERVER_TLS_REQUIRED_TESTS, AUTH_SERVER_TLS_REQUIRED_TESTS[0]], pkg),
     raw.replaceAll(pkg, 'github.com/JiahaoAlbus/YNX-Chain/internal/securelink'),
     raw.replace('"pass"', '"skip"'),
