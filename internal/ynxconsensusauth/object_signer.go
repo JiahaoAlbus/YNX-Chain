@@ -77,6 +77,7 @@ func (s *objectSignerCore) stateAt(chainID string, height int64, round int32) (O
 	state.ValidatorAddress = bytes.Clone(state.ValidatorAddress)
 	state.ProposerAddress = bytes.Clone(state.ProposerAddress)
 	state.Params.Validator.PubKeyTypes = append([]string(nil), state.Params.Validator.PubKeyTypes...)
+	state.Params.YNXProfile = bytes.Clone(state.Params.YNXProfile)
 	if state.ChainID != chainID || !bytes.Equal(state.GenesisID, s.genesisID) || state.Height != height || state.Round != round ||
 		!bytes.Equal(state.ValidatorAddress, s.address) || state.ValidatorIndex < 0 ||
 		len(state.ProposerAddress) != validatorAddressSize || state.Params.ABCI.VoteExtensionsEnableHeight < 0 {
