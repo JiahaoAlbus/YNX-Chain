@@ -392,6 +392,42 @@ func TestP08ModelReturnCancellationPreservesUnknownDebt(t *testing.T) {
 	}
 }
 
+func TestP08ModelReturnWaitsForOriginalToolDebt(t *testing.T) {
+	f, gate := newP08ReturnFixture(t, false, nil)
+	gate.onCheck = func(n int) error {
+		if n != 2 {
+			return nil
+		}
+		f.server.store.mu.Lock()
+		defer f.server.store.mu.Unlock()
+		f.server.store.state.Actions["PUBLIC-original-unresolved"] = ActionRecord{ID: "PUBLIC-original-unresolved", Account: f.session.Account, Status: "UNKNOWN", ToolStep: &ToolStepBinding{TaskID: f.task.ID}}
+		return nil
+	}
+	request := f.request()
+	blocked, err := f.server.runTaskModel(context.Background(), f.session, f.task.ID, request)
+	if !errors.Is(err, errTaskEffectUnresolved) || blocked.Content != "" || blocked.Status != "RETURN_BLOCKED" || f.requests.Load() != 1 {
+		t.Fatalf("unresolved original tool released answer: %+v %v", blocked, err)
+	}
+	before := f.server.store.state.TaskRuns[blocked.ID]
+	request.Prompt, request.Resume = "", true
+	if _, err = f.server.runTaskModel(context.Background(), f.session, f.task.ID, request); !errors.Is(err, errTaskEffectUnresolved) {
+		t.Fatalf("original unresolved debt bypassed on retry: %v", err)
+	}
+	if f.requests.Load() != 1 || f.server.store.state.TaskRuns[blocked.ID].AnswerCipher != before.AnswerCipher {
+		t.Fatal("original answer replaced or provider recalled")
+	}
+	// Model only an independently observed settlement; no new effect is sent.
+	f.server.store.mu.Lock()
+	record := f.server.store.state.Actions["PUBLIC-original-unresolved"]
+	record.Status = "CANCELLED"
+	f.server.store.state.Actions[record.ID] = record
+	f.server.store.mu.Unlock()
+	result, err := f.server.runTaskModel(context.Background(), f.session, f.task.ID, request)
+	if err != nil || result.Content != p08ReturnAnswer || f.requests.Load() != 1 {
+		t.Fatalf("original answer did not recover after settlement: %+v %v", result, err)
+	}
+}
+
 func TestP08ModelReturnShopEffectsAndCheckpointPreserved(t *testing.T) {
 	f := newP08ShopFixture(t, false)
 	original := f.server.taskModelAdmit

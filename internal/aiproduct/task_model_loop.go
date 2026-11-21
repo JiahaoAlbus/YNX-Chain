@@ -619,6 +619,9 @@ func (s *Server) taskModelReturnFenceLocked(session ProductSession, run taskMode
 	if session.ID == "" || session.ID != run.SessionID || session.Account != run.Account || session.DeviceID != run.Holder || task.Holder != run.Holder || task.Revision != run.TaskRevision || task.Generation != run.Generation || run.Cancelled || !task.CancelledAt.IsZero() || (task.Status != "READY" && task.Status != "WORKING") {
 		return errToolConflict
 	}
+	if s.store.taskHasUnresolvedEffectLocked(run.TaskID) {
+		return errTaskEffectUnresolved
+	}
 	return s.store.assertTaskAgentConfigurationLocked(task, "")
 }
 
@@ -718,7 +721,7 @@ func (s *Server) authorizeTaskModelReturn(ctx context.Context, session ProductSe
 		if current.Cancelled {
 			// CancelTask owns UNKNOWN versus STOPPED; do not erase debt.
 			current.Status = cancelStatus
-		} else if fenceErr != nil {
+		} else if fenceErr != nil && !errors.Is(fenceErr, errTaskEffectUnresolved) {
 			current.Status = "STOPPED"
 		}
 		if current.FirstCause == "" {
