@@ -3,6 +3,7 @@ import importlib.util
 import os
 from pathlib import Path
 import tempfile
+import threading
 from types import SimpleNamespace
 import unittest
 from unittest import mock
@@ -178,6 +179,23 @@ class ProcessRSSObservationControls(unittest.TestCase):
         window.lock.release.assert_not_called()
         self.assertEqual(self.reduce(report)['status'], 'UNKNOWN')
         self.assertIsNone(report['observations'])
+        actual = self.window()
+        held, release, finished = threading.Event(), threading.Event(), threading.Event()
+        results = []
+        def hold():
+            with actual.lock:
+                held.set(); release.wait(3)
+        def read():
+            results.append(actual.process_rss_report()); finished.set()
+        owner = threading.Thread(target=hold); caller = threading.Thread(target=read)
+        owner.start(); self.assertTrue(held.wait(1))
+        try:
+            caller.start()
+            self.assertTrue(finished.wait(1), 'optional report waited on the original sampler lock')
+            self.assertEqual(results[0]['status'], 'UNKNOWN')
+        finally:
+            release.set(); owner.join(2); caller.join(2)
+        self.assertFalse(owner.is_alive() or caller.is_alive())
 
     def test_published_report_is_independent_of_later_mutation_and_no_sampler_called(self):
         sink = lab.ProcessRSSObservation(); sink.retain(101, 7, 30, at_ns=1)
