@@ -137,6 +137,17 @@ test('order receipt and reconciliation use derived reference and reject another 
   else {assert.equal(r.code,'NATIVE_PAY_ORIGINAL_ORDER_BINDING');assert.equal(r.archiveReceipt,undefined);assert.equal(r.reconciliation,undefined);}
  }
 });
+test('order archive detail binds a fixed original payer across payment and refund receipts',async()=>{
+ for(const action of ['order-receipt','order-reconcile'])for(const kind of ['invoice_settle','invoice_refund'])for(const archivePayer of [payer,'0x'+'3'.repeat(40)]){
+  const refundHash='0x'+'8'.repeat(64),isRefund=kind==='invoice_refund',requestedHash=isRefund?refundHash:nativeHash;
+  const value={...receipt(),nativeHash:requestedHash,kind,principalAtoms:isRefund?'30':'100',refundedAtoms:isRefund?'30':'0',netPaidAtoms:isRefund?'70':'100',executionIndex:'0',executionMember:'0',executionEvent:'0',assetId:'YNXT',unitVersion:'1',payer:archivePayer,recipient:isRefund?archivePayer:merchant,settlementNativeHash:nativeHash,...(isRefund?{refundId:'refund-original'}:{})};
+  const read=async()=>action==='order-receipt'?value:{...reconciliation(),refundedAtoms:isRefund?'30':'0',netPaidAtoms:isRefund?'70':'100',receipts:isRefund?[receipt(),value]:[value]};
+  const f=boot({extra:{readOriginalArchiveReceipt:read,readOriginalArchiveReconciliation:read}});
+  const result=await f.entry.invokeResult({action,...ref,...(action==='order-receipt'?{nativeHash:requestedHash}:{})});
+  if(archivePayer===payer)assert.equal(result.ok,true,JSON.stringify(result));
+  else {assert.equal(result.ok,false);assert.equal(result.code,'NATIVE_PAY_ORIGINAL_ORDER_BINDING');assert.equal(result.archiveReceipt,undefined);assert.equal(result.reconciliation,undefined);}
+ }
+});
 test('late retirement during receipt read drains the original read without publishing receipt',async()=>{
  let release;const f=boot({extra:{readOriginalArchiveReceipt:()=>new Promise(resolve=>release=resolve)}});
  const pending=f.entry.invokeResult({action:'order-receipt',...ref,nativeHash});

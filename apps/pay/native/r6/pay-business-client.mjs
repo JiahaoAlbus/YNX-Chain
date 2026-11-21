@@ -114,6 +114,10 @@ export class NativePayBusinessClient {
   if(kind==='invoice_terms'?binding.state!=='PREPARED'||binding.phase!=='awaiting_merchant_approval'||binding.termsNativeHash!==''||binding.termsAbciHash!=='':binding.state!=='ISSUED')
    throw failure('NATIVE_PAY_ORIGINAL_RECONCILE_REQUIRED');
  }
+ #assertOrderArchiveReceipt(receipt,binding){
+  if(receipt.sessionId!==binding.terms.sessionId||receipt.termsHash!==binding.signingMessageHash||
+   receipt.payer!==undefined&&binding.terms.payer!==''&&receipt.payer!==binding.terms.payer)throw failure('NATIVE_PAY_ORIGINAL_ORDER_BINDING');
+ }
  async openOriginalOrderInvoice(productId,sourceOrder){const reference={productId,sourceOrder};return this.#run(reference,'reading',async current=>{
   const {intent,binding}=await this.#originalOrder(reference,current);
   if(binding.state==='PREPARED'){
@@ -153,7 +157,7 @@ export class NativePayBusinessClient {
   const ref=Object.freeze({productId,sourceOrder,merchant:binding.merchant,invoiceId:binding.terms.invoiceId,nativeHash});
   const value=await this.#runtime.readOriginalArchiveReceipt(ref,current);current();
   const receipt=nativeArchiveReceiptData(value,binding.original,ref);
-  if(receipt.sessionId!==binding.terms.sessionId||receipt.termsHash!==binding.signingMessageHash)throw failure('NATIVE_PAY_ORIGINAL_ORDER_BINDING');
+  this.#assertOrderArchiveReceipt(receipt,binding);
   return {archiveReceipt:receipt,bill:null,queryOnly:true,clientIndependentFinality:false};
  });}
  async reconcileOriginalOrder(productId,sourceOrder){const reference={productId,sourceOrder};return this.#run(reference,'recovering',async current=>{
@@ -162,7 +166,7 @@ export class NativePayBusinessClient {
   const ref=Object.freeze({productId,sourceOrder,merchant:binding.merchant,invoiceId:binding.terms.invoiceId});
   const value=await this.#runtime.readOriginalArchiveReconciliation(ref,current);current();
   const reconciliation=nativeArchiveReconciliationData(value,binding.original,ref);
-  if(reconciliation.receipts.some(row=>row.sessionId!==binding.terms.sessionId||row.termsHash!==binding.signingMessageHash))throw failure('NATIVE_PAY_ORIGINAL_ORDER_BINDING');
+  for(const receipt of reconciliation.receipts)this.#assertOrderArchiveReceipt(receipt,binding);
   return {reconciliation,bill:null,queryOnly:true,clientIndependentFinality:false};
  });}
  async reconcileOriginalOrderOperation(productId,sourceOrder,nativeHash){const reference={productId,sourceOrder,nativeHash};return this.#run(reference,'recovering',async current=>{
@@ -188,7 +192,8 @@ export class NativePayBusinessClient {
    const ref=Object.freeze({productId,sourceOrder,merchant:binding.merchant,invoiceId:binding.terms.invoiceId,nativeHash});
    const value=await this.#runtime.readOriginalArchiveReceipt(ref,current);current();
    archiveReceipt=nativeArchiveReceiptData(value,binding.original,ref);
-   if(archiveReceipt.sessionId!==binding.terms.sessionId||archiveReceipt.termsHash!==binding.signingMessageHash||archiveReceipt.kind!==observed.kind||archiveReceipt.abciHash!==observed.abciHash||archiveReceipt.status!==observed.status)throw failure('NATIVE_PAY_ORIGINAL_OPERATION_CHANGED');
+   this.#assertOrderArchiveReceipt(archiveReceipt,binding);
+   if(archiveReceipt.kind!==observed.kind||archiveReceipt.abciHash!==observed.abciHash||archiveReceipt.status!==observed.status)throw failure('NATIVE_PAY_ORIGINAL_OPERATION_CHANGED');
   }
   return {bill,reconciledOriginal:observed,...(archiveReceipt?{archiveReceipt}:{}),queryOnly:true,clientIndependentFinality:false};
  });}
