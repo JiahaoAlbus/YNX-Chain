@@ -242,13 +242,27 @@ func TestPQLabEnrollmentOriginalPostSignCheckpointChangeUnknown(t *testing.T) {
 	f := newPQLabEnrollmentProducerFixture(t)
 	calls := 0
 	cause := errors.New("synthetic original checkpoint advanced")
-	f.checkpoint.current = func() error { calls++; if calls == 2 { return cause }; return nil }
-	if _, err := f.sender.SignPQLabEnrollmentOriginals(f.request, f.checkpoint, f.classic, f.proposed); !errors.Is(err, ErrPQLabSenderUnknown) || !errors.Is(err, cause) || calls != 2 { t.Fatal("post-sign checkpoint change lost UNKNOWN/first cause", err, calls) }
+	f.checkpoint.current = func() error {
+		calls++
+		if calls == 2 {
+			return cause
+		}
+		return nil
+	}
+	if _, err := f.sender.SignPQLabEnrollmentOriginals(f.request, f.checkpoint, f.classic, f.proposed); !errors.Is(err, ErrPQLabSenderUnknown) || !errors.Is(err, cause) || calls != 2 {
+		t.Fatal("post-sign checkpoint change lost UNKNOWN/first cause", err, calls)
+	}
 	beforeFund := f.files(t, f.request.FundingOperationID)
 	beforeMigration := f.files(t, f.request.MigrationOperationID)
-	if _, err := f.sender.RecoverPQLabEnrollmentOriginals(f.request); !errors.Is(err, ErrPQLabSenderUnknown) { t.Fatal("post-sign unknown was promoted", err) }
-	if _, err := f.sender.SignPQLabEnrollmentOriginals(f.request, f.checkpoint, f.classic, f.proposed); !errors.Is(err, ErrPQLabSenderUnknown) || calls != 2 { t.Fatal("post-sign unknown was re-signed", err, calls) }
-	if !bytes.Equal(beforeFund, f.files(t, f.request.FundingOperationID)) || !bytes.Equal(beforeMigration, f.files(t, f.request.MigrationOperationID)) { t.Fatal("post-sign original bytes changed") }
+	if _, err := f.sender.RecoverPQLabEnrollmentOriginals(f.request); !errors.Is(err, ErrPQLabSenderUnknown) {
+		t.Fatal("post-sign unknown was promoted", err)
+	}
+	if _, err := f.sender.SignPQLabEnrollmentOriginals(f.request, f.checkpoint, f.classic, f.proposed); !errors.Is(err, ErrPQLabSenderUnknown) || calls != 2 {
+		t.Fatal("post-sign unknown was re-signed", err, calls)
+	}
+	if !bytes.Equal(beforeFund, f.files(t, f.request.FundingOperationID)) || !bytes.Equal(beforeMigration, f.files(t, f.request.MigrationOperationID)) {
+		t.Fatal("post-sign original bytes changed")
+	}
 }
 
 func TestPQLabEnrollmentOriginalConfirmationSameChainAndCold(t *testing.T) {
@@ -490,6 +504,19 @@ func TestPQLabEnrollmentOriginalConfirmationSameChainAndCold(t *testing.T) {
 	}
 	if confirmation.CurrentEligibility != "UNKNOWN" || confirmation.AuthorityGranted || !confirmation.Funding.Result.ExecutionSuccessful || !confirmation.Migration.Result.ExecutionSuccessful || confirmation.Historical.NativeGrant {
 		t.Fatal("confirmation granted authority", confirmation)
+	}
+	for _, entry := range []struct {
+		id   string
+		file PQLabWorkloadFile
+	}{{request.FundingOperationID, confirmation.FundingConfirmed}, {request.MigrationOperationID, confirmation.MigrationConfirmed}} {
+		dir, err := sender.operation(entry.id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw, err := os.ReadFile(filepath.Join(dir, "CONFIRMED.json"))
+		if err != nil || pqLabFile("CONFIRMED.json", raw) != entry.file {
+			t.Fatal("confirmed original bytes differ from returned digest", err)
+		}
 	}
 	if err = sender.Close(); err != nil {
 		t.Fatal(err)

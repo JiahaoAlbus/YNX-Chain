@@ -213,6 +213,8 @@ class WalletPolicyCIControls(unittest.TestCase):
                        dict(Action="pass", Package=package, Test=name)]
         packages = [MODULE + p for p in COMMAND_PACKAGES] if kind == "cli" else [package]
         if kind == "reader":
+            recovery = "TestPQLabEnrollmentOriginalCLIConfirmAndRestart"
+            events += [dict(Action=action, Package=package, Test=recovery) for action in ("run", "pass")]
             packages *= 5  # Five disjoint bounded processes, each original case once.
         if kind == "cli":
             proof_package = MODULE + "cmd/ynx-consensus-proof-verify"

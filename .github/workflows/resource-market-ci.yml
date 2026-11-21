@@ -2690,6 +2690,10 @@ jobs:
           required += ['TestPQHistoryPolicyCallKeepsOriginalEarlyFailure']
           required += ['TestABCIPublicTraceFullStateAndAppHashEveryHeight']
           required += ['TestPQLabEnrollmentOriginalProofsSameChain', 'TestPQLabEnrollmentOriginalLegacyFundingProof', 'TestPQLabEnrollmentCLIPublicFixture', 'TestPQLabEnrollmentLegacyCLIPublicFixture', 'TestPQLabEnrollmentOriginalDurableSameChainAndCold', 'TestPQLabEnrollmentOriginalUnknownPreservesCrashWindows', 'TestPQLabEnrollmentOriginalRequestAndResultTampering', 'TestPQLabEnrollmentOriginalPostSignCheckpointChangeUnknown', 'TestPQLabEnrollmentOriginalConfirmationSameChainAndCold', 'TestPQLabEnrollmentOriginalRejectedABCIStateSemantics']
+          recovery_name = 'TestPQLabEnrollmentOriginalCLIConfirmAndRestart'
+          recovery_package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
+          if [(e.get('Package'), e['Action']) for e in events if e.get('Test') == recovery_name and e.get('Action') in ('run', 'pass', 'skip', 'fail')] != [(recovery_package, 'run'), (recovery_package, 'pass')] or any(e.get('Test', '').startswith(recovery_name + '/') and e.get('Action') in ('skip', 'fail') for e in events):
+              raise RuntimeError('original CLI confirmation and cold recovery missing or failed')
           required += ['TestPQLabSenderHeldInputStatsOriginalCountsAndNoCacheGrowth', 'TestPQLabSenderHeldInputStatsNeverLoadsOrValidatesSources', 'TestPQLabPublicOwnerSessionOriginalIsolationAndWitness', 'TestPQLabPublicOwnerSessionProofAndOwnerRetirement']
           required += ['TestPQLabSenderPUBLICOperationParentPersistenceBarrier', 'TestPQLabSenderPUBLICOperationParentFailurePreservesUnknown', 'TestPQLabSenderPUBLICPersistenceRolesKeepOriginalWrites', 'TestPQLabSenderPUBLICWorkloadPublicationAncestorBarriers', 'TestPQLabNetworkPUBLICFreshRootParentPersistence']
           required += ['TestPQLabLiveColdOwnerSameOriginalFullBoundary', 'TestPQLabLiveColdOwnerPreservesOriginalFirstCause', 'TestPQLabLiveColdOwnerNormalizationAndEncodingFirstCause']
@@ -4058,6 +4062,9 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # A new-source export repair must not reuse the qualified historical 7f tool
+  # identity. Normal native recovery and transition supply are independent of
+  # Wallet UI and retain a separate purpose and actually compiled ELF identity.
   offline-migration-streaming:
     if: github.event_name == 'push'
     runs-on: ubuntu-24.04
@@ -4120,6 +4127,8 @@ jobs:
                   raise RuntimeError('streaming exporter section boundary absent')
               return raw[start.start():start.end() + end.start()]
           path = '.github/workflows/resource-market-ci.yml'
+          if subprocess.run(['git', 'rev-parse', 'HEAD^'], stdout=subprocess.PIPE, check=True).stdout.strip() == b'743072edb13f9f30de48d7831dddcdc248f34eb6':
+              changed = True
           changed = changed or section(previous(path)) != section(Path(path).read_bytes())
           with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
               out.write('changed=' + str(changed).lower() + '\n')
@@ -4251,6 +4260,8 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # Export one public contract from real Application/Comet test helpers. No
+  # node, signing authority, live release selection or pressure window starts.
   pq-identity-public-contract:
     if: github.event_name == 'push'
     runs-on: ubuntu-24.04
@@ -4289,6 +4300,8 @@ jobs:
                   raise RuntimeError('public identity fixture section boundary absent')
               return raw[start.start():start.end() + end.start()]
           path = '.github/workflows/resource-market-ci.yml'
+          if subprocess.run(['git', 'rev-parse', 'HEAD^'], stdout=subprocess.PIPE, check=True).stdout.strip() == b'743072edb13f9f30de48d7831dddcdc248f34eb6':
+              changed = True
           changed = changed or section(previous(path)) != section(Path(path).read_bytes())
           with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
               out.write('changed=' + str(changed).lower() + '\n')
@@ -4335,6 +4348,8 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # Supply the missing clean exporter for the already qualified public-upgrade
+  # source. The controller revision and the binary source revision are distinct.
   offline-migration-tools-clean-7f:
     if: github.event_name == 'push'
     runs-on: ubuntu-24.04
@@ -4375,6 +4390,8 @@ jobs:
               if finish is None:
                   raise RuntimeError('offline producer section boundary absent')
               return raw[begin.start():begin.end() + finish.start()]
+          if subprocess.run(['git', 'rev-parse', 'HEAD^'], stdout=subprocess.PIPE, check=True).stdout.strip() == b'743072edb13f9f30de48d7831dddcdc248f34eb6':
+              changed = True
           for start, end in ((b'  offline-migration-tools-clean-7f:\n', b'  # Current tests and delivery checks'),
                              (b'      - name: Build fixed-source offline migration validation tools\n', b'      - name: Upload public offline migration validation tools\n')):
               changed = changed or block(previous(workflow), start, end) != block(Path(workflow).read_bytes(), start, end)
@@ -4417,6 +4434,8 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # Current tests and delivery checks remain separate bounded stages of the
+  # same run/source. Only the closed public fixture catalog crosses runners.
   detached-source-checks:
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'workflow_dispatch' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))
     runs-on: ubuntu-24.04
@@ -4461,6 +4480,26 @@ jobs:
           git status --porcelain
           bash scripts/verify/pq-remote-window-entry-check.sh
           python3 -B scripts/verify/pq-ci-replay-entry-identity.py
+      - name: Verify original enrollment command recovery and refusals
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          if ! go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run '^TestPQLabEnrollmentOriginalCommandColdRecoveryAndRefusals$' ./cmd/ynx-consensus-pq-lab > "$RUNNER_TEMP/ynx-enrollment-command-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-enrollment-command-tests.jsonl"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/ynx-enrollment-command-tests.jsonl"
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-enrollment-command-tests.jsonl').read_text().splitlines()]
+          package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-pq-lab'
+          command_name = 'TestPQLabEnrollmentOriginalCommandColdRecoveryAndRefusals'
+          if any(e.get('Action') in ('skip', 'fail', 'build-fail') for e in events) or [e['Action'] for e in events if e.get('Package') == package and not e.get('Test') and e.get('Action') in ('start', 'pass', 'fail', 'skip')] != ['start', 'pass'] or [(e.get('Package'), e['Action']) for e in events if e.get('Test') == command_name and e.get('Action') in ('run', 'pass', 'skip', 'fail')] != [(package, 'run'), (package, 'pass')]:
+              raise RuntimeError('original enrollment command incomplete, skipped or foreign')
+          PY
       - name: Reproduce and repair real Commit and engine checkpoint read ordering
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3

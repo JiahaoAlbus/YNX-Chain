@@ -26,6 +26,8 @@ type PQLabEnrollmentConfirmation struct {
 	Funding            PQLabProofExport     `json:"funding"`
 	Migration          PQLabProofExport     `json:"migration"`
 	Historical         PQLabEnrollmentProof `json:"historical"`
+	FundingConfirmed   PQLabWorkloadFile    `json:"fundingConfirmed"`
+	MigrationConfirmed PQLabWorkloadFile    `json:"migrationConfirmed"`
 	CurrentEligibility string               `json:"currentEligibility"`
 	AuthorityGranted   bool                 `json:"authorityGranted"`
 }
@@ -172,6 +174,33 @@ func (s *PQLabSender) ConfirmPQLabEnrollmentOriginals(r PQLabEnrollmentRequest, 
 		if e = s.writePQLabEnrollmentConfirmed(path, raw); e != nil {
 			return out, errors.Join(ErrPQLabSenderUnknown, e)
 		}
+	}
+	// Return hashes of the exact two authenticated, re-synced original record
+	// files; this is evidence for the external owner's join, not a nonce grant.
+	for _, entry := range []struct {
+		dir   string
+		value PQLabProofExport
+		dest  *PQLabWorkloadFile
+	}{{fd, out.Funding, &out.FundingConfirmed}, {md, out.Migration, &out.MigrationConfirmed}} {
+		entry.value.Version = "YNX-PQ-LAB-ENROLLMENT-CONFIRMED/v1"
+		body, e := json.Marshal(entry.value)
+		if e != nil {
+			return out, errors.Join(ErrPQLabSenderUnknown, e)
+		}
+		path := filepath.Join(entry.dir, "CONFIRMED.json")
+		actual, e := s.readRecord(path)
+		if e != nil || !bytes.Equal(actual, body) {
+			return out, ErrPQLabSenderUnknown
+		}
+		raw, e := pqLabRead(path, 2<<20)
+		if e != nil {
+			return out, ErrPQLabSenderUnknown
+		}
+		canonical, e := json.Marshal(pqLabSenderRecord{Body: body, MAC: s.recordMAC(path, body)})
+		if e != nil || !bytes.Equal(raw, canonical) {
+			return out, ErrPQLabSenderUnknown
+		}
+		*entry.dest = pqLabFile("CONFIRMED.json", raw)
 	}
 	return out, nil
 }

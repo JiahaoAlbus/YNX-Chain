@@ -383,6 +383,10 @@ jobs:
               terminal = [row['Action'] for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
               if terminal != ['pass']:
                   raise RuntimeError('normal PQ lab function did not execute and pass: ' + name)
+          for package, name in [('github.com/JiahaoAlbus/YNX-Chain/internal/consensus', 'TestPQLabEnrollmentOriginalCLIConfirmAndRestart'), ('github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-pq-lab', 'TestPQLabEnrollmentOriginalCommandColdRecoveryAndRefusals')]:
+              actions = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == name and row['Action'] in ('run', 'pass', 'fail', 'skip')]
+              if actions != [(package, 'run'), (package, 'pass')] or any(row.get('Test', '').startswith(name + '/') and row.get('Action') in ('skip', 'fail') for row in rows):
+                  raise RuntimeError('original enrollment recovery or child did not execute and pass: ' + name)
           print('YNX_PQ_LAB_CALLEES_EXECUTED ' + json.dumps(dict(commit=os.environ['GITHUB_SHA'], requiredPassed=required, nodeProcessesStarted=0, publicActivation=False), sort_keys=True))
           PY
 

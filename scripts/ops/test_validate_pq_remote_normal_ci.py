@@ -5116,6 +5116,7 @@ class IndependentSourceChecksControls(unittest.TestCase):
         raw = (Path(__file__).resolve().parents[2] / '.github/workflows/resource-market-ci.yml').read_text()
         self.assert_detached_gate(raw)
         detached, _ = workflow_steps(raw, 'detached-source-checks')
+        original_step = next(step for step in workflow_steps(raw, 'detached-source-checks')[1] if step.startswith('      - name: Reproduce and repair real Commit and engine checkpoint read ordering\n'))
         mutations = [
             raw.replace(detached, detached.replace('    if: ', '    if: false # ', 1), 1),
             raw.replace('      - name: Verify synthetic local Commit monotonic boundary\n', '      - name: Missing clock diagnostics\n', 1),
@@ -5127,7 +5128,7 @@ class IndependentSourceChecksControls(unittest.TestCase):
             raw.replace('      - name: Retain original synthetic clock A B test events\n', '      - name: Missing A B event artifact\n', 1),
             raw.replace(detached, detached.replace('          ref: ${{ github.sha }}', '          ref: main', 1), 1),
             raw.replace(detached, detached.replace('    timeout-minutes: 8\n', '    timeout-minutes: 8\n    continue-on-error: true\n', 1), 1),
-            raw.replace(detached, detached.replace("!cancelled() && steps.identity.outcome == 'success'", 'true', 1), 1),
+            raw.replace(original_step, original_step.replace("!cancelled() && steps.identity.outcome == 'success'", 'true', 1), 1),
             raw.replace(detached, detached.replace("steps.current4authinterop.outcome == 'failure'", 'false', 1), 1),
             raw.replace(" && needs.detached-source-checks.result == 'success'", '', 1),
             raw.replace('    needs: [focused-go, caddy-source, detached-source-checks]', '    needs: [focused-go, caddy-source]', 1),
@@ -5250,6 +5251,74 @@ class ChainLabSplitCIControls(unittest.TestCase):
 
 
 class EnrollmentVerifierProductionCIControls(unittest.TestCase):
+    def test_original_workflow_section_selectors_keep_boundaries(self):
+        import re, textwrap
+        root = Path(__file__).resolve().parents[2]
+        raw = (root / '.github/workflows/resource-market-ci.yml').read_text()
+        original = raw.encode()
+        for job, start, finish, marker in [
+            ('offline-migration-streaming', 'def section(raw):', "path = '.github/workflows/resource-market-ci.yml'", b'  # Export one public contract'),
+            ('pq-identity-public-contract', 'def section(raw):', "path = '.github/workflows/resource-market-ci.yml'", b'  # Supply the missing clean exporter'),
+            ('offline-migration-tools-clean-7f', 'def block(raw, start, end):', "if subprocess.run(['git', 'rev-parse', 'HEAD^']", b'  # Current tests and delivery checks'),
+        ]:
+            body, _ = workflow_steps(raw, job)
+            a = body.index('          ' + start)
+            b = body.index('          ' + finish, a)
+            scope = {'re': re}
+            exec(compile(textwrap.dedent(body[a:b]), '<actual-section-selector>', 'exec'), scope)
+            if job == 'offline-migration-tools-clean-7f':
+                call = lambda data: scope['block'](data, b'  offline-migration-tools-clean-7f:\n', marker)
+            else:
+                call = scope['section']
+            self.assertTrue(call(original))
+            with self.assertRaises(RuntimeError):
+                call(original.replace(b'\n' + marker, b'\n  # MISSING ORIGINAL BOUNDARY', 1))
+            self.assertIn("== b'743072edb13f9f30de48d7831dddcdc248f34eb6':\n              changed = True", body)
+
+    def test_original_recovery_cli_and_core_are_required_in_both_workflows(self):
+        root = Path(__file__).resolve().parents[2]
+        chain = (root / '.github/workflows/chain-core.yml').read_text()
+        resource = (root / '.github/workflows/resource-market-ci.yml').read_text()
+        core = 'TestPQLabEnrollmentOriginalCLIConfirmAndRestart'
+        command = 'TestPQLabEnrollmentOriginalCommandColdRecoveryAndRefusals'
+        self.assertIn("('github.com/JiahaoAlbus/YNX-Chain/internal/consensus', '" + core + "')", chain)
+        self.assertIn("('github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-pq-lab', '" + command + "')", chain)
+        self.assertIn("recovery_name = '" + core + "'", resource)
+        self.assertIn("-run '^" + command + "$' ./cmd/ynx-consensus-pq-lab", resource)
+        self.assertIn("command_name = '" + command + "'", resource)
+
+    def test_recovery_receipts_reject_missing_foreign_duplicates_and_skips(self):
+        import textwrap
+        root = Path(__file__).resolve().parents[2]
+        chain = (root / '.github/workflows/chain-core.yml').read_text()
+        resource = (root / '.github/workflows/resource-market-ci.yml').read_text()
+        package = 'github.com/JiahaoAlbus/YNX-Chain/'
+        core = 'TestPQLabEnrollmentOriginalCLIConfirmAndRestart'
+        command = 'TestPQLabEnrollmentOriginalCommandColdRecoveryAndRefusals'
+        begin = chain.index('          for package, name in [(\'github.com/JiahaoAlbus/YNX-Chain/internal/consensus\', \'' + core)
+        end = chain.index('          print(\'YNX_PQ_LAB_CALLEES_EXECUTED', begin)
+        chain_code = compile(textwrap.dedent(chain[begin:end]), '<chain-recovery-receipt>', 'exec')
+        rows = [dict(Package=package + suffix, Test=name, Action=action) for suffix, name in [('internal/consensus', core), ('cmd/ynx-consensus-pq-lab', command)] for action in ('run', 'pass')]
+        exec(chain_code, {'rows': rows})
+        begin = resource.index("          recovery_name = '" + core + "'")
+        end = resource.index('          required += ', begin)
+        core_code = compile(textwrap.dedent(resource[begin:end]), '<resource-recovery-receipt>', 'exec')
+        exec(core_code, {'events': rows})
+        for bad in (rows[1:], rows + [rows[0]], [dict(row, Package='foreign') if i == 0 else row for i, row in enumerate(rows)], rows + [dict(Package=package + 'internal/consensus', Test=core + '/child', Action='skip')]):
+            with self.assertRaises(RuntimeError):
+                exec(chain_code, {'rows': bad})
+            with self.assertRaises(RuntimeError):
+                exec(core_code, {'events': bad})
+        begin = resource.index("          package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-pq-lab'", resource.index('      - name: Verify original enrollment command recovery and refusals'))
+        end = resource.index('          PY\n', begin)
+        command_code = compile(textwrap.dedent(resource[begin:end]), '<resource-command-receipt>', 'exec')
+        cmd_package = package + 'cmd/ynx-consensus-pq-lab'
+        events = [dict(Package=cmd_package, Action='start')] + rows[2:] + [dict(Package=cmd_package, Action='pass')]
+        exec(command_code, {'events': events})
+        for bad in (events[1:], events + [events[1]], [dict(row, Package='foreign') if i == 1 else row for i, row in enumerate(events)], events + [dict(Package=cmd_package, Test=command + '/child', Action='skip')]):
+            with self.assertRaises(RuntimeError):
+                exec(command_code, {'events': bad})
+
     def test_actual_verifier_qualifier_rejects_missing_both_modes_and_unqualified_children(self):
         import textwrap
         root = Path(__file__).resolve().parents[2]
