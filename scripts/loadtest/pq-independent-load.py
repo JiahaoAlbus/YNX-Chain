@@ -1464,6 +1464,7 @@ def finish_commit_clock_readback(result,window,work,private_network,source,deman
         result['peakRSSBytes']=window.peak_rss;result['peakNewBytes']=window.peak_bytes;result['resourceSamples']=window.samples
         result['peakRSSSample']=getattr(window,'peak_rss_sample',None)
         result['resourceGuardStageElapsed']=window.sample_stage_report()
+        result['processRSSObservation']=window.process_rss_report()
         result['commitClockReadbackResources']=dict(status='UNKNOWN',
             reason='original guard retired before readback; transient readback RSS and storage not independently sampled',
             originalCapsChanged=False,activationGranted=False)
@@ -1846,6 +1847,7 @@ def run(args, *, source_metadata_reader=None, clock_original_log_reader=None, cl
             except BaseException as error:result['firstCause']=result['firstCause'] or str(error)
         result["peakRSSSample"] = getattr(w, "peak_rss_sample", None)
         normal.retain_original_process_receipt(result,w)
+        result['processRSSObservation']=w.process_rss_report()
         result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,launchLifecycle=w.launch_cleanup_report(),retiredSamplingEvidence=w.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=w.rss_fallback_samples)
         if ceremony is not None and getattr(ceremony,'commit_clock_observation_enabled',False):
             finish_commit_clock_readback(result,w,work,ceremony.root,args.commit,demand)

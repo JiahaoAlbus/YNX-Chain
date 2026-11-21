@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 from pathlib import Path
 import tempfile
+import threading
 from types import SimpleNamespace
 import unittest
 
@@ -19,6 +20,19 @@ held_reader=module('validation_business_stage_reader','pq-first100-7c25-readback
 
 
 class CommitValidationReadbackControls(unittest.TestCase):
+    def retired_window(self, retained_rss=True):
+        from unittest import mock
+        # Exercise the original report and sink without constructing a runtime
+        # Window or changing this test process's affinity/resource limits.
+        window=driver.lab.Window.__new__(driver.lab.Window)
+        window.lock=threading.RLock()
+        window.process_rss_observation=driver.lab.ProcessRSSObservation()
+        if retained_rss:window.process_rss_observation.retain(123,9,7,at_ns=10)
+        window.peak_rss=7;window.peak_bytes=8;window.samples=[];window.peak_rss_sample=dict(rssBytes=7)
+        window.sample=mock.Mock(side_effect=RuntimeError('retired original process log identity changed'))
+        window.sample_stage_report=lambda:dict(status='OBSERVED',failedCalls=1)
+        return window
+
     def sample(self):
         value=existing.declared(123);phases={name:0 for name in m.VALIDATION_PHASES}
         phases['anchor']=2;phases['app_hash']=5
@@ -116,15 +130,52 @@ class CommitValidationReadbackControls(unittest.TestCase):
     def test_clock_join_does_not_reuse_retired_original_guard(self):
         from unittest import mock
         for cause in (None,'earlier original failure'):
-            result=dict(firstCause=cause);window=SimpleNamespace(peak_rss=7,peak_bytes=8,samples=[],peak_rss_sample=dict(rssBytes=7),
-                sample=mock.Mock(side_effect=RuntimeError('retired original process log identity changed')),
-                sample_stage_report=lambda:dict(status='OBSERVED',failedCalls=1))
-            with mock.patch.object(driver,'original_commit_clock_readback',return_value=dict(status='OBSERVED_OR_CENSORED')):
+            result=dict(firstCause=cause);window=self.retired_window()
+            with mock.patch.object(driver,'original_commit_clock_readback',return_value=dict(status='OBSERVED_OR_CENSORED')), \
+                 mock.patch.object(driver.lab,'owned_rss',side_effect=AssertionError('no RSS read after retirement')):
                 driver.finish_commit_clock_readback(result,window,Path('/synthetic'),Path('/synthetic/private'),'a'*40,500)
             self.assertEqual(result['firstCause'],cause);window.sample.assert_not_called()
             self.assertEqual((result['peakRSSBytes'],result['peakRSSSample']['rssBytes'],result['resourceGuardStageElapsed']['failedCalls']),(7,7,1))
             self.assertEqual(result['commitClockReadback']['status'],'OBSERVED_OR_CENSORED')
             self.assertEqual(result['commitClockReadbackResources']['status'],'UNKNOWN')
+            self.assertEqual(result['processRSSObservation']['observations'],'1')
+            row=stage_summary.process_rss_observations(result)['records'][0]
+            self.assertEqual((row['pid'],row['startTicks'],row['observedMaxRSSBytes']),(123,9,7))
+            self.assertIsNone(row['allTimePeakRSSBytes'])
+
+    def test_clock_join_missing_retained_rss_is_not_filled_from_global_peak(self):
+        from unittest import mock
+        window=self.retired_window(retained_rss=False);result=dict(firstCause='earlier original failure')
+        with mock.patch.object(driver,'original_commit_clock_readback',side_effect=OSError('original clock inputs missing')), \
+             mock.patch.object(driver.lab,'owned_rss',side_effect=AssertionError('no RSS read after retirement')):
+            driver.finish_commit_clock_readback(result,window,Path('/synthetic'),Path('/synthetic/private'),'a'*40,500)
+        window.sample.assert_not_called();self.assertEqual(result['firstCause'],'earlier original failure')
+        self.assertEqual((result['commitClockReadback']['status'],result['commitClockReadback']['censored']),('NOT_SUPPLIED',500))
+        self.assertEqual(result['peakRSSBytes'],7)
+        self.assertEqual(result['processRSSObservation']['observations'],'0')
+        self.assertEqual(stage_summary.process_rss_observations(result)['records'],[])
+        self.assertFalse(result['processRSSObservation']['individualLifetimePeakMeasured'])
+
+    def test_clock_join_contended_original_rss_report_preserves_unknown_and_first_cause(self):
+        from unittest import mock
+        window=self.retired_window();result=dict(firstCause='earlier resource failure')
+        held,release=threading.Event(),threading.Event()
+        def hold():
+            with window.lock:held.set();release.wait(3)
+        owner=threading.Thread(target=hold);owner.start()
+        try:
+            self.assertTrue(held.wait(1))
+            with mock.patch.object(driver,'original_commit_clock_readback',return_value=dict(status='OBSERVED_OR_CENSORED')), \
+                 mock.patch.object(driver.lab,'owned_rss',side_effect=AssertionError('no RSS read after retirement')):
+                driver.finish_commit_clock_readback(result,window,Path('/synthetic'),Path('/synthetic/private'),'a'*40,500)
+            self.assertEqual(result['firstCause'],'earlier resource failure');window.sample.assert_not_called()
+            self.assertEqual(result['processRSSObservation']['status'],'UNKNOWN')
+            self.assertIsNone(result['processRSSObservation']['observations'])
+            self.assertEqual(stage_summary.process_rss_observations(result)['records'],[])
+        finally:
+            release.set();owner.join(2)
+        self.assertFalse(owner.is_alive())
+        self.assertEqual(window.process_rss_report()['observations'],'1')
 
     def test_business_height_reducer_keeps_missing_detail_censored(self):
         value=self.sample();second=copy.deepcopy(value['samples'][0]);second['height']+=1
