@@ -212,5 +212,32 @@ class EnrollmentOriginalBindingControls(unittest.TestCase):
         with self.assertRaises(ValueError):m.audit_durable_sender(run_raw,sha(run_raw),**arguments)
         self.assertEqual(before,accounting.path.read_bytes())
 
+    def test_candidate_normal_cli_targets_bind_both_originals_but_never_invoke_or_admit(self):
+        migration=copy.deepcopy(self.expected);migration['TransactionType']='pq_migration'
+        expected={'funding':dict(raw=raw(self.expected),sha256=sha(raw(self.expected))),
+                  'migration':dict(raw=raw(migration),sha256=sha(raw(migration)))}
+        # This is the normal transactionExpected CLI ABI from Core f59, not
+        # the Go type's default JSON. Public proof/trust files are NOT supplied.
+        block=dict(chainId='ynx_642399-1',headerHeight='5',blockHash=(b'b'*32).hex(),stateHeight='4',stateAppHash=(b'a'*32).hex())
+        target=dict(block=block,successor=dict(block,headerHeight='6',stateHeight='5'),transactionType='pq_transfer',
+            envelope=b64(self.envelope),nativeWire=b64(self.wire),transactionHash=sha(self.envelope),nativeWireHash=sha(self.wire),index='0')
+        context=dict(version='YNX-CONSENSUS-ENROLLMENT-PROOF-TRUST/v1',lightTrust={},pins={},
+            fundingExpected=target,migrationExpected=dict(copy.deepcopy(target),transactionType='pq_migration'),
+            fundingOriginalFile='/UNSUPPLIED/funding.abci',migrationOriginalFile='/UNSUPPLIED/migration.abci')
+        original=raw(context)
+        with mock.patch('subprocess.Popen',side_effect=AssertionError('candidate CLI cannot execute')):
+            result=m.bind_normal_cli_expectations(original,sha(original),expected,enabled=True)
+        self.assertTrue(result['normalCLIExpectedByteBindingsObserved']);self.assertEqual(result['status'],'UNKNOWN')
+        self.assertFalse(result['normalVerifierInvoked'] or result['nativeGrant'] or result['accountAdmissionAllowed'])
+        self.assertIsNone(m.NORMAL_ENROLLMENT_CALLEE);self.assertEqual(raw(context),original)
+        for role,key,value in (('fundingExpected','index',0),('fundingExpected','nativeWire',b64(b'other')),
+                               ('migrationExpected','transactionType','pq_transfer'),('migrationExpected','transactionHash','d'*64)):
+            with self.subTest(role=role,key=key):
+                changed=copy.deepcopy(context);changed[role][key]=value;encoded=raw(changed)
+                with self.assertRaises(ValueError):m.bind_normal_cli_expectations(encoded,sha(encoded),expected,enabled=True)
+        with self.assertRaises(ValueError):m.bind_normal_cli_expectations(original,sha(original),expected)
+        with self.assertRaises(ValueError):m.bind_normal_cli_expectations(original,'0'*64,expected,enabled=True)
+        with self.assertRaises(ValueError):m.bind_normal_cli_expectations(original,sha(original),{'funding':expected['funding']},enabled=True)
+
 
 if __name__=='__main__':unittest.main(verbosity=2)

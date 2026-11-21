@@ -19,6 +19,8 @@ accounting=importlib.util.module_from_spec(spec);spec.loader.exec_module(account
 require=accounting.require
 SCHEMA='YNX-PERF-ENROLLMENT-ORIGINAL-BINDING/v1'
 SOURCE='33f83823f438c8d9ac1edd3014a9ca0505ef4d00'
+# ABI inspection only, NOT an accepted binary/CI tuple or executable source gate.
+INSPECTED_ENROLLMENT_CLI='f59dbce207f5e0a4fcbdce9edc83b4e8774237f7'
 # A reviewed Go API is not an executable CLI. No caller/environment can open it.
 NORMAL_ENROLLMENT_CALLEE=None
 FILE_LIMITS={'request.json':4096,'RESULT.json':2<<20,'transaction.wire':8<<20,'transaction.abci':8<<20}
@@ -46,6 +48,71 @@ def unknown_report(original_status=None):
                 independentTransactionFinality=False,currentEligibility='UNKNOWN',nativeGrant=False,
                 nonceReleased=False,automaticRetry=False,resigningAllowed=False,accountAdmissionAllowed=False,
                 privateDataExported=False,missingEvidence=[],originalStatus=original_status,originalPins={})
+
+
+def decode_expected(expected_raw):
+    """The existing Go API's complete target, without verifying any proof."""
+    expected=accounting.strict(expected_raw,EXPECTED_LIMIT)
+    closed(expected,('Block','Successor','TransactionType','Envelope','NativeWire','TransactionHash','NativeWireHash','Index'),
+           'complete original Go proof expectation required')
+    require(expected['TransactionType'] in ('pq_transfer','pq_migration','YNX-LAB-LEGACY-FUNDING/v1')
+            and type(expected['Index']) is int and 0<=expected['Index']<1<<32,'original proof transaction kind/index differs')
+    for key in ('Block','Successor'):
+        point=expected[key]
+        closed(point,('ChainID','HeaderHeight','BlockHash','StateHeight','StateAppHash'),'complete original expected header required')
+        require(type(point['ChainID']) is str and 0<len(point['ChainID'])<=128
+                and type(point['HeaderHeight']) is int and 0<point['HeaderHeight']<1<<63
+                and type(point['StateHeight']) is int and 0<=point['StateHeight']<1<<63
+                and point['HeaderHeight']==point['StateHeight']+1
+                and len(b64(point['BlockHash'],32))==32 and len(b64(point['StateAppHash'],32))==32,
+                'original expected header encoding differs')
+    require(expected['Block']['ChainID']==expected['Successor']['ChainID']
+            and expected['Block']['HeaderHeight']<(1<<63)-3
+            and expected['Successor']['HeaderHeight']==expected['Block']['HeaderHeight']+1,
+            'original same-chain H/H+1 expectation differs')
+    require(sha(b64(expected['Envelope'],8<<20))==b64(expected['TransactionHash'],32).hex()
+            and sha(b64(expected['NativeWire'],8<<20))==b64(expected['NativeWireHash'],32).hex(),
+            'complete Expected raw hashes differ')
+    return expected
+
+
+def bind_normal_cli_expectations(context_raw,context_sha256,expectations,*,enabled=False):
+    """Pure ABI adapter; leave the caller's raw trust context unchanged.
+
+    This binds both independent typed targets to the normal CLI's lowercase,
+    string-scalar JSON. It neither validates the trust source nor invokes the
+    candidate. Missing original operation producers remain UNKNOWN separately.
+    """
+    require(enabled is True,'normal enrollment ABI binding is explicitly opt-in')
+    require(hex_pin(context_sha256) and type(context_raw) is bytes and sha(context_raw)==context_sha256,
+            'independent original normal context pin differs')
+    context=accounting.strict(context_raw,2*EXPECTED_LIMIT+(64<<10))
+    closed(context,('version','lightTrust','pins','fundingExpected','migrationExpected','fundingOriginalFile','migrationOriginalFile'),
+           'closed normal enrollment context required')
+    require(context['version']=='YNX-CONSENSUS-ENROLLMENT-PROOF-TRUST/v1','normal enrollment context ABI differs')
+    closed(expectations,('funding','migration'),'both independently pinned original targets required')
+    pins={}
+    for role,original in expectations.items():
+        closed(original,('raw','sha256'),'complete independent typed target pin required')
+        require(type(original['raw']) is bytes and hex_pin(original['sha256']) and sha(original['raw'])==original['sha256'],
+                'original typed target bytes differ')
+        expected=decode_expected(original['raw'])
+        require(expected['TransactionType'] in ('pq_transfer','YNX-LAB-LEGACY-FUNDING/v1') if role=='funding'
+                else expected['TransactionType']=='pq_migration','original enrollment role/type differs')
+        def point(value):
+            return dict(chainId=value['ChainID'],headerHeight=str(value['HeaderHeight']),blockHash=b64(value['BlockHash'],32).hex(),
+                        stateHeight=str(value['StateHeight']),stateAppHash=b64(value['StateAppHash'],32).hex())
+        projected=dict(block=point(expected['Block']),successor=point(expected['Successor']),transactionType=expected['TransactionType'],
+            envelope=expected['Envelope'],nativeWire=expected['NativeWire'],transactionHash=b64(expected['TransactionHash'],32).hex(),
+            nativeWireHash=b64(expected['NativeWireHash'],32).hex(),index=str(expected['Index']))
+        require(accounting.d.encoded(context[role+'Expected'],EXPECTED_LIMIT)==accounting.d.encoded(projected,EXPECTED_LIMIT),
+                'normal CLI target differs from complete original Expected')
+        pins[role]=original['sha256']
+    report=unknown_report()
+    report.update(inspectedVerifierABI=INSPECTED_ENROLLMENT_CLI,normalCLIExpectedByteBindingsObserved=True,
+        originalPins=dict(contextSHA256=context_sha256,expectedSHA256=pins),
+        missingEvidence=['fixedVerifierSourceCIAndBinary','authenticatedIndependentTrust','originalOperationIdentity','authenticatedCurrentAccountState'])
+    return report
 
 
 def original_files(directory,pins):
@@ -159,24 +226,8 @@ def inspect_sender_original(*,binding,directory,workload_raw,expected_raw,row,ac
     require(tx['nativeHash']==sha(files['transaction.wire']) and tx['abciHash']==sha(files['transaction.abci'])
             and row.get('nativeHash') in (None,tx['nativeHash']) and row.get('hash') in (None,tx['abciHash']),
             'original raw hashes differ from ledger/outbox')
-    expected=accounting.strict(expected_raw,EXPECTED_LIMIT)
-    closed(expected,('Block','Successor','TransactionType','Envelope','NativeWire','TransactionHash','NativeWireHash','Index'),
-           'complete original Go proof expectation required')
-    require(expected['TransactionType']=='pq_transfer' and type(expected['Index']) is int and 0<=expected['Index']<1<<32,
-            'original proof transaction kind/index differs')
-    for key in ('Block','Successor'):
-        point=expected[key]
-        closed(point,('ChainID','HeaderHeight','BlockHash','StateHeight','StateAppHash'),'complete original expected header required')
-        require(type(point['ChainID']) is str and 0<len(point['ChainID'])<=128
-                and type(point['HeaderHeight']) is int and 0<point['HeaderHeight']<1<<63
-                and type(point['StateHeight']) is int and 0<=point['StateHeight']<1<<63
-                and point['HeaderHeight']==point['StateHeight']+1
-                and len(b64(point['BlockHash'],32))==32 and len(b64(point['StateAppHash'],32))==32,
-                'original expected header encoding differs')
-    require(expected['Block']['ChainID']==expected['Successor']['ChainID']
-            and expected['Block']['HeaderHeight']<(1<<63)-3
-            and expected['Successor']['HeaderHeight']==expected['Block']['HeaderHeight']+1,
-            'original same-chain H/H+1 expectation differs')
+    expected=decode_expected(expected_raw)
+    require(expected['TransactionType']=='pq_transfer','original proof transaction kind differs')
     require(b64(expected['Envelope'],8<<20)==files['transaction.abci'] and b64(expected['NativeWire'],8<<20)==files['transaction.wire']
             and b64(expected['TransactionHash'],32)==bytes.fromhex(tx['abciHash'])
             and b64(expected['NativeWireHash'],32)==bytes.fromhex(tx['nativeHash']),
