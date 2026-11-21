@@ -5020,7 +5020,58 @@ class HeldSessionCIControls(unittest.TestCase):
 
 
 class IndependentSourceChecksControls(unittest.TestCase):
+    def assert_clock_gate(self, raw):
+        _, steps = workflow_steps(raw, 'focused-go')
+        selected = [step for step in steps if step.startswith('      - name: Verify synthetic local Commit monotonic boundary\n')]
+        if len(selected) != 1:
+            raise AssertionError('one exact same-source clock and Finalize step required')
+        step = selected[0]
+        required = ("if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}", '        timeout-minutes: 3\n',
+                    '          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"\n',
+                    "go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run '^(TestCommitMonotonic.*|TestCommitValidation.*|TestOperatorFinalizeObservation.*|TestFinalizeTiming.*|TestABCIPublicTraceFullStateAndAppHashEveryHeight)$' ./cmd/ynx-comet ./internal/consensus",
+                    '          print(\'YNX_SYNTHETIC_CLOCK_FINALIZE_DATA_ONLY \'',
+                    '-ldflags "-X main.operatorCommitBuildSource=$GITHUB_SHA"', 'synthetic-commit-clock-build-identity --synthetic',
+                    "data.get('sourceRevision') != os.environ['GITHUB_SHA']", "data.get('runtimeAuthorized') is not False", "data.get('nodeStarted') is not False")
+        for part in required:
+            if step.count(part) != 1:
+                raise AssertionError('clock exact source, execution, receipt or disabled boundary missing')
+        original_stream = """          set +e
+          go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run '^(TestCommitMonotonic.*|TestCommitValidation.*|TestOperatorFinalizeObservation.*|TestFinalizeTiming.*|TestABCIPublicTraceFullStateAndAppHashEveryHeight)$' ./cmd/ynx-comet ./internal/consensus > "$RUNNER_TEMP/ynx-commit-finalize-clock-tests.jsonl"
+          YNX_CLOCK_GO_STATUS=$?
+          set -e
+          printf '%s%s\\n' 'YNX-COMMIT-CLOCK-TEST-JSON-' 'BEGIN/v1'
+          cat "$RUNNER_TEMP/ynx-commit-finalize-clock-tests.jsonl"
+          printf '%s%s\\n' 'YNX-COMMIT-CLOCK-TEST-JSON-' 'END/v1'
+          if [ "$YNX_CLOCK_GO_STATUS" -ne 0 ]; then
+            exit "$YNX_CLOCK_GO_STATUS"
+          fi
+"""
+        if step.count(original_stream) != 1 or '        id: syntheticclock\n' not in step:
+            raise AssertionError('original JSON stream markers and exact Go failure propagation required')
+        upload = [x for x in steps if x.startswith('      - name: Retain original synthetic Commit clock test events\n')]
+        if (len(upload) != 1 or "!cancelled() && steps.syntheticclock.outcome != 'skipped'" not in upload[0] or
+            'path: ${{ runner.temp }}/ynx-commit-finalize-clock-tests.jsonl' not in upload[0] or
+            'if-no-files-found: error' not in upload[0] or '${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}' not in upload[0]):
+            raise AssertionError('same-source original JSON event artifact required')
+        compare = [x for x in steps if x.startswith('      - name: Measure original synthetic Commit and Finalize observation cost\n')]
+        if len(compare) != 1:
+            raise AssertionError('same-source synthetic on/off measurement required')
+        compare = compare[0]
+        for part in ("        id: syntheticclockab\n", "!cancelled() && steps.identity.outcome == 'success'", '        timeout-minutes: 3\n',
+                     "go test -mod=readonly -tags=ynx_clock_diagnostic -json -p 1 -count=1 -timeout=90s -run '^TestSyntheticClockFinalizeOverheadIndependent$' ./cmd/ynx-comet",
+                     "if any(e.get('Action') in ('skip', 'fail', 'build-fail') for e in events):", "independentFinality=false"):
+            if compare.count(part) != 1:
+                raise AssertionError('same-source real synthetic A/B execution or rejection missing')
+        compare_upload = [x for x in steps if x.startswith('      - name: Retain original synthetic clock A B test events\n')]
+        if (len(compare_upload) != 1 or "!cancelled() && steps.syntheticclockab.outcome != 'skipped'" not in compare_upload[0] or
+            'path: ${{ runner.temp }}/ynx-clock-ab-tests.jsonl' not in compare_upload[0] or 'if-no-files-found: error' not in compare_upload[0]):
+            raise AssertionError('same-source synthetic A/B original event artifact required')
+        if 'continue-on-error:' in step or ' if: false' in step or 'continue-on-error:' in compare:
+            raise AssertionError('clock case must not bypass failures')
+        return step
+
     def assert_detached_gate(self, raw):
+        self.assert_clock_gate(raw)
         focused, _ = workflow_steps(raw, 'focused-go')
         detached, steps = workflow_steps(raw, 'detached-source-checks')
         delivery, _ = workflow_steps(raw, 'protocol-delivery')
@@ -5062,6 +5113,13 @@ class IndependentSourceChecksControls(unittest.TestCase):
         detached, _ = workflow_steps(raw, 'detached-source-checks')
         mutations = [
             raw.replace(detached, detached.replace('    if: ', '    if: false # ', 1), 1),
+            raw.replace('      - name: Verify synthetic local Commit monotonic boundary\n', '      - name: Missing clock diagnostics\n', 1),
+            raw.replace('synthetic-commit-clock-build-identity --synthetic', 'synthetic-commit-clock-build-identity', 1),
+            raw.replace("'YNX-COMMIT-CLOCK-TEST-JSON-' 'END/v1'", "'YNX-COMMIT-CLOCK-TEST-JSON-' 'MISSING/v1'", 1),
+            raw.replace('exit "$YNX_CLOCK_GO_STATUS"', 'exit 0', 1),
+            raw.replace('      - name: Retain original synthetic Commit clock test events\n', '      - name: Missing clock event artifact\n', 1),
+            raw.replace('      - name: Measure original synthetic Commit and Finalize observation cost\n', '      - name: Missing on off measurement\n', 1),
+            raw.replace('      - name: Retain original synthetic clock A B test events\n', '      - name: Missing A B event artifact\n', 1),
             raw.replace(detached, detached.replace('          ref: ${{ github.sha }}', '          ref: main', 1), 1),
             raw.replace(detached, detached.replace('    timeout-minutes: 8\n', '    timeout-minutes: 8\n    continue-on-error: true\n', 1), 1),
             raw.replace(detached, detached.replace("!cancelled() && steps.identity.outcome == 'success'", 'true', 1), 1),
@@ -5236,6 +5294,49 @@ class HistoryPolicyScopeCIControls(unittest.TestCase):
             if event['Action']=='pass':
                 for action in ('skip','fail'):
                     with self.assertRaises(RuntimeError):exec(code,{'rows':rows[:i]+[dict(event,Action=action)]+rows[i+1:]})
+class SyntheticClockReceiptControls(unittest.TestCase):
+    def test_actual_clock_qualifier_rejects_missing_duplicated_foreign_and_skip(self):
+        import ast, textwrap
+        root = Path(__file__).resolve().parents[2]
+        raw = (root / '.github/workflows/resource-market-ci.yml').read_text()
+        _, steps = workflow_steps(raw, 'focused-go')
+        step = next(x for x in steps if x.startswith('      - name: Verify synthetic local Commit monotonic boundary\n'))
+        start=step.index('          def qualify_clock(events):\n');end=step.index('          print(\'YNX_SYNTHETIC_CLOCK_FINALIZE_DATA_ONLY',start)
+        tree=ast.parse(textwrap.dedent(step[start:end]));fn=tree.body[0]
+        required=ast.literal_eval(next(n.value for n in fn.body if isinstance(n,ast.Assign) and isinstance(n.targets[0],ast.Name) and n.targets[0].id=='required'))
+        scope={};exec(compile(tree,'<actual-clock-qualifier>','exec'),scope);qualify=scope['qualify_clock']
+        prefix='github.com/JiahaoAlbus/YNX-Chain/'
+        rows=[]
+        for pkg,names in required.items():
+            rows.append(dict(Package=prefix+pkg,Action='start'))
+            for name in names:
+                rows += [dict(Package=prefix+pkg,Test=name,Action=action) for action in ('run','pass')]
+            rows.append(dict(Package=prefix+pkg,Action='pass'))
+        self.assertEqual(len(qualify(rows)),sum(len(v) for v in required.values()))
+        for i,event in enumerate(rows):
+            for bad in (rows[:i]+rows[i+1:],rows[:i]+[event]+rows[i:],rows[:i]+[dict(event,Package='foreign')]+rows[i+1:]):
+                with self.assertRaises(RuntimeError):qualify(bad)
+            if event['Action']=='pass' and event.get('Test'):
+                for action in ('skip','fail','build-fail'):
+                    with self.assertRaises(RuntimeError):qualify(rows[:i]+[dict(event,Action=action)]+rows[i+1:])
+
+    def test_original_marker_shell_preserves_failed_go_events_and_exit(self):
+        import os, subprocess, tempfile, textwrap
+        root = Path(__file__).resolve().parents[2]
+        raw = (root / '.github/workflows/resource-market-ci.yml').read_text()
+        _, steps = workflow_steps(raw, 'focused-go')
+        step = next(x for x in steps if x.startswith('      - name: Verify synthetic local Commit monotonic boundary\n'))
+        start=step.index('          set +e\n');end=step.index("          python3 -B - <<'PY'",start)
+        program=textwrap.dedent(step[start:end])
+        with tempfile.TemporaryDirectory(prefix='ynx-clock-shell-control-') as directory:
+            fake=Path(directory)/'go'
+            fake.write_text('#!/bin/sh\nprintf \'%s\\n\' \'{"Action":"fail"}\'\nexit 17\n')
+            fake.chmod(0o700)
+            env=dict(os.environ,PATH=directory+os.pathsep+os.environ['PATH'],RUNNER_TEMP=directory)
+            result=subprocess.run(['/bin/bash','-e','-c',program],env=env,text=True,capture_output=True,timeout=10)
+        self.assertEqual(result.returncode,17)
+        self.assertEqual(result.stdout.splitlines(),['YNX-COMMIT-CLOCK-TEST-JSON-BEGIN/v1','{"Action":"fail"}','YNX-COMMIT-CLOCK-TEST-JSON-END/v1'])
+        self.assertEqual(result.stderr,'')
 
 if __name__ == "__main__":
     unittest.main()

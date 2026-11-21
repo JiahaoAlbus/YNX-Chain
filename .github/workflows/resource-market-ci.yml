@@ -2801,6 +2801,100 @@ jobs:
               raise RuntimeError('observer stream failed or an observer child skipped')
           print('YNX_PQ_OBSERVER_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=observer_required, nodeStarted=False, liveSyncVerified=False, independentFinalityVerified=False, nativeGrant=False), sort_keys=True))
           PY
+      - name: Verify synthetic local Commit monotonic boundary
+        id: syntheticclock
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          set +e
+          go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run '^(TestCommitMonotonic.*|TestCommitValidation.*|TestOperatorFinalizeObservation.*|TestFinalizeTiming.*|TestABCIPublicTraceFullStateAndAppHashEveryHeight)$' ./cmd/ynx-comet ./internal/consensus > "$RUNNER_TEMP/ynx-commit-finalize-clock-tests.jsonl"
+          YNX_CLOCK_GO_STATUS=$?
+          set -e
+          printf '%s%s\n' 'YNX-COMMIT-CLOCK-TEST-JSON-' 'BEGIN/v1'
+          cat "$RUNNER_TEMP/ynx-commit-finalize-clock-tests.jsonl"
+          printf '%s%s\n' 'YNX-COMMIT-CLOCK-TEST-JSON-' 'END/v1'
+          if [ "$YNX_CLOCK_GO_STATUS" -ne 0 ]; then
+            exit "$YNX_CLOCK_GO_STATUS"
+          fi
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-commit-finalize-clock-tests.jsonl').read_text().splitlines()]
+          def qualify_clock(events):
+              base = 'github.com/JiahaoAlbus/YNX-Chain/'
+              required = {
+                  'cmd/ynx-comet': ['TestCommitMonotonicRequiresDistinctSyntheticOriginal', 'TestCommitMonotonicRealBlockExecutorSyntheticTransfer', 'TestCommitMonotonicMissingSourceIsUnknown', 'TestCommitMonotonicDeclaredSourceValidation', 'TestCommitMonotonicSameKernelChild', 'TestCommitValidationObservationOriginalBlockAndOptIn', 'TestCommitValidationObservationSyntheticOptInCost', 'TestCommitValidationRequiresSyntheticCommitObservation', 'TestCommitValidationPhaseContractRejectsAmbiguousDetail', 'TestOperatorFinalizeObservationDefaultAndClosedFlags', 'TestOperatorFinalizeObservationActualCallerAndFailureProjection', 'TestOperatorFinalizeObservationRetainsFailureAndDropDebt'],
+                  'internal/consensus': ['TestFinalizeTimingDefaultAndCanonicalEquivalence', 'TestFinalizeTimingFailuresAndBoundedKnownClock', 'TestFinalizeTimingMaterializationOriginalOwnership', 'TestCommitValidationTimingTracksSameRealAttemptAndOriginalWire', 'TestCommitValidationTimingOptInPreservesErrorsAndHashWithDeterministicClock', 'TestABCIPublicTraceFullStateAndAppHashEveryHeight'],
+              }
+              if any(e.get('Action') in ('skip', 'fail', 'build-fail') for e in events):
+                  raise RuntimeError('original clock/Finalize stream failed or skipped')
+              for package, names in required.items():
+                  package = base + package
+                  if [e['Action'] for e in events if e.get('Package') == package and not e.get('Test') and e.get('Action') in ('start', 'pass', 'fail', 'skip')] != ['start', 'pass']:
+                      raise RuntimeError('original clock/Finalize package incomplete')
+                  for name in names:
+                      actions = [(e.get('Package'), e['Action']) for e in events if e.get('Test') == name and e.get('Action') in ('run', 'pass', 'fail', 'skip')]
+                      if actions != [(package, 'run'), (package, 'pass')]:
+                          raise RuntimeError('original clock/Finalize test missing, repeated or foreign: ' + name)
+              return sorted(name for names in required.values() for name in names)
+          print('YNX_SYNTHETIC_CLOCK_FINALIZE_DATA_ONLY ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=qualify_clock(events), independentFinality=False, runtimeAuthorized=False), sort_keys=True))
+          PY
+          go build -mod=readonly -p 1 -trimpath -buildvcs=false -ldflags "-X main.operatorCommitBuildSource=$GITHUB_SHA" -o "$RUNNER_TEMP/ynx-comet-monotonic-build" ./cmd/ynx-comet
+          "$RUNNER_TEMP/ynx-comet-monotonic-build" synthetic-commit-clock-build-identity --synthetic > "$RUNNER_TEMP/ynx-comet-monotonic-buildinfo.json"
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          data = json.loads((Path(os.environ['RUNNER_TEMP']) / 'ynx-comet-monotonic-buildinfo.json').read_text())
+          if data.get('status') != 'DECLARED' or data.get('sourceRevision') != os.environ['GITHUB_SHA'] or data.get('runtimeAuthorized') is not False or data.get('nodeStarted') is not False:
+              raise RuntimeError('original trimpath linked declaration missing')
+          PY
+          cat "$RUNNER_TEMP/ynx-comet-monotonic-buildinfo.json"
+      - name: Retain original synthetic Commit clock test events
+        if: ${{ !cancelled() && steps.syntheticclock.outcome != 'skipped' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-commit-clock-tests-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ynx-commit-finalize-clock-tests.jsonl
+          if-no-files-found: error
+          retention-days: 7
+      - name: Measure original synthetic Commit and Finalize observation cost
+        id: syntheticclockab
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          if ! go test -mod=readonly -tags=ynx_clock_diagnostic -json -p 1 -count=1 -timeout=90s -run '^TestSyntheticClockFinalizeOverheadIndependent$' ./cmd/ynx-comet > "$RUNNER_TEMP/ynx-clock-ab-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-clock-ab-tests.jsonl"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/ynx-clock-ab-tests.jsonl"
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-clock-ab-tests.jsonl').read_text().splitlines()]
+          package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet'
+          name = 'TestSyntheticClockFinalizeOverheadIndependent'
+          if any(e.get('Action') in ('skip', 'fail', 'build-fail') for e in events):
+              raise RuntimeError('synthetic A/B test failed or skipped')
+          if [e['Action'] for e in events if e.get('Package') == package and not e.get('Test') and e.get('Action') in ('start', 'pass', 'fail', 'skip')] != ['start', 'pass']:
+              raise RuntimeError('synthetic A/B package did not pass exactly once')
+          if [(e.get('Package'), e['Action']) for e in events if e.get('Test') == name and e.get('Action') in ('run', 'pass', 'fail', 'skip')] != [(package, 'run'), (package, 'pass')]:
+              raise RuntimeError('synthetic A/B test missing, foreign or repeated')
+          lines = [e.get('Output', '') for e in events if e.get('Package') == package and e.get('Test') == name and 'SYNTHETIC_CLOCK_FINALIZE_AB/v1' in e.get('Output', '')]
+          if len(lines) != 1 or 'source=' + os.environ['GITHUB_SHA'] not in lines[0] or 'independentFinality=false' not in lines[0]:
+              raise RuntimeError('synthetic same-source A/B result missing')
+          PY
+      - name: Retain original synthetic clock A B test events
+        if: ${{ !cancelled() && steps.syntheticclockab.outcome != 'skipped' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-commit-clock-ab-tests-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ynx-clock-ab-tests.jsonl
+          if-no-files-found: error
+          retention-days: 7
       - name: Qualify pinned bootstrap registration and normal block restoration
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         run: |

@@ -119,7 +119,7 @@ func (o *commitObservationOutput) close() error {
 	return err
 }
 
-func (o *operatorCommitObservation) writeAfterStop() error {
+func (o *operatorCommitObservation) writeCommitAfterStop() error {
 	if o == nil {
 		return nil
 	}
@@ -180,5 +180,5 @@ func (o *operatorCommitObservation) close() error {
 	if o.app != nil {
 		o.app.SetCommitTimingEnabled(false)
 	}
-	return o.file.close()
+	return errors.Join(o.monotonic.close(), o.finalize.close(), o.file.close())
 }

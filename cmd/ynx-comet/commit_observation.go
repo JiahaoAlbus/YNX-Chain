@@ -24,12 +24,15 @@ const operatorCommitObservationVersion = "YNX-COMET-COMMIT-OBSERVATION/v1"
 const operatorCommitObservationMaxSamples = 128
 
 func registerCommitObservationFlags(flags *pflag.FlagSet, p *pqOptions) {
+	flags.Var(&initializationStringFlag{target: &p.finalizeObservationOutput}, "finalize-observation-output", "disabled by default; separate bounded Finalize output; requires original synthetic Commit observation scope")
+	flags.BoolVar(&p.commitValidationObservation, "commit-validation-observation", false, "opt in to bounded per-commit validation detail in the synthetic Commit observation")
+	flags.Var(&initializationStringFlag{target: &p.commitMonotonicOutput}, "commit-monotonic-output", "disabled by default; separate synthetic same-kernel local Commit boundary observation")
 	flags.Var(&initializationStringFlag{target: &p.commitObservationOutput}, "commit-observation-output", "disabled by default; fresh private bounded Commit timing output after normal node stop")
 	flags.Var(&initializationStringFlag{target: &p.commitObservationScope}, "commit-observation-scope", "explicit synthetic-loopback-lab/v1 only; local persistence is not signer fsync or finality")
 }
 
 func (p pqOptions) commitObservationConfigured() bool {
-	return p.commitObservationOutput != "" || p.commitObservationScope != ""
+	return p.commitObservationOutput != "" || p.commitObservationScope != "" || p.commitMonotonicOutput != "" || p.commitValidationObservation || p.finalizeObservationOutput != ""
 }
 
 func (p pqOptions) commitObservationWireOptions() pqOptions {
@@ -62,7 +65,13 @@ func (p pqOptions) validateCommitObservation() error {
 			}
 		}
 	}
-	return commitObservationPrivateParent(filepath.Dir(p.commitObservationOutput))
+	if err := commitObservationPrivateParent(filepath.Dir(p.commitObservationOutput)); err != nil {
+		return err
+	}
+	if err := p.validateFinalizeObservation(); err != nil {
+		return err
+	}
+	return p.validateCommitMonotonic()
 }
 
 func (p pqOptions) validateCommitObservationMigration(m chain.ConsensusMigrationState) error {
@@ -79,10 +88,19 @@ type operatorCommitPoint struct {
 	Height  int64  `json:"height"`
 	AppHash string `json:"appHash"`
 }
+type operatorCommitValidation struct {
+	Version            string           `json:"version"`
+	Height             int64            `json:"height"`
+	ElapsedNs          int64            `json:"elapsedNs"`
+	PhaseNs            map[string]int64 `json:"phaseNs"`
+	HashDocumentNs     int64            `json:"hashDocumentNs"`
+	HashEncodeDigestNs int64            `json:"hashEncodeDigestNs"`
+}
 type operatorCommitSample struct {
 	Height      int64                        `json:"height"`
 	AppHash     string                       `json:"appHash"`
 	Persistence consensus.CommitTimingSample `json:"persistence"`
+	Validation  *operatorCommitValidation    `json:"validation,omitempty"`
 }
 type operatorCommitFailure struct {
 	Timing               *consensus.CommitTimingSample `json:"timing"`
@@ -132,6 +150,9 @@ type operatorCommitObservation struct {
 	mu                     sync.Mutex
 	app                    *consensus.Application
 	file                   *commitObservationOutput
+	finalize               *operatorFinalizeObservation
+	monotonic              *operatorCommitMonotonic
+	validationEnabled      bool
 	result                 operatorCommitObservationResult
 	latestObserved         *operatorCommitSample
 	ran, attempted, closed bool
@@ -151,7 +172,15 @@ func prepareOperatorCommitObservation(config *cfg.Config, p pqOptions) (*operato
 	if err != nil {
 		return nil, err
 	}
-	return &operatorCommitObservation{file: file, result: operatorCommitObservationResult{
+	finalize, err := prepareOperatorFinalizeObservation(p)
+	if err != nil {
+		return nil, errors.Join(err, file.close())
+	}
+	monotonic, err := prepareOperatorCommitMonotonic(p)
+	if err != nil {
+		return nil, errors.Join(err, finalize.close(), file.close())
+	}
+	return &operatorCommitObservation{file: file, finalize: finalize, monotonic: monotonic, validationEnabled: p.commitValidationObservation, result: operatorCommitObservationResult{
 		Version: operatorCommitObservationVersion, Scope: operatorWireObservationScope, ProcessID: os.Getpid(),
 		CaptureBoundary: "synchronous-original-block-executor-Commit-return;normal-stop-output;replay-and-early-failures-not-covered",
 		MaxSamples:      operatorCommitObservationMaxSamples, Samples: []operatorCommitSample{}, RejectedNotifications: map[string]uint64{},
@@ -174,6 +203,9 @@ func (o *operatorCommitObservation) bind(app *consensus.Application, m chain.Con
 	if err := o.file.parentCurrent(); err != nil {
 		return err
 	}
+	if err := o.finalize.bind(app, m); err != nil {
+		return err
+	}
 	o.app = app
 	o.result.ChainID, o.result.OriginalGenesisHash = fmt.Sprintf("ynx_%d-1", m.Network.ChainID), m.OriginalGenesisHash
 	app.SetCommitTimingEnabled(true)
@@ -189,6 +221,7 @@ func (o *operatorCommitObservation) started() {
 	if o != nil {
 		o.mu.Lock()
 		o.ran = o.app != nil && !o.closed
+		o.finalize.started()
 		o.mu.Unlock()
 	}
 }
@@ -271,7 +304,48 @@ func observedCommitSample(app *consensus.Application, height int64) (*operatorCo
 	return &operatorCommitSample{Height: height, AppHash: point.AppHash, Persistence: first}, ""
 }
 
+// Keep the original successful validation contract aligned with the normal
+// pqFreshValidationObservationLine producer; child intervals are not added.
+func validCommitValidationTiming(detail consensus.CommitValidationTimingSample, parent int64) bool {
+	if !detail.Valid || detail.FailedPhase != "" || detail.ElapsedNs < 0 || detail.ElapsedNs > parent || len(detail.PhaseNs) != len(operatorCommitValidationPhases) {
+		return false
+	}
+	var sum int64
+	for _, phase := range operatorCommitValidationPhases {
+		ns, exists := detail.PhaseNs[phase]
+		if !exists || ns < 0 || ns > detail.ElapsedNs || sum > detail.ElapsedNs-ns {
+			return false
+		}
+		sum += ns
+	}
+	hash := detail.PhaseNs["app_hash"]
+	return sum == detail.ElapsedNs && detail.HashDocumentNs >= 0 && detail.HashEncodeDigestNs >= 0 &&
+		detail.HashDocumentNs <= hash && detail.HashEncodeDigestNs <= hash-detail.HashDocumentNs
+}
+
+// Bracket detail with the original persistence identity to reject a concurrent Commit.
+func observedCommitValidation(app *consensus.Application, sample *operatorCommitSample) (*operatorCommitValidation, string) {
+	first, ok, reason := observedCommitAttempt(app)
+	if !ok || reason != "" || !equalCommitTiming(first, sample.Persistence) {
+		return nil, "validation-attempt-changed"
+	}
+	detail, ok := app.LastCommitValidationTiming()
+	if !ok || !detail.Valid || detail.Height != sample.Height || detail.FailedPhase != "" {
+		return nil, "validation-unavailable-or-height-differs"
+	}
+	second, ok, reason := observedCommitAttempt(app)
+	if !ok || reason != "" || !equalCommitTiming(first, second) {
+		return nil, "validation-attempt-changed"
+	}
+	parent, exists := sample.Persistence.StagesNs["validate"]
+	if !exists || !validCommitValidationTiming(detail, parent) {
+		return nil, "validation-malformed"
+	}
+	return &operatorCommitValidation{Version: "YNX-COMET-COMMIT-VALIDATION/v1", Height: detail.Height, ElapsedNs: detail.ElapsedNs, PhaseNs: detail.PhaseNs, HashDocumentNs: detail.HashDocumentNs, HashEncodeDigestNs: detail.HashEncodeDigestNs}, ""
+}
+
 func (o *operatorCommitObservation) success(height int64, validHeight bool) {
+	reading := o.monotonic.capture()
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	if o.closed {
@@ -286,6 +360,14 @@ func (o *operatorCommitObservation) success(height int64, validHeight bool) {
 	if reason != "" {
 		o.reject(reason)
 		return
+	}
+	if o.validationEnabled {
+		validation, reason := observedCommitValidation(o.app, sample)
+		if reason != "" {
+			o.reject(reason)
+			return
+		}
+		sample.Validation = validation
 	}
 	if o.latestObserved != nil {
 		if height <= o.latestObserved.Height {
@@ -303,6 +385,7 @@ func (o *operatorCommitObservation) success(height int64, validHeight bool) {
 		return
 	}
 	o.result.Samples = append(o.result.Samples, *sample)
+	o.monotonic.append(sample, reading)
 }
 func (o *operatorCommitObservation) failure() {
 	o.mu.Lock()
