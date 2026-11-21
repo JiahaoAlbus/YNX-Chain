@@ -2028,7 +2028,8 @@ FOCUSED_GO_TIMEOUT = (
     "    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || "
     "(inputs.paired_n1 || inputs.consensus_e2e || inputs.consensus_e2e_retained_history || "
     "inputs.consensus_remote_e2e_retained_history || inputs.remote_signer_process) && 15 || "
-    "(github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108') && 40 || 25 }}\n"
+    "((github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108') || "
+    "(github.event_name == 'push' && github.ref == 'refs/heads/codex/chain-commit-monotonic-20261121')) && 40 || 25 }}\n"
 )
 
 
@@ -2062,6 +2063,7 @@ def assert_workflow_contract(raw):
         "github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || "
         "(github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || "
         "(github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108') || "
+        "(github.event_name == 'push' && github.ref == 'refs/heads/codex/chain-commit-monotonic-20261121') || "
         "(github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/codex/ynx-pq-perf-source-20261108' && (startsWith(github.ref, "
         "'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))")
     need("    if: " + expected_job_if + "\n" in job)
@@ -2184,7 +2186,7 @@ def assert_workflow_contract(raw):
          + "\n    runs-on: ubuntu-24.04\n    timeout-minutes: 6\n")
     need("continue-on-error:" not in caddy_job)
     branches = re.findall(r"(?m)^  push:\n    branches:\n((?:      - [^\n]+\n)+)", raw)
-    need(branches == ["      - 'main'\n      - 'codex/ynx-pq-public-upgrade'\n      - 'codex/ynx-pq-perf-integration'\n      - 'codex/ynx-pq-perf-source-20261108'\n"])
+    need(branches == ["      - 'main'\n      - 'codex/ynx-pq-public-upgrade'\n      - 'codex/ynx-pq-perf-integration'\n      - 'codex/ynx-pq-perf-source-20261108'\n      - 'codex/chain-commit-monotonic-20261121'\n"])
     lines = lambda step: [line for line in step.splitlines() if line.strip()]
     need(lines(caddy_steps[0]) == [
         "      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
@@ -4888,6 +4890,19 @@ class FuturePerfSourceBranchControls(unittest.TestCase):
         _,_,scope,_=PublicOwnerSessionCIControls().cli()
         self.assertEqual(len(scope['required']),14)
         self.assertEqual(len(CompleteStatePartitionControls().workflow_parts()[3]['live_observation_core_required']),2)
+
+    def test_synthetic_commit_ref_is_source_only_and_exact(self):
+        raw=self.raw();assert_workflow_contract(raw)
+        ref='refs/heads/codex/chain-commit-monotonic-20261121'
+        self.assertTrue(self.evaluate(self.condition(raw,'focused-go'),ref,'push'))
+        self.assertFalse(self.evaluate(self.condition(raw,'focused-go'),ref+'-other','push'))
+        self.assertFalse(self.evaluate(self.condition(raw,'verify'),ref,'push'))
+        self.assertFalse(self.evaluate(self.condition(raw,'protocol-delivery'),ref,'push'))
+        self.assertFalse(self.evaluate(self.condition(raw,'pq-paired-n1'),ref,'push'))
+        self.assertNotIn(ref.removeprefix('refs/heads/'),gate.NORMAL_BRANCHES)
+        for old,new in (("github.ref == '"+ref+"'", "github.ref == '"+ref+"-other'"),
+                        ("      - 'codex/chain-commit-monotonic-20261121'\n",'')):
+            with self.subTest(old=old),self.assertRaises(AssertionError):assert_workflow_contract(raw.replace(old,new,1))
 
     def test_future_dispatch_and_all_opt_in_modes_remain_unqualified(self):
         import itertools,subprocess
