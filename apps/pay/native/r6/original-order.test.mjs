@@ -148,6 +148,14 @@ test('order archive detail binds a fixed original payer across payment and refun
   else {assert.equal(result.ok,false);assert.equal(result.code,'NATIVE_PAY_ORIGINAL_ORDER_BINDING');assert.equal(result.archiveReceipt,undefined);assert.equal(result.reconciliation,undefined);}
  }
 });
+test('same-order reconciliation surfaces an unresolved original refund for recovery',async()=>{
+ const pendingHash='0x'+'9'.repeat(64);
+ const f=boot({extra:{readOriginalArchiveReconciliation:async()=>({...reconciliation(),pendingOriginals:[pendingHash],completeKnownOriginals:false})}});
+ const result=await f.entry.invokeOriginalOrderResult({action:'order-reconcile',...ref},intentId,()=>{});
+ assert.equal(result.ok,true);assert.equal(result.queryOnly,true);assert.equal(result.outcomeUnknown,true);assert.equal(result.recoveryOnly,true);assert.equal(result.canRetry,false);
+ assert.deepEqual(result.pendingOriginals,[pendingHash]);assert.equal(result.reconciliation.paidAtoms,'100');assert.equal(result.reconciliation.refundedAtoms,'0');
+ assert.deepEqual(result.recoveryActions,[protectedRead]);
+});
 test('late retirement during receipt read drains the original read without publishing receipt',async()=>{
  let release;const f=boot({extra:{readOriginalArchiveReceipt:()=>new Promise(resolve=>release=resolve)}});
  const pending=f.entry.invokeResult({action:'order-receipt',...ref,nativeHash});

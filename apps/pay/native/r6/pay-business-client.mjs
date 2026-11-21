@@ -346,7 +346,14 @@ export function nativePaySummary(state,options){
  if(state.notifications)summary.notifications=state.notifications;
  if(state.archive)summary.archive=state.archive;
  if(state.archiveReceipt)summary.archiveReceipt=state.archiveReceipt;
- if(state.reconciliation)summary.reconciliation=state.reconciliation;
+ if(state.reconciliation){
+  summary.reconciliation=state.reconciliation;
+  if(state.reconciliation.completeKnownOriginals===false){
+   summary.pendingOriginals=state.reconciliation.pendingOriginals;
+   summary.outcomeUnknown=true;
+   summary.recoveryOnly=true;
+  }
+ }
  if(state.reconciledOriginal)summary.reconciledOriginal=state.reconciledOriginal;
  return summary;
 }
