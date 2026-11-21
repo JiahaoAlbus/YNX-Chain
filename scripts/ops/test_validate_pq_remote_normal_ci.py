@@ -5516,6 +5516,20 @@ class SyntheticClockReceiptControls(unittest.TestCase):
             with patch.dict(os.environ, GITHUB_SHA='not-a-source'):
                 with self.assertRaisesRegex(RuntimeError, 'source identity malformed'):
                     exec(compile(program, '<actual-clock-ab-receipt>', 'exec'), {})
+            head = 'SYNTHETIC_CLOCK_FINALIZE_AB/v1 source=' + source + ' padding='
+            tail = ' allocBytesOn=[334'
+            first = head + 'x' * (1024 - len(head) - len(tail)) + tail
+            second_head = '896 333608] independentFinality=false padding='
+            second = second_head + 'y' * (240 - len(second_head)) + '\n'
+            self.assertEqual((len(first.encode()), len(second.encode())), (1024, 241))
+            exact = [dict(row, Output=(first if i == 2 else second)) if i in (2, 3) else row for i, row in enumerate(rows)]
+            with patch.dict(os.environ, GITHUB_SHA=source):
+                target.write_text(''.join(json.dumps(e) + '\n' for e in exact))
+                scope = {}
+                exec(compile(program, '<actual-clock-ab-receipt>', 'exec'), scope)
+                joined = scope['qualify_result'](exact, source)
+            self.assertEqual(joined, first + second.rstrip('\n'))
+            self.assertEqual([int(n) for n in re.search(r'allocBytesOn=\[([^]]+)\]', joined).group(1).split()], [334896, 333608])
 
     def test_actual_clock_qualifier_rejects_missing_duplicated_foreign_and_skip(self):
         import ast, textwrap
