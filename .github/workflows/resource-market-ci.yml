@@ -1600,6 +1600,7 @@ jobs:
           retention-days: 7
 
   focused-go:
+    needs: detached-source-checks
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'workflow_dispatch' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))
     outputs:
       inputs-artifact-id: ${{ steps.stageupload.outputs.artifact-id }}
@@ -1754,53 +1755,6 @@ jobs:
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_observer_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_pq_ci_stage_inputs.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_prepare_testnet_assets.py' -v
-      - name: Verify explicit ordinary observer fork role without starting a node
-        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
-        env:
-          CGO_ENABLED: '0'
-          GOMEMLIMIT: 1536MiB
-        run: |
-          set -euo pipefail
-          # Same existing Comet test-only dependency; production modules stay byte-identical.
-          python3 -B - <<'PY'
-          import os, subprocess
-          from pathlib import Path
-          root = Path(os.environ['RUNNER_TEMP'])
-          module, sums = root / 'wire-observer-test.mod', root / 'wire-observer-test.sum'
-          for src, dst in [('go.mod', module), ('go.sum', sums)]:
-              with dst.open('xb') as f:
-                  f.write(Path(src).read_bytes())
-          subprocess.run(['go', 'mod', 'edit', '-modfile=' + str(module), '-require=github.com/stretchr/objx@v0.5.2'], check=True)
-          lines = [line for line in Path('third_party/cometbft/go.sum').read_text().splitlines() if line.startswith('github.com/stretchr/objx v0.5.2')]
-          if len(lines) != 2:
-              raise RuntimeError('exact original Comet test dependency sum pair required')
-          with sums.open('a') as f:
-              f.write('\n'.join(lines) + '\n')
-          PY
-          if ! go test -mod=readonly -modfile="$RUNNER_TEMP/wire-observer-test.mod" -json -p 1 -count=1 -timeout=90s -run '^(TestObserverNodePUBLICExplicitRoleRefusesMissingAuthorityAndRemoteSigner|TestObserverStatusPUBLICNoValidatorKeyRequiresNoMembershipLookup)$' github.com/cometbft/cometbft/node github.com/cometbft/cometbft/rpc/core > "$RUNNER_TEMP/ynx-pq-observer-fork-tests.jsonl"; then
-            cat "$RUNNER_TEMP/ynx-pq-observer-fork-tests.jsonl"
-            exit 1
-          fi
-          cat "$RUNNER_TEMP/ynx-pq-observer-fork-tests.jsonl"
-          git diff --exit-code -- go.mod go.sum
-          python3 -B - <<'PY'
-          import json, os
-          from pathlib import Path
-          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-pq-observer-fork-tests.jsonl').read_text().splitlines()]
-          observer_required = [('github.com/cometbft/cometbft/node', 'TestObserverNodePUBLICExplicitRoleRefusesMissingAuthorityAndRemoteSigner'), ('github.com/cometbft/cometbft/rpc/core', 'TestObserverStatusPUBLICNoValidatorKeyRequiresNoMembershipLookup')]
-          for package, name in observer_required:
-              runs = [event for event in events if event.get('Test') == name and event.get('Action') == 'run']
-              outcomes = [(event.get('Package'), event['Action']) for event in events if event.get('Test') == name and event.get('Action') in ('pass', 'fail', 'skip')]
-              if len(runs) != 1 or runs[0].get('Package') != package or outcomes != [(package, 'pass')]:
-                  raise RuntimeError('original observer test did not execute and pass uniquely: ' + name)
-          for package in {package for package, _ in observer_required}:
-              outcomes = [event['Action'] for event in events if event.get('Package') == package and 'Test' not in event and event.get('Action') in ('pass', 'fail', 'skip')]
-              if not outcomes or any(outcome != 'pass' for outcome in outcomes) or (package != 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus' and outcomes != ['pass']):
-                  raise RuntimeError('original observer package did not pass: ' + package)
-          if any(event.get('Action') in ('fail', 'build-fail') or (event.get('Action') == 'skip' and event.get('Test', '').startswith(('TestPQObserver', 'TestObserverCLI', 'TestObserverNode', 'TestObserverStatus'))) for event in events):
-              raise RuntimeError('observer stream failed or an observer child skipped')
-          print('YNX_PQ_OBSERVER_FORK_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=observer_required, nodeStarted=False, liveSyncVerified=False, independentFinalityVerified=False, nativeGrant=False), sort_keys=True))
-          PY
       - name: Verify pure dual-PQ protocol and account authorization
         id: pqprotocol
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
@@ -1975,29 +1929,6 @@ jobs:
       - name: Verify real profile state transition and historical store without starting nodes
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         run: go test -p 1 -count=1 -timeout=90s -run '^TestYNXProfileActualStateUpdateHeaderAndHistoricalStore$' github.com/cometbft/cometbft/state
-      - name: Reproduce and repair real Commit and engine checkpoint read ordering
-        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
-        timeout-minutes: 3
-        run: |
-          if bash scripts/verify/reuse-pq-history-counterexamples.sh; then
-            exit 0
-          fi
-          YNX_CHECKPOINT_CASE="$RUNNER_TEMP/ynx-pq-checkpoint-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
-          umask 077
-          mkdir "$YNX_CHECKPOINT_CASE"
-          cp third_party/cometbft/state/ynx_authority.go "$YNX_CHECKPOINT_CASE/fixed-authority.go"
-          trap 'cp "$YNX_CHECKPOINT_CASE/fixed-authority.go" third_party/cometbft/state/ynx_authority.go' EXIT
-          git show efdf467acd18bd56e267a37a411a6245b59f05f2:third_party/cometbft/state/ynx_authority.go > third_party/cometbft/state/ynx_authority.go
-          set +e
-          go test -p 1 -count=1 -timeout=60s -run '^TestPQEngineCheckpointReadSurvivesApplicationCommitBeforeStoreSave$' ./internal/consensus > "$YNX_CHECKPOINT_CASE/original-red.log" 2>&1
-          YNX_CHECKPOINT_RED_STATUS=$?
-          set -e
-          cp "$YNX_CHECKPOINT_CASE/fixed-authority.go" third_party/cometbft/state/ynx_authority.go
-          trap - EXIT
-          cat "$YNX_CHECKPOINT_CASE/original-red.log"
-          test "$YNX_CHECKPOINT_RED_STATUS" -ne 0
-          grep -F 'real P params lost during Commit gap: application authority differs' "$YNX_CHECKPOINT_CASE/original-red.log"
-          go test -p 1 -count=1 -timeout=90s -run '^TestPQEngineCheckpointReadSurvivesApplicationCommitBeforeStoreSave$' ./internal/consensus
       - name: Verify bounded remote signer transport and unchanged legacy protobuf vectors
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         run: |
@@ -2934,27 +2865,6 @@ jobs:
           print('YNX_PQ_SOURCE_PARENT_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=source_parent_required, suitePassed=True, sourceQualified=False, sourceGrant=False, nativeGrant=False, independentFinalityVerified=False, producerCurrentClock=False, p09CallerConnected=False, nodeStarted=False), sort_keys=True))
           print('YNX_PQ_NORMAL_SOURCE_PARENT_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=normal_source_parent_required, suitePassed=True, sourceQualified=False, sourceGrant=False, nativeGrant=False, independentFinalityVerified=False, producerCurrentClock=False, p09CallerConnected=False, nodeStarted=False), sort_keys=True))
           PY
-      - name: Verify original Auth r2 cross-process Current4 DATA interoperability
-        id: current4authinterop
-        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
-        timeout-minutes: 5
-        run: bash scripts/verify/current4-auth-r2-interop-check.sh "$RUNNER_TEMP/ynx-current4-auth-r2-interop"
-      - name: Retain only public Current4 Auth r2 joint evidence
-        if: ${{ !cancelled() && (steps.current4authinterop.outcome == 'success' || steps.current4authinterop.outcome == 'failure') }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: ynx-current4-auth-r2-interop-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            ${{ runner.temp }}/ynx-current4-auth-r2-interop/RESULT.json
-            ${{ runner.temp }}/ynx-current4-auth-r2-interop/FAILURE.json
-            ${{ runner.temp }}/ynx-current4-auth-r2-interop/COMPILE.result.json
-            ${{ runner.temp }}/ynx-current4-auth-r2-interop/COMPILE.stdout
-            ${{ runner.temp }}/ynx-current4-auth-r2-interop/COMPILE.stderr
-            ${{ runner.temp }}/ynx-current4-auth-r2-interop/GO.result.json
-            ${{ runner.temp }}/ynx-current4-auth-r2-interop/GO.stdout
-            ${{ runner.temp }}/ynx-current4-auth-r2-interop/GO.stderr
-          if-no-files-found: error
-          retention-days: 7
       - name: Verify committed account PUBLIC proof and original engine lifecycle
         id: committedaccountproof
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
@@ -4479,9 +4389,171 @@ jobs:
 
   # Current tests and delivery checks remain separate bounded stages of the
   # same run/source. Only the closed public fixture catalog crosses runners.
+  detached-source-checks:
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'workflow_dispatch' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      GOMAXPROCS: '2'
+      GOGC: '50'
+      GOMEMLIMIT: '1536MiB'
+      CGO_ENABLED: '0'
+      GOPROXY: https://proxy.golang.org
+      GOSUMDB: sum.golang.org
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          # Fixed historical counterexamples and production-baseline ancestry
+          # must remain available as the candidate branch grows. Fetch the
+          # full commit graph without downloading all historical file bodies.
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Record exact candidate identity
+        id: identity
+        env:
+          YNX_ENTRY_EVENT: ${{ github.event_name }}
+          YNX_ENTRY_REF: ${{ github.ref }}
+          YNX_ENTRY_GITHUB_SHA: ${{ github.sha }}
+          YNX_ENTRY_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          YNX_ENTRY_REMOTE_RETAINED: ${{ inputs.consensus_remote_e2e_retained_history }}
+          YNX_ENTRY_PAIRED: ${{ inputs.paired_n1 }}
+          YNX_ENTRY_LOCAL: ${{ inputs.consensus_e2e }}
+          YNX_ENTRY_LOCAL_RETAINED: ${{ inputs.consensus_e2e_retained_history }}
+          YNX_ENTRY_REMOTE_PROCESS: ${{ inputs.remote_signer_process }}
+          YNX_ENTRY_FRESH_BUSINESS: ${{ inputs.consensus_fresh_paired_business }}
+        run: |
+          git rev-parse HEAD
+          test "$(git rev-parse HEAD)" = '${{ github.sha }}'
+          test "$(git rev-parse --is-shallow-repository)" = false
+          git merge-base --is-ancestor aa97f102fc72ee89ef3c61b6125256b288694b39 HEAD
+          go version
+          git status --porcelain
+          bash scripts/verify/pq-remote-window-entry-check.sh
+          if [ "$YNX_ENTRY_EVENT" = 'workflow_dispatch' ]; then
+            test "$YNX_ENTRY_CANDIDATE_SHA" = "$YNX_ENTRY_GITHUB_SHA"
+            if [ "${YNX_ENTRY_FRESH_BUSINESS:-false}" = 'true' ]; then
+              if [[ "$YNX_ENTRY_REF" =~ ^refs/heads/codex/ynx-pq-remote-([0-9a-f]{9,40})$ ]]; then
+                [[ "$YNX_ENTRY_CANDIDATE_SHA" == "${BASH_REMATCH[1]}"* ]]
+              else
+                [[ "$YNX_ENTRY_REF" == refs/heads/main || "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-public-upgrade || "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-perf-integration ]]
+              fi
+            elif [[ "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-remote-* || "$YNX_ENTRY_REMOTE_RETAINED" == 'true' ]]; then
+              bash scripts/ops/validate-pq-remote-window-entry.sh \
+                "$YNX_ENTRY_EVENT" "$YNX_ENTRY_REF" "$YNX_ENTRY_GITHUB_SHA" "$YNX_ENTRY_CANDIDATE_SHA" \
+                "$YNX_ENTRY_REMOTE_RETAINED" "$YNX_ENTRY_PAIRED" "$YNX_ENTRY_LOCAL" \
+                "$YNX_ENTRY_LOCAL_RETAINED" "$YNX_ENTRY_REMOTE_PROCESS"
+            fi
+            YNX_WINDOW_SELECTIONS=0
+            for YNX_WINDOW_SELECTED in "$YNX_ENTRY_PAIRED" "$YNX_ENTRY_LOCAL" "$YNX_ENTRY_LOCAL_RETAINED" "$YNX_ENTRY_REMOTE_RETAINED" "$YNX_ENTRY_REMOTE_PROCESS" "${YNX_ENTRY_FRESH_BUSINESS:-false}"; do
+              case "$YNX_WINDOW_SELECTED" in
+                true) YNX_WINDOW_SELECTIONS=$((YNX_WINDOW_SELECTIONS + 1)) ;;
+                false|'') ;;
+                *) exit 1 ;;
+              esac
+            done
+            test "$YNX_WINDOW_SELECTIONS" -le 1
+          fi
+      - name: Reproduce and repair real Commit and engine checkpoint read ordering
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 3
+        run: |
+          if bash scripts/verify/reuse-pq-history-counterexamples.sh; then
+            exit 0
+          fi
+          YNX_CHECKPOINT_CASE="$RUNNER_TEMP/ynx-pq-checkpoint-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          umask 077
+          mkdir "$YNX_CHECKPOINT_CASE"
+          cp third_party/cometbft/state/ynx_authority.go "$YNX_CHECKPOINT_CASE/fixed-authority.go"
+          trap 'cp "$YNX_CHECKPOINT_CASE/fixed-authority.go" third_party/cometbft/state/ynx_authority.go' EXIT
+          git show efdf467acd18bd56e267a37a411a6245b59f05f2:third_party/cometbft/state/ynx_authority.go > third_party/cometbft/state/ynx_authority.go
+          set +e
+          go test -p 1 -count=1 -timeout=60s -run '^TestPQEngineCheckpointReadSurvivesApplicationCommitBeforeStoreSave$' ./internal/consensus > "$YNX_CHECKPOINT_CASE/original-red.log" 2>&1
+          YNX_CHECKPOINT_RED_STATUS=$?
+          set -e
+          cp "$YNX_CHECKPOINT_CASE/fixed-authority.go" third_party/cometbft/state/ynx_authority.go
+          trap - EXIT
+          cat "$YNX_CHECKPOINT_CASE/original-red.log"
+          test "$YNX_CHECKPOINT_RED_STATUS" -ne 0
+          grep -F 'real P params lost during Commit gap: application authority differs' "$YNX_CHECKPOINT_CASE/original-red.log"
+          go test -p 1 -count=1 -timeout=90s -run '^TestPQEngineCheckpointReadSurvivesApplicationCommitBeforeStoreSave$' ./internal/consensus
+      - name: Verify explicit ordinary observer fork role without starting a node
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        env:
+          CGO_ENABLED: '0'
+          GOMEMLIMIT: 1536MiB
+        run: |
+          set -euo pipefail
+          # Same existing Comet test-only dependency; production modules stay byte-identical.
+          python3 -B - <<'PY'
+          import os, subprocess
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          module, sums = root / 'wire-observer-test.mod', root / 'wire-observer-test.sum'
+          for src, dst in [('go.mod', module), ('go.sum', sums)]:
+              with dst.open('xb') as f:
+                  f.write(Path(src).read_bytes())
+          subprocess.run(['go', 'mod', 'edit', '-modfile=' + str(module), '-require=github.com/stretchr/objx@v0.5.2'], check=True)
+          lines = [line for line in Path('third_party/cometbft/go.sum').read_text().splitlines() if line.startswith('github.com/stretchr/objx v0.5.2')]
+          if len(lines) != 2:
+              raise RuntimeError('exact original Comet test dependency sum pair required')
+          with sums.open('a') as f:
+              f.write('\n'.join(lines) + '\n')
+          PY
+          if ! go test -mod=readonly -modfile="$RUNNER_TEMP/wire-observer-test.mod" -json -p 1 -count=1 -timeout=90s -run '^(TestObserverNodePUBLICExplicitRoleRefusesMissingAuthorityAndRemoteSigner|TestObserverStatusPUBLICNoValidatorKeyRequiresNoMembershipLookup)$' github.com/cometbft/cometbft/node github.com/cometbft/cometbft/rpc/core > "$RUNNER_TEMP/ynx-pq-observer-fork-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-pq-observer-fork-tests.jsonl"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/ynx-pq-observer-fork-tests.jsonl"
+          git diff --exit-code -- go.mod go.sum
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-pq-observer-fork-tests.jsonl').read_text().splitlines()]
+          observer_required = [('github.com/cometbft/cometbft/node', 'TestObserverNodePUBLICExplicitRoleRefusesMissingAuthorityAndRemoteSigner'), ('github.com/cometbft/cometbft/rpc/core', 'TestObserverStatusPUBLICNoValidatorKeyRequiresNoMembershipLookup')]
+          for package, name in observer_required:
+              runs = [event for event in events if event.get('Test') == name and event.get('Action') == 'run']
+              outcomes = [(event.get('Package'), event['Action']) for event in events if event.get('Test') == name and event.get('Action') in ('pass', 'fail', 'skip')]
+              if len(runs) != 1 or runs[0].get('Package') != package or outcomes != [(package, 'pass')]:
+                  raise RuntimeError('original observer test did not execute and pass uniquely: ' + name)
+          for package in {package for package, _ in observer_required}:
+              outcomes = [event['Action'] for event in events if event.get('Package') == package and 'Test' not in event and event.get('Action') in ('pass', 'fail', 'skip')]
+              if not outcomes or any(outcome != 'pass' for outcome in outcomes) or (package != 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus' and outcomes != ['pass']):
+                  raise RuntimeError('original observer package did not pass: ' + package)
+          if any(event.get('Action') in ('fail', 'build-fail') or (event.get('Action') == 'skip' and event.get('Test', '').startswith(('TestPQObserver', 'TestObserverCLI', 'TestObserverNode', 'TestObserverStatus'))) for event in events):
+              raise RuntimeError('observer stream failed or an observer child skipped')
+          print('YNX_PQ_OBSERVER_FORK_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=observer_required, nodeStarted=False, liveSyncVerified=False, independentFinalityVerified=False, nativeGrant=False), sort_keys=True))
+          PY
+      - name: Verify original Auth r2 cross-process Current4 DATA interoperability
+        id: current4authinterop
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 5
+        run: bash scripts/verify/current4-auth-r2-interop-check.sh "$RUNNER_TEMP/ynx-current4-auth-r2-interop"
+      - name: Retain only public Current4 Auth r2 joint evidence
+        if: ${{ !cancelled() && (steps.current4authinterop.outcome == 'success' || steps.current4authinterop.outcome == 'failure') }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-current4-auth-r2-interop-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ynx-current4-auth-r2-interop/RESULT.json
+            ${{ runner.temp }}/ynx-current4-auth-r2-interop/FAILURE.json
+            ${{ runner.temp }}/ynx-current4-auth-r2-interop/COMPILE.result.json
+            ${{ runner.temp }}/ynx-current4-auth-r2-interop/COMPILE.stdout
+            ${{ runner.temp }}/ynx-current4-auth-r2-interop/COMPILE.stderr
+            ${{ runner.temp }}/ynx-current4-auth-r2-interop/GO.result.json
+            ${{ runner.temp }}/ynx-current4-auth-r2-interop/GO.stdout
+            ${{ runner.temp }}/ynx-current4-auth-r2-interop/GO.stderr
+          if-no-files-found: error
+          retention-days: 7
+
   protocol-delivery:
-    needs: [focused-go, caddy-source]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success'
+    needs: [focused-go, caddy-source, detached-source-checks]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success' && needs.detached-source-checks.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     env:

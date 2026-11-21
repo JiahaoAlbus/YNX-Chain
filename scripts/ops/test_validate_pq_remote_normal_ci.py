@@ -2212,7 +2212,7 @@ def assert_workflow_contract(raw):
     mac_job, _ = workflow_steps(raw, "proof-verifier-macos")
     push_condition = ("github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || "
                       "github.ref == 'refs/heads/codex/ynx-pq-perf-integration')")
-    need(re.findall(r"(?m)^    needs: (.+)$", delivery_job) == ["[focused-go, caddy-source]"]
+    need(re.findall(r"(?m)^    needs: (.+)$", delivery_job) == ["[focused-go, caddy-source, detached-source-checks]"]
          and "    timeout-minutes: 12\n" in delivery_job)
     # One build-cache shape covers the original tests and later pinned ELFs.
     # Neither a step nor a command may silently restore the duplicate shape.
@@ -2220,7 +2220,7 @@ def assert_workflow_contract(raw):
     need("GOFLAGS=" not in delivery_job and "          GOFLAGS:" not in delivery_job)
     need("continue-on-error:" not in delivery_job)
     need(re.findall(r"(?m)^    if: (.+)$", delivery_job) == [push_condition
-         + " && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success'"])
+         + " && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success' && needs.detached-source-checks.result == 'success'"])
     # Caddy's source-only controls run independently once. Delivery consumes
     # their actual successful job result rather than replaying the old guard.
     caddy_job, caddy_steps = workflow_steps(raw, "caddy-source")
@@ -2275,7 +2275,11 @@ def assert_workflow_contract(raw):
     need("    needs: protocol-delivery\n" in mac_job and "    timeout-minutes: 12\n" in mac_job)
     need("    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')\n" in mac_job)
     need("          ref: ${{ github.sha }}\n" in delivery_job and "          ref: ${{ github.sha }}\n" in mac_job)
-    combined = steps + delivery_steps
+    detached_job, detached_steps = workflow_steps(raw, 'detached-source-checks')
+    need('    timeout-minutes: 8\n' in detached_job and 'continue-on-error:' not in detached_job)
+    need('          ref: ${{ github.sha }}\n' in detached_job)
+    need("test \"$(git rev-parse HEAD)\" = '${{ github.sha }}'" in detached_job)
+    combined = steps + delivery_steps + detached_steps
     by_name = lambda name: [step for step in combined if step.startswith("      - name: " + name + "\n")]
     copy_controls = by_name("Verify original-copy observation controls without touching the original case")
     need(len(copy_controls) == 1 and copy_controls[0] in steps)
@@ -3776,8 +3780,9 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             raw.replace(guard, guard.replace("!cancelled() && steps.source.outcome == 'success'", "false", 1), 1),
             raw.replace(guard, guard.replace("steps.source.outcome == 'success'", "true", 1), 1),
             raw.replace(guard, guard + guard, 1),
-            raw.replace(delivery, delivery.replace("    needs: [focused-go, caddy-source]\n", "    needs: focused-go\n", 1), 1),
-            raw.replace(delivery, delivery.replace("    needs: [focused-go, caddy-source]\n", "    needs: caddy-source\n", 1), 1),
+            raw.replace(delivery, delivery.replace("    needs: [focused-go, caddy-source, detached-source-checks]\n", "    needs: focused-go\n", 1), 1),
+            raw.replace(delivery, delivery.replace("    needs: [focused-go, caddy-source, detached-source-checks]\n", "    needs: caddy-source\n", 1), 1),
+            raw.replace(delivery, delivery.replace(" && needs.detached-source-checks.result == 'success'", "", 1), 1),
             raw.replace(delivery, delivery.replace(" && needs.focused-go.result == 'success'", "", 1), 1),
             raw.replace(delivery, delivery.replace(" && needs.caddy-source.result == 'success'", "", 1), 1),
             raw.replace(delivery, delivery.replace("needs.caddy-source.result == 'success'", "needs.caddy-source.result != 'failure'", 1), 1),
@@ -4995,6 +5000,58 @@ class HeldSessionCIControls(unittest.TestCase):
         for action in ('fail','skip','build-fail'):
             with self.assertRaises(RuntimeError):scope['qualify_prepared_trust'](rows[:3]+[dict(rows[3],Action=action)]+rows[4:])
 
+
+class IndependentSourceChecksControls(unittest.TestCase):
+    def assert_detached_gate(self, raw):
+        focused, _ = workflow_steps(raw, 'focused-go')
+        detached, steps = workflow_steps(raw, 'detached-source-checks')
+        delivery, _ = workflow_steps(raw, 'protocol-delivery')
+        route = r'(?m)^    if: (.+)$'
+        self.assertEqual(re.findall(route, detached), re.findall(route, focused))
+        self.assertIn('    needs: detached-source-checks\n', focused)
+        focus_identity = [s for s in workflow_steps(raw, 'focused-go')[1] if s.startswith('      - name: Record exact candidate identity\n')]
+        detached_identity = [s for s in steps if s.startswith('      - name: Record exact candidate identity\n')]
+        self.assertEqual(len(focus_identity), 1)
+        self.assertEqual(detached_identity, focus_identity)
+        original = ('Reproduce and repair real Commit and engine checkpoint read ordering',
+                    'Verify explicit ordinary observer fork role without starting a node',
+                    'Verify original Auth r2 cross-process Current4 DATA interoperability',
+                    'Retain only public Current4 Auth r2 joint evidence')
+        for name in original:
+            self.assertNotIn('name: ' + name, focused)
+            self.assertEqual(sum('name: ' + name in step for step in steps), 1, name)
+        self.assertIn("ref: ${{ github.sha }}", detached)
+        self.assertIn("test \"$(git rev-parse HEAD)\" = '${{ github.sha }}'", detached)
+        self.assertIn('    timeout-minutes: 8\n', detached)
+        self.assertNotIn('continue-on-error:', detached)
+        self.assertIn('    needs: [focused-go, caddy-source, detached-source-checks]\n', delivery)
+        self.assertIn("needs.detached-source-checks.result == 'success'", delivery)
+        for name in original[:3]:
+            body = next(step for step in steps if step.startswith('      - name: ' + name + '\n'))
+            self.assertIn("!cancelled() && steps.identity.outcome == 'success'", body)
+            self.assertNotIn('continue-on-error:', body)
+        upload = next(step for step in steps if step.startswith('      - name: Retain only public Current4 Auth r2 joint evidence\n'))
+        self.assertIn("steps.current4authinterop.outcome == 'failure'", upload)
+        self.assertIn('if-no-files-found: error', upload)
+
+    def test_detached_original_checks_gate_delivery(self):
+        raw = (Path(__file__).resolve().parents[2] / '.github/workflows/resource-market-ci.yml').read_text()
+        self.assert_detached_gate(raw)
+        detached, _ = workflow_steps(raw, 'detached-source-checks')
+        mutations = [
+            raw.replace(detached, detached.replace('    if: ', '    if: false # ', 1), 1),
+            raw.replace(detached, detached.replace('          ref: ${{ github.sha }}', '          ref: main', 1), 1),
+            raw.replace(detached, detached.replace('    timeout-minutes: 8\n', '    timeout-minutes: 8\n    continue-on-error: true\n', 1), 1),
+            raw.replace(detached, detached.replace("!cancelled() && steps.identity.outcome == 'success'", 'true', 1), 1),
+            raw.replace(detached, detached.replace("steps.current4authinterop.outcome == 'failure'", 'false', 1), 1),
+            raw.replace(" && needs.detached-source-checks.result == 'success'", '', 1),
+            raw.replace('    needs: [focused-go, caddy-source, detached-source-checks]', '    needs: [focused-go, caddy-source]', 1),
+            raw.replace('  focused-go:\n    needs: detached-source-checks\n', '  focused-go:\n', 1),
+        ]
+        for index, changed in enumerate(mutations):
+            self.assertNotEqual(changed, raw)
+            with self.subTest(index=index), self.assertRaises(AssertionError):
+                self.assert_detached_gate(changed)
 
 if __name__ == "__main__":
     unittest.main()

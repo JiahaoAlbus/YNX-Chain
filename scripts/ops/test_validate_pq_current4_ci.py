@@ -60,9 +60,12 @@ FALSE_FLAGS = ("sourceQualified", "sourceGrant", "nativeGrant", "independentFina
 
 
 def step(raw, name):
-    jobs = re.findall(r"(?ms)^  focused-go:\n(.*?)(?=^  [a-zA-Z][a-zA-Z0-9_-]*:\n|\Z)", raw)
+    job = ('detached-source-checks' if name in (
+        'Verify original Auth r2 cross-process Current4 DATA interoperability',
+        'Retain only public Current4 Auth r2 joint evidence') else 'focused-go')
+    jobs = re.findall(r"(?ms)^  " + re.escape(job) + r":\n(.*?)(?=^  [a-zA-Z][a-zA-Z0-9_-]*:\n|\Z)", raw)
     if len(jobs) != 1:
-        raise AssertionError("one original focused-go job required")
+        raise AssertionError("one original source job required: " + job)
     found = re.findall(r"(?ms)^      - name: " + re.escape(name) + r"\n(.*?)(?=^      - |\Z)", jobs[0])
     if len(found) != 1:
         raise AssertionError("one original step required: " + name)
