@@ -154,7 +154,7 @@ func capturePQEngineState(path string) (_ *pqEngineStateRead, result error) {
 	}
 	// The known-size limit detects growth without an unbounded read. Atomic
 	// JSON keeps its existing layout's size policy; journal caps are unchanged.
-	r.data, err = io.ReadAll(io.LimitReader(f, r.info.Size()+1))
+	r.data, err = readPQEngineStateBytes(f, r.info.Size())
 	if err != nil {
 		return nil, err
 	}
@@ -167,6 +167,37 @@ func capturePQEngineState(path string) (_ *pqEngineStateRead, result error) {
 		return nil, errors.New("committed source was replaced during read")
 	}
 	return r, nil
+}
+
+// readPQEngineStateBytes preserves ReadAll(LimitReader(size+1)) semantics while
+// reserving the known original size once up to a bounded allocation. Larger
+// originals keep the prior incremental read: a stale large stat followed by
+// immediate EOF or I/O failure must not allocate the whole absent file. This
+// threshold is not a source acceptance limit. The extra byte is still the growth
+// sentinel; callers must check the original file metadata and exact length.
+// A short EOF remains a successful byte read (and fails the caller's identity
+// check), while any non-EOF I/O error, including one returned with bytes, wins.
+func readPQEngineStateBytes(source io.Reader, size int64) ([]byte, error) {
+	maxInt := int64(int(^uint(0) >> 1))
+	if size < 0 || size >= maxInt {
+		return nil, errors.New("committed source size cannot fit its bounded read")
+	}
+	if size >= 8<<20 {
+		return io.ReadAll(io.LimitReader(source, size+1))
+	}
+	data := make([]byte, int(size)+1)
+	read := 0
+	for read < len(data) {
+		n, err := source.Read(data[read:])
+		read += n
+		if err != nil {
+			if err == io.EOF {
+				err = nil
+			}
+			return data[:read], err
+		}
+	}
+	return data, nil
 }
 
 func readPQEngineCommittedState(path string, migration chain.ConsensusMigrationState, bootstrap *ConsensusBootstrap, engine *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization) (CommittedState, error) {
