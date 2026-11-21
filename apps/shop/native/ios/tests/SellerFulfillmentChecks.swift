@@ -183,6 +183,7 @@ final class FulfillmentHTTP:URLProtocol,@unchecked Sendable {
         model.recoverOriginals(for:current.ID);let stockLookup=try await take("seller/mutations/lookup");try lookup(stockLookup,stockRecord,first);try await until{!model.busy}
         let afterStock=model.orders.first(where:{$0.ID==current.ID})!
         try check(!model.canRestockReturn(afterStock,afterStock.ReturnReceipts!.first!) && afterStock.remainingReturnItems?.first?.Quantity=="1","restock readback neither re-receives goods nor repeats stock")
+        try check(!model.canRestockReturn(current,receipt) && !model.canReceiveReturn(current),"warehouse actions reject stale pre-restock order snapshots")
 
         // Recovery of an earlier decision must ignore later warehouse events
         // whose status is still return_approved.

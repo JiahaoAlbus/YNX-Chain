@@ -74,10 +74,10 @@ import SwiftUI
     }
     func pendingOperations(for target:String)->[SellerPendingOperation]{pendingOperations.filter{$0.storeID==selectedStoreID && $0.target==target}}
     func canReceiveReturn(_ order:SellerOrder)->Bool {
-        can("fulfillment.write") && order.StoreID==selectedStoreID && orders.contains(where:{$0.ID==order.ID && $0.StoreID==selectedStoreID}) && !hasPending(order.ID) && order.Shipment != nil && order.hasOriginalPaidRecord && !order.approvedReturnIDs.isEmpty && !(order.remainingReturnItems ?? []).isEmpty
+        exactCurrentOrder(order) && can("fulfillment.write") && !hasPending(order.ID) && order.Shipment != nil && order.hasOriginalPaidRecord && !order.approvedReturnIDs.isEmpty && !(order.remainingReturnItems ?? []).isEmpty
     }
     func canRestockReturn(_ order:SellerOrder,_ receipt:SellerReturnReceipt)->Bool {
-        can("inventory.write") && order.StoreID==selectedStoreID && orders.contains(where:{$0.ID==order.ID && $0.StoreID==selectedStoreID}) && !hasPending(order.ID) && order.Shipment != nil && order.hasOriginalPaidRecord && order.remainingReturnItems != nil && (order.ReturnReceipts ?? []).contains(where:{$0.ID==receipt.ID && $0.RestockedAt==nil}) && receipt.RestockedAt==nil
+        exactCurrentOrder(order) && can("inventory.write") && !hasPending(order.ID) && order.Shipment != nil && order.hasOriginalPaidRecord && order.remainingReturnItems != nil && (order.ReturnReceipts ?? []).contains(where:{$0.ID==receipt.ID && $0.RestockedAt==nil}) && receipt.RestockedAt==nil
     }
     private func currentOrder(_ order:SellerOrder)->Bool {
         signedIn && session==api.currentSession && order.StoreID==selectedStoreID && orders.contains(where:{$0.ID==order.ID && $0.StoreID==order.StoreID && $0.PayIntentID==order.PayIntentID && $0.InvoiceID==order.InvoiceID && $0.PayMerchant==order.PayMerchant})
