@@ -218,6 +218,17 @@ class WalletPolicyCIControls(unittest.TestCase):
             packages *= 5  # Five disjoint bounded processes, each original case once.
         if kind == "cli":
             proof_package = MODULE + "cmd/ynx-consensus-proof-verify"
+            portable = (
+                "TestPortableImportLargeMigrationAndExactBound",
+                "TestPortableImportMigrationMismatchPreservesPartialWithoutReceipt",
+                "TestPortableImportMigrationOriginalReplacementFailsClosed",
+                "TestPortableActualWriteAndCloseFailuresPreserveOriginals",
+                "TestPortableSpacePreflightAndDurabilityFailuresAreNotSuccess",
+                "TestPortableDiagnoseReportsMissingWithoutAuthority",
+                "TestPortableCatalogAdmitsOriginal448941MigrationLength",
+            )
+            events += [dict(Action=action, Package=proof_package, Test=name)
+                       for name in portable for action in ("run", "pass")]
             proof_top = "TestProofVerifierPreparedTrustPUBLICSameInvocationAndFirstCause"
             events += [dict(Action="start", Package=proof_package)]
             events += [dict(Action=action, Package=proof_package, Test=name)

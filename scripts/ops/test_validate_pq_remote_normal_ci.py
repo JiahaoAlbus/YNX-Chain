@@ -2540,6 +2540,15 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
         path = Path(__file__).resolve().parents[2] / '.github/workflows/resource-market-ci.yml'
         self.assertLessEqual(path.stat().st_size, 500 * 1024)
 
+    def test_extracted_controls_trigger_push_and_pull_request(self):
+        path = Path(__file__).resolve().parents[2] / '.github/workflows/resource-market-ci.yml'
+        raw = path.read_text()
+        push = raw.split('  push:\n', 1)[1].split('  pull_request:\n', 1)[0]
+        pr = raw.split('  pull_request:\n', 1)[1].split('  workflow_dispatch:', 1)[0]
+        for section in (push, pr):
+            for name in ('pq-clock-ab-ci.sh', 'pq-enrollment-command-ci.sh', 'qualify_pq_portable_ci.py'):
+                self.assertEqual(section.count("      - 'scripts/verify/" + name + "'\n"), 1)
+
 
     def test_cutover_caller_partitions_keep_exact_program_order_scope_and_deadlines(self):
         raw = (Path(__file__).resolve().parents[2] / ".github/workflows/resource-market-ci.yml").read_text()
@@ -5061,11 +5070,15 @@ class IndependentSourceChecksControls(unittest.TestCase):
         if len(compare) != 1:
             raise AssertionError('same-source synthetic on/off measurement required')
         compare = compare[0]
-        for part in ("        id: syntheticclockab\n", "!cancelled() && steps.identity.outcome == 'success'", '        timeout-minutes: 3\n',
+        for part in ("        id: syntheticclockab\n", "!cancelled() && steps.identity.outcome == 'success'", '        timeout-minutes: 3\n', '        run: bash scripts/verify/pq-clock-ab-ci.sh\n'):
+            if compare.count(part) != 1:
+                raise AssertionError('same-source real synthetic A/B execution or rejection missing')
+        compare_script = (Path(__file__).resolve().parents[2] / 'scripts/verify/pq-clock-ab-ci.sh').read_text()
+        for part in (
                      "go test -mod=readonly -tags=ynx_clock_diagnostic -json -p 1 -count=1 -timeout=90s -run '^(TestSyntheticClockFinalizeOverheadIndependent|TestSyntheticClockMedianPreservesPairedOrder)$' ./cmd/ynx-comet",
                      "order_name = 'TestSyntheticClockMedianPreservesPairedOrder'", "synthetic paired sample preservation test missing, foreign or repeated",
                      "if any(e.get('Action') in ('skip', 'fail', 'build-fail') for e in events):", "independentFinality=false"):
-            if compare.count(part) != 1:
+            if compare_script.count(part) != 1:
                 raise AssertionError('same-source real synthetic A/B execution or rejection missing')
         compare_upload = [x for x in steps if x.startswith('      - name: Retain original synthetic clock A B test events\n')]
         if (len(compare_upload) != 1 or "!cancelled() && steps.syntheticclockab.outcome != 'skipped'" not in compare_upload[0] or
@@ -5251,6 +5264,48 @@ class ChainLabSplitCIControls(unittest.TestCase):
 
 
 class EnrollmentVerifierProductionCIControls(unittest.TestCase):
+    def test_portable_originals_are_required_without_relabeling_fixture_skips(self):
+        import runpy
+        root = Path(__file__).resolve().parents[2]
+        raw = (root / '.github/workflows/resource-market-ci.yml').read_text()
+        qualifier = runpy.run_path(str(root / 'scripts/verify/qualify_pq_portable_ci.py'))
+        self.assertIn("runpy.run_path('scripts/verify/qualify_pq_portable_ci.py')['qualify'](events)", raw)
+        names = qualifier['REQUIRED']
+        self.assertEqual(len(names), 7)
+        package = qualifier['PACKAGE']
+        rows = [dict(Package=package, Test=name, Action=action) for name in names for action in ('run', 'pass')]
+        rows.append(dict(Package=package, Test='TestProofHostFromOriginalSignedPublicFixture', Action='skip'))
+        self.assertEqual(qualifier['qualify'](rows), list(names))
+        for i in range(0, 14, 2):
+            for bad in (rows[:i] + rows[i+1:], rows + [rows[i]], [dict(row, Package='foreign') if j == i else row for j, row in enumerate(rows)], rows + [dict(Package=package, Test=names[i//2] + '/child', Action='skip')]):
+                with self.assertRaises(RuntimeError):
+                    qualifier['qualify'](bad)
+        for name in ('TestTransactionProofInitialPreparedFundingOriginalCLI', 'TestProofHostSelectionNormalCommandRetainedFixture', 'TestProofHostFromOriginalSignedPublicFixture'):
+            self.assertIn("-run '^" + name + "$'", raw)
+            self.assertIn("test \"$(grep -F -c -- '--- PASS: " + name + " ('", raw)
+
+    def test_late_fixture_receipts_reject_skip_missing_and_duplicate(self):
+        import os, subprocess, tempfile, textwrap
+        root = Path(__file__).resolve().parents[2]
+        raw = (root / '.github/workflows/resource-market-ci.yml').read_text()
+        _, steps = workflow_steps(raw, 'protocol-delivery')
+        for name in ('TestTransactionProofInitialPreparedFundingOriginalCLI', 'TestProofHostSelectionNormalCommandRetainedFixture', 'TestProofHostFromOriginalSignedPublicFixture'):
+            step = next(s for s in steps if "-run '^" + name + "$'" in s)
+            program = textwrap.dedent(step.split('        run: |\n', 1)[1])
+            good = ('--- PASS: ' + name + ' (0.01s)\n'
+                    'PQ_INITIAL_FUNDED_TRANSACTION_CLI_VERIFIED_DATA_ONLY\n'
+                    'PROOF_HOST_SOURCE_SELECTED_DATA_ONLY exact4=true normalAcquireCurrent=true revocationUnchanged=true RootGrant=false\n')
+            with tempfile.TemporaryDirectory(prefix='ynx-portable-fixture-control-') as directory:
+                fake = Path(directory) / 'go'
+                fake.write_text('#!/bin/sh\ncat "$YNX_FAKE_GO_OUTPUT"\n')
+                fake.chmod(0o700)
+                output = Path(directory) / 'output'
+                env = dict(os.environ, PATH=directory + os.pathsep + os.environ['PATH'], RUNNER_TEMP=directory, YNX_FAKE_GO_OUTPUT=str(output))
+                for payload, success in ((good, True), ('--- SKIP: ' + name + ' (0.00s)\n', False), (good + '--- PASS: ' + name + ' (0.01s)\n', False), (good + '    --- SKIP: ' + name + '/child (0.00s)\n', False)):
+                    output.write_text(payload)
+                    result = subprocess.run(['/bin/bash', '-e', '-c', program], env=env, capture_output=True, text=True, timeout=10)
+                    self.assertEqual(result.returncode == 0, success, (name, result.stderr))
+
     def test_original_workflow_section_selectors_keep_boundaries(self):
         import re, textwrap
         root = Path(__file__).resolve().parents[2]
@@ -5284,8 +5339,10 @@ class EnrollmentVerifierProductionCIControls(unittest.TestCase):
         self.assertIn("('github.com/JiahaoAlbus/YNX-Chain/internal/consensus', '" + core + "')", chain)
         self.assertIn("('github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-pq-lab', '" + command + "')", chain)
         self.assertIn("recovery_name = '" + core + "'", resource)
-        self.assertIn("-run '^" + command + "$' ./cmd/ynx-consensus-pq-lab", resource)
-        self.assertIn("command_name = '" + command + "'", resource)
+        self.assertIn('run: bash scripts/verify/pq-enrollment-command-ci.sh', resource)
+        command_script = (root / 'scripts/verify/pq-enrollment-command-ci.sh').read_text()
+        self.assertIn("-run '^" + command + "$' ./cmd/ynx-consensus-pq-lab", command_script)
+        self.assertIn("command_name = '" + command + "'", command_script)
 
     def test_recovery_receipts_reject_missing_foreign_duplicates_and_skips(self):
         import textwrap
@@ -5309,9 +5366,10 @@ class EnrollmentVerifierProductionCIControls(unittest.TestCase):
                 exec(chain_code, {'rows': bad})
             with self.assertRaises(RuntimeError):
                 exec(core_code, {'events': bad})
-        begin = resource.index("          package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-pq-lab'", resource.index('      - name: Verify original enrollment command recovery and refusals'))
-        end = resource.index('          PY\n', begin)
-        command_code = compile(textwrap.dedent(resource[begin:end]), '<resource-command-receipt>', 'exec')
+        command_script = (root / 'scripts/verify/pq-enrollment-command-ci.sh').read_text()
+        begin = command_script.index("package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-pq-lab'")
+        end = command_script.index('PY\n', begin)
+        command_code = compile(command_script[begin:end], '<resource-command-receipt>', 'exec')
         cmd_package = package + 'cmd/ynx-consensus-pq-lab'
         events = [dict(Package=cmd_package, Action='start')] + rows[2:] + [dict(Package=cmd_package, Action='pass')]
         exec(command_code, {'events': events})

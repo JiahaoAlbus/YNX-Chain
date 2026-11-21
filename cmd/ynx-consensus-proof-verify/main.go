@@ -87,6 +87,9 @@ func run(args []string, input io.Reader, output io.Writer, localClock func() tim
 	if isPortableImportInvocation(args) {
 		return runPortableImport(args, output)
 	}
+	if len(args) > 0 && args[0] == "portable-diagnose" {
+		return runPortableDiagnose(args, output)
+	}
 	if isHostSourceSelectionInvocation(args) {
 		return runHostSourceSelection(args, input, output)
 	}

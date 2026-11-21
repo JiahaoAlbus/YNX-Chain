@@ -7,6 +7,9 @@ on:
       - 'codex/ynx-pq-public-upgrade'
       - 'codex/ynx-pq-perf-integration'
     paths:
+      - 'scripts/verify/pq-clock-ab-ci.sh'
+      - 'scripts/verify/pq-enrollment-command-ci.sh'
+      - 'scripts/verify/qualify_pq_portable_ci.py'
       - 'packages/ynx-batch-v01/**'
       - 'internal/ynxbatch/**'
       - 'internal/ynxresourceconsent/**'
@@ -201,6 +204,9 @@ on:
       - 'packages/wallet-auth/native/source-parent/**'
   pull_request:
     paths:
+      - 'scripts/verify/pq-clock-ab-ci.sh'
+      - 'scripts/verify/pq-enrollment-command-ci.sh'
+      - 'scripts/verify/qualify_pq_portable_ci.py'
       - 'scripts/ops/export-core-verification-source.py'
       - 'scripts/ops/test_export_core_verification_source.py'
       - 'scripts/ops/remote/public-bft-final-snapshot.sh'
@@ -2220,6 +2226,9 @@ jobs:
               return [name]
           prepared_trust_passed = qualify_prepared_trust(events)
           print('PREPARED_TRUST_OWNER_DATA_ONLY ' + json.dumps(dict(requiredPassed=prepared_trust_passed, sourceQualified=False), sort_keys=True))
+          import runpy
+          portable_passed = runpy.run_path('scripts/verify/qualify_pq_portable_ci.py')['qualify'](events)
+          print('PORTABLE_VERIFIER_TESTS_DATA_ONLY ' + json.dumps(dict(requiredPassed=portable_passed, sourceQualified=False), sort_keys=True))
           def qualify_enrollment_cli(rows):
               package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-proof-verify'
               name = 'TestPQLabEnrollmentVerifierNormalEntryAndOriginalRefusals'
@@ -2819,33 +2828,7 @@ jobs:
         id: syntheticclockab
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
-        run: |
-          set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          if ! go test -mod=readonly -tags=ynx_clock_diagnostic -json -p 1 -count=1 -timeout=90s -run '^(TestSyntheticClockFinalizeOverheadIndependent|TestSyntheticClockMedianPreservesPairedOrder)$' ./cmd/ynx-comet > "$RUNNER_TEMP/ynx-clock-ab-tests.jsonl"; then
-            cat "$RUNNER_TEMP/ynx-clock-ab-tests.jsonl"
-            exit 1
-          fi
-          cat "$RUNNER_TEMP/ynx-clock-ab-tests.jsonl"
-          python3 -B - <<'PY'
-          import json, os
-          from pathlib import Path
-          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-clock-ab-tests.jsonl').read_text().splitlines()]
-          package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet'
-          name = 'TestSyntheticClockFinalizeOverheadIndependent'
-          if any(e.get('Action') in ('skip', 'fail', 'build-fail') for e in events):
-              raise RuntimeError('synthetic A/B test failed or skipped')
-          if [e['Action'] for e in events if e.get('Package') == package and not e.get('Test') and e.get('Action') in ('start', 'pass', 'fail', 'skip')] != ['start', 'pass']:
-              raise RuntimeError('synthetic A/B package did not pass exactly once')
-          if [(e.get('Package'), e['Action']) for e in events if e.get('Test') == name and e.get('Action') in ('run', 'pass', 'fail', 'skip')] != [(package, 'run'), (package, 'pass')]:
-              raise RuntimeError('synthetic A/B test missing, foreign or repeated')
-          order_name = 'TestSyntheticClockMedianPreservesPairedOrder'
-          if [(e.get('Package'), e['Action']) for e in events if e.get('Test') == order_name and e.get('Action') in ('run', 'pass', 'fail', 'skip')] != [(package, 'run'), (package, 'pass')]:
-              raise RuntimeError('synthetic paired sample preservation test missing, foreign or repeated')
-          lines = [e.get('Output', '') for e in events if e.get('Package') == package and e.get('Test') == name and 'SYNTHETIC_CLOCK_FINALIZE_AB/v1' in e.get('Output', '')]
-          if len(lines) != 1 or 'source=' + os.environ['GITHUB_SHA'] not in lines[0] or 'independentFinality=false' not in lines[0]:
-              raise RuntimeError('synthetic same-source A/B result missing')
-          PY
+        run: bash scripts/verify/pq-clock-ab-ci.sh
       - name: Retain original synthetic clock A B test events
         if: ${{ !cancelled() && steps.syntheticclockab.outcome != 'skipped' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -4483,23 +4466,7 @@ jobs:
       - name: Verify original enrollment command recovery and refusals
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
-        run: |
-          set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          if ! go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run '^TestPQLabEnrollmentOriginalCommandColdRecoveryAndRefusals$' ./cmd/ynx-consensus-pq-lab > "$RUNNER_TEMP/ynx-enrollment-command-tests.jsonl"; then
-            cat "$RUNNER_TEMP/ynx-enrollment-command-tests.jsonl"
-            exit 1
-          fi
-          cat "$RUNNER_TEMP/ynx-enrollment-command-tests.jsonl"
-          python3 -B - <<'PY'
-          import json, os
-          from pathlib import Path
-          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-enrollment-command-tests.jsonl').read_text().splitlines()]
-          package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-pq-lab'
-          command_name = 'TestPQLabEnrollmentOriginalCommandColdRecoveryAndRefusals'
-          if any(e.get('Action') in ('skip', 'fail', 'build-fail') for e in events) or [e['Action'] for e in events if e.get('Package') == package and not e.get('Test') and e.get('Action') in ('start', 'pass', 'fail', 'skip')] != ['start', 'pass'] or [(e.get('Package'), e['Action']) for e in events if e.get('Test') == command_name and e.get('Action') in ('run', 'pass', 'skip', 'fail')] != [(package, 'run'), (package, 'pass')]:
-              raise RuntimeError('original enrollment command incomplete, skipped or foreign')
-          PY
+        run: bash scripts/verify/pq-enrollment-command-ci.sh
       - name: Reproduce and repair real Commit and engine checkpoint read ordering
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
@@ -4683,7 +4650,8 @@ jobs:
         run: |
           set -euo pipefail
           go test -p 1 -count=1 -timeout=90s -v -run '^TestTransactionProofInitialPreparedFundingOriginalCLI$' ./cmd/ynx-consensus-proof-verify | tee "$RUNNER_TEMP/ynx-initial-funded-proof-cli.log"
-          grep -F -- '--- PASS: TestTransactionProofInitialPreparedFundingOriginalCLI (' "$RUNNER_TEMP/ynx-initial-funded-proof-cli.log"
+          test "$(grep -F -c -- '--- PASS: TestTransactionProofInitialPreparedFundingOriginalCLI (' "$RUNNER_TEMP/ynx-initial-funded-proof-cli.log")" -eq 1
+          if grep -E '^[[:space:]]*--- (FAIL|SKIP):' "$RUNNER_TEMP/ynx-initial-funded-proof-cli.log"; then exit 1; fi
           test "$(grep -F -c 'PQ_INITIAL_FUNDED_TRANSACTION_CLI_VERIFIED_DATA_ONLY' "$RUNNER_TEMP/ynx-initial-funded-proof-cli.log")" -eq 1
       - name: Verify complete large original migration through normal package and cold recovery
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && steps.identity.outcome == 'success') }}
@@ -4715,7 +4683,8 @@ jobs:
         run: |
           set -euo pipefail
           go test -p 1 -count=1 -timeout=90s -v -run '^TestProofHostSelectionNormalCommandRetainedFixture$' ./cmd/ynx-consensus-proof-verify | tee "$RUNNER_TEMP/ynx-proof-host-source-select.log"
-          grep -F -- '--- PASS: TestProofHostSelectionNormalCommandRetainedFixture (' "$RUNNER_TEMP/ynx-proof-host-source-select.log"
+          test "$(grep -F -c -- '--- PASS: TestProofHostSelectionNormalCommandRetainedFixture (' "$RUNNER_TEMP/ynx-proof-host-source-select.log")" -eq 1
+          if grep -E '^[[:space:]]*--- (FAIL|SKIP):' "$RUNNER_TEMP/ynx-proof-host-source-select.log"; then exit 1; fi
           grep -F -- 'PROOF_HOST_SOURCE_SELECTED_DATA_ONLY exact4=true normalAcquireCurrent=true revocationUnchanged=true RootGrant=false' "$RUNNER_TEMP/ynx-proof-host-source-select.log"
       - name: Verify stopped proof target command with the retained original Host fixture
         id: pqprooftargetcmd
@@ -4733,7 +4702,11 @@ jobs:
         timeout-minutes: 2
         env:
           YNX_PQ_HOST_PUBLIC_FIXTURE: ${{ runner.temp }}/ynx-pq-consensus-transaction-proof-public.json
-        run: go test -p 1 -count=1 -timeout=90s -run '^TestProofHostFromOriginalSignedPublicFixture$' ./cmd/ynx-consensus-proof-verify
+        run: |
+          set -euo pipefail
+          go test -p 1 -count=1 -timeout=90s -v -run '^TestProofHostFromOriginalSignedPublicFixture$' ./cmd/ynx-consensus-proof-verify | tee "$RUNNER_TEMP/ynx-proof-host-signed.log"
+          test "$(grep -F -c -- '--- PASS: TestProofHostFromOriginalSignedPublicFixture (' "$RUNNER_TEMP/ynx-proof-host-signed.log")" -eq 1
+          if grep -E '^[[:space:]]*--- (FAIL|SKIP):' "$RUNNER_TEMP/ynx-proof-host-signed.log"; then exit 1; fi
       - name: Build and pin normal signer process binaries without running them
         id: pqremotebuild
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.remote_signer_process && inputs.candidate_sha == github.sha))) }}

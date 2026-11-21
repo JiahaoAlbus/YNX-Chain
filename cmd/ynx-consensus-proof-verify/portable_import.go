@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -26,8 +27,16 @@ const (
 	portableResultVersion  = "YNX-CONSENSUS-PROOF-PORTABLE-IMPORT/v1"
 	// DATA transport limits; these do not change any transaction, proof or
 	// normal verifier admission rule. Originals exceeding them are not imported.
-	maxPortableFileBytes  = 64 << 20
-	maxPortableTotalBytes = 256 << 20
+	maxPortableFileBytes      = 64 << 20
+	maxPortableMigrationBytes = 1 << 30 // same bound as the normal verifier
+	maxPortableOtherBytes     = 256 << 20
+	maxPortableTotalBytes     = maxPortableMigrationBytes + maxPortableOtherBytes
+	portableMetadataAllowance = 1 << 20
+	// Existing local-window admission keeps a 1 GiB free floor and a 425 MiB
+	// root reserve. This DATA writer uses the same conservative safety margin;
+	// Statfs is a point-in-time check, not a reservation against other writers.
+	portableFreeFloorBytes   = 1 << 30
+	portableRootReserveBytes = 425 << 20
 )
 
 var portableOriginalPaths = []string{
@@ -184,7 +193,7 @@ func decodePortableCatalog(raw []byte, runtime bool) (portableFileCatalog, error
 	if err = json.Unmarshal(fields["files"], &rows); err != nil {
 		return c, err
 	}
-	var total uint64
+	var total, other uint64
 	for i, row := range c.Files {
 		if err = strictStringObject(rows[i], &c.Files[i]); err != nil {
 			return c, err
@@ -192,12 +201,19 @@ func decodePortableCatalog(raw []byte, runtime bool) (portableFileCatalog, error
 		if row.Path != want[i] {
 			return c, errors.New("catalog paths must be the closed sorted public set")
 		}
-		n, e := decimal(row.Bytes, maxPortableFileBytes, true)
+		limit := uint64(maxPortableFileBytes)
+		if row.Path == "context/migration.json" {
+			limit = maxPortableMigrationBytes
+		}
+		n, e := decimal(row.Bytes, limit, true)
 		if e != nil {
 			return c, e
 		}
 		total += n
-		if total > maxPortableTotalBytes {
+		if row.Path != "context/migration.json" {
+			other += n
+		}
+		if total > maxPortableTotalBytes || other > maxPortableOtherBytes {
 			return c, errors.New("portable DATA total exceeds bound")
 		}
 		if _, err = hash32(row.SHA256); err != nil {
@@ -348,8 +364,7 @@ func newPortableOutput(path string) (*portableOutput, error) {
 	opened, e2 := root.Stat()
 	parentNow, e3 := os.Lstat(filepath.Dir(path))
 	if e != nil || e2 != nil || e3 != nil || !os.SameFile(opened, current) || !os.SameFile(parent, parentNow) {
-		root.Close()
-		return nil, errors.New("output directory identity changed")
+		return nil, errors.Join(errors.New("output directory identity changed"), root.Close())
 	}
 	p := &portableOutput{dirs: map[string]*os.File{"": root}}
 	for _, n := range []string{"original", "original/context", "original/original-results"} {
@@ -359,23 +374,25 @@ func newPortableOutput(path string) (*portableOutput, error) {
 		}
 		f := p.dirs[base]
 		if err = unix.Mkdirat(int(f.Fd()), filepath.Base(n), 0700); err != nil {
-			p.close()
-			return nil, err
+			return nil, errors.Join(err, p.close())
 		}
 		child, e := unix.Openat(int(f.Fd()), filepath.Base(n), unix.O_RDONLY|unix.O_DIRECTORY|unix.O_NOFOLLOW|unix.O_CLOEXEC, 0)
 		if e != nil {
-			p.close()
-			return nil, e
+			return nil, errors.Join(e, p.close())
 		}
 		p.dirs[n] = os.NewFile(uintptr(child), "portable-data-directory")
 	}
 	return p, nil
 }
 
-func (p *portableOutput) close() {
-	for _, f := range p.dirs {
-		_ = f.Close()
+func (p *portableOutput) close() error {
+	var err error
+	for _, name := range []string{"original/context", "original/original-results", "original", ""} {
+		if f := p.dirs[name]; f != nil {
+			err = errors.Join(err, f.Close())
+		}
 	}
+	return err
 }
 func (p *portableOutput) write(name string, raw []byte) error {
 	base := filepath.Dir(name)
@@ -398,11 +415,71 @@ func (p *portableOutput) write(name string, raw []byte) error {
 	if err == nil {
 		err = f.Sync()
 	}
-	closed := f.Close()
-	if err == nil {
-		err = closed
+	return errors.Join(err, f.Close())
+}
+
+// Copy the pinned migration through a fixed buffer, retaining both file
+// identities until hash, length and original-current checks have succeeded.
+// A failure retains only the partial output and never publishes a receipt.
+func (p *portableOutput) writeMigration(name, sourcePath string, row portableFileEntry, hooks *portableImportHooks) (result error) {
+	bound, err := strconv.ParseInt(row.Bytes, 10, 64)
+	if err != nil || bound <= 0 || bound > maxPortableMigrationBytes {
+		return errors.New("invalid migration bound")
 	}
-	return err
+	source, before, err := openPublicFile(sourcePath, bound)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if hooks != nil && hooks.migrationSourceBeforeClose != nil {
+			result = errors.Join(result, hooks.migrationSourceBeforeClose(source))
+		}
+		result = errors.Join(result, source.Close())
+	}()
+	var original unix.Stat_t
+	if before.Size() != bound || unix.Fstat(int(source.Fd()), &original) != nil || original.Nlink != 1 {
+		return errors.New("public migration identity or length differs")
+	}
+	dir := p.dirs[filepath.Dir(name)]
+	if dir == nil {
+		return errors.New("closed portable output path required")
+	}
+	fd, err := unix.Openat(int(dir.Fd()), filepath.Base(name), unix.O_WRONLY|unix.O_CREAT|unix.O_EXCL|unix.O_NOFOLLOW|unix.O_CLOEXEC, 0600)
+	if err != nil {
+		return err
+	}
+	dest := os.NewFile(uintptr(fd), "portable-public-migration")
+	defer func() {
+		if hooks != nil && hooks.migrationDestBeforeClose != nil {
+			result = errors.Join(result, hooks.migrationDestBeforeClose(dest))
+		}
+		result = errors.Join(result, dest.Close())
+	}()
+	digest := sha256.New()
+	var target io.Writer = dest
+	if hooks != nil && hooks.migrationWriter != nil {
+		target = hooks.migrationWriter(dest)
+	}
+	n, err := io.CopyBuffer(io.MultiWriter(target, digest), io.LimitReader(source, bound+1), make([]byte, 128<<10))
+	if err != nil {
+		return fmt.Errorf("copy public migration: %w", err)
+	}
+	if n != bound || hex.EncodeToString(digest.Sum(nil)) != row.SHA256 {
+		return errors.New("catalog public file bytes or hash did not validate")
+	}
+	if hooks != nil && hooks.migrationAfterCopy != nil {
+		if err = hooks.migrationAfterCopy(sourcePath); err != nil {
+			return err
+		}
+	}
+	var current unix.Stat_t
+	if err = checkPublicFile(source, sourcePath, before); err != nil {
+		return err
+	}
+	if err = unix.Lstat(sourcePath, &current); err != nil || current.Nlink != 1 || current.Dev != original.Dev || current.Ino != original.Ino {
+		return errors.New("public source link identity changed")
+	}
+	return dest.Sync()
 }
 func (p *portableOutput) sync() error {
 	for _, n := range []string{"original/context", "original/original-results", "original", ""} {
@@ -427,13 +504,84 @@ func (p *portableOutput) current(path string) error {
 	return nil
 }
 
+type portableImportHooks struct {
+	spaceCheck                 func(string, uint64) error
+	outputSync                 func(*portableOutput) error
+	outputClose                func(*portableOutput) error
+	parentSync                 func(*os.File) error
+	migrationAfterCopy         func(string) error
+	migrationWriter            func(io.Writer) io.Writer
+	migrationSourceBeforeClose func(*os.File) error
+	migrationDestBeforeClose   func(*os.File) error
+	parentBeforeClose          func(*os.File) error
+	sourceClose                func(string, *os.File) error
+}
+
+// Import/diagnosis need the original read capability's close result as part
+// of DATA completion. The normal verifier's separate reader stays unchanged.
+func portableReadPublicFile(path string, maximum int64, closeFn func(string, *os.File) error) (raw []byte, result error) {
+	f, before, err := openPublicFile(path, maximum)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if closeFn != nil {
+			result = errors.Join(result, closeFn(path, f))
+		} else {
+			result = errors.Join(result, f.Close())
+		}
+	}()
+	raw, err = io.ReadAll(io.LimitReader(f, maximum+1))
+	if err != nil {
+		return nil, fmt.Errorf("read public file: %w", err)
+	}
+	if int64(len(raw)) > maximum || int64(len(raw)) != before.Size() {
+		return nil, errors.New("public file changed or exceeded its bound during read")
+	}
+	if err = checkPublicFile(f, path, before); err != nil {
+		return nil, err
+	}
+	return raw, nil
+}
+
 func importPortableData(o portableImportOptions) (portableImportResult, error) {
-	r := portableImportResult{Version: portableResultVersion, Code: "IMPORTED_DATA", Classification: "data", OriginalContextSHA256: o.contextSHA256, CatalogSHA256: o.catalogSHA256}
+	return importPortableDataWithHooks(o, nil)
+}
+
+// This preflight does not reserve capacity against other writers. Every write
+// still handles ENOSPC and a failed attempt is retained without a success reply.
+func portableSpaceEnough(blocks, blockSize, bytes uint64) bool {
+	if blockSize == 0 {
+		return false
+	}
+	return bytes/blockSize <= blocks && (bytes%blockSize == 0 || bytes/blockSize < blocks)
+}
+
+func checkPortableSpace(path string, required uint64) error {
+	var space unix.Statfs_t
+	if err := unix.Statfs(path, &space); err != nil {
+		return err
+	}
+	if !portableSpaceEnough(uint64(space.Bavail), uint64(space.Bsize), required) {
+		return errors.New("insufficient available space for bounded portable DATA")
+	}
+	return nil
+}
+
+func importPortableDataWithHooks(o portableImportOptions, hooks *portableImportHooks) (r portableImportResult, resultErr error) {
+	r = portableImportResult{Version: portableResultVersion, Code: "IMPORTED_DATA", Classification: "data", OriginalContextSHA256: o.contextSHA256, CatalogSHA256: o.catalogSHA256}
+	var closeFn func(string, *os.File) error
+	if hooks != nil {
+		closeFn = hooks.sourceClose
+	}
+	readOriginal := func(path string, maximum int64) ([]byte, error) {
+		return portableReadPublicFile(path, maximum, closeFn)
+	}
 	sourceIdentity, err := portableDirectory(o.sourceDir)
 	if err != nil {
 		return r, err
 	}
-	contextRaw, err := readPublicFile(o.contextPath, maxTransactionContextBytes)
+	contextRaw, err := readOriginal(o.contextPath, maxTransactionContextBytes)
 	if err != nil {
 		return r, err
 	}
@@ -441,8 +589,11 @@ func importPortableData(o portableImportOptions) (portableImportResult, error) {
 	if err != nil {
 		return r, err
 	}
-	catalogRaw, err := readPublicFile(o.catalogPath, 32<<10)
-	if err != nil || !matchesSHA256(catalogRaw, o.catalogSHA256) {
+	catalogRaw, err := readOriginal(o.catalogPath, 32<<10)
+	if err != nil {
+		return r, fmt.Errorf("read independent portable catalog: %w", err)
+	}
+	if !matchesSHA256(catalogRaw, o.catalogSHA256) {
 		return r, errors.New("independent portable catalog pin did not validate")
 	}
 	catalog, err := decodePortableCatalog(catalogRaw, c.LightTrust.RuntimePlanFile != "")
@@ -471,13 +622,39 @@ func importPortableData(o portableImportOptions) (portableImportResult, error) {
 	if _, _, err = decodeTransactionTrustContext(portableRaw, portableDigest(portableRaw)); err != nil {
 		return r, err
 	}
+	var required uint64 = uint64(len(portableRaw)) + portableMetadataAllowance + portableFreeFloorBytes + portableRootReserveBytes
+	for _, row := range catalog.Files {
+		n, _ := strconv.ParseUint(row.Bytes, 10, 64)
+		required += n
+	}
+	if hooks != nil && hooks.spaceCheck != nil {
+		err = hooks.spaceCheck(filepath.Dir(o.outputDir), required)
+	} else {
+		err = checkPortableSpace(filepath.Dir(o.outputDir), required)
+	}
+	if err != nil {
+		return r, err
+	}
 	out, err := newPortableOutput(o.outputDir)
 	if err != nil {
 		return r, err
 	}
-	defer out.close()
+	defer func() {
+		if hooks != nil && hooks.outputClose != nil {
+			resultErr = errors.Join(resultErr, hooks.outputClose(out))
+		} else {
+			resultErr = errors.Join(resultErr, out.close())
+		}
+	}()
 	for _, row := range catalog.Files {
 		sourcePath := filepath.Join(o.sourceDir, filepath.FromSlash(row.Path))
+		if row.Path == "context/migration.json" {
+			if err = out.writeMigration("original/"+row.Path, sourcePath, row, hooks); err != nil {
+				return r, err
+			}
+			r.Files = append(r.Files, portableFileEntry{Path: "original/" + row.Path, Bytes: row.Bytes, SHA256: row.SHA256})
+			continue
+		}
 		var before unix.Stat_t
 		if e := unix.Lstat(sourcePath, &before); e != nil {
 			return r, e
@@ -486,8 +663,11 @@ func importPortableData(o portableImportOptions) (portableImportResult, error) {
 			return r, errors.New("public source must have one original link")
 		}
 		bound, _ := strconv.ParseInt(row.Bytes, 10, 64)
-		raw, e := readPublicFile(sourcePath, bound)
-		if e != nil || int64(len(raw)) != bound || !matchesSHA256(raw, row.SHA256) {
+		raw, e := readOriginal(sourcePath, bound)
+		if e != nil {
+			return r, fmt.Errorf("read catalog public file: %w", e)
+		}
+		if int64(len(raw)) != bound || !matchesSHA256(raw, row.SHA256) {
 			return r, errors.New("catalog public file bytes or hash did not validate")
 		}
 		var after unix.Stat_t
@@ -515,8 +695,11 @@ func importPortableData(o portableImportOptions) (portableImportResult, error) {
 		path, sha string
 		limit     int64
 	}{{o.contextPath, o.contextSHA256, maxTransactionContextBytes}, {o.catalogPath, o.catalogSHA256, 32 << 10}} {
-		raw, e := readPublicFile(pin.path, pin.limit)
-		if e != nil || !matchesSHA256(raw, pin.sha) {
+		raw, e := readOriginal(pin.path, pin.limit)
+		if e != nil {
+			return r, fmt.Errorf("recheck independent import metadata: %w", e)
+		}
+		if !matchesSHA256(raw, pin.sha) {
 			return r, errors.New("independent import metadata changed")
 		}
 	}
@@ -534,7 +717,12 @@ func importPortableData(o portableImportOptions) (portableImportResult, error) {
 	if err = out.write("PUBLIC-PORTABLE-IMPORT.json", receipt); err != nil {
 		return r, err
 	}
-	if err = out.sync(); err != nil {
+	if hooks != nil && hooks.outputSync != nil {
+		err = hooks.outputSync(out)
+	} else {
+		err = out.sync()
+	}
+	if err != nil {
 		return r, err
 	}
 	if err = out.current(o.outputDir); err != nil {
@@ -545,15 +733,23 @@ func importPortableData(o portableImportOptions) (portableImportResult, error) {
 		return r, err
 	}
 	parent := os.NewFile(uintptr(parentFD), "portable-data-parent")
-	err = parent.Sync()
-	closeErr := parent.Close()
-	if err == nil {
-		err = closeErr
+	if hooks != nil && hooks.parentSync != nil {
+		err = hooks.parentSync(parent)
+	} else {
+		err = parent.Sync()
 	}
+	if hooks != nil && hooks.parentBeforeClose != nil {
+		err = errors.Join(err, hooks.parentBeforeClose(parent))
+	}
+	err = errors.Join(err, parent.Close())
 	return r, err
 }
 
 func runPortableImport(args []string, output io.Writer) int {
+	return runPortableImportWithHooks(args, output, nil)
+}
+
+func runPortableImportWithHooks(args []string, output io.Writer, hooks *portableImportHooks) int {
 	failure := func(code string, cause error) int {
 		// Causes are bounded public parser/filesystem diagnostics, never raw
 		// context, proof, envelope or signature bytes. Keep the first cause.
@@ -573,8 +769,14 @@ func runPortableImport(args []string, output io.Writer) int {
 	if err != nil {
 		return failure("INVALID_ARGUMENTS", err)
 	}
-	r, err := importPortableData(o)
+	r, err := importPortableDataWithHooks(o, hooks)
 	if err != nil {
+		// A created or uninspectable original output may contain a partial
+		// attempt or even a visible receipt after sync failure. Never frame it
+		// as permission to replace or retry the original output.
+		if _, statErr := os.Lstat(o.outputDir); statErr == nil || !errors.Is(statErr, os.ErrNotExist) {
+			return failure("IMPORT_UNKNOWN", err)
+		}
 		return failure("IMPORT_REJECTED", err)
 	}
 	raw, err := json.Marshal(r)
