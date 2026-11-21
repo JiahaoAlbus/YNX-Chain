@@ -1347,7 +1347,7 @@ def assert_product_device_codec_workflow_contract(raw):
         raise AssertionError("new codec must reuse the original full suite once without filtering")
 
 
-STATE_PARTITION_QUALIFIER = """state_partitions = [('state', '', '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$|TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)'), ('proof-wallet', '^(TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)', ''), ('production', '^TestProduction', ''), ('lab', '^TestPQLab', '^TestPQLab(LiveMaterials|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)'), ('lab-live', '^TestPQLabLiveMaterials', '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$'), ('lab-caller', '^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)', ''), ('large-lab', '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$', '')]
+STATE_PARTITION_QUALIFIER = """state_partitions = [('state', '', '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$|TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)'), ('proof-wallet', '^(TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)', ''), ('production', '^TestProduction', ''), ('lab', '^TestPQLab', '^TestPQLab(Distributed|FinalizeTrace|LiveMaterials|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)'), ('lab-network', '^TestPQLab(Distributed|FinalizeTrace)', ''), ('lab-live', '^TestPQLabLiveMaterials', '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$'), ('lab-caller', '^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)', ''), ('large-lab', '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$', '')]
 state_opt_in_skips = ['TestFeeHistoryCost', 'TestABCITransferPerformance', 'TestCommitStorageMatchedPerformance', 'TestPQCheckpointAccessTwoUIDOriginalStateLayouts', 'TestPQCheckpointAccessUIDHelper', 'TestPQNetworkFourValidatorSignedBusinessConsumerAndIndependentFinality', 'TestPQNetworkFourValidatorOriginalStateTransitionAndRestart', 'TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming', 'TestPQNetworkFourValidatorRemoteSignerOriginalStateTransitionAndRestart', 'TestPQRemoteSignerNormalProcessColdRecoveryAndUnknown']
 def qualify_state_partitions(events):
     # These are independent executions of one source/package, not partial
@@ -1534,9 +1534,11 @@ def assert_state_math_required_workflow_contract(step):
     merge = ('          cat "$RUNNER_TEMP/ynx-production-operator-state-tests.jsonl" >> '
              '"$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"\n')
     live = ("          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s "
-            "-run '^TestPQLab' -skip '^TestPQLab(LiveMaterials|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)' ./internal/consensus > \"$RUNNER_TEMP/ynx-lab-state-tests.jsonl\"; then\n")
+            "-run '^TestPQLab' -skip '^TestPQLab(Distributed|FinalizeTrace|LiveMaterials|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)' ./internal/consensus > \"$RUNNER_TEMP/ynx-lab-state-tests.jsonl\"; then\n")
     live_merge = ('          cat "$RUNNER_TEMP/ynx-lab-state-tests.jsonl" >> '
                   '"$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"\n')
+    lab_network = "          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLab(Distributed|FinalizeTrace)' ./internal/consensus > \"$RUNNER_TEMP/ynx-lab-network-state-tests.jsonl\"; then\n"
+    lab_network_merge = '          cat "$RUNNER_TEMP/ynx-lab-network-state-tests.jsonl" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"\n'
     lab_live = "          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLabLiveMaterials' -skip '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$' ./internal/consensus > \"$RUNNER_TEMP/ynx-lab-live-state-tests.jsonl\"; then\n"
     lab_live_merge = '          cat "$RUNNER_TEMP/ynx-lab-live-state-tests.jsonl" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"\n'
     caller = '          if ! YNX_PQ_NETWORK_E2E=\'\' go test -json -p 1 -count=1 -timeout=180s -run \'^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)\' ./internal/consensus > "$RUNNER_TEMP/ynx-lab-caller-state-tests.jsonl"; then\n'
@@ -1549,15 +1551,15 @@ def assert_state_math_required_workflow_contract(step):
                 "event['Action'] in ('pass', 'fail', 'skip')]\n"
                 "              assert len(matches) == 1 and matches[0]['Action'] == 'pass', (name, matches)\n")
     if (step.count(command) != 1 or step.count(production) != 1 or step.count(merge) != 1 or
-            step.count(live) != 1 or step.count(live_merge) != 1 or step.count(lab_live) != 1 or step.count(lab_live_merge) != 1 or step.count(live_required) != 1 or
+            step.count(live) != 1 or step.count(live_merge) != 1 or step.count(lab_network) != 1 or step.count(lab_network_merge) != 1 or step.count(lab_live) != 1 or step.count(lab_live_merge) != 1 or step.count(live_required) != 1 or
             step.count(live_fallback_required) != 1 or
             step.count(large_live) != 1 or step.count(large_live_merge) != 1 or
             step.count(caller) != 1 or step.count(caller_merge) != 1 or
-            step.count("./internal/consensus") != 7 or
+            step.count("./internal/consensus") != 8 or
             step.count(proof_command) != 1 or
             step.count("".join("          " + line + "\n" for line in STATE_PARTITION_QUALIFIER.splitlines())) != 1 or
             step.count("          state_partition_summary = qualify_state_partitions(events)\n") != 1 or
-            step.count(terminal) != 2 or step.count("            exit 1\n") != 8 or
+            step.count(terminal) != 2 or step.count("            exit 1\n") != 9 or
             "          required = []" in step or "          for name in required:\n" not in step):
         raise AssertionError("state40 must run once with exact unique PASS events and retained failures")
     chain_command = "          if ! go test -json -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor|TestPQHistoryMathCache|TestCombinedDetachedValidatorKeys)' ./internal/chain > \"$RUNNER_TEMP/ynx-native-history-chain-tests.jsonl\"; then\n"
@@ -3921,7 +3923,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("'TestPQLabLiveMaterialsIndependentAnchorAndEitherBranchRefusal']", "'TestPQLabLiveMaterialsIndependentAnchorAndEitherBranchRefusalMissing']"),
             ("'TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult'", "'TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResultMissing'"),
             ("'TestPQLabLiveMaterialsCacheFallbackOnlyExactBound'", "'TestPQLabLiveMaterialsCacheFallbackOnlyExactBoundMissing'"),
-            ("-skip '^TestPQLab(LiveMaterials|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)'", "-skip '^TestPQLab'"),
+            ("-skip '^TestPQLab(Distributed|FinalizeTrace|LiveMaterials|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)'", "-skip '^TestPQLab'"),
             ("-run '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$'", "-run '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResultMissing$'"),
             ('          cat "$RUNNER_TEMP/ynx-lab-large-source-tests.jsonl" >>', '          echo "$RUNNER_TEMP/ynx-lab-large-source-tests.jsonl" >>'),
             ("'TestPQLabLiveMaterialsUncachedOriginalCurrentAndClose'", "'TestPQLabLiveMaterialsUncachedOriginalCurrentAndCloseMissing'"),
@@ -4294,6 +4296,15 @@ class CompleteStatePartitionControls(unittest.TestCase):
             selected = [g[0] for g in scope['state_partitions'] if (not g[1] or re.search(g[1], name)) and (not g[2] or not re.search(g[2], name))]
             self.assertEqual(selected, ['lab-live'])
 
+    def test_distributed_and_finalize_are_a_separate_required_original_partition(self):
+        _, _, step, scope = self.workflow_parts()
+        group = next(g for g in scope['state_partitions'] if g[0] == 'lab-network')
+        self.assertEqual(group[1:], ('^TestPQLab(Distributed|FinalizeTrace)', ''))
+        self.assertIn('"$RUNNER_TEMP/ynx-lab-network-state-tests.jsonl"', step)
+        for name in ('TestPQLabDistributedReadbackRealPQProofAndPublicTamper', 'TestPQLabFinalizeTraceOriginalCompleteRequestsColdReplayAndRefusals'):
+            selected = [g[0] for g in scope['state_partitions'] if (not g[1] or re.search(g[1], name)) and (not g[2] or not re.search(g[2], name))]
+            self.assertEqual(selected, ['lab-network'])
+
     def workflow_parts(self):
         import textwrap
         root = Path(__file__).resolve().parents[2]
@@ -4315,7 +4326,7 @@ class CompleteStatePartitionControls(unittest.TestCase):
             ["TestSnapshotJournalStuckReadbackHasBoundedWriterFailure", "TestFutureStateSafety"] + scope["state_opt_in_skips"],
             ["TestPQLightProofActualCommitAndLightTransitions", "TestPQTransactionProofFutureSafety", "TestPQWalletPolicyLiveFutureSafety"],
             ["TestProductionFutureSafety"], ["TestPQLabFutureSafety"],
-            ["TestPQLabLiveMaterialsFutureSafety"], ["TestPQLabSenderFutureSafety"],
+            ["TestPQLabDistributedFutureSafety"], ["TestPQLabLiveMaterialsFutureSafety"], ["TestPQLabSenderFutureSafety"],
             ["TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult"],
         ]
         events = []
@@ -4343,6 +4354,7 @@ class CompleteStatePartitionControls(unittest.TestCase):
         self.assertGreater(len(original), 100, "actual original Go source inventory required")
         future = {"TestFutureSafety", "TestPQWalletPolicyFutureSafety", "TestPQTransactionProofFutureSafety",
                   "TestPQLightProofFutureSafety", "TestProductionFutureSafety", "TestPQLabFutureSafety",
+                  "TestPQLabDistributedFutureSafety", "TestPQLabFinalizeTraceFutureSafety",
                   "TestPQConsensusFutureProofPublicFixture", "TestPQConsensusLightProofPublicFixtureFuture",
                   "TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResultFuture",
                   "TestPQLabSenderFutureSafety", "TestPQLabWorkloadFutureSafety", "TestPQLabCheckpointFutureSafety"}
@@ -4351,7 +4363,7 @@ class CompleteStatePartitionControls(unittest.TestCase):
                         (not g[2] or not re.search(g[2], name))]
             with self.subTest(name=name):
                 self.assertEqual(len(selected), 0 if original_exclusions.search(name) else 1)
-        self.assertEqual([g[0] for g in groups], ['state', 'proof-wallet', 'production', 'lab', 'lab-live', 'lab-caller', 'large-lab'])
+        self.assertEqual([g[0] for g in groups], ['state', 'proof-wallet', 'production', 'lab', 'lab-network', 'lab-live', 'lab-caller', 'large-lab'])
         for name, wanted in [('TestPQLabMultiOwnerOriginalExecutionAndBounds', 'lab-caller'),
                              ('TestPQLabSenderFutureSafety', 'lab-caller'),
                              ('TestPQLabWorkloadFutureSafety', 'lab-caller'),
@@ -4372,8 +4384,8 @@ class CompleteStatePartitionControls(unittest.TestCase):
         result = qualify(original)
         self.assertEqual(result["groups"], [g[0] for g in scope["state_partitions"]])
         self.assertEqual(result["optInSkipped"], sorted(scope["state_opt_in_skips"]))
-        self.assertEqual(result["topCount"], 20)
-        self.assertEqual(result["testCount"], 30)
+        self.assertEqual(result["topCount"], 21)
+        self.assertEqual(result["testCount"], 32)
         bad = [[], original[:-1], original + original, original[1:], [None],
                [dict(e, Package="foreign") if i == 3 else e for i, e in enumerate(original)]]
         top = "TestFutureStateSafety"
@@ -4393,6 +4405,7 @@ class CompleteStatePartitionControls(unittest.TestCase):
         # Changing a name to another partition cannot be repaired by moving only
         # its PASS, or by treating one successful suffix as the complete stream.
         bad.append([dict(e, Test="TestPQLightProofMisplaced") if e.get("Test") == top else e for e in original])
+        bad.append([dict(e, Test=e['Test'].replace('TestPQLabDistributedFutureSafety', 'TestPQLabFutureSafetyMisplaced')) if e.get('Test', '').startswith('TestPQLabDistributedFutureSafety') else e for e in original])
         starts = [i for i, e in enumerate(original) if e["Action"] == "start"] + [len(original)]
         parts = [original[a:b] for a, b in zip(starts, starts[1:])]
         bad.extend(parts)
@@ -4410,6 +4423,9 @@ class CompleteStatePartitionControls(unittest.TestCase):
         base, proof = scope["state_partitions"][:2]
         caller = next(group for group in scope["state_partitions"] if group[0] == "lab-caller")
         mutations = [
+            step.replace("-run '^TestPQLab(Distributed|FinalizeTrace)'", "-run '^TestPQLabDistributed'", 1),
+            step.replace('          cat "$RUNNER_TEMP/ynx-lab-network-state-tests.jsonl" >>', '          echo "$RUNNER_TEMP/ynx-lab-network-state-tests.jsonl" >>', 1),
+            step.replace("-skip '^TestPQLab(Distributed|FinalizeTrace|LiveMaterials|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)'", "-skip '^TestPQLab(LiveMaterials|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)'", 1),
             step.replace("          required += ['TestABCIPublicTraceFullStateAndAppHashEveryHeight']\n", "", 1),
             step.replace("          required += ['TestPQHistoryPolicyCallKeepsOriginalEarlyFailure']\n", "", 1),
             step.replace("          required += ['TestPQLabEnrollmentOriginalProofsSameChain', 'TestPQLabEnrollmentOriginalLegacyFundingProof', 'TestPQLabEnrollmentCLIPublicFixture', 'TestPQLabEnrollmentLegacyCLIPublicFixture', 'TestPQLabEnrollmentOriginalDurableSameChainAndCold', 'TestPQLabEnrollmentOriginalUnknownPreservesCrashWindows', 'TestPQLabEnrollmentOriginalRequestAndResultTampering', 'TestPQLabEnrollmentOriginalPostSignCheckpointChangeUnknown', 'TestPQLabEnrollmentOriginalConfirmationSameChainAndCold', 'TestPQLabEnrollmentOriginalRejectedABCIStateSemantics']\n", "", 1),
@@ -4560,7 +4576,7 @@ class PublicOwnerSessionCIControls(unittest.TestCase):
         controls=CompleteStatePartitionControls()
         root,raw,step,scope=controls.workflow_parts();events=controls.fixture(scope)
         package='github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
-        at=[i for i,e in enumerate(events) if e['Action']=='start'][5]+1
+        at=[i for i,e in enumerate(events) if e['Action']=='start'][6]+1
         rows=[]
         for name in scope['public_owner_core_required']:
             rows += [dict(Package=package,Test=n,Action=a) for n,a in ((name,'run'),(name+'/original','run'),(name+'/original','pass'),(name,'pass'))]
@@ -4761,12 +4777,12 @@ class SenderParentPersistenceCIControls(unittest.TestCase):
         events = CompleteStatePartitionControls().fixture(scope)
         package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
         starts = [i for i, event in enumerate(events) if event['Action'] == 'start']
-        rows = {3: [], 5: []}
+        rows = {3: [], 6: []}
         for name in scope['sender_parent_persistence_required']:
-            group = 3 if name == 'TestPQLabNetworkPUBLICFreshRootParentPersistence' else 5
+            group = 3 if name == 'TestPQLabNetworkPUBLICFreshRootParentPersistence' else 6
             rows[group] += [dict(Package=package, Test=test, Action=action) for test, action in
                            ((name, 'run'), (name+'/original', 'run'), (name+'/original', 'pass'), (name, 'pass'))]
-        for group in (5, 3):
+        for group in (6, 3):
             at = starts[group] + 1
             events = events[:at] + rows[group] + events[at:]
         return root, raw, step, scope, events
@@ -4785,7 +4801,7 @@ class SenderParentPersistenceCIControls(unittest.TestCase):
             expected_group = 'lab' if name == 'TestPQLabNetworkPUBLICFreshRootParentPersistence' else 'lab-caller'
             self.assertEqual([partition for partition, run, skip in scope['state_partitions']
                               if (not run or re.search(run, name)) and (not skip or not re.search(skip, name))], [expected_group])
-        self.assertEqual(step.count('go test -json -p 1 -count=1 -timeout=180s '), 8)
+        self.assertEqual(step.count('go test -json -p 1 -count=1 -timeout=180s '), 9)
 
     def test_sender_parent_persistence_refuses_partial_duplicate_rename_and_child_failure(self):
         _, _, _, scope, events = self.actual()
