@@ -347,15 +347,25 @@ def session_class(Base, normal, lab):
                 with self.trace_lock:
                     if len(self.traces)<2048:self.traces.append(trace)
 
-        def retire_identity_after_window(self):
+        def retire_identity_after_window(self, *, deadline=None):
             # The original Window must have stopped/reaped the child first.
             # Do not close a handle while a worker may still use it.
             if not self.lock.acquire(blocking=False):return dict(status='WORKER_STILL_OWNS_STREAM',closed=False)
             try:
                 handle=vars(self.proc).get('_ynx_original_pidfd')
                 if handle is None:return dict(status='ORIGINAL_IDENTITY_MISSING',closed=False)
-                if self.proc.poll() is None:return dict(status='ORIGINAL_PROCESS_NOT_REAPED',closed=False)
-                try:handle.close()
+                try:
+                    remaining=lambda:1 if deadline is None else max(0,min(1,deadline-time.monotonic()))
+                    lock=vars(self.proc).get('_ynx_lifecycle_lock')
+                    if lock is None or not lock.acquire(timeout=remaining()):
+                        return dict(status='ORIGINAL_PROCESS_IDENTITY_UNKNOWN',closed=False)
+                    try:status=self.proc.poll()
+                    finally:lock.release()
+                    if status is None:return dict(status='ORIGINAL_PROCESS_NOT_REAPED',closed=False)
+                    if not callable(getattr(handle,'close_bounded',None)) or handle.close_bounded(timeout=min(.05,remaining())) is not True:
+                        failure=dict(status='ORIGINAL_IDENTITY_CLOSE_UNKNOWN',closed=False)
+                        if getattr(handle,'_close_error_type',None):failure['errorType']=handle._close_error_type
+                        return failure
                 except BaseException as error:return dict(status='IDENTITY_CLOSE_FAILED',closed=False,errorType=type(error).__name__)
                 if getattr(self,'require_guarded_stream',False) and self.proc.stdin is not None and not self.proc.stdin.closed:
                     return dict(status='ORIGINAL_STDIN_CLEANUP_DEBT',closed=False,identityClosed=True)

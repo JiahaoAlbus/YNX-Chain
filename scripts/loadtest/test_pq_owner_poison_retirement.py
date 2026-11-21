@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import unittest
 from unittest import mock
 
@@ -63,7 +64,7 @@ class PoisonControls(unittest.TestCase):
 
     def test_cleanup_failure_does_not_replace_first_cause(self):
         child=SimpleNamespace(pid=10,stdin=None,poll=lambda:None)
-        child._ynx_original_pidfd=SimpleNamespace(send=lambda signum:(_ for _ in ()).throw(OSError('no signal')))
+        child._ynx_original_pidfd=SimpleNamespace(send=lambda signum,**kwargs:(_ for _ in ()).throw(OSError('no signal')))
         def lost(*args):raise TimeoutError('original reply lost')
         s=session(child,lost)
         class Sink:
@@ -109,7 +110,7 @@ class PoisonControls(unittest.TestCase):
             def terminate(self):pass
             def kill(self):self.code=-9
         child=Child()
-        child._ynx_original_pidfd=SimpleNamespace(send=lambda signum:child.kill() if signum==driver.signal.SIGKILL else child.terminate())
+        child._ynx_original_pidfd=SimpleNamespace(send=lambda signum,**kwargs:child.kill() if signum==driver.signal.SIGKILL else child.terminate())
         s=session(child,lambda *a:None)
         report=s.retire_poisoned_original()
         self.assertTrue(report['terminateRequested']);self.assertTrue(report['killRequested'])
@@ -152,7 +153,7 @@ class PoisonControls(unittest.TestCase):
     def test_reaped_pid_reuse_never_receives_a_numeric_signal(self):
         proc=SimpleNamespace(pid=12345,poll=lambda:None,_ynx_lifecycle_lock=threading.RLock())
         calls=[]
-        proc._ynx_original_pidfd=SimpleNamespace(send=lambda signum:calls.append(signum))
+        proc._ynx_original_pidfd=SimpleNamespace(send=lambda signum,**kwargs:calls.append(signum))
         with mock.patch.object(driver.os,'killpg',side_effect=AssertionError('numeric PID signal refused')):
             driver.lab.signal_original_child(proc,driver.signal.SIGTERM)
         self.assertEqual(calls,[driver.signal.SIGTERM])
@@ -180,8 +181,8 @@ class PoisonControls(unittest.TestCase):
 
     def test_identity_closes_only_after_reap_and_stream_unlock(self):
         closed=[]
-        proc=SimpleNamespace(pid=12345,stdin=None,poll=lambda:0)
-        proc._ynx_original_pidfd=SimpleNamespace(close=lambda:closed.append(True))
+        proc=SimpleNamespace(pid=12345,stdin=None,poll=lambda:0,_ynx_lifecycle_lock=threading.RLock())
+        proc._ynx_original_pidfd=SimpleNamespace(close_bounded=lambda **kwargs:(closed.append(True) or True))
         s=session(proc,lambda *a:None);s.lock.acquire()
         try:
             self.assertEqual(s.retire_identity_after_window()['status'],'WORKER_STILL_OWNS_STREAM')
@@ -432,6 +433,162 @@ class PoisonControls(unittest.TestCase):
         lifecycle=w.launch_cleanup_report()
         self.assertEqual(lifecycle['status'],'UNKNOWN');self.assertTrue(lifecycle['cleanupDebt'])
         self.assertIsNone(lifecycle['clockIdentityCleanupDebt'])
+
+    def test_process_receipt_retains_original_cause_when_child_lock_is_held(self):
+        w=original_window_fixture();w.lock=threading.RLock()
+        proc=SimpleNamespace(pid=12345,returncode=None,poll=lambda:None,wait=lambda timeout=None:None)
+        driver.lab.bind_process_lifecycle(proc)
+        w.children=[dict(name='original',process=proc,startTicks=44,command=['original'])]
+        held=threading.Event();release=threading.Event();finished=threading.Event()
+        def holder():
+            with proc._ynx_lifecycle_lock:held.set();release.wait(8)
+        owner=threading.Thread(target=holder);owner.start();self.assertTrue(held.wait(1))
+        result=dict(firstCause='original transaction UNKNOWN',cleanupComplete=True)
+        def receipt():
+            try:w.process_receipt()
+            except RuntimeError:pass
+            finally:finished.set()
+        worker=threading.Thread(target=receipt);worker.start()
+        try:
+            self.assertTrue(finished.wait(2),'original process receipt blocked on child lifecycle lock')
+            driver.normal.retain_original_process_receipt(result,w)
+            self.assertIsNone(result['processes']);self.assertEqual(result['processReceiptStatus'],'UNKNOWN')
+            self.assertTrue(result['processReceiptCleanupDebt']);self.assertFalse(result['cleanupComplete'])
+            self.assertEqual(result['firstCause'],'original transaction UNKNOWN')
+            driver.normal.apply_normal_clean_exit(result)
+            self.assertIsNone(result['normalNodeCleanExit']);self.assertEqual(result['firstCause'],'original transaction UNKNOWN')
+        finally:release.set();owner.join(3);worker.join(3)
+
+    def test_backend_stop_preserves_cause_when_original_child_lock_is_held(self):
+        w=original_window_fixture();w.lock=threading.RLock()
+        proc=SimpleNamespace(pid=12345,returncode=None,poll=lambda:None,wait=lambda timeout=None:None)
+        driver.lab.bind_process_lifecycle(proc)
+        w.children=[dict(name='load-original',process=proc,startTicks=44,command=['original'])]
+        backend=driver.NormalBackend.__new__(driver.NormalBackend)
+        backend.w=w;backend.stop_event=threading.Event();backend.sessions={}
+        held=threading.Event();release=threading.Event();finished=threading.Event()
+        def holder():
+            with proc._ynx_lifecycle_lock:held.set();release.wait(8)
+        owner=threading.Thread(target=holder);owner.start();self.assertTrue(held.wait(1))
+        result=dict(firstCause='original transaction UNKNOWN')
+        def shutdown():
+            try:driver.stop_backend_preserving_cause(backend,result)
+            finally:finished.set()
+        worker=threading.Thread(target=shutdown);worker.start()
+        try:
+            self.assertTrue(finished.wait(2),'original backend stop blocked on child lifecycle lock')
+            self.assertEqual(result['firstCause'],'original transaction UNKNOWN')
+            self.assertTrue(result['backendStopError']['cleanupDebt']);self.assertTrue(w.closed_for_launch)
+        finally:release.set();owner.join(3);worker.join(3)
+
+    def test_busy_original_locks_refuse_wait_and_pidfd_signal_without_fallback(self):
+        proc=SimpleNamespace(pid=12345,returncode=None,poll=lambda:None,wait=lambda timeout=None:None)
+        driver.lab.bind_process_lifecycle(proc)
+        pidfd=module('pq-experimental-owner-pidfd')
+        anchor=pidfd.OriginalOwnerPidfd.__new__(pidfd.OriginalOwnerPidfd)
+        anchor.fd=123;anchor.lock=threading.Lock()
+        held=threading.Event();release=threading.Event()
+        def holder():
+            with proc._ynx_lifecycle_lock:
+                with anchor.lock:held.set();release.wait(4)
+        owner=threading.Thread(target=holder);owner.start();self.assertTrue(held.wait(1))
+        try:
+            with self.assertRaisesRegex(RuntimeError,'lifecycle lock unavailable'):proc.wait(timeout=.05)
+            with mock.patch.object(driver.signal,'pidfd_send_signal',create=True) as send:
+                with self.assertRaisesRegex(RuntimeError,'pidfd lock unavailable'):anchor.send(driver.signal.SIGTERM)
+                send.assert_not_called()
+        finally:release.set();owner.join(3)
+        remaining=[]
+        proc._ynx_original_pidfd=SimpleNamespace(send=lambda sig,**kwargs:remaining.append(kwargs['timeout']))
+        with mock.patch.object(driver.lab.time,'monotonic',side_effect=[100,100.19]):
+            driver.lab.signal_original_child(proc,driver.signal.SIGTERM,timeout=.2)
+        self.assertAlmostEqual(remaining[0],.01,places=6)
+
+    def test_busy_identity_close_remains_debt_in_owner_and_proof_paths(self):
+        handle=SimpleNamespace(close_bounded=lambda **kwargs:False,close=lambda:(_ for _ in ()).throw(AssertionError('unbounded close forbidden')))
+        proc=SimpleNamespace(pid=12345,stdin=SimpleNamespace(closed=True),poll=lambda:0,_ynx_original_pidfd=handle,_ynx_lifecycle_lock=threading.RLock())
+        s=session(proc,lambda *a:None);s.require_guarded_stream=True
+        self.assertEqual(s.retire_identity_after_window()['status'],'ORIGINAL_IDENTITY_CLOSE_UNKNOWN')
+        self.assertEqual(driver.retire_original_proof_pidfd(proc),dict(status='ORIGINAL_PROOF_IDENTITY_CLOSE_UNKNOWN',closed=False))
+
+    def test_blocked_child_keeps_error_and_attempts_other_original_child(self):
+        w=original_window_fixture();w.lock=threading.RLock();w.logs=[];w.known={}
+        signals=[];children=[]
+        for index in (1,2):
+            process=SimpleNamespace(pid=12340+index,returncode=None,poll=lambda:None,wait=lambda timeout=None:0)
+            driver.lab.bind_process_lifecycle(process)
+            process._ynx_original_pidfd=SimpleNamespace(send=lambda signum,i=index,**kwargs:signals.append((i,signum)))
+            children.append(dict(name='load-original-'+str(index),process=process,startTicks=44+index,command=['original']))
+        w.children=children;w._cleanup_inventory=lambda:({},{});
+        held=threading.Event();release=threading.Event();finished=threading.Event();errors=[]
+        def holder():
+            with children[0]['process']._ynx_lifecycle_lock:held.set();release.wait(8)
+        owner=threading.Thread(target=holder);owner.start();self.assertTrue(held.wait(1))
+        def stop():
+            try:w.stop()
+            except BaseException as error:errors.append(error)
+            finally:finished.set()
+        worker=threading.Thread(target=stop);worker.start()
+        try:
+            self.assertTrue(finished.wait(5),'original cleanup stopped progressing on one child')
+            self.assertTrue(errors);self.assertIn('lifecycle lock unavailable',str(errors[0]))
+            self.assertIn((2,driver.signal.SIGTERM),signals)
+            self.assertEqual(w.direct_cleanup_after_failure[0]['errors'][0]['operation'],'signal')
+            self.assertTrue(w.launch_cleanup_failure);self.assertTrue(w.launches_closed)
+        finally:release.set();owner.join(3);worker.join(3)
+
+    def test_multiple_busy_children_share_cleanup_deadline_and_try_live_handle(self):
+        w=original_window_fixture();w.lock=threading.RLock();w.logs=[];w.known={};signals=[]
+        children=[]
+        for index in (1,2,3):
+            process=SimpleNamespace(pid=12340+index,returncode=None,poll=lambda:None,wait=lambda timeout=None:0)
+            driver.lab.bind_process_lifecycle(process)
+            process._ynx_original_pidfd=SimpleNamespace(send=lambda signum,i=index,**kwargs:signals.append((i,signum)))
+            children.append(dict(name='load-original-'+str(index),process=process,startTicks=44+index,command=['original']))
+        w.children=children;w._cleanup_inventory=lambda:({},{});held=threading.Event();release=threading.Event()
+        def holder():
+            with children[0]['process']._ynx_lifecycle_lock,children[1]['process']._ynx_lifecycle_lock:
+                held.set();release.wait(5)
+        owner=threading.Thread(target=holder);owner.start();self.assertTrue(held.wait(1))
+        w.launch_cleanup_deadline=time.monotonic()+.15;started=time.monotonic()
+        try:
+            with self.assertRaisesRegex(RuntimeError,'lifecycle lock unavailable'):w.stop()
+            self.assertLess(time.monotonic()-started,1)
+            self.assertIn((3,driver.signal.SIGTERM),signals)
+            self.assertEqual(len(w.direct_cleanup_after_failure),3)
+            self.assertTrue(w.launch_cleanup_failure)
+        finally:release.set();owner.join(3)
+
+    def test_uncertain_pidfd_close_never_reuses_descriptor_number(self):
+        pidfd=module('pq-experimental-owner-pidfd');anchor=pidfd.OriginalOwnerPidfd.__new__(pidfd.OriginalOwnerPidfd)
+        anchor.fd=os.open(os.devnull,os.O_RDONLY);anchor.lock=threading.Lock();anchor._close_uncertain=False
+        number=anchor.fd;original_close=os.close;replacement=[]
+        def ambiguous(fd):
+            original_close(fd)
+            new=os.open(os.devnull,os.O_RDONLY)
+            if new!=fd:os.dup2(new,fd);original_close(new)
+            replacement.append(fd)
+            raise OSError('controlled close outcome uncertain after release')
+        try:
+            with mock.patch.object(pidfd.os,'close',side_effect=ambiguous) as close:
+                with self.assertRaisesRegex(OSError,'outcome uncertain'):anchor.close_bounded()
+                self.assertIsNone(anchor.fd);self.assertFalse(anchor.close_bounded())
+                self.assertEqual(anchor._close_error_type,'OSError')
+                with self.assertRaisesRegex(RuntimeError,'close unknown'):anchor.close()
+                with self.assertRaisesRegex(RuntimeError,'already closed'):anchor.send(driver.signal.SIGTERM)
+                proc=SimpleNamespace(pid=12345,returncode=0,poll=lambda:0,stdin=SimpleNamespace(closed=True),
+                    _ynx_lifecycle_lock=threading.RLock(),_ynx_original_pidfd=anchor,_ynx_clock_pidfd=anchor)
+                s=session(proc,lambda *a:None);s.require_guarded_stream=True
+                self.assertEqual(s.retire_identity_after_window()['errorType'],'OSError')
+                self.assertEqual(driver.retire_original_proof_pidfd(proc)['errorType'],'OSError')
+                w=original_window_fixture();w.lock=threading.RLock();w.children=[dict(name='pq-node-0',process=proc)]
+                w._stop_owned=lambda:True
+                self.assertFalse(w.stop())
+                self.assertEqual(w.launch_cleanup_report()['clockIdentityCloseErrors'],[dict(name='pq-node-0',errorType='OSError')])
+                close.assert_called_once_with(number)
+            os.fstat(number) # A reused descriptor still belongs to the caller.
+        finally:
+            for fd in replacement:original_close(fd)
 
     def test_blocked_shutdown_report_remains_unknown_without_zero_fill(self):
         with tempfile.TemporaryDirectory() as temp:

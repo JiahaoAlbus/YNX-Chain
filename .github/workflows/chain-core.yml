@@ -169,7 +169,20 @@ jobs:
       - name: Verify normal public owner stream isolation and lost acknowledgements
         run: |
           python3 -B scripts/loadtest/test_pq_public_owner_transport.py -v
-          python3 -B scripts/loadtest/test_pq_owner_poison_retirement.py -v
+          python3 -B - <<'PYPOISON'
+          import importlib.util, sys, unittest
+          from pathlib import Path
+          if sys.platform != 'linux':
+              raise RuntimeError('actual Linux original owner retirement required')
+          spec = importlib.util.spec_from_file_location('original_owner_poison', Path('scripts/loadtest/test_pq_owner_poison_retirement.py'))
+          module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+          suite = unittest.defaultTestLoader.loadTestsFromModule(module)
+          if suite.countTestCases() != 31:
+              raise RuntimeError('exact 31 original owner retirement controls required')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if result.testsRun != 31 or result.skipped or not result.wasSuccessful():
+              raise RuntimeError('all 31 original owner retirement controls must execute without skips')
+          PYPOISON
           python3 -B scripts/loadtest/test_pq_guarded_original_stdin.py -v
           python3 -B scripts/loadtest/test_pq_public_owner_readback.py -v
           python3 -B scripts/loadtest/test_pq_public_owner_parent_readback.py -v
