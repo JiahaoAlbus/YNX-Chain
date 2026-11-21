@@ -3,7 +3,7 @@ name: Pair controller source-only controls
 on:
   push:
     branches:
-      - codex/perf-pair-clock-readback-20261122
+      - codex/perf-pair-confirmation-bound-20261122
 
 permissions:
   contents: read

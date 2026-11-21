@@ -790,7 +790,9 @@ def inspect(raw, sha256, controller, configuration_sha256):
         if clock_enabled:
             clock = module('pq-commit-clock-readback.py').readback_public_originals({}, '', expected_source=None)
             clock.update(configuredDemand=500, censored=500)
-            report.update(commitClockReadbackConfigured=True, originalCommitClockReadback=clock)
+            confirmation = module('pq-pair-confirmation-bound-readback.py').project({}, {}, '', clock, {})
+            report.update(commitClockReadbackConfigured=True, originalCommitClockReadback=clock,
+                          originalConfirmationObservation=confirmation)
         return dict(report, status='NO_RUNTIME_RECEIPT')
     name = receipts[0]
     prefix = name.removesuffix('receipt.json')
@@ -816,6 +818,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
     successor = prior.successor_availability(files, prefix, receipt)
     commits = prior.original.commit_original_copies(files, prefix, receipt)
     closure_indices = []
+    qualified_originals = {}
     if load is not None:
         require(receipt['loadExecuted'] is True and runtime_pin is not None, 'original load boundary missing')
         for segment in receipt['journalSegments']:
@@ -860,6 +863,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
             if verify_qualified_closure(final, base, files, manifest, prefix, source['commit'],
                                         (receipt.get('binaries') or {}).get('ynx-consensus-proof-verify')):
                 closure_indices.append(row['index'])
+                qualified_originals[row['index']] = final
         report['fullCohort']['qualifiedPublicClosureIndices'] = closure_indices
     ready = receipt.get('heldReadyOnlyComplete') is True
     if ready:
@@ -930,6 +934,8 @@ def inspect(raw, sha256, controller, configuration_sha256):
                          missingEvidence=dict(errorType='ValueError',
                              reason='original clock demand differs from frozen full500 plan'))
         report['originalCommitClockReadback'] = clock
+        report['originalConfirmationObservation'] = module('pq-pair-confirmation-bound-readback.py').project(
+            receipt, files, prefix, clock, qualified_originals)
     owner_timing = public_owner_timing(receipt, load) if load is not None else None
     network = receipt.get('networkAccounting') or {}
     return dict(report, status=status,

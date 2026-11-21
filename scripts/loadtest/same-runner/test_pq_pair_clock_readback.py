@@ -19,6 +19,7 @@ r=module('pq-commit-clock-readback')
 held=module('pq-first100-held-readback')
 legacy=module('test_pq_first100_held_readback')
 pair=module('pq-same-runner-pair-readback')
+confirmation=module('pq-pair-confirmation-bound-readback')
 
 def raw(value):return json.dumps(value,sort_keys=True,separators=(',',':')).encode()
 def descriptor(value):return dict(bytes=len(value),sha256=hashlib.sha256(value).hexdigest())
@@ -260,7 +261,8 @@ class PairedClockReadbackControls(unittest.TestCase):
         binding=dict(before=dict(source='1'*40,sourceTree='3'*40,forkTree='a'*40,tools='5'*40,toolsTree='7'*40),
                      after=dict(source='2'*40,sourceTree='4'*40,forkTree='a'*40,tools='9'*40,toolsTree='8'*40))
         with mock.patch.object(pair.held,'CLOCK_PUBLIC_READBACK_BINDINGS',binding), \
-             mock.patch.object(pair.held,'module',return_value=r),mock.patch.object(r,'COMMIT_CLOCK_SOURCES',('1'*40,'2'*40)), \
+             mock.patch.object(pair.held,'module',side_effect=lambda name:r if name=='pq-commit-clock-readback.py' else confirmation), \
+             mock.patch.object(r,'COMMIT_CLOCK_SOURCES',('1'*40,'2'*40)), \
              mock.patch.object(r,'readback_public_originals',wraps=r.readback_public_originals) as original:
             result=pair.inspect(originals['manifest'],originals['before'],originals['after'],metadata=metadata,
                 controller=case.controller,manifest_sha256=r.sha(originals['manifest']),expected=case.expected)
@@ -310,7 +312,8 @@ class PairedClockReadbackControls(unittest.TestCase):
                 outcomes.append(('REJECTED',str(error)));raise
             outcomes.append(('ACCEPTED',None));return result
         with mock.patch.object(pair.held,'CLOCK_PUBLIC_READBACK_BINDINGS',binding), \
-             mock.patch.object(pair.held,'module',return_value=r),mock.patch.object(r,'COMMIT_CLOCK_SOURCES',('a'*40,'2'*40)), \
+             mock.patch.object(pair.held,'module',side_effect=lambda name:r if name=='pq-commit-clock-readback.py' else confirmation), \
+             mock.patch.object(r,'COMMIT_CLOCK_SOURCES',('a'*40,'2'*40)), \
              mock.patch.object(r,'_source_binding',side_effect=audited_source_binding) as check:
             for corrupt in (False,True):
                 case.files[label][prefix+'normal-live-source-selection.json']=(b'{}' if corrupt else public['archive/public/normal-live-source-selection.json'])
