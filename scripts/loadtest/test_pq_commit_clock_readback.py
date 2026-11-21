@@ -24,6 +24,8 @@ def descriptor(value): return dict(bytes=len(value),sha256=hashlib.sha256(value)
 
 
 class CommitClockReadbackControls(unittest.TestCase):
+    def setUp(self):
+        self.source_gate=mock.patch.object(r,'COMMIT_CLOCK_SOURCE','a'*40);self.source_gate.start();self.addCleanup(self.source_gate.stop)
     def fixture(self):
         source='a'*40; binary='b'*64; tx='c'*64; app='d'*64; binary_path='/synthetic/ynx-comet'
         identity=dict(commit=source,tree='e'*40,forkTree='f'*40)
@@ -83,6 +85,12 @@ class CommitClockReadbackControls(unittest.TestCase):
                 else:item['normalLiveBuildProvenance']['ynx-comet']['buildArgv'].remove('-buildvcs=false')
                 result=r.reduce(item,**options)
                 self.assertEqual((result['status'],result['observed'],result['censored']),('NOT_SUPPLIED',0,1))
+
+    def test_caller_cannot_supply_an_unqualified_source(self):
+        receipt,kwargs=self.fixture()
+        with mock.patch.object(r,'COMMIT_CLOCK_SOURCE',None):
+            result=r.reduce(receipt,**kwargs)
+        self.assertEqual((result['status'],result['observed'],result['censored']),('NOT_SUPPLIED',0,1))
 
     def test_each_unbound_node_makes_the_transaction_censored(self):
         for kind in ('pid','executable','namespace','clock_order','wrong_height_hash','duplicate_height','duplicate_json','duplicate_node_descriptor','future_clock','inclusion_bytes'):

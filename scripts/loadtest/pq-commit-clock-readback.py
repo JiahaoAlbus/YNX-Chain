@@ -18,6 +18,9 @@ import time
 
 SOURCE_BINDING = 'linker-declared-requires-original-manifest-build-binary-and-process-proof'
 BOUNDARY = 'local-persistent-ABCI-Commit-return-upper-bound-before-mempool-update;not-consensus-vote-or-finality'
+# The owning source/CI controller must bind one exact reviewed Core successor.
+# No caller, environment variable or historical receipt can fill this gate.
+COMMIT_CLOCK_SOURCE = None
 
 
 def require(ok, message):
@@ -172,6 +175,8 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
     result=dict(status='NOT_SUPPLIED',configuredDemand=demand,observed=0,censored=demand,rows=[],
                 independentFinality=False,runtimeAuthorized=False,physicalCommitMeaning='per-node local persistent ABCI Commit return upper bounds; not consensus vote or finality')
     try:
+        require(COMMIT_CLOCK_SOURCE is not None and expected_source==COMMIT_CLOCK_SOURCE,
+                'exact reviewed original Commit clock source/CI NOT_SUPPLIED')
         binary,binary_path=_source_binding(receipt,expected_source,selection_raw,dependencies_raw,build_identity_raw)
         require(parent['processID']==receipt['commitClockParent']['processID'] and parent==receipt['commitClockParent']
                 and type(parent['processID']) is int and parent['processID']>0
