@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"sort"
 	"syscall"
 	"testing"
@@ -18,6 +19,27 @@ import (
 	"github.com/cometbft/cometbft/libs/log"
 	cmttypes "github.com/cometbft/cometbft/types"
 )
+
+func syntheticClockMedian(raw []int64) (int64, bool) {
+	if len(raw) != 8 {
+		return 0, false
+	}
+	values := append([]int64(nil), raw...)
+	sort.Slice(values, func(i, j int) bool { return values[i] < values[j] })
+	return values[3] + (values[4]-values[3])/2, true
+}
+
+func TestSyntheticClockMedianPreservesPairedOrder(t *testing.T) {
+	values := []int64{8, 2, 7, 1, 6, 3, 5, 4}
+	original := slices.Clone(values)
+	median, ok := syntheticClockMedian(values)
+	if !ok || median != 4 || !slices.Equal(values, original) {
+		t.Fatalf("median must preserve ordered paired samples: %v, %d, %t", values, median, ok)
+	}
+	if _, ok := syntheticClockMedian(values[:7]); ok {
+		t.Fatal("incomplete paired samples must be rejected")
+	}
+}
 
 // This comparison uses real local BlockExecutor inputs and synthetic chain state.
 // Both arms retain the original Commit observer and internal validation timing.
@@ -147,12 +169,11 @@ func TestSyntheticClockFinalizeOverheadIndependent(t *testing.T) {
 		}
 	}
 	median := func(raw []int64) int64 {
-		if len(raw) != 8 {
+		value, ok := syntheticClockMedian(raw)
+		if !ok {
 			t.Fatal("expected eight complete paired rounds")
 		}
-		values := append([]int64(nil), raw...)
-		sort.Slice(values, func(i, j int) bool { return values[i] < values[j] })
-		return values[3] + (values[4]-values[3])/2
+		return value
 	}
 	var usage syscall.Rusage
 	if err := syscall.Getrusage(syscall.RUSAGE_SELF, &usage); err != nil {

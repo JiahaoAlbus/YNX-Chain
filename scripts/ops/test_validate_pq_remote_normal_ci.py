@@ -2536,6 +2536,10 @@ def assert_legacy_snapshot_stream_contract(raw):
     need(pull_request.count("      - 'internal/api/ethereum_ethers_test.go'\n") == 1)
 
 class NormalCIWorkflowSourceControls(unittest.TestCase):
+    def test_resource_workflow_fits_github_size_limit(self):
+        path = Path(__file__).resolve().parents[2] / '.github/workflows/resource-market-ci.yml'
+        self.assertLessEqual(path.stat().st_size, 500 * 1024)
+
 
     def test_cutover_caller_partitions_keep_exact_program_order_scope_and_deadlines(self):
         raw = (Path(__file__).resolve().parents[2] / ".github/workflows/resource-market-ci.yml").read_text()
@@ -5058,7 +5062,8 @@ class IndependentSourceChecksControls(unittest.TestCase):
             raise AssertionError('same-source synthetic on/off measurement required')
         compare = compare[0]
         for part in ("        id: syntheticclockab\n", "!cancelled() && steps.identity.outcome == 'success'", '        timeout-minutes: 3\n',
-                     "go test -mod=readonly -tags=ynx_clock_diagnostic -json -p 1 -count=1 -timeout=90s -run '^TestSyntheticClockFinalizeOverheadIndependent$' ./cmd/ynx-comet",
+                     "go test -mod=readonly -tags=ynx_clock_diagnostic -json -p 1 -count=1 -timeout=90s -run '^(TestSyntheticClockFinalizeOverheadIndependent|TestSyntheticClockMedianPreservesPairedOrder)$' ./cmd/ynx-comet",
+                     "order_name = 'TestSyntheticClockMedianPreservesPairedOrder'", "synthetic paired sample preservation test missing, foreign or repeated",
                      "if any(e.get('Action') in ('skip', 'fail', 'build-fail') for e in events):", "independentFinality=false"):
             if compare.count(part) != 1:
                 raise AssertionError('same-source real synthetic A/B execution or rejection missing')
