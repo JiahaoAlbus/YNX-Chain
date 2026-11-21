@@ -1451,6 +1451,21 @@ def original_commit_clock_readback(result,work,private_network,source):
     return joined
 
 
+def retain_original_process_rss(result,window):
+    # Materialize once after the last original readback. This is a retained
+    # diagnostic snapshot, not another procfs sample or a cleanup success gate.
+    try:result['processRSSObservation']=window.process_rss_report()
+    except BaseException as error:
+        result['processRSSObservation']=dict(
+            schema='YNX-PERF-PROCESS-RSS-OBSERVATIONS/v1',clock='parent_monotonic_ns',
+            basis='original-owned-rss-return-values',evidenceVersion=lab.PROCESS_EVIDENCE_VERSION,
+            recordLimit=lab.ProcessEvidence.LIMIT,additionalRSSReads=0,
+            individualLifetimePeakMeasured=False,failedOwnedRSSCallsMeasured=False,
+            status='UNKNOWN',reason='original process RSS observation export failed',
+            observations=None,omittedObservations=None,records=[],errorType=type(error).__name__)
+        result['firstCause']=result['firstCause'] or 'original process RSS observation export failed'
+
+
 def finish_commit_clock_readback(result,window,work,private_network,source,demand):
     try:
         result['commitClockReadback']=original_commit_clock_readback(result,work,private_network,source)
@@ -1464,7 +1479,7 @@ def finish_commit_clock_readback(result,window,work,private_network,source,deman
         result['peakRSSBytes']=window.peak_rss;result['peakNewBytes']=window.peak_bytes;result['resourceSamples']=window.samples
         result['peakRSSSample']=getattr(window,'peak_rss_sample',None)
         result['resourceGuardStageElapsed']=window.sample_stage_report()
-        result['processRSSObservation']=window.process_rss_report()
+        retain_original_process_rss(result,window)
         result['commitClockReadbackResources']=dict(status='UNKNOWN',
             reason='original guard retired before readback; transient readback RSS and storage not independently sampled',
             originalCapsChanged=False,activationGranted=False)
@@ -1847,9 +1862,10 @@ def run(args, *, source_metadata_reader=None, clock_original_log_reader=None, cl
             except BaseException as error:result['firstCause']=result['firstCause'] or str(error)
         result["peakRSSSample"] = getattr(w, "peak_rss_sample", None)
         normal.retain_original_process_receipt(result,w)
-        result['processRSSObservation']=w.process_rss_report()
+        clock_readback=ceremony is not None and getattr(ceremony,'commit_clock_observation_enabled',False)
+        if not clock_readback:retain_original_process_rss(result,w)
         result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,launchLifecycle=w.launch_cleanup_report(),retiredSamplingEvidence=w.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=w.rss_fallback_samples)
-        if ceremony is not None and getattr(ceremony,'commit_clock_observation_enabled',False):
+        if clock_readback:
             finish_commit_clock_readback(result,w,work,ceremony.root,args.commit,demand)
         if ceremony is not None:
             result["wireObservation"]=ceremony.wire_readback()

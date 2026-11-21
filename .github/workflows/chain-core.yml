@@ -432,7 +432,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 0
-      - name: Execute exact same-source 13 RSS and 43 stage controls
+      - name: Execute exact same-source 13 RSS and 49 stage controls
         run: |
           python3 -B - <<'PYRSSSOURCE'
           import hashlib, importlib.util, json, os, pathlib, subprocess, sys, unittest
@@ -451,7 +451,7 @@ jobs:
               (destination / 'RESULT.json').write_text(json.dumps(report, sort_keys=True) + '\n')
           retain()
           for filename, expected in [('test_pq_process_rss_observation.py', 13),
-                                     ('test_pq_first100_stage_summary.py', 43)]:
+                                     ('test_pq_first100_stage_summary.py', 49)]:
               path = pathlib.Path('scripts/loadtest') / filename
               spec = importlib.util.spec_from_file_location('rss_source_' + path.stem, path)
               module = importlib.util.module_from_spec(spec); sys.modules[spec.name] = module
@@ -464,11 +464,11 @@ jobs:
                   failures=len(result.failures), errors=len(result.errors), successful=result.wasSuccessful()))
               report['testsRun'] += result.testsRun; report['skipped'] += len(result.skipped)
               retain()
-          report['successful'] = (report['testsRun'] == 56 and report['skipped'] == 0
+          report['successful'] = (report['testsRun'] == 62 and report['skipped'] == 0
                                  and all(row['successful'] and row['testsRun'] == row['expected'] for row in report['groups']))
           retain()
           print(json.dumps(report, sort_keys=True))
-          assert report['successful'], 'all 56 original source controls must execute without skips'
+          assert report['successful'], 'all 62 original source controls must execute without skips'
           PYRSSSOURCE
       - name: Preserve source-only RSS and stage control result
         if: always()
