@@ -46,12 +46,28 @@ func main() {
 	ethereumNative := flag.Bool("ethereum-native-transfers", envBoolOrDefault("YNX_ETHEREUM_NATIVE_TRANSFERS_ENABLED", false), "enable bounded Ethereum legacy native transfer adapter on testnet/devnet")
 	exportConsensusState := flag.String("export-consensus-state", envOrDefault("YNX_EXPORT_CONSENSUS_STATE", ""), "read an existing quiescent checkpoint and export V2 migration state to a new file (or - for stdout)")
 	pqAdmissionHeight := flag.String("pq-admission-height", envOrDefault("YNX_PQ_ADMISSION_HEIGHT", ""), "optional coordinated future account PQ admission height; persists immutable schedule")
+	pqScheduledCopy := flag.String("prepare-pq-scheduled-copy", "", "create one exclusive private offline scheduled copy; DATA only")
+	pqSourceGenesis := flag.String("source-genesis-hash", "", "independent original genesis hash for the offline copy")
+	pqSourceState := flag.String("source-state-hash", "", "independent original complete migration state hash for the offline copy")
+	pqSourceHeight := flag.String("source-height", "", "independent original committed height for the offline copy")
 	buildInfo := flag.Bool("build-info", false, "print embedded build identity and exit without reading state or starting services")
 	flag.Parse()
+	pqCopyFlagsSpecified := false
+	flag.CommandLine.Visit(func(f *flag.Flag) {
+		switch f.Name {
+		case "prepare-pq-scheduled-copy", "source-genesis-hash", "source-state-hash", "source-height":
+			pqCopyFlagsSpecified = true
+		}
+	})
 
 	cfg := nodeRuntimeConfig{
 		BuildInfo:                *buildInfo,
 		PQAdmissionHeight:        strings.TrimSpace(*pqAdmissionHeight),
+		PQScheduledCopy:          *pqScheduledCopy,
+		PQCopyFlagsSpecified:     pqCopyFlagsSpecified,
+		PQSourceGenesis:          *pqSourceGenesis,
+		PQSourceState:            *pqSourceState,
+		PQSourceHeight:           *pqSourceHeight,
 		HTTPAddr:                 *httpAddr,
 		Network:                  *network,
 		BlockInterval:            *blockInterval,
@@ -75,6 +91,11 @@ func main() {
 
 type nodeRuntimeConfig struct {
 	BuildInfo                bool
+	PQCopyFlagsSpecified     bool
+	PQScheduledCopy          string
+	PQSourceGenesis          string
+	PQSourceState            string
+	PQSourceHeight           string
 	PQAdmissionHeight        string
 	EthereumNativeTransfers  bool
 	HTTPAddr                 string
@@ -165,6 +186,42 @@ func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
 			return io.ErrShortWrite
 		}
 		return err
+	}
+	if cfg.PQScheduledCopy != "" || cfg.PQCopyFlagsSpecified {
+		if cfg.PQScheduledCopy == "" {
+			return errors.New("a new target directory is required for the PQ scheduled copy")
+		}
+		if cfg.CheckConfig || cfg.ExportConsensusState != "" {
+			return errors.New("PQ scheduled copy, check-config and export are separate operations")
+		}
+		height, err := strconv.ParseUint(cfg.PQSourceHeight, 10, 64)
+		if err != nil || strconv.FormatUint(height, 10) != cfg.PQSourceHeight {
+			return errors.New("independent source height must be canonical decimal")
+		}
+		admission, err := strconv.ParseUint(cfg.PQAdmissionHeight, 10, 64)
+		if err != nil || strconv.FormatUint(admission, 10) != cfg.PQAdmissionHeight {
+			return errors.New("PQ admission height must be canonical decimal")
+		}
+		result, err := chain.PrepareOfflinePQScheduledCopy(cfg.DataDir, cfg.PQScheduledCopy, chain.OfflinePQCopyPins{OriginalGenesisHash: cfg.PQSourceGenesis, SourceStateHash: cfg.PQSourceState, SourceHeight: height, AdmissionHeight: admission})
+		if err != nil {
+			return err
+		}
+		raw, err := json.Marshal(result)
+		if err != nil {
+			return errors.Join(chain.ErrOfflinePQCopyUnknown, err)
+		}
+		raw = append(raw, '\n')
+		n, err := out.Write(raw)
+		if err == nil && n != len(raw) {
+			err = io.ErrShortWrite
+		}
+		if err != nil {
+			return errors.Join(chain.ErrOfflinePQCopyUnknown, err)
+		}
+		return nil
+	}
+	if cfg.PQSourceGenesis != "" || cfg.PQSourceState != "" || cfg.PQSourceHeight != "" {
+		return errors.New("source pins require prepare-pq-scheduled-copy")
 	}
 	// Export is an offline read, before startup config, key loading, constructors,
 	// feature enables, validator overrides or services can touch the source.
