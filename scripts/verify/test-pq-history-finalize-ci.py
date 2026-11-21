@@ -18,7 +18,7 @@ class OriginalEvents(unittest.TestCase):
     def test_all_history_cases_and_rejections(self):
         for (slug, index),(positive,names) in history.CASES.items():
             package='github.com/JiahaoAlbus/YNX-Chain/'+('cmd/ynx-consensus-key-init' if slug=='ceremony' and index==3 else 'cmd/ynx-comet' if slug=='comet-layout' else 'internal/consensus')
-            raw=''.join('=== RUN   '+name+'\n'+''.join('=== RUN   '+c+'\n' for c in history.REQUIRED_CHILDREN.get((slug,index),()) if c.startswith(name+'/'))+'--- '+('PASS' if positive else 'FAIL')+': '+name+' (0.00s)\n'+''.join('    --- '+('PASS' if positive else 'FAIL')+': '+c+' (0.00s)\n' for c in history.REQUIRED_CHILDREN.get((slug,index),()) if c.startswith(name+'/')) for name in names)+('ok' if positive else 'FAIL')+'\t'+package+'\t0.1s\n'
+            raw=''.join('=== RUN   '+name+'\n'+''.join('=== RUN   '+c+'\n' for c in history.REQUIRED_CHILDREN.get((slug,index),()) if c.startswith(name+'/'))+'--- '+('PASS' if positive else 'FAIL')+': '+name+' (0.00s)\n'+''.join('    --- '+('PASS' if positive else 'FAIL')+': '+c+' (0.00s)\n' for c in history.REQUIRED_CHILDREN.get((slug,index),()) if c.startswith(name+'/')) for name in names)+('ok' if positive else 'FAIL')+'\t'+package+'\t0.1s\n'+('' if positive else 'FAIL\n')
             status=0 if positive else 1
             with self.subTest(slug=slug,index=index):
                 history.qualify(raw,slug,index,status)
@@ -32,12 +32,29 @@ class OriginalEvents(unittest.TestCase):
     def test_go_verbose_parent_first_and_child_boundaries(self):
         p='TestProductionRoleScriptsPreserveSignedStateAndUnknownResults'; c=p+'/existing-signed-install'
         package='github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
-        raw='=== RUN   '+p+'\n=== RUN   '+c+'\n--- FAIL: '+p+' (0.1s)\n    --- FAIL: '+c+' (0.1s)\nFAIL\nFAIL\t'+package+'\t0.1s\n'
+        raw='=== RUN   '+p+'\n=== RUN   '+c+'\n--- FAIL: '+p+' (0.1s)\n    --- FAIL: '+c+' (0.1s)\nFAIL\nFAIL\t'+package+'\t0.1s\nFAIL\n'
         history.qualify(raw,'signed-history',1,1)
         nested=raw.replace('=== RUN   '+c+'\n','=== RUN   '+c+'\n=== RUN   '+c+'/nested\n').replace('    --- FAIL: '+c+' (0.1s)\n','    --- FAIL: '+c+' (0.1s)\n        --- FAIL: '+c+'/nested (0.1s)\n')
         history.qualify(nested,'signed-history',1,1)
+        for bad in (nested.replace('=== RUN   '+c+'\n',''), nested.replace('    --- FAIL: '+c+' (0.1s)\n        --- FAIL: '+c+'/nested (0.1s)\n','        --- FAIL: '+c+'/nested (0.1s)\n    --- FAIL: '+c+' (0.1s)\n'), raw.removesuffix('FAIL\n'), raw+'unexpected trailing data\n', 'FAIL\t'+package+'\t0.1s\n'+raw):
+            with self.assertRaises(ValueError): history.qualify(bad,'signed-history',1,1)
         for bad in (raw.replace('=== RUN   '+c+'\n',''),raw.replace('    --- FAIL: '+c+' (0.1s)\n',''),raw.replace('--- FAIL: '+p+' (0.1s)\n    --- FAIL: '+c+' (0.1s)\n','    --- FAIL: '+c+' (0.1s)\n--- FAIL: '+p+' (0.1s)\n')):
             with self.assertRaises(ValueError): history.qualify(bad,'signed-history',1,1)
+
+    def test_direct_slash_names_are_limited_to_original_calls(self):
+        case,index='journal',2
+        package='github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
+        lines=[]
+        for name in history.CASES[case,index][1]:
+            children=list(c for c in history.REQUIRED_CHILDREN.get((case,index),()) if c.startswith(name+'/'))
+            if name=='TestPQEngineStateReadKeepsPinnedHistoricalRuntimeDomains': children.append(name+'/atomic-json/12')
+            lines.append('=== RUN   '+name)
+            lines.extend('=== RUN   '+c for c in children)
+            lines.append('--- PASS: '+name+' (0.1s)')
+            lines.extend('    --- PASS: '+c+' (0.1s)' for c in children)
+        raw='\n'.join(lines)+'\nok\t'+package+'\t0.1s\n'
+        history.qualify(raw,case,index,0)
+        with self.assertRaises(ValueError): history.qualify(raw.replace('/atomic-json/12','/atomic-json/99'),case,index,0)
 
     def test_artifact_requires_every_original_source_bound_log(self):
         import hashlib,json,os,subprocess,sys,tempfile
@@ -46,7 +63,7 @@ class OriginalEvents(unittest.TestCase):
             source='a'*40
             for (case,index),(positive,names) in history.CASES.items():
                 package='github.com/JiahaoAlbus/YNX-Chain/'+('cmd/ynx-consensus-key-init' if case=='ceremony' and index==3 else 'cmd/ynx-comet' if case=='comet-layout' else 'internal/consensus')
-                raw=(''.join('=== RUN   '+name+'\n'+''.join('=== RUN   '+c+'\n' for c in history.REQUIRED_CHILDREN.get((case,index),()) if c.startswith(name+'/'))+'--- '+('PASS' if positive else 'FAIL')+': '+name+' (0.00s)\n'+''.join('    --- '+('PASS' if positive else 'FAIL')+': '+c+' (0.00s)\n' for c in history.REQUIRED_CHILDREN.get((case,index),()) if c.startswith(name+'/')) for name in names)+('ok' if positive else 'FAIL')+'\t'+package+'\t0.1s\n').encode()
+                raw=(''.join('=== RUN   '+name+'\n'+''.join('=== RUN   '+c+'\n' for c in history.REQUIRED_CHILDREN.get((case,index),()) if c.startswith(name+'/'))+'--- '+('PASS' if positive else 'FAIL')+': '+name+' (0.00s)\n'+''.join('    --- '+('PASS' if positive else 'FAIL')+': '+c+' (0.00s)\n' for c in history.REQUIRED_CHILDREN.get((case,index),()) if c.startswith(name+'/')) for name in names)+('ok' if positive else 'FAIL')+'\t'+package+'\t0.1s\n'+('' if positive else 'FAIL\n')).encode()
                 (d/f'{case}-{index}.log').write_bytes(raw)
                 status=0 if positive else 1
                 metadata=dict(case=case,index=index,exit=status,source=source,run='123',attempt='1',bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest(),events=history.qualify(raw.decode(),case,index,status))

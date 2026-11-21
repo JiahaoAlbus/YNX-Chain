@@ -32,6 +32,15 @@ REQUIRED_CHILDREN = {
  ('comet-layout', 2): ['TestCometJournalOperatorApplicationRealRegistryScheduleColdContinuation/'+n for n in ('atomic-json','snapshot-journal','block-journal')],
 }
 
+# These t.Run calls intentionally contain a slash in a single test name. They
+# have no intermediate RUN event, as confirmed by the original Go source and
+# retained raw streams. Other missing intermediate parents are refused.
+DIRECT_SLASH_NAMES = {
+ ('source-authority', 2): {'TestMigrationPreservationClassifiesOnlyValidatedAuthorityGaps/'+a+'/'+b for a in ('ai','pay','trust_governance') for b in ('identical_authority_reason','invalid_original','same_module_new_failure','unknown_class')},
+ ('journal', 2): {'TestPQEngineStateReadKeepsPinnedHistoricalRuntimeDomains/'+a+'/'+b for a in ('atomic-json','snapshot-journal','block-journal') for b in ('12','13')},
+ ('comet-layout', 2): ({'TestCometJournalRuntimeAndCustodyModesRetainIndependentConfiguration/'+a+'/'+b for a in ('atomic-json','snapshot-journal','block-journal') for b in ('runtime-only','local','remote')} | {'TestCometJournalRuntimePlanRefusesBeforeOpeningOriginalState/'+a+'/'+b for a in ('atomic-json','snapshot-journal','block-journal') for b in ('invalid_plan','missing_pin','wrong_pin')}),
+}
+
 def qualify(raw, case, index, exit_code):
     positive, required = CASES[case, index]
     if exit_code != (0 if positive else 1):
@@ -42,9 +51,14 @@ def qualify(raw, case, index, exit_code):
     outcomes = re.findall(r'(?m)^(ok|FAIL)[ \t]+([^\s]+)(?:[ \t]|$)', raw)
     if outcomes != [('ok' if positive else 'FAIL', package)]:
         raise ValueError('package result missing, foreign, or duplicated')
+    lines=raw.splitlines()
+    package_lines=[i for i,line in enumerate(lines) if re.match(r'^(ok|FAIL)[ \t]+([^\s]+)(?:[ \t]|$)', line)]
+    if len(package_lines)!=1 or [line for line in lines[package_lines[0]+1:] if line.strip()] != ([] if positive else ['FAIL']):
+        raise ValueError('package result or original log tail incomplete')
+    package_end=package_lines[0]
     events = {}
     positions = {}
-    for pos, line in enumerate(raw.splitlines()):
+    for pos, line in enumerate(lines):
         m = re.match(r'^\s*=== RUN\s+(\S+)', line)
         if m:
             events.setdefault(m.group(1), []).append('run')
@@ -58,6 +72,8 @@ def qualify(raw, case, index, exit_code):
     if not set(REQUIRED_CHILDREN.get((case,index), ())) <= set(events):
         raise ValueError('required original subtest missing')
     for name, actions in events.items():
+        if any(pos >= package_end for pos in positions[name]):
+            raise ValueError('test event follows package result: ' + name)
         if actions not in (['run', 'pass'], ['run', 'fail']):
             raise ValueError('repeated, missing, skipped, or unordered event: ' + name)
         top = name.split('/')[0]
@@ -66,6 +82,13 @@ def qualify(raw, case, index, exit_code):
             next_top = min(later, default=len(raw.splitlines()))
             if not positions[top][0] < positions[name][0] < positions[top][1] < positions[name][1] < next_top:
                 raise ValueError('child outside original Go verbose parent result: ' + name)
+            parent=name.rpartition('/')[0]
+            if parent not in positions and name not in DIRECT_SLASH_NAMES.get((case,index), set()):
+                raise ValueError('missing intermediate parent: ' + name)
+            while parent in positions and '/' in parent:
+                if not positions[parent][0] < positions[name][0] < positions[parent][1] < positions[name][1]:
+                    raise ValueError('child outside its immediate parent: ' + name)
+                parent=parent.rpartition('/')[0]
         if positive and actions != ['run', 'pass']:
             raise ValueError('green test failed: ' + name)
     if not positive and not any(events[name] == ['run', 'fail'] for name in required):
