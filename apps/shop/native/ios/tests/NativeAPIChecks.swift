@@ -69,12 +69,10 @@ final class StubProtocol:URLProtocol,@unchecked Sendable {
         StubProtocol.handler={request in projectionCalls+=1;precondition(request.request.httpMethod=="POST" && request.request.url?.path=="/api/orders/ord_original/projection");request.respond(200,"{\"orderId\":\"ord_original\",\"snapshot\":\"\(snapshot)\",\"fields\":[\"currency\",\"status\",\"totalYNXT\"],\"data\":{\"currency\":\"YNXT\",\"status\":\"payment_pending\",\"totalYNXT\":\"10\"}}")}
         let selection=try await api.selectOriginalOrder("ord_original",expected:selectedSession)
         try check(selection.orderId=="ord_original" && selection.snapshot==snapshot && selection.fields==["currency","status","totalYNXT"] && projectionCalls==1,"actual Native API selects exact original order and snapshot")
-        StubProtocol.handler={request in
-            let body=try! JSONSerialization.jsonObject(with:request.request.httpBody!) as! [String:Any]
-            precondition(body["snapshot"] as? String==snapshot && body["fields"] as? [String]==["currency","status","totalYNXT"])
-            request.respond(200,"{\"orderId\":\"ord_original\",\"snapshot\":\"\(snapshot)\",\"fields\":[\"currency\",\"status\",\"totalYNXT\"],\"data\":{\"currency\":\"YNXT\",\"status\":\"payment_pending\",\"totalYNXT\":\"10\"}}")
-        }
+        StubProtocol.handler={request in request.respond(200,"{\"orderId\":\"ord_original\",\"snapshot\":\"\(snapshot)\",\"fields\":[\"currency\",\"status\",\"totalYNXT\"],\"data\":{\"currency\":\"YNXT\",\"status\":\"payment_pending\",\"totalYNXT\":\"10\"}}")}
         let confirmed=try await api.confirmOriginalOrderSelection(selection,expected:selectedSession)
+        let signedBody=try JSONSerialization.jsonObject(with:Data((authority.proofBody ?? "").utf8)) as! [String:Any]
+        try check(signedBody["snapshot"] as? String==snapshot && signedBody["fields"] as? [String]==selection.fields && authority.proofPath=="/api/orders/ord_original/projection","confirmation signs the same snapshot and fields")
         let confirmedData=try JSONSerialization.jsonObject(with:confirmed) as! [String:Any]
         try check(Set(confirmedData.keys)==Set(["orderId","fields","snapshot"]) && confirmedData["orderId"] as? String=="ord_original" && confirmedData["snapshot"] as? String==snapshot,"confirmed selection contains only original task input DATA")
         StubProtocol.handler={request in request.respond(409)}
