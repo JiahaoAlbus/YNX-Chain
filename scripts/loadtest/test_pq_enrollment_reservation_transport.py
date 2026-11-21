@@ -269,5 +269,72 @@ def line():
         self.assertEqual(stored['firstCause']['type'],'KeyboardInterrupt');self.assertEqual(stored['ackBytesSent'],0)
         self.assert_pending(exchange)
 
+    def audit_case(self):
+        exchange,peer,ready=self.case();child=self.child(peer,ready);out=exchange.run()
+        stdout,stderr=child.communicate(timeout=3)
+        self.assertEqual(child.returncode,0,(stdout,stderr));self.assertIsNone(out['firstCause'])
+        exchange.ledger.close();artifact=exchange.ledger.artifact()
+        def write(path,value):
+            path.parent.mkdir(mode=0o700,parents=True,exist_ok=True);path.write_bytes(value);path.chmod(0o600)
+        marker=dict(version='YNX-PQ-SYNTHETIC-ENROLLMENT-ATTEMPT/v1',sourceCommit=self.source,
+            root=str(self.root),planSHA256=self.plan_pin,workloadSHA256=self.workload_pin,outcome='UNKNOWN')
+        write(self.root/'SYNTHETIC-ENROLLMENT-ATTEMPT.json',raw(marker))
+        write(self.root/'SYNTHETIC-ENROLLMENT-PEER-ACK.json',(exchange.transcript.path/'ack-intent.jsonl').read_bytes()[:-1])
+        frame=json.loads((exchange.transcript.path/'request.jsonl').read_bytes());r=frame['request']
+        # CONTROL byte relation only: these are not Core-authenticated outboxes.
+        for role in ('funding','migration'):
+            write(self.root/'workload/sender-public/0004'/r[role+'OperationId']/'request.json',raw(r))
+        files={p.name:dict(bytes=p.stat().st_size,sha256=sha(p.read_bytes())) for p in exchange.transcript.path.iterdir()}
+        for name in ('SYNTHETIC-ENROLLMENT-ATTEMPT.json','SYNTHETIC-ENROLLMENT-PEER-ACK.json'):
+            value=(self.root/name).read_bytes();files[name]=dict(bytes=len(value),sha256=sha(value))
+        args=dict(pins=exchange.pins,transcript=exchange.transcript.path,database=exchange.ledger.path,
+            database_pin={k:artifact[k] for k in ('bytes','sha256','planSHA256')},file_pins=files,enabled=True)
+        return exchange,args,r
+
+    def test_stopped_peer_ack_and_both_outbox_requests_join_without_authority(self):
+        exchange,args,r=self.audit_case();before=exchange.ledger.path.read_bytes()
+        out=m.audit_private_reservation(**args)
+        self.assertTrue(out['localPairReservationObserved'] and out['peerAckBytesMatch'] and out['bothOutboxRequestBytesMatch'])
+        self.assertEqual(out['status'],'UNKNOWN');self.assertTrue(out['originalLedgerReadOnly'])
+        self.assertFalse(out['durabilityReturnReconstructed'] or out['signingObserved'] or out['nonceReleased'] or out['sourceCIQualified'])
+        self.assertEqual(before,exchange.ledger.path.read_bytes())
+
+    def test_missing_peer_or_one_original_request_stays_unknown_without_recreation(self):
+        exchange,args,r=self.audit_case();peer=self.root/'SYNTHETIC-ENROLLMENT-PEER-ACK.json';original=peer.read_bytes();peer.unlink()
+        out=m.audit_private_reservation(**args)
+        self.assertEqual(out['status'],'UNKNOWN');self.assertTrue(out['missingEvidence']);self.assertFalse(out['peerAckBytesMatch'])
+        self.assertFalse(peer.exists());peer.write_bytes(original);peer.chmod(0o600)
+        missing=self.root/'workload/sender-public/0004'/r['migrationOperationId']/'request.json';missing.unlink()
+        out=m.audit_private_reservation(**args);self.assertTrue(out['peerAckBytesMatch'])
+        self.assertFalse(out['bothOutboxRequestBytesMatch']);self.assertTrue(out['missingEvidence']);self.assertFalse(missing.exists())
+
+    def test_independent_peer_ack_sha_and_request_identity_changes_are_rejected(self):
+        exchange,args,r=self.audit_case();path=self.root/'SYNTHETIC-ENROLLMENT-PEER-ACK.json';old=path.read_bytes()
+        changed=json.loads(old);changed['migrationOperationId']='d'*64;path.write_bytes(raw(changed))
+        out=m.audit_private_reservation(**args);self.assertIn('file SHA',out['firstCause']['message'])
+        args['file_pins'][path.name]=dict(bytes=path.stat().st_size,sha256=sha(path.read_bytes()))
+        out=m.audit_private_reservation(**args);self.assertIn('peer ACK',out['firstCause']['message']);self.assertFalse(out['peerAckBytesMatch'])
+        path.write_bytes(old);args['file_pins'][path.name]=dict(bytes=len(old),sha256=sha(old))
+        target=self.root/'workload/sender-public/0004'/r['fundingOperationId']/'request.json';changed=copy.deepcopy(r);changed['fundingNonce']='3';target.write_bytes(raw(changed))
+        out=m.audit_private_reservation(**args);self.assertIn('funding outbox',out['firstCause']['message']);self.assertFalse(out['bothOutboxRequestBytesMatch'])
+
+    def test_wrong_database_pin_alias_or_private_mode_cannot_promote_join(self):
+        exchange,args,r=self.audit_case();wrong=copy.deepcopy(args['database_pin']);wrong['sha256']='f'*64
+        out=m.audit_private_reservation(**dict(args,database_pin=wrong))
+        self.assertFalse(out['originalLedgerReadOnly']);self.assertIn('database SHA',out['firstCause']['message'])
+        path=self.root/'SYNTHETIC-ENROLLMENT-PEER-ACK.json';path.chmod(0o644)
+        out=m.audit_private_reservation(**args);self.assertIn('owner-only',out['firstCause']['message'])
+        self.assertFalse(out['peerAckBytesMatch']);path.chmod(0o600)
+        alias=path.with_name('alias');path.rename(alias);path.symlink_to(alias)
+        out=m.audit_private_reservation(**args);self.assertFalse(out['peerAckBytesMatch']);self.assertIsNotNone(out['firstCause'])
+
+    def test_original_exchange_failure_is_retained_and_not_reconstructed_as_ack_receipt(self):
+        exchange,args,r=self.audit_case();path=exchange.transcript.path/'result.json';value=json.loads(path.read_bytes())
+        value['ackSendCompleted']=False;value['firstCause']=dict(type='BrokenPipeError',message='UNIT original delivery uncertain')
+        path.write_bytes(raw(value));args['file_pins'][path.name]=dict(bytes=path.stat().st_size,sha256=sha(path.read_bytes()))
+        out=m.audit_private_reservation(**args)
+        self.assertEqual(out['originalExchangeFirstCause'],value['firstCause']);self.assertTrue(out['peerAckBytesMatch'])
+        self.assertFalse(out['ackReceiptObserved'] or out['durabilityReturnReconstructed'] or out['nonceReleased'])
+
 
 if __name__=='__main__':unittest.main()

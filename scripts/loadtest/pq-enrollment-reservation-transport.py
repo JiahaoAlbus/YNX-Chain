@@ -23,7 +23,7 @@ original=module('pq-enrollment-original-command.py')
 d=module('pq-durable-demand-ledger.py')
 b=original.b;c=original.c;require=b.require
 NORMAL_RESERVATION_PRODUCER=None
-INSPECTED_SYNTHETIC_HANDSHAKE='9710e2f1b7f24c9442a04a3cb72d959561902e3b'
+INSPECTED_SYNTHETIC_HANDSHAKE='95b16ee7e21b8bc37dc7871f16919fc879a79a0c'
 # Exact test-only frames were inspected at this source. This is NOT a normal
 # callee, binary allowlist, CI qualification or permission to spawn a producer.
 FRAME_LIMIT=32<<10
@@ -316,4 +316,120 @@ def normal_reservation(*,enabled=False,**unused):
     require(NORMAL_RESERVATION_PRODUCER is None,'normal producer needs a fixed owning implementation, not caller qualification')
     out=unknown();out['missingEvidence']=['fixedNormalSyntheticProducerAndSameSourceBinary',
         'completeSameSourceCI','originalOwnedProcessAndIndependentCreatePins']
+    return out
+
+
+def audit_private_reservation(*,pins,transcript,database,database_pin,file_pins,enabled=False):
+    """Join stopped ORIGINAL bytes, including Core's persisted peer ACK.
+
+    This never runs the producer or authenticates its marker/MAC/proofs. Even
+    both request files plus the peer ACK are only an original byte relation.
+    A re-opened DB cannot reconstruct successful return/delivery or re-ACK.
+    All inputs are private; the returned projection contains no raw requests.
+    Caller pins do not supply source CI, process identity or current authority.
+    """
+    require(enabled is True,'private original reservation audit is explicitly opt-in')
+    out=unknown();out.update(localPairReservationObserved=False,originalLedgerReadOnly=False,
+        peerAckBytesMatch=False,bothOutboxRequestBytesMatch=False,durabilityReturnReconstructed=False,
+        originalPins={},privateDataExported=False)
+    require(isinstance(pins,PinnedOriginals),'independent original launch pins required')
+    out.update(sourceCommit=pins.source,planSHA256=pins.plan_pin,workloadSHA256=pins.workload_pin)
+    b.closed(database_pin,('bytes','sha256','planSHA256'),'closed stopped original database pin required')
+    require(type(database_pin['bytes']) is int and 0<database_pin['bytes']<=b.accounting.DB_LIMIT
+            and b.hex_pin(database_pin['sha256']) and b.hex_pin(database_pin['planSHA256']),
+            'bounded original database byte pin required')
+    names=('ready.jsonl','init.jsonl','request.jsonl','ack-intent.jsonl','result.json',
+           'SYNTHETIC-ENROLLMENT-ATTEMPT.json','SYNTHETIC-ENROLLMENT-PEER-ACK.json')
+    b.closed(file_pins,names,'all independent original handshake file pins required')
+    for pin in file_pins.values():
+        b.closed(pin,('bytes','sha256'),'closed original handshake file pin required')
+        require(type(pin['bytes']) is int and 0<pin['bytes']<=FRAME_LIMIT and b.hex_pin(pin['sha256']),
+                'bounded original handshake file byte pin required')
+    def private_read(path,limit):
+        with c.held(path,limit) as (value,fd):
+            info=os.fstat(fd)
+            require(stat.S_IMODE(info.st_mode)==0o600 and info.st_uid==os.geteuid(),
+                    'owner-only original handshake file required')
+            return value
+    ledger=None;db_expected={key:database_pin[key] for key in ('bytes','sha256')}
+    failed=False
+    try:
+        pins.check();path=Path(database);directory=Path(transcript)
+        require(b.accounting.pin(path,b.accounting.DB_LIMIT)==db_expected,'stopped original database SHA differs')
+        ledger=d.open_readonly(path,pins.plan(),database_pin['planSHA256'],max_db_bytes=b.accounting.DB_LIMIT)
+        out['originalLedgerReadOnly']=True;out['originalPins']['database']=dict(database_pin)
+        values={}
+        for name in names:
+            file=(pins.root if name.startswith('SYNTHETIC-') else directory)/name
+            value=private_read(file,FRAME_LIMIT)
+            require(file_pins[name]==dict(bytes=len(value),sha256=b.sha(value)),
+                    'independent original handshake file SHA differs: '+name)
+            values[name]=value;out['originalPins'][name]=dict(file_pins[name])
+        ready=decode('READY',values['ready.jsonl']);init=decode('INIT',values['init.jsonl'])
+        request=decode('REQUEST',values['request.jsonl']);ack=decode('ACK',values['ack-intent.jsonl'])
+        expected_ready=dict(version=PREFIX+'READY/v1',sourceCommit=pins.source,root=str(pins.root),
+            planPath=str(pins.plan_path),planSHA256=pins.plan_pin,workloadPath=str(pins.workload_path),
+            workloadSHA256=pins.workload_pin,ownerIndex=4,ownerAddress=pins.owner['address'],nextNonce='2')
+        require(type(ready['ownerIndex']) is int and ready==expected_ready,'retained READY differs from independent original pins')
+        require(type(init['index']) is int and init['index']==0 and type(init['ownerIndex']) is int
+                and init['ownerIndex']==4 and init['fundingNonce']=='2' and init['sourceCommit']==pins.source,
+                'retained INIT original row/source differs')
+        require(type(request['index']) is int and request['index']==init['index']
+                and request['sourceCommit']==pins.source and request['planSHA256']==pins.plan_pin
+                and request['workloadSHA256']==pins.workload_pin,'retained REQUEST source/plan differs')
+        request_raw=original.canonical(request['request']);r=d.enrollment.request(request_raw)
+        require(b.sha(request_raw)==request['requestSHA256'],'retained original request SHA differs')
+        reservation=ledger.read_enrollment_pair(init['index'],request['requestSHA256'])
+        require(reservation.get('requestRaw')==request_raw and reservation.get('sourceCommit')==pins.source
+                and init['fundingOperationId']==r['fundingOperationId'] and r['ownerIndex']==4 and r['fundingNonce']=='2',
+                'original pair does not match retained private handshake')
+        row=ledger.row(init['index']);pending=ledger.audit()['originalPending']
+        require(row['operationId']==r['fundingOperationId'] and len(pending)==1 and pending[0]['pending']==init['index']
+                and pending[0]['nextNonce']==2,'original handshake pending/nonce was released or replaced')
+        expected_ack=dict(version=PREFIX+'ACK/v1',status='LOCAL_RESERVATION_RETAINED',sourceCommit=pins.source,index=init['index'],
+            requestSHA256=request['requestSHA256'],fundingOperationId=r['fundingOperationId'],
+            migrationOperationId=r['migrationOperationId'],ownerIndex=4,fundingNonce='2',
+            signingAuthorized=False,nonceReleased=False,automaticRetry=False)
+        require(values['ack-intent.jsonl']==frame('ACK',expected_ack),'retained original ACK differs')
+        result=d.enrollment.strict(values['result.json'],FRAME_LIMIT)
+        require(type(result) is dict and result.get('schema')==out['schema'] and result.get('status')=='UNKNOWN'
+                and result.get('sourceCommit')==pins.source and result.get('planSHA256')==pins.plan_pin
+                and result.get('workloadSHA256')==pins.workload_pin
+                and result.get('requestSHA256')==request['requestSHA256']
+                and result.get('fundingOperationId')==r['fundingOperationId'] and result.get('migrationOperationId')==r['migrationOperationId']
+                and all(result.get(key) is False for key in ('signingAuthorized','nonceReleased','automaticRetry')),
+                'original exchange result identity/authority differs')
+        out.update(localPairReservationObserved=True,requestSHA256=request['requestSHA256'],
+            fundingOperationId=r['fundingOperationId'],migrationOperationId=r['migrationOperationId'],
+            originalExchangeFirstCause=result.get('firstCause'))
+        marker=d.enrollment.strict(values['SYNTHETIC-ENROLLMENT-ATTEMPT.json'],FRAME_LIMIT)
+        expected_marker=dict(version='YNX-PQ-SYNTHETIC-ENROLLMENT-ATTEMPT/v1',sourceCommit=pins.source,
+            root=str(pins.root),planSHA256=pins.plan_pin,workloadSHA256=pins.workload_pin,outcome='UNKNOWN')
+        require(marker==expected_marker and values['SYNTHETIC-ENROLLMENT-ATTEMPT.json']==original.canonical(expected_marker),
+                'original synthetic attempt marker differs')
+        require(values['SYNTHETIC-ENROLLMENT-PEER-ACK.json']==values['ack-intent.jsonl'][:-1],
+                'original peer ACK does not match the retained single send intent')
+        out['peerAckBytesMatch']=True
+        for role in ('funding','migration'):
+            file=pins.root/'workload/sender-public/0004'/r[role+'OperationId']/'request.json'
+            value=private_read(file,16<<10)
+            require(value==request_raw,'original '+role+' outbox request bytes differ')
+            out['originalPins'][role+'OutboxRequest']=dict(bytes=len(value),sha256=b.sha(value))
+        out['bothOutboxRequestBytesMatch']=True
+    except FileNotFoundError:
+        out['missingEvidence'].append('originalPrivateReservationFileOrDatabase')
+    except Exception as error:
+        failed=True;out['firstCause']=dict(type=type(error).__name__,message=d.failure_message(error))
+    finally:
+        if ledger is not None:
+            try:ledger.close()
+            except Exception as error:
+                out['cleanupDebt']=True;out['firstCause']=out['firstCause'] or dict(type=type(error).__name__,message=d.failure_message(error))
+            try:
+                require(b.accounting.pin(Path(database),b.accounting.DB_LIMIT)==db_expected,'read-only original database changed')
+                pins.check()
+            except Exception as error:
+                failed=True;out['firstCause']=out['firstCause'] or dict(type=type(error).__name__,message=d.failure_message(error))
+        if failed:
+            out['localPairReservationObserved']=False;out['peerAckBytesMatch']=False;out['bothOutboxRequestBytesMatch']=False
     return out

@@ -17,7 +17,7 @@ GROUPS=[
  ('test_pq_enrollment_original_command.py',None,14),
  ('test_pq_enrollment_original_transport.py',None,13),
  ('test_pq_enrollment_original_dispatch.py',None,9),
- ('test_pq_enrollment_reservation_transport.py',None,18),
+ ('test_pq_enrollment_reservation_transport.py',None,23),
  ('test_pq_first_trial_source.py',None,8),
  ('test_pq_d24_source_readback.py',None,12),
  ('test_pq_preload_initialization.py',None,8),
