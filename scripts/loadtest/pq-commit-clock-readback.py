@@ -21,6 +21,8 @@ BOUNDARY = 'local-persistent-ABCI-Commit-return-upper-bound-before-mempool-updat
 # The owning source/CI controller must bind one exact reviewed Core successor.
 # No caller, environment variable or historical receipt can fill this gate.
 COMMIT_CLOCK_SOURCE = None
+_commit_spec=importlib.util.spec_from_file_location('original_commit_clock_snapshot',Path(__file__).with_name('pq-commit-observation.py'))
+_commit=importlib.util.module_from_spec(_commit_spec);_commit_spec.loader.exec_module(_commit)
 
 
 def require(ok, message):
@@ -30,6 +32,13 @@ def require(ok, message):
 def sha(raw): return hashlib.sha256(raw).hexdigest()
 def pin(value, size):
     return type(value) is str and re.fullmatch('[0-9a-f]{%d}' % size, value) is not None
+
+
+def decimal(value, *, positive=False):
+    require(type(value) is str and re.fullmatch(r'0|[1-9][0-9]*',value) is not None, 'canonical original decimal required')
+    number=int(value)
+    require(number < 1<<63 and (number>0 or not positive), 'bounded original decimal required')
+    return number
 
 
 def strict(raw, limit):
@@ -82,6 +91,20 @@ def _digest_fd(fd):
         h.update(block)
 
 
+def capture_built_binary(binary_path):
+    """Pin the actual completed original build file, never a CLI assertion."""
+    path=Path(binary_path)
+    require(path.is_absolute() and path.resolve(strict=True)==path, 'canonical built binary required')
+    fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
+    try:
+        before=os.fstat(fd);require(stat.S_ISREG(before.st_mode) and before.st_size>0, 'original built binary is not regular')
+        digest=_digest_fd(fd);after=os.fstat(fd);named=os.stat(path,follow_symlinks=False)
+        fields=lambda item:(item.st_dev,item.st_ino,item.st_size,item.st_mtime_ns,item.st_ctime_ns)
+        require(fields(before)==fields(after)==fields(named), 'original built binary changed during pin')
+        return dict(path=str(path),sha256=digest,device=before.st_dev,inode=before.st_ino,size=before.st_size)
+    finally:os.close(fd)
+
+
 def _start_ticks(pid):
     data=Path('/proc/%d/stat' % pid).read_text()
     end=data.rfind(')'); require(end > 0, 'original process stat malformed')
@@ -117,7 +140,7 @@ def _capture_owned_executable(proc, pidfd, binary_path, binary_sha):
                     and (e.st_dev,e.st_ino,e.st_size,e.st_mtime_ns,e.st_ctime_ns)==(current.st_dev,current.st_ino,current.st_size,current.st_mtime_ns,current.st_ctime_ns), 'original executable changed while read')
             ns=os.stat('/proc/%d/ns/time' % pid); _live(pidfd,pid)
             require(_start_ticks(pid)==before, 'original process start identity changed')
-            return dict(pid=pid,startTicks=before,binarySHA256=binary_sha,binaryPath=str(binary_path),device=a.st_dev,inode=a.st_ino,
+            return dict(pid=pid,startTicks=before,binarySHA256=binary_sha,binaryPath=str(binary_path),device=a.st_dev,inode=a.st_ino,size=a.st_size,
                         observedStartNs=str(start),observedEndNs=str(time.monotonic_ns()),
                         timeNamespace='%d:%d' % (ns.st_dev,ns.st_ino),identity='original-unpublished-pidfd-and-live-proc-exe')
         finally: os.close(actual)
@@ -142,6 +165,10 @@ def _source_binding(receipt, source, selection_raw, dependencies_raw, build_iden
     require(argv==['go','build','-mod=readonly','-p','1','-trimpath','-buildvcs=false','-ldflags',
                    '-X main.operatorCommitBuildSource='+source,'-tags','ynx_live_wire_observation','-o',binary_path,'./cmd/ynx-comet']
             and build['buildCwd']==selection['sourceDirectory'], 'original synthetic linker build argv differs')
+    physical=receipt['commitClockBuiltBinary']
+    require(physical['path']==binary_path and physical['sha256']==binary
+            and all(type(physical.get(key)) is int and physical[key]>0 for key in ('device','inode','size')),
+            'original physical built binary identity differs')
     reference=receipt['commitClockBuildIdentity']
     require(len(build_identity_raw)==reference['bytes'] and sha(build_identity_raw)==reference['sha256'], 'original binary identity bytes differ')
     identity_processes=[p for p in receipt['processes'] if p['name']=='commit-clock-build-identity']
@@ -154,7 +181,7 @@ def _source_binding(receipt, source, selection_raw, dependencies_raw, build_iden
             and declared['sourceRevision']==source and declared['sourceBinding']==SOURCE_BINDING
             and declared['syntheticOnly'] is True and declared['runtimeAuthorized'] is False and declared['nodeStarted'] is False,
             'actual original binary build declaration differs')
-    return binary,binary_path
+    return binary,binary_path,physical
 
 
 def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, selection_raw, dependencies_raw, build_identity_raw, network_plan_raw):
@@ -179,7 +206,7 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
     try:
         require(COMMIT_CLOCK_SOURCE is not None and expected_source==COMMIT_CLOCK_SOURCE,
                 'exact reviewed original Commit clock source/CI NOT_SUPPLIED')
-        binary,binary_path=_source_binding(receipt,expected_source,selection_raw,dependencies_raw,build_identity_raw)
+        binary,binary_path,physical=_source_binding(receipt,expected_source,selection_raw,dependencies_raw,build_identity_raw)
         require(sha(network_plan_raw)==receipt['activation']['networkPlanSHA256'], 'original network plan bytes differ')
         network=strict(network_plan_raw,1<<20)
         require(network['chainId']=='ynx_642399-1' and pin(network['originalGenesisHash'],64), 'original synthetic network identity differs')
@@ -189,8 +216,8 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
                 and re.fullmatch(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',parent['bootID'])
                 and re.fullmatch(r'[0-9]+:[0-9]+',parent['timeNamespace'])
                 and parent['clock']=='CLOCK_MONOTONIC', 'original physical parent clock identity differs')
-        origin=int(receipt['loadResult']['originMonotonicNs'])
-        require(int(parent['observedStartNs'])<=int(parent['observedEndNs'])<=origin, 'parent domain observation occurs after origin')
+        origin=decimal(receipt['loadResult']['originMonotonicNs'])
+        require(decimal(parent['observedStartNs'])<=decimal(parent['observedEndNs'])<=origin, 'parent domain observation occurs after origin')
         require(type(node_evidence) is list and len(node_evidence)==4, 'four original node evidence slots required')
         original_nodes=[]
         for i in range(4):
@@ -215,14 +242,17 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
             probes=[x for x in receipt['commitClockProcessProbes'] if x['node']==i]
             require(len(probes)==1 and probes[0]['probe']==probe, 'original node probe is not receipt-bound')
             process=original_nodes[i]
-            require(process['pid']==old['pid']==new['pid']==probe['pid']==commit['processID']==clock['processID']
+            require(all(type(value) is int for value in (old['pid'],new['pid'],probe['pid'],commit['processID'],clock['processID']))
+                    and process['pid']==old['pid']==new['pid']==probe['pid']==commit['processID']==clock['processID']
                     and probe['identity']=='original-unpublished-pidfd-and-live-proc-exe' and probe['binarySHA256']==binary
                     and probe['binaryPath']==binary_path and process['command'].count(binary_path)==1
-                    and str(process['startTicks'])==str(probe['startTicks']) and probe['timeNamespace']==parent['timeNamespace']
-                    and int(probe['observedStartNs'])<=int(probe['observedEndNs'])<=origin, 'original node process/executable differs')
+                    and all(type(probe.get(key)) is int and probe[key]==physical[key] for key in ('device','inode','size'))
+                    and process['startTicks']==decimal(probe['startTicks'],positive=True) and probe['timeNamespace']==parent['timeNamespace']
+                    and decimal(probe['observedStartNs'])<=decimal(probe['observedEndNs'])<=origin, 'original node process/executable differs')
             require(commit['version']=='YNX-COMET-COMMIT-OBSERVATION/v1' and commit['scope']=='synthetic-loopback-lab/v1'
                     and commit['coverage']['notificationCaptureComplete'] is True and commit['independentFinality'] is False,
                     'original node Commit coverage unavailable')
+            _commit.validate_declared_contract(commit,process['pid'],network['chainId'],network['originalGenesisHash'])
             require(clock['version']=='YNX-COMET-COMMIT-MONOTONIC/v1' and clock['status']=='OBSERVED'
                     and clock['scope']=='synthetic-loopback-lab/v1' and clock['sourceRevision']==expected_source
                     and clock['sourceBinding']==SOURCE_BINDING and clock['clock']=='CLOCK_MONOTONIC'
@@ -232,17 +262,17 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
                     and clock['originalGenesisHash']==commit['originalGenesisHash']==network['originalGenesisHash'], 'original clock domain/source differs')
             samples=clock['samples']; old_samples=commit['samples']
             require(type(samples) is list and type(old_samples) is list and len(samples)==len(old_samples)
-                    and all(type(s['height']) is int and type(s['monotonicNs']) is str and re.fullmatch(r'[0-9]+',s['monotonicNs']) for s in samples)
+                    and all(type(s['height']) is int and s['height']>0 and type(s['monotonicNs']) is str and re.fullmatch(r'0|[1-9][0-9]*',s['monotonicNs']) for s in samples)
                     and all(a['height']==b['height'] and a['appHash']==b['appHash'] for a,b in zip(samples,old_samples)),
                     'original node sample sequence differs')
-            heights=[s['height'] for s in samples]; times=[int(s['monotonicNs']) for s in samples]
+            heights=[s['height'] for s in samples]; times=[decimal(s['monotonicNs']) for s in samples]
             require(len(heights)==len(set(heights)) and all(a<b for a,b in zip(heights,heights[1:]))
                     and all(a<=b for a,b in zip(times,times[1:])), 'original node clock order or height differs')
             c=[x for x in commit['samples'] if x['height']==height]; t=[x for x in samples if x['height']==height]
             require(len(c)==len(t)==1 and c[0]['appHash']==t[0]['appHash'] and pin(t[0]['appHash'],64)
                     and c[0]['persistence']['height']==height and c[0]['persistence']['durable'] is True, 'original exact height and app hash unavailable')
-            return int(t[0]['monotonicNs']),t[0]['appHash']
-        except (KeyError,ValueError,TypeError,IndexError,StopIteration,OverflowError): return None
+            return decimal(t[0]['monotonicNs']),t[0]['appHash']
+        except (KeyError,ValueError,RuntimeError,TypeError,AttributeError,IndexError,StopIteration,OverflowError): return None
     for row in rows:
         entry=dict(index=row['index'],id=row['id'],nodesNs=[None]*4,fourNodeUpperBoundNs=None,status='CENSORED')
         try:
@@ -250,8 +280,9 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
             require(len(references)==1 and len(inc_raw)==references[0]['bytes'] and sha(inc_raw)==references[0]['sha256'], 'original inclusion bytes differ')
             inc=strict(inc_raw,4<<20); rr=inc['rows']; tx=row['hash']; sent=row['submittedNs']
             require(pin(tx,64) and type(sent) is int and sent>=0 and type(rr) is list and len(rr)==4, 'original submitted operation unavailable')
-            heights=[int(r['height']) for r in rr]
+            heights=[decimal(r['height'],positive=True) for r in rr]
             require(heights[0]>0 and len(set(heights))==1 and all(r['hash'].lower()==tx and type(r['tx_result']['code']) is int and r['tx_result']['code']==0 for r in rr), 'original successful four-node inclusion differs')
+            require(type(inc['observedMonotonicNs']) is int and 0<=inc['observedMonotonicNs']<1<<63, 'original inclusion observation clock differs')
             start=origin+sent
             hashes=[]
             for i in range(4):
@@ -263,7 +294,7 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
             if len(hashes)==4 and len(set(hashes))!=1: entry['nodesNs']=[None]*4
             if all(value is not None for value in entry['nodesNs']):
                 entry.update(status='OBSERVED',fourNodeUpperBoundNs=max(entry['nodesNs'])); result['observed']+=1
-        except (KeyError,ValueError,TypeError,IndexError,OverflowError): pass
+        except (KeyError,ValueError,TypeError,AttributeError,IndexError,OverflowError): pass
         result['rows'].append(entry)
     result.update(status='OBSERVED_OR_CENSORED',censored=demand-result['observed'])
     return result

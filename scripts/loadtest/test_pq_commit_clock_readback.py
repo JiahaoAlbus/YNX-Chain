@@ -42,20 +42,27 @@ class CommitClockReadbackControls(unittest.TestCase):
             normalLiveBuildProvenance={'ynx-comet':dict(binarySHA256=binary,originalSource=identity,sourceSelectionSHA256=r.sha(selection),
                 sourceDependenciesReceiptSHA256=r.sha(deps),buildArgv=argv,buildCwd='/synthetic/source',selectedOptionalForkTree='e'*40)},
             normalLiveSourceDependencies={'sourceDependencies':json.loads(deps)},commitClockBuildIdentity=dict(pid=99,**descriptor(declaration)),
+            commitClockBuiltBinary=dict(path=binary_path,sha256=binary,device=1,inode=44,size=1024),
             activation=dict(networkPlanSHA256=r.sha(network)),loadResult=dict(originProcessID=100,originMonotonicNs='1000',rows=[dict(index=0,id='9'*64,hash=tx,submittedNs=100)]),
             normalCommitObservation=dict(originalSnapshots=[]),commitMonotonicObservation=dict(originalSnapshots=[]),
             commitClockProcessProbes=[],processes=[dict(name='commit-clock-build-identity',pid=99,exitCode=0,command=[binary_path,'synthetic-commit-clock-build-identity','--synthetic'])],commitClockInclusions=[])
         evidence=[]
+        original_fixture=json.loads((Path(__file__).with_name('fixtures')/'commit-observation-public-schema.json').read_bytes())['cases']['gap-and-overflow']
         for node in range(4):
             pid=200+node
-            commit=raw(dict(version='YNX-COMET-COMMIT-OBSERVATION/v1',scope='synthetic-loopback-lab/v1',processID=pid,
-                chainID='ynx_642399-1',originalGenesisHash='e'*64,independentFinality=False,
-                coverage=dict(notificationCaptureComplete=True),samples=[dict(height=5,appHash=app,persistence=dict(height=5,durable=True))]))
+            snapshot=copy.deepcopy(original_fixture)
+            snapshot.update(processID=pid,chainID='ynx_642399-1',originalGenesisHash='e'*64,
+                captureBoundary=r._commit.CAPTURE_BOUNDARY,independentFinality=False,successNotifications=1,errorNotifications=0,
+                droppedSuccessSamples=0,sampleOverflow=False,latestTimingAvailable=True,lastFailure=None,unobservedLatest=None,
+                finalCheckpoint=dict(height=5,appHash=app),rejectedNotifications={})
+            snapshot['coverage'].update(notificationCaptureComplete=True,observedHeightGaps=[])
+            snapshot['samples'][0].update(height=5,appHash=app);snapshot['samples'][0]['persistence']['height']=5
+            commit=raw(snapshot)
             clock=raw(dict(version='YNX-COMET-COMMIT-MONOTONIC/v1',status='OBSERVED',scope='synthetic-loopback-lab/v1',processID=pid,
                 chainID='ynx_642399-1',originalGenesisHash='e'*64,independentFinality=False,sourceRevision=source,
                 sourceBinding=r.SOURCE_BINDING,clock='CLOCK_MONOTONIC',bootID=parent['bootID'],timeNamespace=parent['timeNamespace'],
                 captureBoundary=r.BOUNDARY,samples=[dict(height=5,appHash=app,monotonicNs=str(1300+node))]))
-            probe=dict(pid=pid,startTicks='19',binarySHA256=binary,binaryPath=binary_path,timeNamespace='1:2',observedStartNs='940',observedEndNs='950',
+            probe=dict(pid=pid,startTicks='19',binarySHA256=binary,binaryPath=binary_path,device=1,inode=44,size=1024,timeNamespace='1:2',observedStartNs='940',observedEndNs='950',
                        identity='original-unpublished-pidfd-and-live-proc-exe')
             receipt['normalCommitObservation']['originalSnapshots'].append(dict(node=node,pid=pid,**descriptor(commit)))
             receipt['commitMonotonicObservation']['originalSnapshots'].append(dict(node=node,pid=pid,**descriptor(clock)))
@@ -94,12 +101,13 @@ class CommitClockReadbackControls(unittest.TestCase):
         self.assertEqual((result['status'],result['observed'],result['censored']),('NOT_SUPPLIED',0,1))
 
     def test_each_unbound_node_makes_the_transaction_censored(self):
-        for kind in ('pid','executable','namespace','clock_order','wrong_height_hash','duplicate_height','duplicate_json','duplicate_node_descriptor','future_clock','inclusion_bytes'):
+        for kind in ('pid','executable','inode','namespace','clock_order','wrong_height_hash','duplicate_height','duplicate_json','duplicate_node_descriptor','future_clock','inclusion_bytes'):
             with self.subTest(kind=kind):
                 receipt,kwargs=self.fixture(); item=kwargs['node_evidence'][1]
-                if kind in ('pid','executable','namespace'):
+                if kind in ('pid','executable','inode','namespace'):
                     if kind=='pid':item['processProbe']['pid']+=1
                     elif kind=='executable':item['processProbe']['binarySHA256']='1'*64
+                    elif kind=='inode':item['processProbe']['inode']+=1
                     else:item['processProbe']['timeNamespace']='9:9'
                 elif kind=='inclusion_bytes':kwargs['inclusion'][0]+=b' '
                 elif kind=='duplicate_node_descriptor':receipt['commitMonotonicObservation']['originalSnapshots'].append(copy.deepcopy(receipt['commitMonotonicObservation']['originalSnapshots'][1]))
@@ -127,6 +135,23 @@ class CommitClockReadbackControls(unittest.TestCase):
         other=copy.deepcopy(receipt['loadResult']['rows'][0]);other.update(index=1,id='8'*64)
         receipt['loadResult']['rows'].append(other)
         with self.assertRaisesRegex(ValueError,'hashes cannot be reused'):r.reduce(receipt,**kwargs)
+
+    def test_original_rpc_height_requires_canonical_decimal_string(self):
+        for value in (True,5,5.0,'05','+5','5.0'):
+            with self.subTest(value=value):
+                receipt,kwargs=self.fixture();payload=json.loads(kwargs['inclusion'][0]);payload['rows'][1]['height']=value
+                kwargs['inclusion'][0]=raw(payload);receipt['commitClockInclusions'][0].update(descriptor(kwargs['inclusion'][0]))
+                self.assertEqual(r.reduce(receipt,**kwargs)['censored'],1)
+
+    def test_boolean_pid_cannot_alias_original_pid_one(self):
+        receipt,kwargs=self.fixture();item=kwargs['node_evidence'][0]
+        receipt['processes'][1]['pid']=1;item['processProbe']['pid']=1
+        for field,key in (('commitOriginal','normalCommitObservation'),('clockOriginal','commitMonotonicObservation')):
+            payload=json.loads(item[field]);payload['processID']=1;item[field]=raw(payload)
+            receipt[key]['originalSnapshots'][0].update(pid=1,**descriptor(item[field]))
+        receipt['normalCommitObservation']['originalSnapshots'][0]['pid']=True
+        result=r.reduce(receipt,**kwargs)
+        self.assertEqual((result['observed'],result['censored']),(0,1))
 
     def test_one_original_process_cannot_impersonate_four_nodes(self):
         receipt,kwargs=self.fixture();first=copy.deepcopy(kwargs['node_evidence'][0])
@@ -228,12 +253,14 @@ class CommitClockReadbackControls(unittest.TestCase):
     def test_real_linux_parent_clock_and_original_process_executable(self):
         domain=r.parent_domain();self.assertEqual(domain['processID'],os.getpid())
         binary=os.path.realpath('/bin/sleep');digest=hashlib.sha256(Path(binary).read_bytes()).hexdigest()
+        built=r.capture_built_binary(binary);self.assertEqual((built['path'],built['sha256']),(binary,digest))
         child=subprocess.Popen([binary,'30'])
         try:
             fd=r.bind_unpublished_process(child)
             try:
                 probe=r.capture_owned_executable(child,fd,binary,digest)
                 self.assertEqual((probe['pid'],probe['binarySHA256'],probe['timeNamespace']),(child.pid,digest,domain['timeNamespace']))
+                self.assertEqual(tuple(probe[key] for key in ('device','inode','size')),tuple(built[key] for key in ('device','inode','size')))
                 with self.assertRaises(ValueError):r.capture_owned_executable(child,fd,binary,'0'*64)
             finally:fd.close()
         finally:child.terminate();child.wait(timeout=5)

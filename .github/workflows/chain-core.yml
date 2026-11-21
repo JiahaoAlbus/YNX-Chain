@@ -176,7 +176,7 @@ jobs:
             cat "$RUNNER_TEMP/commit-clock-readback.log"; exit 1
           fi
           cat "$RUNNER_TEMP/commit-clock-readback.log"
-          grep -q 'Ran 15 tests' "$RUNNER_TEMP/commit-clock-readback.log"
+          grep -q 'Ran 17 tests' "$RUNNER_TEMP/commit-clock-readback.log"
           if grep -qi 'skipped' "$RUNNER_TEMP/commit-clock-readback.log"; then exit 1; fi
           python3 -B scripts/loadtest/test_pq_commit_validation_readback.py
       - name: Verify hardware observation and record actual CI host separately
