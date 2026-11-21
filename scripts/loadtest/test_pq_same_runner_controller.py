@@ -86,7 +86,8 @@ class ControllerControls(unittest.TestCase):
             go=workspace/'go/bin/go';go.write_text('CONTROL only')
             selected=arm()
             for name in ('pq-before59-held-source.py','pq-before59-equivalence-readback.py',
-                         'pq-commit-clock-source-qualification.py','pq-commit-clock-readback.py','pq-experimental-owner-pidfd.py'):
+                         'pq-commit-clock-source-qualification.py','pq-commit-clock-readback.py','pq-experimental-owner-pidfd.py',
+                         'pq-before59-composition-readback.py','pq-source-evidence-archive.py'):
                 selected['toolPins'][name]='a'*64
             binding=dict(schema='YNX-PERF-ORIGINAL-PAIR-BINDING/v1',arms=dict(before=selected,after=copy.deepcopy(selected)))
             environment=dict(GITHUB_WORKSPACE=str(workspace),RUNNER_TEMP=str(parent))
@@ -103,29 +104,47 @@ class ControllerControls(unittest.TestCase):
                     pressureAuthorized=False,independentFinality=False)))
             driver=types.SimpleNamespace(run=mock.Mock(),lab=original.lab,before59_held_source=gate,
                 select_held_source=lambda commit:gate,commit_clock_ci=clock_ci,
-                commit_clock=types.SimpleNamespace(COMMIT_CLOCK_SOURCE='1'*40))
+                commit_clock=types.SimpleNamespace(COMMIT_CLOCK_SOURCE='1'*40,read_original=mock.Mock(return_value=b'original zip')))
             driver.run.__signature__=c.inspect.signature(original.run)
             original_log=mock.Mock(return_value=b'CONTROL original')
+            composition=types.SimpleNamespace(validate_binding=mock.Mock(),validate_metadata=mock.Mock(),
+                inspect=mock.Mock(return_value={'CONTROL':'source-build'}))
+            artifact=dict(source=selected['source'],tools=selected['tools'],run=selected['toolsCI']['run'],job=999,path='/CONTROL/original.zip')
             with ExitStack() as stack:
                 stack.enter_context(mock.patch.object(c,'__file__',str(workspace/'controller/scripts/loadtest/pq-same-runner-controller.py')))
                 clock_identity=dict(source=selected['source'],tools=selected['tools'])
                 stack.enter_context(mock.patch.object(c,'CLOCK_LOG_BINDING',dict(before=clock_identity,after=dict(clock_identity))))
+                stack.enter_context(mock.patch.object(c,'BEFORE59_COMPOSITION_BINDING',dict(before=artifact,after=dict(artifact))))
                 stack.enter_context(mock.patch.object(c,'active_pair',return_value=pair))
                 stack.enter_context(mock.patch.object(c,'checkout'));stack.enter_context(mock.patch.object(c,'verify_tool_files'))
                 stack.enter_context(mock.patch.object(c,'verify_tools_ci',return_value={'CONTROL':'tools'}))
                 stack.enter_context(mock.patch.object(c.shutil,'which',return_value=str(go)))
-                stack.enter_context(mock.patch.object(c,'module',return_value=driver))
+                stack.enter_context(mock.patch.object(c,'module',side_effect=lambda name,path:composition if name.startswith('before59_tools_composition_') else driver))
                 stack.enter_context(mock.patch.object(c,'git',return_value='6'*40))
                 stack.enter_context(mock.patch.object(c.subprocess,'check_output',return_value='go1.26.11\n'))
                 stack.enter_context(mock.patch.object(original.lab,'check_source',return_value={'commit':'1'*40,'tree':'2'*40}))
                 stack.enter_context(mock.patch.object(c,'clock_log_reader_for_arm',return_value=original_log))
                 stack.enter_context(mock.patch.object(c,'clock_evidence_reader_for_arm',return_value=None))
                 window=stack.enter_context(mock.patch.object(original.lab.Window,'__init__',side_effect=AssertionError('no Window before source gate')))
+                with mock.patch.object(c,'BEFORE59_COMPOSITION_BINDING',None):
+                    with self.assertRaisesRegex(RuntimeError,'source-build evidence NOT_SUPPLIED'):
+                        c.prepare(binding,environment,api)
+                composition.inspect.assert_not_called();driver.commit_clock.read_original.assert_not_called()
                 prepared=c.prepare(binding,environment,api)
                 prepared['adapters']['before'].qualify()
                 gate.qualification.assert_called_once_with(metadata_reader=api.read,focused_log_reader=original_log)
                 self.assertIs(clock_ci.qualification.call_args.kwargs['focused_log_reader'],original_log)
+                self.assertEqual(driver.commit_clock.read_original.call_count,2) # once per arm, no re-read at qualification
                 window.assert_not_called();driver.run.assert_not_called()
+                composition.inspect.side_effect=[{'CONTROL':'source-build'},ValueError('after original artifact corrupted')]
+                with self.assertRaisesRegex(ValueError,'after original artifact corrupted'):
+                    c.prepare(binding,environment,api)
+                window.assert_not_called();driver.run.assert_not_called()
+                composition.inspect.side_effect=None;driver.commit_clock.read_original.reset_mock()
+                composition.validate_metadata.side_effect=RuntimeError('wrong original artifact metadata')
+                with self.assertRaisesRegex(RuntimeError,'wrong original artifact metadata'):
+                    c.prepare(binding,environment,api)
+                driver.commit_clock.read_original.assert_not_called();window.assert_not_called();driver.run.assert_not_called()
 
     def test_after_bad_original_evidence_prevents_before_execution(self):
         fixture=module('test_pq_same_runner_pair_producer')

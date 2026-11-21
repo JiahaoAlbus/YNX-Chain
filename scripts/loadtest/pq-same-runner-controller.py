@@ -36,6 +36,7 @@ REPOSITORY = 'JiahaoAlbus/YNX-Chain'
 PROFILE = 'first100-held-public-owner-sequential-pair'
 CLOCK_LOG_BINDING = None  # Only owner-frozen same-arm original evidence; no CLI/environment override.
 CLOCK_EVIDENCE_BINDING = None  # Owner-frozen two-arm original artifacts and job logs only.
+BEFORE59_COMPOSITION_BINDING = None  # Sole-collected original Tools source/build artifact only.
 WORKFLOW = '.github/workflows/pq-normal-process.yml'
 TOOL_CI_WORKFLOW = '.github/workflows/chain-core.yml'
 TOOL_CI_WORKFLOW_ID = 322083952
@@ -431,15 +432,38 @@ def prepare(binding, environment, api):
                     and gate.BINDING==gate.clock.BINDING==driver.commit_clock_ci.BINDING
                     and gate.clock.LOG_REQUIREMENTS==driver.commit_clock_ci.LOG_REQUIREMENTS,
                     'original before59 held source and log gate NOT_SUPPLIED')
+            require(type(BEFORE59_COMPOSITION_BINDING) is dict and label in BEFORE59_COMPOSITION_BINDING
+                    and {'pq-before59-composition-readback.py','pq-source-evidence-archive.py'} <= set(arm['toolPins']),
+                    'original before59 Tools source-build evidence NOT_SUPPLIED')
+            composition_binding=copy.deepcopy(BEFORE59_COMPOSITION_BINDING[label])
+            require(type(composition_binding) is dict and composition_binding.get('source')==arm['source']
+                    and composition_binding.get('tools')==arm['tools']
+                    and composition_binding.get('run')==arm['toolsCI']['run']
+                    and type(composition_binding.get('job')) is int and composition_binding['job']>0
+                    and type(composition_binding.get('path')) is str,
+                    'frozen before59 Tools source-build arm differs')
+            composition_readback=module('before59_tools_composition_'+label,tools/'scripts/loadtest/pq-before59-composition-readback.py')
+            composition_readback.validate_binding(composition_binding)
+            require(composition_binding['job']!=arm['toolsCI']['job'],
+                    'before59 Tools composition job must be distinct')
+            composition_raw=cached_original_reader(lambda path=composition_binding['path'],clock=driver.commit_clock:
+                clock.read_original(path,32<<20))
+            def check_composition(binding=composition_binding,readback=composition_readback,raw=composition_raw,driver=driver):
+                job=api.read('jobs/'+str(binding['job']))
+                inventory=api.read('runs/'+str(binding['run'])+'/artifacts?per_page=100')
+                readback.validate_metadata(binding,job,inventory)
+                return readback.inspect(binding,job,inventory,raw(),strict=reader.strict)
         tools_ci = verify_tools_ci(arm['toolsCI'], api.read('runs/'+str(arm['toolsCI']['run'])),
                                   api.read('jobs/'+str(arm['toolsCI']['job'])),
                                   clock_observation=config['options'].get('commit_clock_observation',False))
         record = dict(plan, controllerCommit=pair['controllerCommit'], toolsCI=tools_ci)
+        if is_before:record['before59OriginalToolBuild']=check_composition()
         options = argparse.Namespace(**dict(config['options'], source=str(source), execute=True))
         clock_reader=clock_log_reader_for_arm(label,driver,arm,options)
         evidence_reader=clock_evidence_reader_for_arm(label,driver,arm,options)
 
         def qualify(arm=arm, source=source, tools=tools, driver=driver, gate=gate, is_before=is_before, record=record, config=config,
+                    check_composition=check_composition if is_before else None,
                     options=options, clock_reader=clock_reader, evidence_reader=evidence_reader):
             checkout(controller, pair['controllerCommit'])
             checkout(source, arm['source'], arm['sourceTree']); checkout(tools, arm['tools'], arm['toolsTree'])
@@ -450,6 +474,9 @@ def prepare(binding, environment, api):
                     'fixed original Go toolchain differs')
             identity = driver.lab.check_source(source, arm['source'])
             require(identity['tree'] == arm['sourceTree'], 'original source identity differs')
+            if is_before:
+                require(same(check_composition(),record['before59OriginalToolBuild']),
+                        'original before59 Tools source-build evidence changed')
             source_ci = arm['sourceQualification']
             source_options=dict(metadata_reader=api.read)
             if is_before:source_options['focused_log_reader']=clock_reader

@@ -484,3 +484,41 @@ jobs:
           path: ${{ runner.temp }}/pq-process-rss-source-controls/RESULT.json
           if-no-files-found: error
           retention-days: 90
+
+  before59-original-composition:
+    name: Before59 original Linux source composition and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v5
+        with:
+          go-version: '1.26.11'
+      - name: Execute exact source-only original composition and normal build
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          python3 -B - <<'PYBEFORE'
+          import importlib.util, sys, unittest
+          from pathlib import Path
+          assert sys.platform == 'linux', 'actual Linux original composition required'
+          for name,count in (('test_pq_before59_composition_ci',5),('test_pq_before59_composition_readback',6)):
+              spec=importlib.util.spec_from_file_location(name,Path('scripts/loadtest')/(name+'.py'))
+              module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+              suite=unittest.defaultTestLoader.loadTestsFromModule(module)
+              result=unittest.TextTestRunner(verbosity=2).run(suite)
+              if result.testsRun!=count or result.skipped or not result.wasSuccessful():
+                  raise RuntimeError('all original composition controls must execute without skips: '+name)
+          PYBEFORE
+          python3 -I -B scripts/loadtest/pq-before59-composition-ci.py --run
+      - name: Retain only the original before59 source-build evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: before59-source-build-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/before59-composition-original/
+          if-no-files-found: error
+          retention-days: 7
