@@ -491,6 +491,7 @@ class Window:
         require(type(original_pidfd) is bool and (not original_pidfd or (persistent and thread_safe and stdin_pipe)),
                 'original pidfd only for one persistent owned stdin stream')
         self.sample()
+        require(not getattr(self,'closed_for_launch',False), 'original Window has already entered terminal stop')
         require(stop is None or not stop.is_set(), "normal helper cancelled before launch; preserve UNKNOWN")
         log = open(self.work / (".private" if private_log else "public") / (name + ".log"),
                    "xb", buffering=0)
@@ -601,12 +602,19 @@ class Window:
         return len(rows)
 
     def stop(self):
-        # No concurrent launch may leave an unpublished child while stop's
-        # final waitpid(-1) reaps. In particular pidfd attachment completes
-        # under this same lock before any stop/reaper can begin.
-        with self.lock:
-            self.closed_for_launch=True
+        # Publish a permanent launch fence before waiting for the lock. A
+        # stalled launch must not hold the scheduler past the cleanup boundary.
+        # Never reap or signal an unpublished child on lock timeout: retain
+        # explicit UNKNOWN/cleanup debt for the original owner to reconcile.
+        self.closed_for_launch=True
+        started=time.monotonic()
+        if not self.lock.acquire(timeout=1):
+            raise RuntimeError('original Window cleanup lock did not retire; preserve cleanup debt')
+        try:
+            self.terminal_stop_started=started
             return self._stop_locked()
+        finally:
+            self.lock.release()
 
     def _stop_locked(self):
         try:
@@ -644,7 +652,8 @@ class Window:
 
     def _stop(self):
         self.stopping = True
-        started = time.monotonic()
+        started = getattr(self, 'terminal_stop_started', None)
+        if started is None: started = time.monotonic()
         rows, _ = guard.proc_inventory()
         for pid in guard.owned_set(rows, os.getpid(), known=self.known):
             self.known[pid] = rows[pid]["startTicks"]

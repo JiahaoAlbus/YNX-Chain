@@ -298,4 +298,42 @@ class PoisonControls(unittest.TestCase):
                 finally:
                     for _,log in w.logs:log.close()
 
+    def test_stalled_launch_lock_refuses_bounded_cleanup_and_fences_later_launch(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);(root/'public').mkdir()
+            w=driver.lab.Window.__new__(driver.lab.Window)
+            w.lock=threading.Lock();w.children=[];w.known={};w.logs=[];w.work=root;w.source=root;w.env={};w.cpus=[0];w.sample=lambda:None
+            w.stopping=False;w.closed_for_launch=False
+            held=threading.Event();release=threading.Event()
+            def holder():
+                with w.lock:held.set();release.wait(5)
+            thread=threading.Thread(target=holder);thread.start();self.assertTrue(held.wait(1))
+            try:
+                with mock.patch.object(driver.lab.os,'killpg',side_effect=AssertionError('no unbound signal')), \
+                     mock.patch.object(driver.lab.os,'waitpid',side_effect=AssertionError('no unsafe reap')):
+                    started=__import__('time').monotonic()
+                    with self.assertRaisesRegex(RuntimeError,'cleanup lock did not retire'):
+                        w.stop()
+                    self.assertLess(__import__('time').monotonic()-started,2)
+                self.assertTrue(w.closed_for_launch)
+            finally:
+                release.set();thread.join(2)
+            with mock.patch.object(driver.lab.subprocess,'Popen') as spawn:
+                with self.assertRaisesRegex(RuntimeError,'terminal stop'):
+                    w.launch('late',['no-exec'],True,stdin_pipe=True,thread_safe=True,original_pidfd=True)
+                spawn.assert_not_called()
+            self.assertEqual(w.children,[]);self.assertEqual(w.logs,[])
+
+    def test_stop_fence_during_sample_refuses_popen(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);(root/'public').mkdir()
+            w=driver.lab.Window.__new__(driver.lab.Window)
+            w.lock=threading.RLock();w.children=[];w.known={};w.logs=[];w.work=root;w.source=root;w.env={};w.cpus=[0];w.closed_for_launch=False
+            w.sample=lambda:setattr(w,'closed_for_launch',True)
+            with mock.patch.object(driver.lab.subprocess,'Popen') as spawn:
+                with self.assertRaisesRegex(RuntimeError,'terminal stop'):
+                    w.launch('late',['no-exec'],True,stdin_pipe=True,thread_safe=True,original_pidfd=True)
+                spawn.assert_not_called()
+            self.assertEqual(w.logs,[])
+
 if __name__=='__main__':unittest.main()
