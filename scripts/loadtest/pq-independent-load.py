@@ -1345,7 +1345,6 @@ def original_commit_clock_readback(result,work,private_network,source):
 def finish_commit_clock_readback(result,window,work,private_network,source,demand):
     try:
         result['commitClockReadback']=original_commit_clock_readback(result,work,private_network,source)
-        window.sample() # Post-readback snapshot; it is not a transient memory peak measurement.
     except BaseException as error:
         result['commitClockReadback']=dict(status='NOT_SUPPLIED',errorType=type(error).__name__,
             observed=0,censored=demand,independentFinality=False,runtimeAuthorized=False)
@@ -1356,6 +1355,9 @@ def finish_commit_clock_readback(result,window,work,private_network,source,deman
         result['peakRSSBytes']=window.peak_rss;result['peakNewBytes']=window.peak_bytes;result['resourceSamples']=window.samples
         result['peakRSSSample']=getattr(window,'peak_rss_sample',None)
         result['resourceGuardStageElapsed']=window.sample_stage_report()
+        result['commitClockReadbackResources']=dict(status='UNKNOWN',
+            reason='original guard retired before readback; transient readback RSS and storage not independently sampled',
+            originalCapsChanged=False,activationGranted=False)
 
 
 def run(args):

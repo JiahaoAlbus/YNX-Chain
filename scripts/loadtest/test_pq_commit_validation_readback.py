@@ -61,17 +61,18 @@ class CommitValidationReadbackControls(unittest.TestCase):
                              commit_observation=True,commit=driver.HELD_TRIAL_SOURCE)
         with self.assertRaisesRegex(RuntimeError,'clock source/CI NOT_SUPPLIED'):driver.validate_options(args)
 
-    def test_post_clock_resource_refusal_preserves_first_cause_and_new_peak(self):
+    def test_clock_join_does_not_reuse_retired_original_guard(self):
         from unittest import mock
         for cause in (None,'earlier original failure'):
             result=dict(firstCause=cause);window=SimpleNamespace(peak_rss=7,peak_bytes=8,samples=[],peak_rss_sample=dict(rssBytes=7),
-                sample=mock.Mock(side_effect=RuntimeError('owned RSS exceeded 4GiB')),
+                sample=mock.Mock(side_effect=RuntimeError('retired original process log identity changed')),
                 sample_stage_report=lambda:dict(status='OBSERVED',failedCalls=1))
             with mock.patch.object(driver,'original_commit_clock_readback',return_value=dict(status='OBSERVED_OR_CENSORED')):
                 driver.finish_commit_clock_readback(result,window,Path('/synthetic'),Path('/synthetic/private'),'a'*40,500)
-            self.assertEqual(result['firstCause'],cause or 'owned RSS exceeded 4GiB')
+            self.assertEqual(result['firstCause'],cause);window.sample.assert_not_called()
             self.assertEqual((result['peakRSSBytes'],result['peakRSSSample']['rssBytes'],result['resourceGuardStageElapsed']['failedCalls']),(7,7,1))
-            self.assertEqual((result['commitClockReadback']['status'],result['commitClockReadback']['censored']),('NOT_SUPPLIED',500))
+            self.assertEqual(result['commitClockReadback']['status'],'OBSERVED_OR_CENSORED')
+            self.assertEqual(result['commitClockReadbackResources']['status'],'UNKNOWN')
 
     def test_business_height_reducer_keeps_missing_detail_censored(self):
         value=self.sample();second=copy.deepcopy(value['samples'][0]);second['height']+=1

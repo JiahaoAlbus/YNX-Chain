@@ -180,6 +180,20 @@ class CommitClockReadbackControls(unittest.TestCase):
             with mock.patch.object(r.os,'read',side_effect=replace):
                 with self.assertRaisesRegex(ValueError,'changed during read'):r.read_original(item,100)
 
+    def test_original_guard_rejects_log_closed_by_stop_without_retirement_identity(self):
+        import time
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();path=root/'original.log';stream=path.open('wb');stream.write(b'original');stream.close()
+            window=lab.Window.__new__(lab.Window);window.lock=threading.RLock();window.started=time.monotonic()
+            window.sample_stage_totals={};window.known={};window.children=[];window.logs=[('original',stream)]
+            window.closed_log_identity={};window.last_storage_sample=time.monotonic();window.storage_bytes=0
+            window.peak_rss=0;window.peak_bytes=0;window.peak_rss_sample=None;window.work=root;window.storage_roots=[]
+            window.samples=[];window.stopping=True
+            with mock.patch.object(lab.guard,'proc_inventory',return_value=({},None)), \
+                 mock.patch.object(lab.guard,'owned_set',return_value=set()), \
+                 mock.patch.object(lab.shutil,'disk_usage',return_value=SimpleNamespace(free=2<<30)):
+                with self.assertRaisesRegex(RuntimeError,'retired original process log identity changed'):window.sample()
+
     def test_old_missing_source_or_parent_remains_not_supplied(self):
         receipt,kwargs=self.fixture()
         for mutate in ('source','parent','manifest','build_argv'):
