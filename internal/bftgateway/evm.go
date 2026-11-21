@@ -219,7 +219,11 @@ func (g *Gateway) evmCommittedResult(ctx context.Context, method string, raw jso
 			if err != nil {
 				return nil, err
 			}
-			return evmIDEReceipt(tx, upstream.Index, gasUsed, cumulativeGasUsed, ideReceipt, logs, upstream.Tx), nil
+			receipt := evmIDEReceipt(tx, upstream.Index, gasUsed, cumulativeGasUsed, ideReceipt, logs, upstream.Tx)
+			if receipt == nil {
+				return nil, errors.New("native transfer gas evidence does not match its execution profile")
+			}
+			return receipt, nil
 		} else if err.Error() != "EVM receipt not found" {
 			return nil, err
 		}
@@ -1232,6 +1236,9 @@ func verifiedNativeEVMTransfer(t chain.Transaction, raw []byte) (consensus.Signe
 
 func evmIDEReceipt(t chain.Transaction, index uint32, gasUsed, cumulativeGasUsed uint64, receipt consensus.BFTEVMReceipt, logs []map[string]any, raws ...[]byte) map[string]any {
 	base := evmCommittedReceipt(t, index, gasUsed, cumulativeGasUsed, raws...)
+	if base == nil {
+		return nil
+	}
 	if receipt.To != "" {
 		base["to"] = receipt.To
 	}
