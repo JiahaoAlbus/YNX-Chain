@@ -65,3 +65,26 @@ func TestNativeArchiveRejectsAmbiguousCoordinatesOrRefundIdentity(t *testing.T) 
 		})
 	}
 }
+
+func TestNativeArchiveReconciliationRejectsChangedOriginalIntent(t *testing.T) {
+	for _, change := range []string{"session", "request", "intent", "invoice"} {
+		t.Run(change, func(t *testing.T) {
+			original, intent, rows := archiveOrderFixture()
+			changed := intent
+			switch change {
+			case "session":
+				changed.Terms.SessionID = "another-session"
+			case "request":
+				changed.Request.SourceOrder = "another-order"
+			case "intent":
+				changed.IntentID = "another-intent"
+			case "invoice":
+				changed.Invoice = map[string]any{"operations": map[string]NativePayOperation{}}
+			}
+			_, err := nativeArchiveReconciliationForIntent(original, "invoice-original", intent, func(hash string) (NativePayArchiveReceipt, error) { return rows[hash], nil }, func() (NativeInvoiceIntentView, error) { return changed, nil })
+			if err == nil {
+				t.Fatal("changed original intent accepted")
+			}
+		})
+	}
+}

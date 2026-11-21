@@ -217,7 +217,24 @@ func (c *NativeInvoiceIntentClient) ReadOriginalArchiveReceipt(ctx context.Conte
 	if err != nil {
 		return NativePayArchiveReceipt{}, err
 	}
-	return c.readArchiveReceipt(ctx, original, intent, nativeHash, source, current)
+	receipt, err := c.readArchiveReceipt(ctx, original, intent, nativeHash, source, current)
+	if err != nil {
+		return NativePayArchiveReceipt{}, err
+	}
+	again, err := c.originalArchiveIntent(ctx, original, id, current)
+	if err != nil {
+		return NativePayArchiveReceipt{}, err
+	}
+	if err := assertOriginalArchiveIntentUnchanged(intent, again); err != nil {
+		return NativePayArchiveReceipt{}, err
+	}
+	return receipt, nil
+}
+func assertOriginalArchiveIntentUnchanged(original, current NativeInvoiceIntentView) error {
+	if hashJSON(current) != hashJSON(original) {
+		return errors.New("original intent changed during archive read")
+	}
+	return nil
 }
 
 func (c *NativeInvoiceIntentClient) ReadOriginalArchiveReconciliation(ctx context.Context, original NativeInvoiceProductIntent, id string, source NativePayProofSource, current func() error) (NativePayArchiveReconciliation, error) {
@@ -310,8 +327,8 @@ func nativeArchiveReconciliationForIntent(original NativeInvoiceProductIntent, i
 	if err != nil {
 		return NativePayArchiveReconciliation{}, err
 	}
-	if hashJSON(again.Invoice) != hashJSON(intent.Invoice) {
-		return NativePayArchiveReconciliation{}, errors.New("original invoice changed during archive reconciliation")
+	if err := assertOriginalArchiveIntentUnchanged(intent, again); err != nil {
+		return NativePayArchiveReconciliation{}, err
 	}
 	out.PaidAtoms = strconv.FormatUint(paid, 10)
 	out.RefundedAtoms = strconv.FormatUint(refunded, 10)

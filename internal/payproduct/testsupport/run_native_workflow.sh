@@ -259,7 +259,7 @@ if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = refund-receipt ]; then
  : "${PAY_NODE_BINARY:?exact original Node executable required}"
  "$PAY_NODE_BINARY" --test "$client_root/r6/archive-details.test.mjs"
  export PAY_R6_ARCHIVE_CLIENT_DRIVER="$client_root/testsupport/r6-archive-recovery.mjs"
- go test -race -p 1 -tags 'pay_pq pay_securelink securelink_openssl' ./internal/payproduct -run '^TestNativeArchiveSameBlockRefundsUseExecutionCoordinates$|^TestNativeArchiveRejectsAmbiguousCoordinatesOrRefundIdentity$|^TestNativePayR6ActualArchiveClientNormalHTTPColdAndMerchantReceipt$' -count=1 -timeout=5m -v
+ go test -race -p 1 -tags 'pay_pq pay_securelink securelink_openssl' ./internal/payproduct -run '^TestNativeArchiveSameBlockRefundsUseExecutionCoordinates$|^TestNativeArchiveRejectsAmbiguousCoordinatesOrRefundIdentity$|^TestNativeArchiveReconciliationRejectsChangedOriginalIntent$|^TestNativePayR6ActualArchiveClientNormalHTTPColdAndMerchantReceipt$' -count=1 -timeout=5m -v
  exit
 fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = r6-archive ]; then
