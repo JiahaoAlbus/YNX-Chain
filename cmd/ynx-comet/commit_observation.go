@@ -24,6 +24,7 @@ const operatorCommitObservationVersion = "YNX-COMET-COMMIT-OBSERVATION/v1"
 const operatorCommitObservationMaxSamples = 128
 
 func registerCommitObservationFlags(flags *pflag.FlagSet, p *pqOptions) {
+	flags.BoolVar(&p.commitValidationObservation, "commit-validation-observation", false, "opt in to bounded per-commit validation detail in the synthetic Commit observation")
 	flags.Var(&initializationStringFlag{target: &p.finalizeObservationOutput}, "finalize-observation-output", "disabled by default; separate bounded Finalize output; requires original synthetic Commit observation scope")
 	flags.Var(&initializationStringFlag{target: &p.commitObservationOutput}, "commit-observation-output", "disabled by default; fresh private bounded Commit timing output after normal node stop")
 	flags.Var(&initializationStringFlag{target: &p.commitObservationScope}, "commit-observation-scope", "explicit synthetic-loopback-lab/v1 only; local persistence is not signer fsync or finality")
@@ -31,7 +32,7 @@ func registerCommitObservationFlags(flags *pflag.FlagSet, p *pqOptions) {
 }
 
 func (p pqOptions) commitObservationConfigured() bool {
-	return p.commitObservationOutput != "" || p.commitObservationScope != "" || p.finalizeObservationOutput != "" || p.commitMonotonicOutput != ""
+	return p.commitObservationOutput != "" || p.commitObservationScope != "" || p.finalizeObservationOutput != "" || p.commitMonotonicOutput != "" || p.commitValidationObservation
 }
 
 func (p pqOptions) commitObservationWireOptions() pqOptions {
@@ -87,10 +88,19 @@ type operatorCommitPoint struct {
 	Height  int64  `json:"height"`
 	AppHash string `json:"appHash"`
 }
+type operatorCommitValidation struct {
+	Version            string           `json:"version"`
+	Height             int64            `json:"height"`
+	ElapsedNs          int64            `json:"elapsedNs"`
+	PhaseNs            map[string]int64 `json:"phaseNs"`
+	HashDocumentNs     int64            `json:"hashDocumentNs"`
+	HashEncodeDigestNs int64            `json:"hashEncodeDigestNs"`
+}
 type operatorCommitSample struct {
 	Height      int64                        `json:"height"`
 	AppHash     string                       `json:"appHash"`
 	Persistence consensus.CommitTimingSample `json:"persistence"`
+	Validation  *operatorCommitValidation    `json:"validation,omitempty"`
 }
 type operatorCommitFailure struct {
 	Timing               *consensus.CommitTimingSample `json:"timing"`
@@ -144,6 +154,7 @@ type operatorCommitObservation struct {
 	monotonic              *operatorCommitMonotonic
 	result                 operatorCommitObservationResult
 	latestObserved         *operatorCommitSample
+	validationEnabled      bool
 	ran, attempted, closed bool
 }
 
@@ -169,7 +180,7 @@ func prepareOperatorCommitObservation(config *cfg.Config, p pqOptions) (*operato
 	if err != nil {
 		return nil, errors.Join(err, finalize.close(), file.close())
 	}
-	return &operatorCommitObservation{file: file, finalize: finalize, monotonic: monotonic, result: operatorCommitObservationResult{
+	return &operatorCommitObservation{file: file, finalize: finalize, monotonic: monotonic, validationEnabled: p.commitValidationObservation, result: operatorCommitObservationResult{
 		Version: operatorCommitObservationVersion, Scope: operatorWireObservationScope, ProcessID: os.Getpid(),
 		CaptureBoundary: "synchronous-original-block-executor-Commit-return;normal-stop-output;replay-and-early-failures-not-covered",
 		MaxSamples:      operatorCommitObservationMaxSamples, Samples: []operatorCommitSample{}, RejectedNotifications: map[string]uint64{},
@@ -198,6 +209,12 @@ func (o *operatorCommitObservation) bind(app *consensus.Application, m chain.Con
 	o.app = app
 	o.result.ChainID, o.result.OriginalGenesisHash = fmt.Sprintf("ynx_%d-1", m.Network.ChainID), m.OriginalGenesisHash
 	app.SetCommitTimingEnabled(true)
+	if o.validationEnabled {
+		if err := app.SetCommitValidationTimingEnabled(true); err != nil {
+			app.SetCommitTimingEnabled(false)
+			return err
+		}
+	}
 	return nil
 }
 
@@ -288,6 +305,40 @@ func observedCommitSample(app *consensus.Application, height int64) (*operatorCo
 	return &operatorCommitSample{Height: height, AppHash: point.AppHash, Persistence: first}, ""
 }
 
+// Bracket detail with the original persistence identity to reject a concurrent Commit.
+func observedCommitValidation(app *consensus.Application, sample *operatorCommitSample) (*operatorCommitValidation, string) {
+	first, ok := app.LastCommitTiming()
+	if !ok || !equalCommitTiming(first, sample.Persistence) {
+		return nil, "validation-attempt-changed"
+	}
+	detail, ok := app.LastCommitValidationTiming()
+	if !ok || !detail.Valid || detail.Height != sample.Height || detail.FailedPhase != "" {
+		return nil, "validation-unavailable-or-height-differs"
+	}
+	second, ok := app.LastCommitTiming()
+	if !ok || !equalCommitTiming(first, second) {
+		return nil, "validation-attempt-changed"
+	}
+	parent, exists := sample.Persistence.StagesNs["validate"]
+	if !exists || detail.ElapsedNs < 0 || detail.ElapsedNs > parent || detail.HashDocumentNs < 0 || detail.HashEncodeDigestNs < 0 || len(detail.PhaseNs) == 0 || len(detail.PhaseNs) > 64 {
+		return nil, "validation-malformed"
+	}
+	for name, ns := range detail.PhaseNs {
+		if len(name) == 0 || len(name) > 64 || ns < 0 || ns > detail.ElapsedNs {
+			return nil, "validation-malformed"
+		}
+		for _, c := range name {
+			if !(c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '_') {
+				return nil, "validation-malformed"
+			}
+		}
+	}
+	if detail.HashDocumentNs > detail.PhaseNs["app_hash"] || detail.HashEncodeDigestNs > detail.PhaseNs["app_hash"] {
+		return nil, "validation-malformed"
+	}
+	return &operatorCommitValidation{Version: "YNX-COMET-COMMIT-VALIDATION/v1", Height: detail.Height, ElapsedNs: detail.ElapsedNs, PhaseNs: detail.PhaseNs, HashDocumentNs: detail.HashDocumentNs, HashEncodeDigestNs: detail.HashEncodeDigestNs}, ""
+}
+
 func (o *operatorCommitObservation) success(height int64, validHeight bool) {
 	reading := o.monotonic.capture()
 	o.mu.Lock()
@@ -304,6 +355,14 @@ func (o *operatorCommitObservation) success(height int64, validHeight bool) {
 	if reason != "" {
 		o.reject(reason)
 		return
+	}
+	if o.validationEnabled {
+		validation, reason := observedCommitValidation(o.app, sample)
+		if reason != "" {
+			o.reject(reason)
+			return
+		}
+		sample.Validation = validation
 	}
 	if o.latestObserved != nil {
 		if height <= o.latestObserved.Height {

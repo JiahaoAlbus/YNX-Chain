@@ -49,6 +49,7 @@ type pqOptions struct {
 	wireObservationLiveControl                                        string
 	commitObservationOutput, commitObservationScope                   string
 	commitMonotonicOutput                                             string
+	commitValidationObservation                                       bool
 	finalizeObservationOutput                                         string
 	commitObservationBind                                             func(*consensus.Application, chain.ConsensusMigrationState) error
 }
