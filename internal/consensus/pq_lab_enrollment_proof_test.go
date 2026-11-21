@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"os"
 	"testing"
 	"time"
 
@@ -14,7 +15,7 @@ import (
 	cmttypes "github.com/cometbft/cometbft/types"
 )
 
-func pqEnrollmentProofFixture(t *testing.T) (PQLightProofTrust, PQLabEnrollmentPins, PQLabEnrollmentOriginal, PQLabEnrollmentOriginal, PQLabEnrollmentOriginal) {
+func pqEnrollmentProofFixture(t *testing.T) (PQLightProofTrust, PQLabEnrollmentPins, PQLabEnrollmentOriginal, PQLabEnrollmentOriginal, PQLabEnrollmentOriginal, *pqTransactionProofFixture) {
 	t.Helper()
 	f := newPQTransactionProofFixture(t)
 	h := f.light.harness
@@ -85,11 +86,12 @@ func pqEnrollmentProofFixture(t *testing.T) (PQLightProofTrust, PQLabEnrollmentP
 		t.Fatal("native genesis")
 	}
 	rejected := PQLabEnrollmentOriginal{Expected: f.expected[1], Proof: f.proofs[1]}
-	return trust, pins, funding, migration, rejected
+	f.light.trust = trust
+	return trust, pins, funding, migration, rejected, f
 }
 
 func TestPQLabEnrollmentOriginalProofsSameChain(t *testing.T) {
-	trust, pins, funding, migration, rejected := pqEnrollmentProofFixture(t)
+	trust, pins, funding, migration, rejected, _ := pqEnrollmentProofFixture(t)
 	result, err := VerifyPQLabEnrollmentOriginals(trust, pins, funding, migration)
 	if err != nil {
 		t.Fatal(err)
@@ -147,7 +149,7 @@ func TestPQLabEnrollmentOriginalProofsSameChain(t *testing.T) {
 	if got, err := VerifyPQLabEnrollmentOriginals(trust, pins, rejected, migration); err == nil || got.CurrentEligibility != "UNKNOWN" || got.NativeGrant {
 		t.Fatal("finalized but rejected duplicate funding was accepted", got, err)
 	}
-	otherTrust, _, _, _, _ := pqEnrollmentProofFixture(t)
+	otherTrust, _, _, _, _, _ := pqEnrollmentProofFixture(t)
 	if got, err := VerifyPQLabEnrollmentOriginals(otherTrust, pins, funding, migration); err == nil || got.CurrentEligibility != "UNKNOWN" || got.NativeGrant {
 		t.Fatal("different genesis trust accepted", got, err)
 	}
@@ -251,6 +253,9 @@ func testPQLabEnrollmentLegacyFunding(t *testing.T, sameBlock bool) {
 	got, err := VerifyPQLabEnrollmentOriginals(trust, pins, funding, migration)
 	if err != nil || got.CurrentEligibility != "UNKNOWN" || got.NativeGrant || !got.Funding.ExecutionSuccessful || !got.Migration.ExecutionSuccessful {
 		t.Fatal("legacy enrollment proof", got, err)
+	}
+	if sameBlock && os.Getenv("YNX_ENROLLMENT_FIXTURE_OUT") != "" {
+		writePQLabEnrollmentCLIProofFixture(t, f.light, trust, pins, funding, migration)
 	}
 	if _, err = VerifyPQTransactionProof(trust, funding.Expected, funding.Proof); err == nil {
 		t.Fatal("public PQ-only verifier accepted classic wire")

@@ -221,6 +221,11 @@ class WalletPolicyCIControls(unittest.TestCase):
             events += [dict(Action=action, Package=proof_package, Test=name)
                        for name, action in ((proof_top, "run"), (proof_top + "/original", "run"),
                                             (proof_top + "/original", "pass"), (proof_top, "pass"))]
+            enrollment_top = "TestPQLabEnrollmentVerifierNormalEntryAndOriginalRefusals"
+            events += [dict(Action=action, Package=proof_package, Test=name)
+                       for name, action in ((enrollment_top, "run"), (enrollment_top + "/legacy-funding", "run"),
+                                            (enrollment_top + "/legacy-funding", "pass"), (enrollment_top + "/pq-funding", "run"),
+                                            (enrollment_top + "/pq-funding", "pass"), (enrollment_top, "pass"))]
         events += [dict(Action="pass", Package=p) for p in packages]
         return events
 

@@ -90,6 +90,10 @@ func strictTransactionObject(raw []byte, out any) (map[string]json.RawMessage, e
 }
 
 func decodeTransactionExpected(raw []byte) (transactionExpected, consensus.PQTransactionProofExpectation, error) {
+	return decodeTransactionExpectedMode(raw, false)
+}
+
+func decodeTransactionExpectedMode(raw []byte, legacyFunding bool) (transactionExpected, consensus.PQTransactionProofExpectation, error) {
 	var e transactionExpected
 	var decoded consensus.PQTransactionProofExpectation
 	if len(raw) == 0 || len(raw) > maxTransactionExpectedBytes {
@@ -118,6 +122,10 @@ func decodeTransactionExpected(raw []byte) (transactionExpected, consensus.PQTra
 	}
 	switch e.TransactionType {
 	case consensus.PQTransferType, consensus.PQMigrationType, consensus.PQInitialRegistrationType, consensus.PQRevocationType, consensus.PQWholeType, consensus.PQActionType, consensus.PQEthereumValueType:
+	case consensus.PQLabLegacyFundingType:
+		if !legacyFunding {
+			return e, decoded, errors.New("legacy funding is not a PQ transaction proof")
+		}
 	default:
 		return e, decoded, errors.New("unsupported original PQ transaction type")
 	}

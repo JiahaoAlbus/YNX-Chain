@@ -2241,6 +2241,22 @@ jobs:
               return [name]
           prepared_trust_passed = qualify_prepared_trust(events)
           print('PREPARED_TRUST_OWNER_DATA_ONLY ' + json.dumps(dict(requiredPassed=prepared_trust_passed, sourceQualified=False), sort_keys=True))
+          def qualify_enrollment_cli(rows):
+              package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-proof-verify'
+              name = 'TestPQLabEnrollmentVerifierNormalEntryAndOriginalRefusals'
+              selected = [e for e in rows if e.get('Package') == package]
+              if [e['Action'] for e in selected if not e.get('Test') and e['Action'] in ('start', 'pass', 'fail', 'skip')] != ['start', 'pass']:
+                  raise RuntimeError('enrollment verifier package did not start/pass once')
+              tests = {e['Test'] for e in selected if e.get('Test') == name or e.get('Test', '').startswith(name + '/')}
+              required_tests = {name, name + '/legacy-funding', name + '/pq-funding'}
+              if not required_tests.issubset(tests) or any(e.get('Action') in ('fail', 'build-fail') for e in selected):
+                  raise RuntimeError('enrollment verifier original test missing or failed')
+              for test in tests:
+                  if [(e.get('Package'), e['Action']) for e in rows if e.get('Test') == test and e['Action'] in ('run', 'pass', 'fail', 'skip')] != [(package, 'run'), (package, 'pass')]:
+                      raise RuntimeError('enrollment verifier original child incomplete, foreign, duplicate or skipped')
+              return [name]
+          enrollment_cli_passed = qualify_enrollment_cli(events)
+          print('YNX_ENROLLMENT_VERIFIER_DATA_ONLY ' + json.dumps(dict(requiredPassed=enrollment_cli_passed, sourceQualified=False, currentEligibility='UNKNOWN', operationIdentity='UNKNOWN', nativeGrant=False), sort_keys=True))
           package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet'
           required = ['TestInspectWalletPolicyNormalOriginalCheckpointAndRefusals', 'TestInspectWalletPolicyNoRegistrationAndArgumentsFailClosed']
           for name in required:
@@ -2715,7 +2731,7 @@ jobs:
           required += ['TestInitializeApplicationCapacityMatchesWrittenLayoutAndRefusesBeforeReservation']
           required += ['TestZstdDependencyRejectsUpstreamTwoBlockFrame']
           required += ['TestABCIPublicTraceFullStateAndAppHashEveryHeight']
-          required += ['TestPQLabEnrollmentOriginalProofsSameChain', 'TestPQLabEnrollmentOriginalLegacyFundingProof']
+          required += ['TestPQLabEnrollmentOriginalProofsSameChain', 'TestPQLabEnrollmentOriginalLegacyFundingProof', 'TestPQLabEnrollmentCLIPublicFixture', 'TestPQLabEnrollmentLegacyCLIPublicFixture']
           required += ['TestPQLabSenderHeldInputStatsOriginalCountsAndNoCacheGrowth', 'TestPQLabSenderHeldInputStatsNeverLoadsOrValidatesSources', 'TestPQLabPublicOwnerSessionOriginalIsolationAndWitness', 'TestPQLabPublicOwnerSessionProofAndOwnerRetirement']
           required += ['TestPQLabSenderPUBLICOperationParentPersistenceBarrier', 'TestPQLabSenderPUBLICOperationParentFailurePreservesUnknown', 'TestPQLabSenderPUBLICPersistenceRolesKeepOriginalWrites', 'TestPQLabSenderPUBLICWorkloadPublicationAncestorBarriers', 'TestPQLabNetworkPUBLICFreshRootParentPersistence']
           required += ['TestPQLabLiveColdOwnerSameOriginalFullBoundary', 'TestPQLabLiveColdOwnerPreservesOriginalFirstCause', 'TestPQLabLiveColdOwnerNormalizationAndEncodingFirstCause']

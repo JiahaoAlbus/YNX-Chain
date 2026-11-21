@@ -81,6 +81,9 @@ func parseOptions(args []string) (options, error) {
 }
 
 func run(args []string, input io.Reader, output io.Writer, localClock func() time.Time) int {
+	if len(args) > 0 && args[0] == "enrollment" {
+		return runEnrollmentProof(args[1:], input, output, localClock)
+	}
 	if isPortableImportInvocation(args) {
 		return runPortableImport(args, output)
 	}

@@ -31,6 +31,12 @@ func proofContextFile(t *testing.T, path string, raw []byte) options {
 	if err := os.WriteFile(path, raw, 0600); err != nil {
 		t.Fatal(err)
 	}
+	// macOS commonly presents TempDir via /var -> /private/var. Test the
+	// physical path while retaining the production no-symlink requirement.
+	path, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		t.Fatal(err)
+	}
 	sum := sha256.Sum256(raw)
 	return options{contextPath: path, contextSHA256: hex.EncodeToString(sum[:])}
 }
