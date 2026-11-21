@@ -40,8 +40,10 @@ HELD_SOURCE_TREES={HELD_SOURCE:HELD_TREE, HELD_CI_SOURCE:HELD_CI_TREE,
 # deliberately separate from historical held runtime/source-CI qualifications.
 SIGNER_SOURCE_ONLY='027c23d8a4b2af4dbd9e0ff126bacddc02ad663f'
 SIGNER_SOURCE_ONLY_TREE='d11c0d073e88649093008c042e2d4e86204accc9'
+SIGNER_SOURCE_ONLY_TREES={SIGNER_SOURCE_ONLY:SIGNER_SOURCE_ONLY_TREE,
+                          '9ecbaec72a92a3203e67d8cfe04520b8be4a79f1':'b1b54139eb2111ed063d7cecb87415f3fcd34a94'}
 SOURCE_TREES={SOURCE:TREE, **HELD_SOURCE_TREES,
-              SIGNER_SOURCE_ONLY:SIGNER_SOURCE_ONLY_TREE}
+              **SIGNER_SOURCE_ONLY_TREES}
 FILES={'packages/wallet-auth/go/sourceparentprofile/canonical.cpp': {'mode': '100644',
                                                                'gitBlob': 'b5bdced61b6754b088980d736bc9ca027592a9b7',
                                                                'bytes': 62,

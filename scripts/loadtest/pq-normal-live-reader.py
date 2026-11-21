@@ -96,12 +96,14 @@ def prepare_matching_source(source, destination, *, held_source_only=False):
                   forkTree=git('rev-parse','HEAD:third_party/cometbft'))
     held_tree = native_source_dependencies.HELD_SOURCE_TREES.get(identity['commit'])
     held = held_tree is not None
-    signer = identity['commit'] == HELD_SIGNER_COMPOSITION['commit']
+    signer_tree = native_source_dependencies.SIGNER_SOURCE_ONLY_TREES.get(identity['commit'])
+    signer = signer_tree is not None
     if held_source_only:
         if signer:
-            require(all(identity[k] == HELD_SIGNER_COMPOSITION[k] for k in ('commit','tree','forkTree')),
+            require(identity['tree'] == signer_tree and identity['forkTree'] == HELD_SIGNER_COMPOSITION['forkTree'],
                     'exact held signer source identity required')
             q = dict(HELD_SIGNER_COMPOSITION)
+            q.update(commit=identity['commit'], tree=signer_tree)
         else:
             require(held and identity['tree'] == held_tree
                     and identity['forkTree'] == '5a128880d14bfc73de4334cba23218859ad3473c',

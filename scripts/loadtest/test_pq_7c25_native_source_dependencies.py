@@ -99,4 +99,18 @@ class OriginalDependencies(unittest.TestCase):
         with mock.patch.object(d,'git',side_effect=wrong_tree),self.assertRaisesRegex(RuntimeError,'exact clean'):
             d.source_identity(self.source)
 
+    def test_integration_successor_requires_its_own_exact_native_source_tree(self):
+        commit='9ecbaec72a92a3203e67d8cfe04520b8be4a79f1'
+        tree='b1b54139eb2111ed063d7cecb87415f3fcd34a94'
+        def successor_git(source,*args):
+            if args==('rev-parse','HEAD'):return commit.encode()
+            if args==('rev-parse','HEAD^{tree}'):return tree.encode()
+            if args[:3]==('ls-tree','-z',commit):args=('ls-tree','-z',d.SOURCE,*args[3:])
+            return self.git(source,*args)
+        with mock.patch.object(d,'git',side_effect=successor_git):
+            record=d.materialize(self.source,self.build,self.receipt)['sourceDependencies']
+        self.assertEqual((record['source'],record['sourceTree']),(commit,tree))
+        self.assertFalse(record['authorityGranted'] or record['nodeStarted'])
+        self.assertNotIn(commit,d.HELD_SOURCE_TREES)
+
 if __name__=='__main__':unittest.main(verbosity=2)

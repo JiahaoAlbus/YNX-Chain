@@ -170,6 +170,18 @@ class HeldSignerSourceControls(unittest.TestCase):
             self.compose(f,held_source_only=False)
         f[4].prepare_wire_live_source.assert_not_called();self.assertFalse(f[1].exists())
 
+    def test_exact_integration_successor_is_source_only_and_keeps_older_pin(self):
+        f=self.fixture()
+        source='9ecbaec72a92a3203e67d8cfe04520b8be4a79f1'
+        tree='b1b54139eb2111ed063d7cecb87415f3fcd34a94'
+        f[3].update(commit=source,tree=tree)
+        result=self.compose(f)
+        self.assertEqual((result['source']['commit'],result['source']['tree']),(source,tree))
+        self.assertTrue(result['sourceCompositionOnly'])
+        self.assertFalse(result['sourceCIQualified'] or result['runtimeAuthorized'] or result['pressureAuthorized'])
+        native=reader.native_source_dependencies
+        self.assertEqual(native.SIGNER_SOURCE_ONLY_TREES[native.SIGNER_SOURCE_ONLY],native.SIGNER_SOURCE_ONLY_TREE)
+
     def test_commit_tree_fork_and_composer_changes_refuse_before_export(self):
         for field in ('commit','tree','forkTree','compositionScriptSHA256'):
             with self.subTest(field=field):
