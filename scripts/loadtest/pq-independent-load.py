@@ -1308,6 +1308,30 @@ def original_commit_clock_readback(result,work,private_network,source):
     """Join only retained originals while this one Window still owns them."""
     public=work/'public'
     def read(relative,limit):return commit_clock.read_original(public/relative,limit)
+    creators=[row for row in result.get('processes',[]) if row.get('name')=='create-original']
+    expected_creator=str(Path(result['commitClockBuiltBinary']['path']).with_name('ynx-consensus-pq-lab'))
+    creator_build=result['normalLiveBuildProvenance']['ynx-consensus-pq-lab']
+    comet_build=result['normalLiveBuildProvenance']['ynx-comet']
+    lab.require(commit_clock.pin(result['binaries']['ynx-consensus-pq-lab'],64)
+        and creator_build['binarySHA256']==result['binaries']['ynx-consensus-pq-lab']
+        and creator_build['originalSource']==result['source']
+        and creator_build['sourceSelectionSHA256']==comet_build['sourceSelectionSHA256']
+        and creator_build['sourceDependenciesReceiptSHA256']==comet_build['sourceDependenciesReceiptSHA256']
+        and creator_build['selectedOptionalForkTree']==comet_build['selectedOptionalForkTree']
+        and creator_build['buildCwd']==comet_build['buildCwd']
+        and creator_build['buildArgv']==['go','build','-mod=readonly','-p','1','-trimpath','-buildvcs=false',
+                                         '-o',expected_creator,'./cmd/ynx-consensus-pq-lab'],
+        'original synthetic creator build/source binding differs')
+    lab.require(len(creators)==1 and type(creators[0].get('exitCode')) is int and creators[0]['exitCode']==0
+        and type(creators[0].get('pid')) is int and creators[0]['pid']>0
+        and type(creators[0].get('startTicks')) is int and creators[0]['startTicks']>0
+        and type(creators[0].get('command')) is list and len(creators[0]['command'])>=5
+        and creators[0]['command'][0]==expected_creator
+        and creators[0]['command'][1:5]==['create','--synthetic','--root',str(private_network)],
+        'one successful original synthetic create process required')
+    created_plan=commit_clock.plan_from_original_create(read('create-original.log',4<<20),result['activation']['networkPlanSHA256'])
+    lab.require(created_plan==commit_clock.read_original(private_network/'network-plan.json',1<<20),
+        'original create log and held private plan bytes differ')
     def node_bytes(section,index):
         records=[item for item in result.get(section,{}).get('originalSnapshots',[]) if item.get('node')==index]
         if len(records)!=1:return b''
@@ -1335,11 +1359,13 @@ def original_commit_clock_readback(result,work,private_network,source):
         def __getitem__(self,index):
             try:return read(inclusion_paths[index],4<<20)
             except (OSError,ValueError,RuntimeError,KeyError) as error:raise KeyError(index) from error
-    return commit_clock.reduce(result,expected_source=source,parent=result['commitClockParent'],node_evidence=nodes,
+    joined=commit_clock.reduce(result,expected_source=source,parent=result['commitClockParent'],node_evidence=nodes,
         inclusion=OriginalInclusions(),selection_raw=read('normal-live-source-selection.json',64<<10),
         dependencies_raw=read('normal-live-source-dependencies.json',64<<10),
         build_identity_raw=read('commit-clock-build-identity.log',16<<10),
-        network_plan_raw=commit_clock.read_original(private_network/'network-plan.json',1<<20))
+        network_plan_raw=created_plan)
+    joined['createProcessExecutableIndependentlyVerified']=False
+    return joined
 
 
 def finish_commit_clock_readback(result,window,work,private_network,source,demand):

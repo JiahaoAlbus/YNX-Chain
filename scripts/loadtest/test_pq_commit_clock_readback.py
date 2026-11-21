@@ -142,6 +142,7 @@ class CommitClockReadbackControls(unittest.TestCase):
             files={'normal-live-source-selection.json':kwargs['selection_raw'],
                    'normal-live-source-dependencies.json':kwargs['dependencies_raw'],
                    'commit-clock-build-identity.log':kwargs['build_identity_raw'],
+                   'create-original.log':b'{"version":"YNX-PQ-LAB-CREATED/v1","nodeStarted":false,"planSHA256":"'+r.sha(kwargs['network_plan_raw']).encode()+b'","plan":'+kwargs['network_plan_raw']+b'}',
                    'load-operations/00000/four-node-inclusion.json':kwargs['inclusion'][0]}
             for index,item in enumerate(kwargs['node_evidence']):
                 files['commit-observation-node-%d-original.json'%index]=item['commitOriginal']
@@ -149,12 +150,32 @@ class CommitClockReadbackControls(unittest.TestCase):
             for name,data in files.items():
                 path=public/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(data)
             (private/'network-plan.json').write_bytes(kwargs['network_plan_raw'])
+            receipt['binaries']['ynx-consensus-pq-lab']='1'*64
+            receipt['normalLiveBuildProvenance']['ynx-consensus-pq-lab']=dict(
+                binarySHA256='1'*64,originalSource=receipt['source'],sourceSelectionSHA256=r.sha(kwargs['selection_raw']),
+                sourceDependenciesReceiptSHA256=r.sha(kwargs['dependencies_raw']),selectedOptionalForkTree='e'*40,buildCwd='/synthetic/source',
+                buildArgv=['go','build','-mod=readonly','-p','1','-trimpath','-buildvcs=false','-o','/synthetic/ynx-consensus-pq-lab','./cmd/ynx-consensus-pq-lab'])
+            receipt['processes'].append(dict(name='create-original',pid=99,startTicks=17,exitCode=0,
+                command=['/synthetic/ynx-consensus-pq-lab','create','--synthetic','--root',str(private)]))
             with mock.patch.object(driver.commit_clock,'COMMIT_CLOCK_SOURCE','a'*40):
                 result=driver.original_commit_clock_readback(receipt,root,private,'a'*40)
                 self.assertEqual((result['observed'],result['rows'][0]['fourNodeUpperBoundNs']),(1,203))
+                bad=copy.deepcopy(receipt);bad['processes'][-1]['startTicks']=None
+                with self.assertRaisesRegex(RuntimeError,'original synthetic create process'):driver.original_commit_clock_readback(bad,root,private,'a'*40)
+                bad=copy.deepcopy(receipt);bad['normalLiveBuildProvenance']['ynx-consensus-pq-lab']['binarySHA256']='2'*64
+                with self.assertRaisesRegex(RuntimeError,'creator build/source binding'):driver.original_commit_clock_readback(bad,root,private,'a'*40)
                 (public/'commit-monotonic-node-2-original.json').unlink()
                 result=driver.original_commit_clock_readback(receipt,root,private,'a'*40)
                 self.assertEqual((result['observed'],result['censored']),(0,1))
+
+    def test_offline_create_log_retains_exact_original_plan_bytes(self):
+        plan=raw(dict(chainId='ynx_642399-1',originalGenesisHash='e'*64));pin=r.sha(plan)
+        create=b'{"version":"YNX-PQ-LAB-CREATED/v1","nodeStarted":false,"planSHA256":"'+pin.encode()+b'","plan":'+plan+b'}'
+        self.assertEqual(r.plan_from_original_create(create,pin),plan)
+        for invalid in (create.replace(b'"nodeStarted":false',b'"nodeStarted":true'),
+                        create.replace(b'"plan":',b'"plan":{},"plan":'),
+                        create.replace(b'ynx_642399-1',b'ynx_642399-2')):
+            with self.assertRaises((ValueError,KeyError)):r.plan_from_original_create(invalid,pin)
 
     def test_original_read_refuses_file_and_parent_symlinks_and_hardlinks(self):
         with tempfile.TemporaryDirectory() as temp:

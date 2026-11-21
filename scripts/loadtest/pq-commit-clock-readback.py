@@ -83,6 +83,22 @@ def read_original(path,limit):
     finally:os.close(directory)
 
 
+def plan_from_original_create(raw,expected_sha):
+    """Recover exact plan bytes already emitted by the original create log."""
+    require(pin(expected_sha,64),'original plan SHA required')
+    create=strict(raw,4<<20)
+    require(type(create) is dict and create.get('version')=='YNX-PQ-LAB-CREATED/v1'
+            and create.get('nodeStarted') is False and create.get('planSHA256')==expected_sha
+            and type(create.get('plan')) is dict,'original create output identity differs')
+    text=raw.decode('utf-8');matches=list(re.finditer(r'"plan"\s*:\s*',text))
+    require(len(matches)==1,'one original plan field required')
+    start=matches[0].end();value,end=json.JSONDecoder().raw_decode(text,start)
+    plan_raw=text[start:end].encode('utf-8')
+    require(value==create['plan'] and strict(plan_raw,1<<20)==value and sha(plan_raw)==expected_sha,
+            'original create plan bytes differ from independent plan SHA')
+    return plan_raw
+
+
 def parent_domain():
     require(os.name == 'posix' and Path('/proc/thread-self/ns/time').exists(), 'Linux parent clock domain unavailable')
     boot = Path('/proc/sys/kernel/random/boot_id').read_text().strip()
