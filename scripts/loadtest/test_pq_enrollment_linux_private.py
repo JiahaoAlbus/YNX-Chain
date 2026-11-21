@@ -1,5 +1,6 @@
 """Hosted job wiring controls. Controlled builds are NOT normal Core evidence."""
 import copy
+import gc
 import importlib.util
 import json
 import os
@@ -13,6 +14,7 @@ import subprocess
 import sys
 from types import SimpleNamespace
 import unittest
+import weakref
 from unittest import mock
 
 
@@ -70,6 +72,7 @@ class HostedSyntheticReservationControls(unittest.TestCase):
                 return outer.stop_result
             def process_receipt(self):return [dict(name='CONTROL',pid=999,command=['PRIVATE CONTROL'])]
             def launch_cleanup_report(self):return dict(status='OBSERVED',pending=[],cleanupDebt=[])
+            def _cleanup_wait_remaining(self):return 1
         def callee(**kwargs):
             self.events.append('sole-private-callee')
             self.assertEqual(kwargs['source'],m.HOSTED_SYNTHETIC_SOURCE['commit'])
@@ -224,7 +227,7 @@ class HostedSyntheticReservationControls(unittest.TestCase):
         bind.assert_called_once_with(proc);self.assertIs(window.children[0]['process'],proc)
         self.assertFalse(window.pending_launches)
         with mock.patch.object(m.lab.os,'kill') as kill,mock.patch.object(m.lab.os,'killpg') as group:
-            with self.assertRaisesRegex(RuntimeError,'unmanaged'):m.lab.signal_original_child(proc,signal.SIGTERM)
+            with self.assertRaisesRegex(RuntimeError,'pidfd missing'):m.lab.signal_original_child(proc,signal.SIGTERM)
             kill.assert_not_called();group.assert_not_called()
 
     def test_real_child_is_retained_when_publish_and_finish_cannot_acquire_window_lock(self):
@@ -254,6 +257,47 @@ class HostedSyntheticReservationControls(unittest.TestCase):
             release.set();thread.join(2)
             # Test-owned original handle only; no numeric-PID recovery/replay.
             proc.kill();proc.wait(timeout=2)
+            pending.finish(proc,['ORIGINAL CONTROL'])
+
+    def test_process_level_custody_survives_dropped_window_and_gc_until_original_reap(self):
+        window=SimpleNamespace(lock=threading.RLock(),launch_lock=threading.Lock(),sample=mock.Mock(),
+            closed_for_launch=False,launches_closed=False,launch_cleanup_debt=[],pending_launches={},children=[],known={},
+            launch_guard_failure=None,_cleanup_wait_remaining=lambda:.05)
+        pending=m.PendingFixtureLaunch(window,threading.Event());pending.begin()
+        proc=subprocess.Popen([sys.executable,'-I','-c','import time;time.sleep(30)'],
+                              stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+        pending.retain(proc,['CONTROL']);handle=weakref.ref(proc);owner=weakref.ref(pending);token=pending.token
+        del proc,pending,window;gc.collect()
+        try:
+            self.assertIsNotNone(handle());self.assertIsNotNone(owner())
+            self.assertIs(m._CUSTODY['owners'][token],owner());self.assertIsNone(handle().poll())
+        finally:
+            process=handle();held=owner();process.kill();process.wait(timeout=2);held.finish(process,['CONTROL'])
+        self.assertNotIn(token,m._CUSTODY['owners'])
+        with self.assertRaisesRegex(ValueError,'cannot be reused'):held.begin()
+
+    def test_window_signals_the_same_attached_identity_without_numeric_fallback(self):
+        w=SimpleNamespace(lock=threading.RLock(),launch_lock=threading.Lock(),sample=mock.Mock(),
+            closed_for_launch=False,launches_closed=False,launch_cleanup_debt=[],pending_launches={},children=[],known={},
+            launch_guard_failure=None,_cleanup_wait_remaining=lambda:.05)
+        proc=SimpleNamespace(pid=123,returncode=None,poll=lambda:proc.returncode,wait=lambda timeout=None:proc.returncode,
+            send_signal=lambda sig:None,terminate=lambda:None,kill=lambda:None)
+        pending=m.PendingFixtureLaunch(w,threading.Event());pending.begin();fd=os.open(os.devnull,os.O_RDONLY)
+        # Controlled identity FD only. Actual pidfd handoff is a separate Linux control.
+        pending.retain(proc,['CONTROL'],pidfd=fd)
+        try:
+            with mock.patch.object(m.lab.guard,'bounded',return_value=b'CONTROL'),mock.patch.object(m.lab.guard,'parse_stat',return_value={'startTicks':4}):
+                pending.publish(proc,['CONTROL'])
+            self.assertFalse(w.pending_launches);self.assertIs(proc._ynx_original_pidfd,pending)
+            with mock.patch.object(m.signal,'pidfd_send_signal',create=True) as send, \
+                 mock.patch.object(m.lab.os,'killpg',side_effect=AssertionError('numeric group forbidden')), \
+                 mock.patch.object(m.lab.os,'kill',side_effect=AssertionError('numeric PID forbidden')):
+                m.lab.signal_original_child(proc,signal.SIGTERM)
+            send.assert_called_once_with(fd,signal.SIGTERM,None,0)
+        finally:
+            proc.returncode=0;pending.finish(proc,['CONTROL'])
+        self.assertIsNone(pending.pidfd)
+        with self.assertRaisesRegex(ValueError,'identity differs'):pending.retain(proc,['CONTROL'],pidfd=fd)
 
     def test_pidfd_close_error_cannot_close_a_reused_descriptor_on_second_finish(self):
         window=SimpleNamespace(lock=threading.RLock(),launch_lock=threading.Lock(),sample=mock.Mock(),
@@ -290,7 +334,7 @@ class HostedSyntheticReservationControls(unittest.TestCase):
         self.assertEqual(job.count('actions/upload-artifact@'),1)
         self.assertIn('path: ${{ runner.temp }}/pq-enrollment-public-summary/SUMMARY.json',job)
         self.assertNotIn('path: ${{ runner.temp }}/\n',job)
-        self.assertIn("'test_pq_enrollment_linux_private.py': 19",text)
+        self.assertIn("'test_pq_enrollment_linux_private.py': 22",text)
         self.assertIsNone(m.r.NORMAL_RESERVATION_PRODUCER)
         self.assertEqual(m.r.SYNTHETIC_FIXTURE_BINARIES,{})
 
@@ -424,6 +468,41 @@ finally:
                 original_signal(pending.pidfd,signal.SIGKILL);pending.process.wait(timeout=2)
                 pending.finish(pending.process)
         self.assertIsNone(pending.pidfd)
+
+    @unittest.skipUnless(sys.platform=='linux','real Linux original callee to Window pidfd handoff required; no Mac substitute')
+    def test_unreaped_published_callee_passes_same_pidfd_to_original_window_stop(self):
+        t=module('test_pq_enrollment_reservation_driver.py')
+        x=t.EnrollmentReservationDriverControls();x.setUp();self.addCleanup(x.doCleanups)
+        work=x.base/'actual-owned-window';work.mkdir();(work/'.private').mkdir();(work/'public').mkdir()
+        w=m.lab.Window(x.source,work);pending=m.PendingFixtureLaunch(w,threading.Event())
+        observed=x.base/'ack-observed';binary=x.binary(after="from pathlib import Path\nPath("+repr(str(observed))+").write_text('ACK')\nimport time;time.sleep(30)\n")
+        def guard():
+            w.sample()
+            if observed.exists():raise RuntimeError('CONTROL original post-ACK resource refusal')
+        args=x.args(binary,check_resources=guard);args.pop('enabled');original_signal=signal.pidfd_send_signal;sent=[]
+        try:
+            with x.bound(binary),mock.patch.object(signal,'pidfd_send_signal',side_effect=PermissionError('CONTROL first retirement denied')):
+                binding=t.m.SYNTHETIC_FIXTURE_BINARIES[(t.m.INSPECTED_SYNTHETIC_HANDSHAKE,t.m.original.platform.system(),t.m.original.platform.machine())]
+                out=t.m._run_synthetic_fixture(binding=binding,launch_lifecycle=pending,**args)
+            self.assertFalse(out['originalProcess']['processReaped']);self.assertTrue(out['cleanupDebt'])
+            self.assertIn('post-ACK resource refusal',out['firstCause']['message'])
+            anchor=pending.pidfd;self.assertIsNotNone(anchor);self.assertFalse(w.pending_launches)
+            self.assertIs(w.children[0]['process']._ynx_original_pidfd,pending)
+            def send(fd,signum,info=None,flags=0):
+                sent.append((fd,signum));return original_signal(fd,signum,info,flags)
+            with mock.patch.object(signal,'pidfd_send_signal',side_effect=send), \
+                 mock.patch.object(m.lab.os,'killpg',side_effect=AssertionError('no numeric group fallback')):
+                self.assertTrue(w.stop())
+            self.assertTrue(sent);self.assertTrue(all(fd==anchor for fd,_ in sent))
+            self.assertTrue(pending.close_retired_identity());self.assertIsNone(pending.pidfd)
+            self.assertNotIn(pending.token,m._CUSTODY['owners'])
+            self.assertTrue(out['cleanupDebt']);self.assertFalse(out['nonceReleased']) # Original failure is not rewritten.
+        finally:
+            if pending.pidfd is not None:
+                try:original_signal(pending.pidfd,signal.SIGKILL)
+                except ProcessLookupError:pass
+                pending.process.wait(timeout=2);pending.close_retired_identity()
+            w.stop()
 
 
 if __name__=='__main__':unittest.main(verbosity=2)

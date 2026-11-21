@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import re
 import resource
+import signal
 import shutil
 import stat
 import sys
@@ -44,6 +45,12 @@ HOSTED_SYNTHETIC_SOURCE=dict(
         'internal/consensus/pq_lab_enrollment_handshake_test.go':'f7a68a6b4f867adc67e864f66a8aed186f048811',
         'internal/consensus/pq_lab_enrollment_binary_fd_test.go':'c136f03816d062995d2f1b96278a772d49450aff'})
 PUBLIC_NAME='SUMMARY.json'
+# Process-level strong custody, not an automatic reaper or retry queue. A
+# dynamic module/Window going out of scope must not discard an uncertain Popen.
+# At interpreter/job exit the remaining operation is still UNKNOWN; descriptor
+# closure on exit is NOT proof that its child/descendants have retired.
+_CUSTODY=vars(sys).setdefault('_ynx_enrollment_fixture_custody_v1',
+                            dict(lock=threading.Lock(),owners={}))
 
 
 def identity():
@@ -109,8 +116,13 @@ class PendingFixtureLaunch:
     def __init__(self,window,stop):
         self.window=window;self.stop=stop;self.token=object();self.locked=False;self.registered=False
         self.process=None;self.pidfd=None;self.pending=None;self.pidfd_close_error=None
+        self.identity_lock=threading.Lock();self.custodied=False;self.begun=False;self.identity_bound=False
     def begin(self):
         w=self.window
+        require(not self.begun,'original private lifecycle cannot be reused');self.begun=True
+        with lab.bounded_original_lifecycle(_CUSTODY['lock'],.05):
+            require(len(_CUSTODY['owners'])<lab.guard.CAPS['ownedProcesses'],'original process custody bound reached')
+            _CUSTODY['owners'][self.token]=self;self.custodied=True
         require(w.launch_lock.acquire(timeout=1),'original launch serialization unavailable')
         self.locked=True
         with lab.bounded_original_lifecycle(w.lock):
@@ -127,10 +139,34 @@ class PendingFixtureLaunch:
         if proc is None:return
         require(self.pending is not None and (self.process is None or self.process is proc),'original pending process identity differs')
         self.process=proc;self.pending['process']=proc;self.pending['command']=list(argv)
+        proc._ynx_original_pidfd_required=True
         if pidfd is not None:
             require(self.pidfd_close_error is None,'original pidfd close unknown; cannot replace its identity')
-            require(self.pidfd in (None,pidfd),'original pending pidfd identity differs')
+            require(not self.identity_bound or self.pidfd==pidfd,'original pending pidfd identity differs')
+            self.identity_bound=True
             self.pidfd=pidfd;self.pending['pidfd']=pidfd
+            proc._ynx_original_pidfd=self
+    def send(self,signum,*,timeout=.05):
+        require(type(timeout) in (int,float) and 0<=timeout<=.05,'bounded original pidfd signal required')
+        with lab.bounded_original_lifecycle(self.identity_lock,timeout):
+            require(self.pidfd is not None and self.pidfd_close_error is None,
+                    'original private pidfd unavailable; no numeric fallback')
+            signal.pidfd_send_signal(self.pidfd,signum,None,0)
+    def close_retired_identity(self,*,timeout=.05):
+        with lab.bounded_original_lifecycle(self.identity_lock,timeout):
+            if self.pidfd_close_error is not None:raise self.pidfd_close_error
+            if self.process is not None and vars(self.process).get('returncode') is None:return False
+            if self.pidfd is not None:
+                owned=self.pidfd;self.pidfd=None;self.pending['pidfd']=None
+                self.pending['pidfdCloseStatus']='UNKNOWN'
+                try:os.close(owned)
+                except BaseException as error:self.pidfd_close_error=error;self._debt(error);raise
+                self.pending['pidfdCloseStatus']='CLOSED'
+        if self.custodied:
+            with lab.bounded_original_lifecycle(_CUSTODY['lock'],timeout):
+                require(_CUSTODY['owners'].get(self.token) is self,'original process custody differs')
+                del _CUSTODY['owners'][self.token];self.custodied=False
+        return True
     def _debt(self,error):
         self.stop.set();self.window.closed_for_launch=True;self.window.launches_closed=True
         if self.pending is not None:
@@ -165,15 +201,7 @@ class PendingFixtureLaunch:
         w=self.window
         try:
             self.retain(proc,argv)
-            if self.pidfd_close_error is not None:raise self.pidfd_close_error
-            if self.pidfd is not None and proc.poll() is not None:
-                # close may release the numeric descriptor BEFORE reporting an
-                # error. Consume responsibility once; never touch a reused FD.
-                owned=self.pidfd;self.pidfd=None;self.pending['pidfd']=None
-                self.pending['pidfdCloseStatus']='UNKNOWN'
-                try:os.close(owned)
-                except BaseException as error:self.pidfd_close_error=error;raise
-                self.pending['pidfdCloseStatus']='CLOSED'
+            self.close_retired_identity()
             with lab.bounded_original_lifecycle(w.lock,w._cleanup_wait_remaining()):
                 if proc is not None and not self.registered:
                     # Binding/registration failed after a REAL Popen returned.
@@ -242,7 +270,7 @@ def private_audit(pins,output,result):
 
 def run(source,parent,*,enabled=False,stop=None):
     require(enabled is True,'explicit private synthetic job required')
-    out=initial_report();work=None;window=None;monitor=None;lease=None;stop=threading.Event() if stop is None else stop
+    out=initial_report();work=None;window=None;monitor=None;lease=None;lifecycle=None;stop=threading.Event() if stop is None else stop
     try:
         fixed=identity();source=Path(source);parent=hosted_parent(Path(parent))
         require(source!=parent and not parent.is_relative_to(source),'private work must be outside source')
@@ -355,6 +383,13 @@ def run(source,parent,*,enabled=False,stop=None):
                 out['cleanupComplete']=retired is True and not out['cleanupDebt']
             except BaseException as error:
                 out['cleanupErrors'].append(failure(error));out['firstCause']=out['firstCause'] or failure(error);out['cleanupDebt']=True
+            if lifecycle is not None:
+                try:
+                    require(lifecycle.close_retired_identity(timeout=min(.05,window._cleanup_wait_remaining())),
+                            'original private fixture identity remains live; retain process custody')
+                except BaseException as error:
+                    out['cleanupErrors'].append(failure(error));out['firstCause']=out['firstCause'] or failure(error)
+                    out['cleanupDebt']=True;out['cleanupComplete']=False
             out.update(peakRSSBytes=window.peak_rss,peakOwnedBytes=window.peak_bytes)
             try:
                 out['originalProcessReceipt']=window.process_receipt()

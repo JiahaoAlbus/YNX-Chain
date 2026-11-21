@@ -192,7 +192,7 @@ def _invoke(binary,fd,context_path,context_sha,request,output,timeout,stop=None,
                     'GOFLAGS','GOENV','GOTELEMETRY') for k in extra),'bounded original synthetic environment required')
         env.update(extra)
         lifecycle=synthetic_fixture['lifecycle']
-        require(lifecycle is None or all(callable(getattr(lifecycle,k,None)) for k in ('begin','retain','publish','finish')),
+        require(lifecycle is None or all(callable(getattr(lifecycle,k,None)) for k in ('begin','retain','publish','send','finish')),
                 'original Window pending lifecycle required')
     output=Path(output);require(output.is_absolute() and not output.exists() and output.parent.resolve(strict=True)==output.parent,
                                 'fresh private verifier evidence directory required')
@@ -282,7 +282,9 @@ def _invoke(binary,fd,context_path,context_sha,request,output,timeout,stop=None,
                 if process.poll() is None:
                     if synthetic and linux and (published or lifecycle is not None):
                         require(pidfd is not None,'original synthetic leader identity missing; retain cleanup debt')
-                        try:signal.pidfd_send_signal(pidfd,signal.SIGKILL)
+                        try:
+                            if pidfd_retained:lifecycle.send(signal.SIGKILL)
+                            else:signal.pidfd_send_signal(pidfd,signal.SIGKILL)
                         except ProcessLookupError:pass # Same handle has already exited; still reap the original Popen.
                     else:process.kill() # Still private/unpublished, or original non-synthetic callee.
                 process.wait(timeout=1);reaped=True
