@@ -5509,6 +5509,13 @@ class SyntheticClockReceiptControls(unittest.TestCase):
             for changed in bad:
                 with self.assertRaises(RuntimeError):
                     execute(changed)
+            target.write_bytes(b' ' * (8 * 1024 * 1024 + 1))
+            with self.assertRaisesRegex(RuntimeError, 'event stream oversized'):
+                exec(compile(program, '<actual-clock-ab-receipt>', 'exec'), {})
+            target.write_text(''.join(json.dumps(e) + '\n' for e in rows))
+            with patch.dict(os.environ, GITHUB_SHA='not-a-source'):
+                with self.assertRaisesRegex(RuntimeError, 'source identity malformed'):
+                    exec(compile(program, '<actual-clock-ab-receipt>', 'exec'), {})
 
     def test_actual_clock_qualifier_rejects_missing_duplicated_foreign_and_skip(self):
         import ast, textwrap

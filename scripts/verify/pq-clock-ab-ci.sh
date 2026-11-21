@@ -9,7 +9,11 @@ cat "$RUNNER_TEMP/ynx-clock-ab-tests.jsonl"
 python3 -B - <<'PY'
 import json, os, re
 from pathlib import Path
-events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-clock-ab-tests.jsonl').read_text().splitlines()]
+with (Path(os.environ['RUNNER_TEMP']) / 'ynx-clock-ab-tests.jsonl').open('rb') as stream:
+    raw = stream.read(8 * 1024 * 1024 + 1)
+if len(raw) > 8 * 1024 * 1024:
+    raise RuntimeError('synthetic A/B original event stream oversized')
+events = [json.loads(line) for line in raw.splitlines()]
 package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet'
 name = 'TestSyntheticClockFinalizeOverheadIndependent'
 if any(e.get('Action') in ('skip', 'fail', 'build-fail') for e in events):
@@ -22,6 +26,8 @@ order_name = 'TestSyntheticClockMedianPreservesPairedOrder'
 if [(e.get('Package'), e['Action']) for e in events if e.get('Test') == order_name and e.get('Action') in ('run', 'pass', 'fail', 'skip')] != [(package, 'run'), (package, 'pass')]:
     raise RuntimeError('synthetic paired sample preservation test missing, foreign or repeated')
 def qualify_result(rows, source):
+    if not re.fullmatch(r'[0-9a-f]{40}', source):
+        raise RuntimeError('synthetic A/B exact source identity malformed')
     package_events = [(i, e.get('Action')) for i, e in enumerate(rows) if e.get('Package') == package and not e.get('Test') and e.get('Action') in ('start', 'pass', 'fail', 'skip')]
     test_events = [(i, e.get('Action')) for i, e in enumerate(rows) if e.get('Package') == package and e.get('Test') == name and e.get('Action') in ('run', 'pass', 'fail', 'skip')]
     if [a for _, a in package_events] != ['start', 'pass'] or [a for _, a in test_events] != ['run', 'pass']:
