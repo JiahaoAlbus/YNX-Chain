@@ -10,6 +10,11 @@ VERSION='YNX-COMET-COMMIT-OBSERVATION/v1'
 SCOPE='synthetic-loopback-lab/v1'
 MAX_SAMPLES=128
 MAX_BYTES=512<<10 # Exact c06 producer output ceiling; not the generic log cap.
+VALIDATION_PHASES=('anchor','validator_registry','engine_schedule','engine_snapshot','pq_state',
+    'migration_trace_lots','legacy_sponsor','legacy_resource_market','legacy_contracts','legacy_pay','legacy_ai','legacy_trust',
+    'ledger_records','pay','resource','resource_sponsor','trust','ide','pq_resources','pq_dex','pq_contracts',
+    'pq_native_actions','pq_ethereum','pq_ordered_resources','fee_events','governance','dex','asset_auth',
+    'account_abstraction','account_abstraction_policy','ownership_and_vault_supply','staking','supply','app_hash')
 
 def require(ok,message):
     if not ok:raise RuntimeError(message)
@@ -54,7 +59,20 @@ def validate_declared_contract(snapshot,pid,chain_id,genesis_hash,require_runtim
         stages=value.get('stagesNs');require(type(stages) is dict and len(stages)<=32,'original bounded Commit stages required')
         for stage,ns in stages.items():require(type(stage) is str and re.fullmatch('[a-z0-9_]{1,64}',stage) is not None and integer(ns) and ns<=value['elapsedNs'],'original Commit stage value missing/invalid')
         require(not value['durable'] or (value['elapsedNs']>0 and value['payloadBytes']>0 and bool(stages)),'durable original Commit timing cannot be empty')
-    def sample(value):point(value);timing(value.get('persistence'),value['height']);require(value['persistence']['durable'] is True,'successful original sample must be durable')
+    def sample(value):
+        point(value);timing(value.get('persistence'),value['height']);require(value['persistence']['durable'] is True,'successful original sample must be durable')
+        if 'validation' in value:
+            detail=value['validation'];require(type(detail) is dict and detail.get('version')=='YNX-COMET-COMMIT-VALIDATION/v1'
+                and type(detail.get('height')) is int and detail['height']==value['height'] and integer(detail.get('elapsedNs')),
+                'original same-attempt Commit validation identity differs')
+            phases=detail.get('phaseNs');require(type(phases) is dict and set(phases)==set(VALIDATION_PHASES)
+                and all(integer(ns) and ns<=detail['elapsedNs'] for ns in phases.values())
+                and sum(phases.values())==detail['elapsedNs'], 'original complete validation phases differ')
+            outer=value['persistence']['stagesNs'].get('validate')
+            require(integer(outer) and detail['elapsedNs']<=outer, 'validation detail exceeds original persistence parent')
+            document=detail.get('hashDocumentNs');digest=detail.get('hashEncodeDigestNs')
+            require(integer(document) and integer(digest) and document+digest<=phases['app_hash'],
+                    'original hash child intervals exceed app_hash')
     for key in ('lastFailure','unobservedLatest','finalCheckpoint'):require(key in snapshot,'original nullable failure/missing markers required')
     if snapshot['lastFailure'] is not None:
         failed=snapshot['lastFailure'];require(type(failed) is dict and failed.get('notificationObserved') is True and 'timing' in failed and 'committedCheckpoint' in failed and 'attemptAppHash' in failed,'original failure markers differ')
@@ -91,6 +109,15 @@ def persistence_stage_summary(snapshot):
             persistenceElapsed=distribution([v['elapsedNs'] for v in values]),
             stages={name:dict(distribution([v['stagesNs'][name] for v in values if name in v['stagesNs']]),
                               missingRetainedSamples=sum(name not in v['stagesNs'] for v in values)) for name in names})
+        original=[sample for sample in snapshot['samples'] if sample['persistence']['storage']==storage]
+        details=[sample['validation'] for sample in original if 'validation' in sample]
+        if details:
+            reduced[storage]['validationDetail']=dict(version='YNX-COMET-COMMIT-VALIDATION/v1',
+                retainedOriginalCommits=len(original),observed=len(details),missingRetainedCommits=len(original)-len(details),
+                elapsed=distribution([d['elapsedNs'] for d in details]),
+                phases={name:distribution([d['phaseNs'][name] for d in details]) for name in VALIDATION_PHASES},
+                hashChildren={name:distribution([d[name] for d in details]) for name in ('hashDocumentNs','hashEncodeDigestNs')},
+                childrenOverlapParent=True,stagesAdded=False,independentFinality=False)
     return dict(schema='YNX-PERF-RETAINED-COMMIT-STAGES/v1',byStorage= reduced,
         retainedSuccessCount=len(snapshot['samples']),successNotifications=snapshot['successNotifications'],
         errorNotifications=snapshot['errorNotifications'],droppedSuccessSamples=snapshot['droppedSuccessSamples'],

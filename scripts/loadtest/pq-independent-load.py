@@ -64,6 +64,9 @@ CALLEE_SOURCE = "c06b4607247a1fdf7e485337ab03206984baa71c"
 # functional DATA are consumed separately by the normal controller. They do
 # not qualify an unrelated before/after performance source pair or a load run.
 COMMIT_OBSERVATION_SOURCE = CALLEE_SOURCE
+# No source or CI qualification is transferred to the experimental validation
+# projection. The owning controller must bind an exact reviewed successor.
+COMMIT_VALIDATION_ABI_SOURCE = None
 # A new large-owner normal callee/ABI must be explicitly qualified by CORE.
 STAGED_CALLEE_SOURCE = initialization.LIVE_SOURCE
 STAGED_CALLEE_TREE = initialization.LIVE_TREE
@@ -283,10 +286,14 @@ class SenderSession:
 
 
 class LoadCeremony(normal.Ceremony):
-    def __init__(self,*args,operations,proof_timeout,commit_observation=False,sender_pool=False,consumer_source=None,startup_timings=False,**kwargs):
+    def __init__(self,*args,operations,proof_timeout,commit_observation=False,commit_validation_observation=False,sender_pool=False,consumer_source=None,startup_timings=False,**kwargs):
         lab.require(type(startup_timings) is bool and (not startup_timings or consumer_source in STARTUP_TIMING_ABI_SOURCES),'matching original startup timing ABI required; no source qualification implied')
+        lab.require(type(commit_validation_observation) is bool and (not commit_validation_observation or
+            (commit_observation and COMMIT_VALIDATION_ABI_SOURCE is not None and consumer_source==COMMIT_VALIDATION_ABI_SOURCE)),
+            'exact synthetic Commit validation ABI/source NOT_SUPPLIED')
         super().__init__(*args,**kwargs);self.operations=operations;self.proof_timeout=proof_timeout;self.live=[]
         self.commit_observation_enabled=commit_observation;self.commit_observation_descriptors=[]
+        self.commit_validation_observation_enabled=commit_validation_observation
         self.finalize_observation_enabled=False;self.finalize_observation_descriptors=[]
         self.consumer_source=CALLEE_SOURCE if consumer_source is None else consumer_source
         self.preparation_sender_arguments=("--timings",);self.preparation_sender_measurements=[]
@@ -362,6 +369,9 @@ class LoadCeremony(normal.Ceremony):
                 observed=commit_readback.arguments(output,private)
                 lab.require(not any(a.startswith("--commit-observation-") for a in resumed["nodes"][node]["args"]),"duplicate original Commit observer flags")
                 resumed["nodes"][node]["args"].extend(observed)
+                if self.commit_validation_observation_enabled:
+                    lab.require('--commit-validation-observation' not in resumed['nodes'][node]['args'], 'duplicate original Commit validation flag')
+                    resumed['nodes'][node]['args'].append('--commit-validation-observation')
                 self.commit_observation_descriptors.append(dict(node=node,path=str(output),processName="pq-node-%d"%node))
                 if self.finalize_observation_enabled:
                     finalize_output = private / ("finalize-node-%d.json" % node)
@@ -1120,6 +1130,11 @@ def create_network_window(hook,ceremony,args,tools,plan_pin,demand):
 
 def validate_options(args):
     profile=getattr(args,'first_trial_profile','own1b')
+    lab.require(type(getattr(args,'commit_validation_observation',False)) is bool and
+        (not getattr(args,'commit_validation_observation',False) or
+         (profile==HELD_TRIAL_PROFILE and getattr(args,'commit_observation',False) is True and
+          COMMIT_VALIDATION_ABI_SOURCE is not None and args.commit==COMMIT_VALIDATION_ABI_SOURCE)),
+        'exact synthetic held Commit validation source/CI NOT_SUPPLIED')
     lab.require(profile in ('own1b','d24','1695','7c25',HELD_TRIAL_PROFILE) and (profile=='own1b' or getattr(args,'initialize_before_load',False)),'selected source requires explicit same-window first100 profile')
     lab.require(type(getattr(args, 'held_ready_only', False)) is bool and
                 (not getattr(args, 'held_ready_only', False) or profile == HELD_TRIAL_PROFILE),
@@ -1256,6 +1271,7 @@ def load_conditions(args):
         result['requestStageObservation']=True
     if result['firstTrialProfile'] == HELD_TRIAL_PROFILE:
         result.update(preparePublicSource=True, persistentLiveMaterials=True)
+    if getattr(args,'commit_validation_observation',False): result['commit_validation_observation']=True
     return result
 
 
@@ -1384,7 +1400,7 @@ def run(args):
         stages.run("create_original","all-configured-owners",create_original)
         created=json.loads((work/"public/create-original.log").read_bytes())
         staged=getattr(args,'staged_publication',False)
-        ceremony=initialization.instrumented_ceremony_class(LoadCeremony)(w,root,created,bins,args.wire_observation,initialization_stages=stages,expected_owners=args.accounts+4,operations=demand,proof_timeout=args.proof_timeout,commit_observation=getattr(args,"commit_observation",False),sender_pool=staged,consumer_source=args.commit,startup_timings=getattr(args,'startup_timings',False))
+        ceremony=initialization.instrumented_ceremony_class(LoadCeremony)(w,root,created,bins,args.wire_observation,initialization_stages=stages,expected_owners=args.accounts+4,operations=demand,proof_timeout=args.proof_timeout,commit_observation=getattr(args,"commit_observation",False),commit_validation_observation=getattr(args,'commit_validation_observation',False),sender_pool=staged,consumer_source=args.commit,startup_timings=getattr(args,'startup_timings',False))
         ceremony.sender_arguments=STAGED_SENDER_ARGUMENTS if staged else ()
         # This assignment is reached only after the matching source CI AND
         # per-height semantic evidence have passed the selected source gate.
@@ -1573,6 +1589,7 @@ if __name__=="__main__":
     p=argparse.ArgumentParser(description=__doc__);p.add_argument("--source",required=True);p.add_argument("--commit",required=True);p.add_argument("--mode",choices=("online","pre-signed"),required=True)
     p.add_argument("--rate",type=int,choices=(100,500,1000),default=100);p.add_argument("--seconds",type=int,required=True);p.add_argument("--tail-seconds",type=int,default=30);p.add_argument("--accounts",type=int,required=True);p.add_argument("--per-account",type=int,required=True);p.add_argument("--proof-timeout",type=int,default=30);p.add_argument("--wire-observation",action="store_true");p.add_argument("--prior-result");p.add_argument("--prior-result-sha256");p.add_argument("--execute",action="store_true")
     p.add_argument("--commit-observation",action="store_true",help="explicit final qualified normal Commit consumer only; no signer fsync/finality or whole replay claim")
+    p.add_argument("--commit-validation-observation",action="store_true",help="explicit separately qualified synthetic held Commit validation phases; default unavailable")
     p.add_argument("--header-hop-capture",action="store_true",help="explicit owned controlled-netns exact-tuple IPv4 header-only capture; no physical-wire claim or permission escalation")
     p.add_argument("--network-accounting",action="store_true",help="explicit frozen LINK owned TCP pre-load/post-drain checkpoints; absent live metrics remain unmeasured")
     p.add_argument("--owned-storage-accounting",action="store_true",help="metadata-only exact original lab blockstore/stateDB/application paths; allocation is not disk writes or per-transaction bytes")
