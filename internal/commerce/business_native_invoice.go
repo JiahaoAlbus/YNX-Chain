@@ -48,9 +48,15 @@ func (s *Store) readOriginalShopNativeInvoiceRequestLocked(actor, role, orderID 
 	if e != nil {
 		return NativeShopInvoiceRequestDATA{}, e
 	}
+	var original *nativeInvoiceInput
 	for _, record := range s.s.BusinessEffects {
 		if record.Kind != "pay.native-create" || record.Target != orderID {
 			continue
+		}
+		// More than one original is ambiguous even if the payloads happen to
+		// match. Never select one based on Go map iteration order.
+		if original != nil {
+			return NativeShopInvoiceRequestDATA{}, ErrConflict
 		}
 		var saved nativeInvoiceInput
 		if e := decodeEffect(record.Input, &saved); e != nil {
@@ -59,10 +65,13 @@ func (s *Store) readOriginalShopNativeInvoiceRequestLocked(actor, role, orderID 
 		if !sameNativeInvoiceBill(order, saved.Order) || saved.Request.ProductID != "shop.order" || saved.Request.SourceOrder != order.ID || saved.Request.StoreID != order.StoreID {
 			return NativeShopInvoiceRequestDATA{}, ErrConflict
 		}
-		saved.Request.DomainData = bytes.Clone(saved.Request.DomainData)
-		return saved.Request, nil
+		original = &saved
 	}
-	return NativeShopInvoiceRequestDATA{}, ErrNotFound
+	if original == nil {
+		return NativeShopInvoiceRequestDATA{}, ErrNotFound
+	}
+	original.Request.DomainData = bytes.Clone(original.Request.DomainData)
+	return original.Request, nil
 }
 
 // No current catalog lookup or decimal->atom conversion occurs on this path.

@@ -138,6 +138,34 @@ func TestNativeInvoiceCreateOriginalThenColdLookupWithoutRepriceOrResend(t *test
 	if e != nil || again.DomainData[0] == '!' {
 		t.Fatal("Source DATA aliases durable original")
 	}
+	// Duplicate retained originals must not be selected nondeterministically,
+	// even if their request bytes are identical. Reads do not modify history.
+	var originalRecord BusinessEffect
+	for _, record := range reopened.s.BusinessEffects {
+		if record.Kind == "pay.native-create" && record.Target == order.ID {
+			originalRecord = record
+			break
+		}
+	}
+	if originalRecord.ID == "" {
+		t.Fatal("original creation record missing")
+	}
+	duplicate := originalRecord
+	duplicate.ID = "PUBLIC-duplicate-original"
+	reopened.s.BusinessEffects[duplicate.ID] = duplicate
+	beforeAmbiguous, e := cloneSnapshot(reopened.s)
+	if e != nil {
+		t.Fatal(e)
+	}
+	for i := 0; i < 20; i++ {
+		if _, e := reopened.ReadOriginalShopNativeInvoiceRequestDATA(buyer, "buyer", order.ID); !errors.Is(e, ErrConflict) {
+			t.Fatal("ambiguous original accepted", e)
+		}
+	}
+	if !reflect.DeepEqual(beforeAmbiguous, reopened.s) {
+		t.Fatal("ambiguous read modified original history")
+	}
+	delete(reopened.s.BusinessEffects, duplicate.ID)
 	_, foreign := actor(t, 245)
 	if _, e := reopened.ReadOriginalShopNativeInvoiceRequestDATA(foreign, "buyer", order.ID); e == nil {
 		t.Fatal("foreign Source DATA read")
