@@ -573,9 +573,14 @@ class WireLiveSourceControls(unittest.TestCase):
             self.assertEqual(private.count(line), 1)
         self.assertNotIn('upload-artifact', private)
         observer = wire.split('      - name: Verify the default-off normal node wire observation adapter\n', 1)[1].split('      - name:', 1)[0]
+        for name in wire_steps:
+            step = wire.split('      - name: ' + name + '\n', 1)[1].split('      - name:', 1)[0]
+            self.assertNotRegex(step, r'(?m)^        if:')
+            self.assertNotIn('continue-on-error:', step)
         for part in ("-run '^TestMempoolWireObserver'", "-run '^(TestOperatorWire(Observation|Live)|TestPQNodeNormalCancellation|TestOperatorStartupTiming)'", "test_validate_pq_observer_ci.py", "ynx-pq-observer-fork-tests.jsonl", "git diff --exit-code -- go.mod go.sum"):
             self.assertIn(part, observer)
-        self.assertIn("('wire-observer-tests.jsonl', 'wire-caller-tests.jsonl', 'ynx-pq-observer-fork-tests.jsonl')", wire)
+        for filename in ('wire-observer-tests.jsonl', 'wire-caller-tests.jsonl', 'ynx-pq-observer-fork-tests.jsonl'):
+            self.assertIn(filename, wire)
         self.assertIn("('fail', 'skip', 'build-fail')", wire)
         self.assertNotIn('      - name: Verify the default-off normal node wire observation adapter\n', client)
         self.assertEqual(optional.count("        run: python3 -B scripts/verify/wire-live-matching-source-ci.py\n"), 1)
@@ -589,6 +594,41 @@ class WireLiveSourceControls(unittest.TestCase):
                 self.assertEqual(optional.count("/" + name + suffix + "\n"), 1)
         self.assertIn("          retention-days: 14\n", optional)
         return client, optional
+
+    def test_default_off_original_stream_gate_rejects_incomplete_runs_and_skips(self):
+        workflow = (HERE.parents[1] / ".github/workflows/chain-core.yml").read_text()
+        wire = workflow_job(workflow, "default-off-wire-observation")
+        step = wire.split('      - name: Reject skipped default-off wire tests\n', 1)[1]
+        program = step.split("          python3 -B - <<'PYTEST'\n", 1)[1].split("          PYTEST\n", 1)[0]
+        program = "\n".join(line[10:] for line in program.splitlines())
+        packages = {
+            'wire-observer-tests.jsonl': ['github.com/cometbft/cometbft/mempool'],
+            'wire-caller-tests.jsonl': ['github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet'],
+            'ynx-pq-observer-fork-tests.jsonl': ['github.com/cometbft/cometbft/node', 'github.com/cometbft/cometbft/rpc/core'],
+        }
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'RUNNER_TEMP': directory}):
+            root = Path(directory)
+            original = {}
+            for name, sources in packages.items():
+                rows = []
+                for package in sources:
+                    rows.extend([{'Package':package, 'Action':'start'}, {'Package':package, 'Test':'TestOriginal', 'Action':'run'}, {'Package':package, 'Test':'TestOriginal', 'Action':'pass'}, {'Package':package, 'Action':'pass'}])
+                original[name] = rows
+            def execute(mutations):
+                for name, rows in original.items():
+                    (root/name).write_text(''.join(json.dumps(row)+'\n' for row in mutations.get(name, rows)))
+                exec(compile(program, 'actual-wire-workflow-gate', 'exec'), {})
+            execute({})
+            target = 'wire-observer-tests.jsonl'
+            for mutation in ('skip', 'missing-pass', 'duplicate-run', 'foreign-package', 'no-test'):
+                rows = [dict(row) for row in original[target]]
+                if mutation == 'skip': rows[2]['Action'] = 'skip'
+                if mutation == 'missing-pass': rows.pop()
+                if mutation == 'duplicate-run': rows.insert(2, dict(rows[1]))
+                if mutation == 'foreign-package': rows[0]['Package'] = 'untrusted'
+                if mutation == 'no-test': rows = [rows[0], rows[-1]]
+                with self.subTest(mutation=mutation), self.assertRaises(RuntimeError):
+                    execute({target: rows})
 
     def test_optional_composition_has_independent_original_budget_and_no_repeated_groups(self):
         self.assert_optional_partition((HERE.parents[1] / ".github/workflows/chain-core.yml").read_text())
@@ -617,6 +657,10 @@ class WireLiveSourceControls(unittest.TestCase):
                               ("needs.default-off-wire-observation.result == 'success'", "true")):
             with self.assertRaises(AssertionError):
                 self.assert_optional_partition(workflow.replace(client, client.replace(before, after, 1), 1))
+        for name in ("Verify the default-off normal node wire observation adapter", "Reject skipped default-off wire tests"):
+            marker = '      - name: ' + name + '\n'
+            with self.subTest(skipped_step=name), self.assertRaises(AssertionError):
+                self.assert_optional_partition(workflow.replace(wire, wire.replace(marker, marker + '        if: false\n', 1), 1))
         for before, after in (("timeout-minutes: 8", "timeout-minutes: 18"),
                               ("ref: ${{ github.sha }}", "ref: main"),
                               ("('fail', 'skip', 'build-fail')", "('fail', 'build-fail')"),

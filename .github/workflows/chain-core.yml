@@ -544,10 +544,29 @@ jobs:
           import json, os
           from pathlib import Path
           root = Path(os.environ['RUNNER_TEMP'])
-          for name in ('wire-observer-tests.jsonl', 'wire-caller-tests.jsonl', 'ynx-pq-observer-fork-tests.jsonl'):
+          packages = {
+              'wire-observer-tests.jsonl': {'github.com/cometbft/cometbft/mempool'},
+              'wire-caller-tests.jsonl': {'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet'},
+              'ynx-pq-observer-fork-tests.jsonl': {'github.com/cometbft/cometbft/node', 'github.com/cometbft/cometbft/rpc/core'},
+          }
+          for name, expected in packages.items():
               rows = [json.loads(line) for line in (root / name).read_text().splitlines()]
               if not rows or any(row.get('Action') in ('fail', 'skip', 'build-fail') for row in rows):
                   raise RuntimeError('original default-off wire tests contain failure, skip, or empty output: ' + name)
+              observed = {row.get('Package') for row in rows if row.get('Package')}
+              if observed != expected:
+                  raise RuntimeError('original wire test packages differ: ' + name)
+              for package in expected:
+                  terminal = [row['Action'] for row in rows if row.get('Package') == package and not row.get('Test') and row.get('Action') in ('start', 'pass', 'fail', 'skip')]
+                  if terminal != ['start', 'pass']:
+                      raise RuntimeError('original wire package did not start and pass uniquely: ' + package)
+                  tests = {row['Test'] for row in rows if row.get('Package') == package and row.get('Test')}
+                  if not tests:
+                      raise RuntimeError('original wire package had no executed tests: ' + package)
+                  for test in tests:
+                      actions = [row['Action'] for row in rows if row.get('Package') == package and row.get('Test') == test and row.get('Action') in ('run', 'pass', 'fail', 'skip')]
+                      if actions != ['run', 'pass']:
+                          raise RuntimeError('original wire test missing, duplicated, or incomplete: ' + test)
           PYTEST
 
   optional-live-source:
