@@ -179,6 +179,7 @@ class HelperLifecycleControls(unittest.TestCase):
         stop = threading.Event()
         window = object.__new__(driver.lab.Window)
         window.lock = threading.Lock()
+        window.launch_lock = threading.Lock()
         window.sample = stop.set
         with mock.patch.object(driver.lab.subprocess, 'Popen') as child:
             with self.assertRaisesRegex(RuntimeError, 'cancelled before launch'):

@@ -1065,11 +1065,13 @@ class NormalBackend:
         # Legacy sequential entry stays byte/protocol equivalent.
         self.finalize(self.observe(self.publish(row,account,notify,stop),notify,stop),notify,stop)
     def stop(self):
-        self.stop_event.set();self.w.stopping=True
-        with self.w.lock:children=list(self.w.children)
+        self.stop_event.set()
+        with self.w.lock:
+            self.w.stopping=True;self.w.launches_closed=True
+            children=list(self.w.children)
         for child in children:
             if child["name"].startswith("load-") and child["process"].poll() is None:
-                try:os.killpg(child["process"].pid,signal.SIGTERM)
+                try:lab.signal_process_group(child["process"],signal.SIGTERM)
                 except ProcessLookupError:pass
         # Terminate before closing buffered stdin so a stalled child cannot
         # hold a writer/close lock past the bounded cleanup boundary.
@@ -1517,7 +1519,7 @@ def run(args, *, source_metadata_reader=None):
             try:monitor.check()
             except BaseException as error:result['firstCause']=result['firstCause'] or str(error)
         result["peakRSSSample"] = getattr(w, "peak_rss_sample", None)
-        result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,processes=w.process_receipt(),retiredSamplingEvidence=w.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=w.rss_fallback_samples)
+        result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,processes=w.process_receipt(),launchLifecycle=w.launch_cleanup_report(),retiredSamplingEvidence=w.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=w.rss_fallback_samples)
         if ceremony is not None:
             result["wireObservation"]=ceremony.wire_readback()
             if callable(getattr(ceremony,'readiness_report',None)):result['originalReadinessObservations']=ceremony.readiness_report()

@@ -15,10 +15,12 @@ class FailedInventoryCleanupControls(unittest.TestCase):
     def test_one_unresolved_wait_does_not_skip_later_owned_handles_or_replace_firstcause(self):
         w=object.__new__(lab.Window);first=mock.Mock(pid=123,returncode=None);second=mock.Mock(pid=124,returncode=-signal.SIGTERM)
         first.poll.return_value=None;first.wait.side_effect=RuntimeError('specific wait unavailable');second.poll.return_value=None
+        second_wait=second.wait
+        lab.bind_process_lifecycle(first);lab.bind_process_lifecycle(second)
         w.children=[dict(name='first',process=first,startTicks=42),dict(name='second',process=second,startTicks=43)];w.logs=[]
         with mock.patch.object(w,'_stop',side_effect=RuntimeError('original inventory firstcause')),mock.patch.object(lab.os,'killpg') as signals:
             with self.assertRaisesRegex(RuntimeError,'original inventory firstcause'):w.stop()
-        self.assertEqual(signals.call_count,2);second.wait.assert_called_once_with(timeout=1)
+        self.assertEqual(signals.call_count,2);second_wait.assert_called_once_with(timeout=0)
         self.assertFalse(w.direct_cleanup_after_failure[0]['exited']);self.assertTrue(w.direct_cleanup_after_failure[1]['exited'])
         self.assertEqual(w.direct_cleanup_after_failure[0]['errors'][0]['operation'],'wait')
 
@@ -27,12 +29,13 @@ class FailedInventoryCleanupControls(unittest.TestCase):
         process.poll.return_value=None
         def wait(timeout):process.returncode=-signal.SIGTERM;return process.returncode
         process.wait.side_effect=wait
+        killed=process.kill;lab.bind_process_lifecycle(process)
         log=mock.Mock(closed=False);w.logs=[('owned',log)];w.children=[dict(name='owned',process=process,startTicks=42)]
         with mock.patch.object(w,'_stop',side_effect=RuntimeError('owned PID bound; inventory not truncated')),mock.patch.object(lab.os,'killpg') as signal_group:
             with self.assertRaisesRegex(RuntimeError,'owned PID bound'):w.stop()
         signal_group.assert_called_once_with(123,signal.SIGTERM)
         self.assertEqual(w.direct_cleanup_after_failure,[dict(name='owned',pid=123,startTicks=42,rawReturnCode=-signal.SIGTERM,exited=True)])
-        log.close.assert_called_once();process.kill.assert_not_called()
+        log.close.assert_called_once();killed.assert_not_called()
 
     @unittest.skipUnless(sys.platform=='linux','actual owned process group requires CORE original Linux job')
     def test_real_direct_child_is_stopped_after_exact_owned_inventory_bound(self):

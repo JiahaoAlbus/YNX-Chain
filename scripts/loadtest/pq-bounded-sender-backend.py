@@ -28,7 +28,7 @@ def backend_class(Base,Session,normal,lab):
             trace['closeStartedMonotonicNs']=time.monotonic_ns()
             try:
                 if self.stop_event.is_set() and proc.poll() is None:
-                    try:os.killpg(proc.pid,signal.SIGTERM)
+                    try:lab.signal_process_group(proc,signal.SIGTERM)
                     except ProcessLookupError:pass
                 if proc.stdin is not None and not proc.stdin.closed:proc.stdin.close()
                 if self.stop_event.is_set():
@@ -81,7 +81,7 @@ def backend_class(Base,Session,normal,lab):
                         trace['pid']=proc.pid
                         try:
                             if proc.poll() is None:
-                                try:os.killpg(proc.pid,signal.SIGTERM)
+                                try:lab.signal_process_group(proc,signal.SIGTERM)
                                 except ProcessLookupError:pass
                                 try:proc.wait(timeout=2)
                                 except Exception:pass

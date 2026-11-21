@@ -342,9 +342,82 @@ class ProcessEvidence:
         self.index[key]=len(self.records);self.records.append(row)
 
 
+
+def bind_process_lifecycle(proc):
+    """Bind the original Popen before publication; keep its identity and pipes.
+
+    All public reaping/signalling methods share one lock. Long wait sleeps do
+    not hold it (or Window.lock), so resource samples and cleanup stay runnable.
+    Only Window launches call this; an unregistered handle cannot gain a group
+    signalling capability through the backend entry point.
+    """
+    require('_ynx_lifecycle_lock' not in vars(proc), 'original Popen already lifecycle bound')
+    lock = threading.RLock()
+    originals = {name:getattr(proc,name) for name in ('poll','wait','send_signal','terminate','kill') if callable(getattr(proc,name,None))}
+    def locked(method):
+        def invoke(*args, **kwargs):
+            with lock:return method(*args, **kwargs)
+        return invoke
+    for name, method in originals.items():
+        if name != 'wait':setattr(proc,name,locked(method))
+    def wait(timeout=None):
+        until = None if timeout is None else time.monotonic()+timeout
+        while True:
+            with lock:
+                try:return originals['wait'](timeout=0)
+                except subprocess.TimeoutExpired as error:
+                    if until is not None and time.monotonic() >= until:
+                        raise subprocess.TimeoutExpired(error.cmd, timeout) from None
+            time.sleep(.01 if until is None else min(.01,max(0,until-time.monotonic())))
+    proc.wait = wait
+    proc._ynx_lifecycle_lock = lock
+    return proc
+
+
+def signal_process_group(proc, sig):
+    """Atomic original-handle liveness and group signal, never a bare PID."""
+    lock = vars(proc).get('_ynx_lifecycle_lock')
+    require(lock is not None, 'unmanaged original process group refused; preserve UNKNOWN')
+    with lock:
+        if proc.poll() is None:
+            try:os.killpg(proc.pid, sig)
+            except ProcessLookupError:pass
+
+
+def signal_owned_descendant(pid, expected, sig):
+    # A constructor may still own its unpublished Popen and reap concurrently.
+    # Revalidate around pidfd_open; signal the kernel handle, never a reused PID.
+    require(hasattr(os,'pidfd_open') and hasattr(signal,'pidfd_send_signal'),
+            'original descendant pidfd signal unavailable; preserve UNKNOWN')
+    def identity():
+        row=guard.parse_stat(guard.bounded(Path('/proc')/str(pid)/'stat'),pid)
+        require(row['startTicks']==expected['startTicks'], 'original descendant identity changed; preserve UNKNOWN')
+    identity();fd=os.pidfd_open(pid,0)
+    try:
+        identity()
+        raw=guard.bounded(Path('/proc/self/fdinfo')/str(fd)).decode('ascii')
+        ids=[line.split(':',1)[1].strip() for line in raw.splitlines() if line.startswith('Pid:')]
+        require(ids==[str(pid)], 'original descendant pidfd binding differs; preserve UNKNOWN')
+        signal.pidfd_send_signal(fd,sig,None,0)
+    finally:
+        original=sys.exc_info()[1]
+        try:os.close(fd)
+        except OSError:
+            if original is None:raise
+
+
+
 class Window:
     def __init__(self, source, work, additional_storage=()):
         self.lock = threading.RLock()
+        # Popen may wait for the child's exec handshake. Serialize launches,
+        # but never hold the resource/ownership lock across that wait.
+        self.launch_lock = threading.Lock()
+        self.pending_launches = {}
+        self.launches_closed = False
+        self.launch_guard_failure = None
+        self.launch_cleanup_debt = []
+        self.launch_cleanup_deadline = None
         self.sample_stage_totals = {}
         self.source, self.work = source, work
         self.storage_roots = [work, *additional_storage]
@@ -411,7 +484,15 @@ class Window:
     def sample(self):
         with self.sample_stage('sampleIncludingLockWait'):
             with self.lock:
-                return self._sample()
+                try:
+                    return self._sample()
+                except BaseException as error:
+                    # A later healthy sample must not admit a child whose
+                    # Popen was already in flight when the original guard failed.
+                    if self.launch_guard_failure is None:
+                        self.launch_guard_failure = error
+                    self.launches_closed = True
+                    raise
 
     def _sample(self):
         require(time.monotonic() - self.started < CAPS["totalSeconds"] - CAPS["cleanupSeconds"], "total operation deadline exceeded")
@@ -468,41 +549,119 @@ class Window:
             self.samples.append(dict(at=time.monotonic(), rssBytes=rss, newBytes=size, processes=len(ids)))
 
     def launch(self, name, command, persistent=False, pass_fds=(), stdin_path=None, stdin_pipe=False, thread_safe=False, *, private_log=False, stop=None):
-        with self.lock:
+        with self.launch_lock:
             return self._launch(name, command, persistent, pass_fds, stdin_path, stdin_pipe, thread_safe, private_log, stop)
 
     def _launch(self, name, command, persistent, pass_fds, stdin_path, stdin_pipe, thread_safe, private_log, stop=None):
         require(not (stdin_pipe and stdin_path is not None), "one original stdin transport required")
-        self.sample()
-        require(stop is None or not stop.is_set(), "normal helper cancelled before launch; preserve UNKNOWN")
-        log = open(self.work / (".private" if private_log else "public") / (name + ".log"),
-                   "xb", buffering=0)
-        os.chmod(log.name, 0o600); self.logs.append((name, log))
+        with self.lock:
+            self.sample()
+            require(stop is None or not stop.is_set(), "normal helper cancelled before launch; preserve UNKNOWN")
+            require(not self.launches_closed and not self.launch_cleanup_debt,
+                    "original Window closed to new launches; preserve UNKNOWN")
+            log = open(self.work / (".private" if private_log else "public") / (name + ".log"),
+                       "xb", buffering=0)
+            os.chmod(log.name, 0o600); self.logs.append((name, log))
+            token = object()
+            pending = dict(name=name, requestedNs=time.monotonic_ns(), process=None, log=log)
+            self.pending_launches[token] = pending
         def restrict():
             os.sched_setaffinity(0, self.cpus)
             resource.setrlimit(resource.RLIMIT_FSIZE, (CAPS["newBytes"], CAPS["newBytes"]))
-        source_input = open(stdin_path, "rb") if stdin_path is not None else None
+        source_input = None
         actual_command = command
         if thread_safe:
             # No Python preexec_fn after worker threads exist. The isolated
             # child applies the SAME affinity/file cap before the original exec.
             shim="import json,os,resource,sys\nos.sched_setaffinity(0,json.loads(sys.argv[1]))\ncap=int(sys.argv[2])\nresource.setrlimit(resource.RLIMIT_FSIZE,(cap,cap))\nos.execvp(sys.argv[3],sys.argv[3:])\n"
             actual_command=[sys.executable,"-I","-c",shim,json.dumps(self.cpus),str(CAPS["newBytes"]),*command]
+        proc = None
+        complete = False
         try:
+            source_input = open(stdin_path, "rb") if stdin_path is not None else None
             proc = subprocess.Popen(actual_command, cwd=self.source, env=self.env, stdin=subprocess.PIPE if stdin_pipe else source_input if source_input is not None else subprocess.DEVNULL,
                                     stdout=log, stderr=subprocess.STDOUT, start_new_session=True, preexec_fn=None if thread_safe else restrict,
                                     pass_fds=pass_fds)
+            with self.lock:
+                # Registration precedes cancellation checks, including a stop
+                # that completed its original inventory while Popen was waiting.
+                pending['process'] = proc
+                row = dict(name=name, process=proc, persistent=persistent, command=list(command), startedNs=None)
+                self.children.append(row)
+                bind_process_lifecycle(proc)
+                row['startedNs'] = time.monotonic_ns()
+                try:
+                    row['startTicks'] = guard.parse_stat(guard.bounded(Path('/proc') / str(proc.pid) / 'stat'), proc.pid)['startTicks']
+                    self.known[proc.pid] = row['startTicks']
+                except FileNotFoundError:
+                    row['startTicks'] = None
+                    require(proc.poll() is not None, 'live original launch identity unavailable; preserve UNKNOWN')
+                if source_input is not None:
+                    original_input, source_input = source_input, None
+                    try:original_input.close()
+                    except BaseException as close_error:
+                        self.launches_closed=True
+                        self.launch_cleanup_debt.append(dict(name=name,errorType=type(close_error).__name__,
+                            meaning='original launch input close failed; preserve first cause'))
+                        raise
+                if self.launch_guard_failure is not None:
+                    raise self.launch_guard_failure
+                require(not self.launches_closed and not self.launch_cleanup_debt and (stop is None or not stop.is_set()),
+                        'original launch cancelled before publication; preserve UNKNOWN')
+                # Cover the new child before its handle can reach business code.
+                self.sample()
+                complete = True
+                return proc
+        except BaseException:
+            if proc is not None:
+                try:
+                    self._retire_failed_launch(proc)
+                except BaseException as cleanup_error:
+                    with self.lock:
+                        self.launches_closed = True
+                        self.launch_cleanup_debt.append(dict(name=name, pid=proc.pid,
+                            errorType=type(cleanup_error).__name__, meaning='original launch cleanup unresolved; preserve UNKNOWN'))
+            raise
         finally:
-            if source_input is not None:
-                source_input.close()
-        row = dict(name=name, process=proc, persistent=persistent, command=list(command), startedNs=time.monotonic_ns())
-        self.children.append(row)
+            original_error = sys.exc_info()[1]
+            try:
+                if source_input is not None:
+                    source_input.close()
+            except BaseException as close_error:
+                with self.lock:
+                    self.launches_closed = True
+                    self.launch_cleanup_debt.append(dict(name=name, errorType=type(close_error).__name__,
+                        meaning='original launch input close failed; preserve first cause'))
+                if original_error is None: raise
+            finally:
+                active_error = sys.exc_info()[1]
+                if active_error is None:active_error = original_error
+                try:
+                    with self.lock:
+                        if complete or proc is None or proc.poll() is not None:
+                            self.pending_launches.pop(token)
+                        if not complete and (proc is None or proc.poll() is not None) and not log.closed:
+                            info = os.fstat(log.fileno())
+                            self.closed_log_identity[log.name] = (info.st_dev, info.st_ino)
+                            log.close()
+                except BaseException as close_error:
+                    with self.lock:
+                        self.launches_closed = True
+                        self.launch_cleanup_debt.append(dict(name=name, errorType=type(close_error).__name__,
+                            meaning='original launch log retirement failed; preserve first cause'))
+                    if active_error is None: raise
+
+    def _retire_failed_launch(self, proc):
+        signal_process_group(proc, signal.SIGTERM)
         try:
-            row["startTicks"] = guard.parse_stat(guard.bounded(Path("/proc") / str(proc.pid) / "stat"), proc.pid)["startTicks"]
-            self.known[proc.pid] = row["startTicks"]
-        except FileNotFoundError:
-            row["startTicks"] = None
-        return proc
+            proc.wait(timeout=self._cleanup_wait_remaining())
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait(timeout=self._cleanup_wait_remaining())
+
+    def _cleanup_wait_remaining(self):
+        deadline=getattr(self,'launch_cleanup_deadline',None)
+        return 1 if deadline is None else max(0,min(1,deadline-time.monotonic()))
 
     def wait(self, proc, allow_failure=False):
         while proc.poll() is None:
@@ -573,9 +732,14 @@ class Window:
         return len(rows)
 
     def stop(self):
+        self._close_launch_admission()
         try:
             return self._stop()
-        except BaseException:
+        except BaseException as original_error:
+            with getattr(self,'lock',contextlib.nullcontext()):
+                if not hasattr(self,'launch_cleanup_debt'):self.launch_cleanup_debt=[]
+                self.launch_cleanup_debt.append(dict(operation='Window.stop',errorType=type(original_error).__name__,
+                    meaning='original cleanup failed; no successor admission or silent debt reset'))
             # An inventory/cap failure does not revoke ownership of our LIVE
             # direct Popen children. Do not leave them running merely because
             # complete descendant accounting failed. Preserve that failure;
@@ -585,48 +749,82 @@ class Window:
             errors={}
             for child in self.children:
                 proc=child["process"]
-                if proc.poll() is None:
-                    try:os.killpg(proc.pid,signal.SIGTERM)
-                    except ProcessLookupError:pass
-                    except OSError as error:errors.setdefault(proc.pid,[]).append(dict(operation="signal",errorType=type(error).__name__,errno=error.errno))
+                try:self._signal_registered_group(proc,signal.SIGTERM)
+                except OSError as error:errors.setdefault(proc.pid,[]).append(dict(operation="signal",errorType=type(error).__name__,errno=error.errno))
+                except Exception as error:errors.setdefault(proc.pid,[]).append(dict(operation="signal",errorType=type(error).__name__))
             for child in self.children:
                 proc=child["process"]
                 try:
-                    try:proc.wait(timeout=1)
+                    require(vars(proc).get('_ynx_lifecycle_lock') is not None,
+                            'unmanaged original child retirement refused; preserve UNKNOWN')
+                    try:proc.wait(timeout=self._cleanup_wait_remaining())
                     except subprocess.TimeoutExpired:
                         # Still the original unreaped direct child, not a
                         # numeric /proc candidate. No foreign PID is selected.
-                        proc.kill();proc.wait(timeout=1)
+                        proc.kill();proc.wait(timeout=self._cleanup_wait_remaining())
                 except Exception as error:
                     errors.setdefault(proc.pid,[]).append(dict(operation="wait",errorType=type(error).__name__))
                 self.direct_cleanup_after_failure.append(dict(name=child["name"],pid=proc.pid,startTicks=child.get("startTicks"),rawReturnCode=proc.returncode,exited=proc.returncode is not None,**(dict(errors=errors[proc.pid]) if proc.pid in errors else {})))
-            for _,log in self.logs:
-                if not log.closed:
-                    try:log.close()
-                    except OSError:pass  # Original cleanup failure is retained.
+            with getattr(self, 'lock', contextlib.nullcontext()):
+                pending_logs = {v['log'] for v in getattr(self, 'pending_launches', {}).values()}
+                for _,log in self.logs:
+                    if log in pending_logs: continue
+                    if not log.closed:
+                        try:log.close()
+                        except OSError:pass  # Original cleanup failure is retained.
             raise
 
-    def _stop(self):
-        self.stopping = True
-        started = time.monotonic()
+    def _signal_registered_group(self, proc, sig):
+        require(any(c['process'] is proc for c in self.children), 'unregistered original child refused')
+        signal_process_group(proc, sig)
+
+    def launch_cleanup_report(self):
+        with getattr(self, 'lock', contextlib.nullcontext()):
+            pending=[dict(name=v['name'],requestedNs=v['requestedNs'],
+                          pid=None if v['process'] is None else v['process'].pid)
+                     for v in getattr(self,'pending_launches',{}).values()]
+            debt=[dict(v) for v in getattr(self,'launch_cleanup_debt',[])]
+            return dict(schema='YNX-ORIGINAL-WINDOW-LAUNCH-LIFECYCLE/v1',
+                        status='UNKNOWN' if pending or debt else 'OBSERVED',
+                        pending=pending,cleanupDebt=debt,
+                        admissionClosed=getattr(self,'launches_closed',False),
+                        cleanupCompleteProven=False if pending or debt else None,
+                        meaning='No replay or successor admission with unresolved original launch cleanup')
+
+    def _close_launch_admission(self):
+        # No waiting for Popen/launch_lock here. A pending constructor must not
+        # prevent original inventory cleanup from reaching its existing bound.
+        with getattr(self, 'lock', contextlib.nullcontext()):
+            self.stopping = True
+            self.launches_closed = True
+            if getattr(self, 'launch_cleanup_deadline', None) is None:
+                self.launch_cleanup_deadline = time.monotonic() + CAPS['cleanupSeconds']
+
+    def _cleanup_inventory(self):
         rows, _ = guard.proc_inventory()
-        for pid in guard.owned_set(rows, os.getpid(), known=self.known):
-            self.known[pid] = rows[pid]["startTicks"]
-        # Session leaders are direct Popen children; PID remains reserved until
-        # wait. Descendants are separately checked by original startTicks.
-        normal_nodes = {}
-        for c in self.children:
-            if c["process"].poll() is None:
-                if re.fullmatch(r"(?:bootstrap|pq)-node-[0-3]", c["name"]):
-                    normal_nodes[c["process"].pid] = c["startTicks"]
-                try: os.killpg(c["process"].pid, signal.SIGTERM)
-                except ProcessLookupError: pass
-        while time.monotonic() - started < CAPS["cleanupSeconds"]:
-            rows, _ = guard.proc_inventory()
+        with self.lock:
             for pid in guard.owned_set(rows, os.getpid(), known=self.known):
-                self.known[pid] = rows[pid]["startTicks"]
-            live = [(pid, row) for pid, row in rows.items() if pid != os.getpid() and self.known.get(pid) == row["startTicks"] and row["state"] != "Z"]
-            if not live:
+                self.known[pid] = rows[pid]['startTicks']
+            return rows, dict(self.known)
+
+    def _stop(self):
+        self._close_launch_admission()
+        started = time.monotonic()
+        rows, known = self._cleanup_inventory()
+        # Group signals and every direct-child reap share that original
+        # Popen's lifecycle lock. No long wait holds the resource lock.
+        normal_nodes = {}
+        with self.lock:children=list(self.children)
+        for c in children:
+            if re.fullmatch(r"(?:bootstrap|pq)-node-[0-3]", c["name"]):
+                normal_nodes[c["process"].pid] = c.get("startTicks")
+            self._signal_registered_group(c['process'],signal.SIGTERM)
+        while time.monotonic() < self.launch_cleanup_deadline:
+            rows, known = self._cleanup_inventory()
+            live = [(pid, row) for pid, row in rows.items() if pid != os.getpid() and known.get(pid) == row["startTicks"] and row["state"] != "Z"]
+            with self.lock:
+                pending = bool(self.pending_launches)
+            if not live and not pending:
                 break
             elapsed = time.monotonic() - started
             if elapsed > 3:
@@ -639,16 +837,35 @@ class Window:
                     try:
                         current = guard.parse_stat(guard.bounded(Path("/proc") / str(pid) / "stat"), pid)
                         if current["startTicks"] == expected["startTicks"]:
-                            os.kill(pid, signal.SIGKILL)
+                            with self.lock:
+                                direct=next((c['process'] for c in self.children if c['process'].pid==pid and c.get('startTicks')==expected['startTicks']),None)
+                            if direct is not None:direct.kill()
+                            else:signal_owned_descendant(pid, expected, signal.SIGKILL)
                     except ProcessLookupError: pass
                     except FileNotFoundError: pass
-            for c in self.children: c["process"].poll()
+            with self.lock:
+                for c in self.children: c["process"].poll()
             time.sleep(.1)
-        for c in self.children:
-            if c["process"].poll() is None:
-                c["process"].kill()
-            c["process"].wait(timeout=1)
-        for _, log in self.logs: log.close()
+        with self.lock:
+            children = list(self.children)
+        for c in children:
+            require(vars(c['process']).get('_ynx_lifecycle_lock') is not None,
+                    'unmanaged original child retirement refused; preserve UNKNOWN')
+            c["process"].kill()
+            c["process"].wait(timeout=self._cleanup_wait_remaining())
+        with self.lock:
+            pending_logs = {v['log'] for v in self.pending_launches.values()}
+            for _, log in self.logs:
+                if log not in pending_logs: log.close()
+            if self.pending_launches:
+                self.launch_cleanup_debt.extend(dict(name=v['name'], requestedNs=v['requestedNs'],
+                    pid=None if v['process'] is None else v['process'].pid,
+                    meaning='original Popen/launch cleanup still pending at deadline; preserve UNKNOWN')
+                    for v in self.pending_launches.values())
+                raise RuntimeError('original launch remains pending at cleanup deadline; preserve UNKNOWN')
+        require(not self.launch_cleanup_debt, 'original launch cleanup debt remains; preserve UNKNOWN')
+        # No pending constructors and every direct child has already been
+        # reaped through its bound handle before the adopted-child sweep.
         # Reap only our own adopted children, never another runner task.
         while True:
             try:
@@ -770,7 +987,7 @@ def run(args):
                       cpuAffinity=window.cpus, physicalCommitMeasured=False,
                       resourceSemantics="sampled owned RSS; explicit same-process VmSize conservative upper bounds if present; artifacts 1s; not atomic or hard cgroup ceilings",
                       resourceObserverVersion=RSS_OBSERVER_VERSION,processEvidenceVersion=PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=window.rss_fallback_samples,
-                      resourceGuardStageElapsed=window.sample_stage_report(),
+                      resourceGuardStageElapsed=window.sample_stage_report(),launchLifecycle=window.launch_cleanup_report(),
                       processPhaseMeaning="parent monotonic launch-to-observed-exit durations; includes polling; concurrent node lifetimes overlap and are not additive",
                       processPhases=[dict(name=c["name"], elapsedNs=c.get("elapsedNs"), exitCode=c["process"].returncode) for c in window.children])
         write_new(work / "public/receipt.json", result)

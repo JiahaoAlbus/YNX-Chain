@@ -86,6 +86,7 @@ class MemoryWindow:
     def register(self, name):
         with self.lock:
             proc = MemoryProcess(901_000_000 + len(self.children), self.behavior.get("eof_retires", True))
+            driver.lab.bind_process_lifecycle(proc)
             self.children.append({"name": name, "process": proc})
             self.peak = max(self.peak, sum(child["process"].poll() is None for child in self.children))
         return proc

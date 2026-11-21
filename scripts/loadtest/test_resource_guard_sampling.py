@@ -35,6 +35,8 @@ class ResourceGuardSamplingControls(unittest.TestCase):
             for pid,name in names.items():
                 proc=mock.Mock(pid=pid)
                 proc.poll.side_effect=lambda pid=pid: None if alive(pid) else 0
+                proc.kill.side_effect=lambda pid=pid: lab.os.kill(pid,lab.signal.SIGKILL) if alive(pid) else None
+                lab.bind_process_lifecycle(proc)
                 w.children.append(dict(name=name,process=proc,startTicks=pid))
             def kill(pid, sig):
                 self.assertEqual(sig,lab.signal.SIGKILL)
