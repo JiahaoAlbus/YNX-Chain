@@ -352,6 +352,10 @@ export function nativePaySummary(state,options){
    summary.pendingOriginals=state.reconciliation.pendingOriginals;
    summary.outcomeUnknown=true;
    summary.recoveryOnly=true;
+   const ref=readReference(state.reference);
+   if(options?.protectedOrder&&ref?.productId==='shop.order'&&/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(ref.sourceOrder??'')){
+    summary.recoveryActions.push(...state.reconciliation.pendingOriginals.map(nativeHash=>({requiresOriginalHolder:true,request:{action:'order-reconcile-operation',productId:ref.productId,sourceOrder:ref.sourceOrder,nativeHash}})));
+   }
   }
  }
  if(state.reconciledOriginal)summary.reconciledOriginal=state.reconciledOriginal;

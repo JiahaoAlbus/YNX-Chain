@@ -154,7 +154,7 @@ test('same-order reconciliation surfaces an unresolved original refund for recov
  const result=await f.entry.invokeOriginalOrderResult({action:'order-reconcile',...ref},intentId,()=>{});
  assert.equal(result.ok,true);assert.equal(result.queryOnly,true);assert.equal(result.outcomeUnknown,true);assert.equal(result.recoveryOnly,true);assert.equal(result.canRetry,false);
  assert.deepEqual(result.pendingOriginals,[pendingHash]);assert.equal(result.reconciliation.paidAtoms,'100');assert.equal(result.reconciliation.refundedAtoms,'0');
- assert.deepEqual(result.recoveryActions,[protectedRead]);
+ assert.deepEqual(result.recoveryActions,[protectedRead,{requiresOriginalHolder:true,request:{action:'order-reconcile-operation',...ref,nativeHash:pendingHash}}]);
 });
 test('late retirement during receipt read drains the original read without publishing receipt',async()=>{
  let release;const f=boot({extra:{readOriginalArchiveReceipt:()=>new Promise(resolve=>release=resolve)}});
@@ -196,8 +196,10 @@ test('protected refund recovers its terminal receipt after a lost reconcile resp
   refundedAtoms:finished?'30':'0',netPaidAtoms:finished?'70':'100',settlementNativeHash:nativeHash,
   operations:{[refundHash]:{...originalRefund,status:finished?'confirmed':'unknown'}}}),operation:()=>{
    posts++;finished=true;throw Object.assign(Error(),{code:'PUBLIC_REFUND_RECONCILE_REPLY_LOST'});
-  },extra:{readOriginalArchiveReceipt:async(selected,current)=>{current();assert.equal(selected.nativeHash,refundHash);return archive;}}});
- const invoke=()=>fixture.entry.invokeOriginalOrderResult(action,intentId,()=>{});
+  },extra:{readOriginalArchiveReceipt:async(selected,current)=>{current();assert.equal(selected.nativeHash,refundHash);return archive;},readOriginalArchiveReconciliation:async()=>({...reconciliation(),pendingOriginals:[refundHash],completeKnownOriginals:false})}});
+ const pending=await fixture.entry.invokeOriginalOrderResult({action:'order-reconcile',...ref},intentId,()=>{});
+ assert.equal(pending.outcomeUnknown,true);assert.deepEqual(pending.recoveryActions[1],{requiresOriginalHolder:true,request:action});
+ const invoke=()=>fixture.entry.invokeOriginalOrderResult(pending.recoveryActions[1].request,intentId,()=>{});
  const lost=await invoke();
  assert.equal(lost.code,'PUBLIC_REFUND_RECONCILE_REPLY_LOST');
  assert.deepEqual(lost.recoveryActions,[protectedRead]);
