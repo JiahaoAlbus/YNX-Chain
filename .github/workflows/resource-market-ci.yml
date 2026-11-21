@@ -3182,9 +3182,12 @@ jobs:
           mkdir "$YNX_HISTORY_CONTINUATION_CASE"
           cp internal/bftgateway/gateway.go "$YNX_HISTORY_CONTINUATION_CASE/fixed-gateway.go"
           cp internal/bftgateway/transaction_history_page.go "$YNX_HISTORY_CONTINUATION_CASE/fixed-history.go"
-          trap 'cp "$YNX_HISTORY_CONTINUATION_CASE/fixed-gateway.go" internal/bftgateway/gateway.go; cp "$YNX_HISTORY_CONTINUATION_CASE/fixed-history.go" internal/bftgateway/transaction_history_page.go' EXIT
+          cp internal/bftgateway/transaction_history_page_test.go "$YNX_HISTORY_CONTINUATION_CASE/fixed-test.go"
+          trap 'cp "$YNX_HISTORY_CONTINUATION_CASE/fixed-gateway.go" internal/bftgateway/gateway.go; cp "$YNX_HISTORY_CONTINUATION_CASE/fixed-history.go" internal/bftgateway/transaction_history_page.go; cp "$YNX_HISTORY_CONTINUATION_CASE/fixed-test.go" internal/bftgateway/transaction_history_page_test.go' EXIT
           git show 1d2463ce6e4001f80ef7e8d05c50fdd51439a2e3:internal/bftgateway/gateway.go > internal/bftgateway/gateway.go
           git show 1d2463ce6e4001f80ef7e8d05c50fdd51439a2e3:internal/bftgateway/transaction_history_page.go > internal/bftgateway/transaction_history_page.go
+          git show 72b124aff6130689d17f9093170b1a035680ad45:internal/bftgateway/transaction_history_page_test.go > internal/bftgateway/transaction_history_page_test.go
+          test "$(sha256sum internal/bftgateway/transaction_history_page_test.go | cut -d' ' -f1)" = 6aa00481e92a736148e9f5786cea8d13c08f4c53e45310798d74895bf4846d23
           if go test -p 1 -count=1 -timeout=90s -run '^TestGatewayTransactionHistoryContinuationAfterCommitAndColdRead$' ./internal/bftgateway > "$YNX_HISTORY_CONTINUATION_CASE/original.log" 2>&1; then
             cat "$YNX_HISTORY_CONTINUATION_CASE/original.log"
             echo 'original history pagination unexpectedly retained the requested snapshot' >&2
@@ -3194,6 +3197,7 @@ jobs:
           grep -Fq HISTORY_PAGE_MOVED_AFTER_COMMIT "$YNX_HISTORY_CONTINUATION_CASE/original.log"
           cp "$YNX_HISTORY_CONTINUATION_CASE/fixed-gateway.go" internal/bftgateway/gateway.go
           cp "$YNX_HISTORY_CONTINUATION_CASE/fixed-history.go" internal/bftgateway/transaction_history_page.go
+          cp "$YNX_HISTORY_CONTINUATION_CASE/fixed-test.go" internal/bftgateway/transaction_history_page_test.go
           trap - EXIT
           go test -p 1 -count=1 -timeout=90s -run '^TestGatewayTransactionHistoryContinuationAfterCommitAndColdRead$' ./internal/bftgateway
       - name: Reproduce the existing Wallet health refusal with the complete original Gateway
@@ -3205,15 +3209,20 @@ jobs:
           YNX_WALLET_STATUS_CASE="$RUNNER_TEMP/ynx-wallet-status-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
           mkdir "$YNX_WALLET_STATUS_CASE"
           cp internal/bftgateway/gateway.go "$YNX_WALLET_STATUS_CASE/fixed-gateway.go"
-          trap 'cp "$YNX_WALLET_STATUS_CASE/fixed-gateway.go" internal/bftgateway/gateway.go' EXIT
+          cp internal/bftgateway/transaction_history_page.go "$YNX_WALLET_STATUS_CASE/fixed-history.go"
+          git show 72b124aff6130689d17f9093170b1a035680ad45:internal/bftgateway/transaction_history_page.go > "$YNX_WALLET_STATUS_CASE/original-history.go"
+          test "$(sha256sum "$YNX_WALLET_STATUS_CASE/original-history.go" | cut -d' ' -f1)" = a52d6fdaaca2bb7a2478eddd86dcffbd60d8d83e497cb83d3172c537af6127b7
+          trap 'cp "$YNX_WALLET_STATUS_CASE/fixed-gateway.go" internal/bftgateway/gateway.go; cp "$YNX_WALLET_STATUS_CASE/fixed-history.go" internal/bftgateway/transaction_history_page.go' EXIT
           git show 6b50fe364925bfb130ba27103a0965fcc9b553da:internal/bftgateway/gateway.go > "$YNX_WALLET_STATUS_CASE/original-gateway.go"
           test "$(sha256sum "$YNX_WALLET_STATUS_CASE/original-gateway.go" | cut -d' ' -f1)" = a9267621488bf5ac7a4e45a3fe5d900112cd74d12eccc46dd1cbddeba79aa06f
           cp "$YNX_WALLET_STATUS_CASE/original-gateway.go" internal/bftgateway/gateway.go
+          cp "$YNX_WALLET_STATUS_CASE/original-history.go" internal/bftgateway/transaction_history_page.go
           set +e
           go test -p 1 -count=1 -timeout=90s -v -run '^TestGatewayStatusMatchesWalletHealthAndColdCommittedStorage$' ./internal/bftgateway > "$YNX_WALLET_STATUS_CASE/original-red.log" 2>&1
           YNX_WALLET_STATUS_RED=$?
           set -e
           cp "$YNX_WALLET_STATUS_CASE/fixed-gateway.go" internal/bftgateway/gateway.go
+          cp "$YNX_WALLET_STATUS_CASE/fixed-history.go" internal/bftgateway/transaction_history_page.go
           trap - EXIT
           cat "$YNX_WALLET_STATUS_CASE/original-red.log"
           test "$YNX_WALLET_STATUS_RED" -ne 0
@@ -3221,13 +3230,15 @@ jobs:
           grep -F -- '=== RUN   TestGatewayStatusMatchesWalletHealthAndColdCommittedStorage' "$YNX_WALLET_STATUS_CASE/original-red.log"
           grep -F -- '--- FAIL: TestGatewayStatusMatchesWalletHealthAndColdCommittedStorage (' "$YNX_WALLET_STATUS_CASE/original-red.log"
           git show f3091d2d5cf02ba5fa3cd68e3f991818fc8c2240:internal/bftgateway/gateway.go > "$YNX_WALLET_STATUS_CASE/forward-original-gateway.go"
+          trap 'cp "$YNX_WALLET_STATUS_CASE/fixed-gateway.go" internal/bftgateway/gateway.go; cp "$YNX_WALLET_STATUS_CASE/fixed-history.go" internal/bftgateway/transaction_history_page.go' EXIT
           cp "$YNX_WALLET_STATUS_CASE/forward-original-gateway.go" internal/bftgateway/gateway.go
-          trap 'cp "$YNX_WALLET_STATUS_CASE/fixed-gateway.go" internal/bftgateway/gateway.go' EXIT
+          cp "$YNX_WALLET_STATUS_CASE/original-history.go" internal/bftgateway/transaction_history_page.go
           set +e
           go test -p 1 -count=1 -timeout=90s -v -run '^TestGatewayStatusResamplesOneObservedForwardCommit$' ./internal/bftgateway > "$YNX_WALLET_STATUS_CASE/forward-red.log" 2>&1
           YNX_WALLET_FORWARD_RED=$?
           set -e
           cp "$YNX_WALLET_STATUS_CASE/fixed-gateway.go" internal/bftgateway/gateway.go
+          cp "$YNX_WALLET_STATUS_CASE/fixed-history.go" internal/bftgateway/transaction_history_page.go
           trap - EXIT
           cat "$YNX_WALLET_STATUS_CASE/forward-red.log"
           test "$YNX_WALLET_FORWARD_RED" -ne 0

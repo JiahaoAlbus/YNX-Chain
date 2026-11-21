@@ -2552,7 +2552,70 @@ def assert_legacy_snapshot_stream_contract(raw):
     need("      - 'internal/api/**'\n" in push)
     need(pull_request.count("      - 'internal/api/ethereum_ethers_test.go'\n") == 1)
 
+def assert_gateway_history_counterexample_contract(raw):
+    _, steps = workflow_steps(raw)
+    def one(name):
+        found = [s for s in steps if s.startswith("      - name: " + name + "\n")]
+        if len(found) != 1:
+            raise AssertionError("missing or duplicated gateway counterexample")
+        return found[0]
+    history = one("Reproduce history pagination movement across real application commits")
+    wallet = one("Reproduce the existing Wallet health refusal with the complete original Gateway")
+    def ordered(step, values):
+        at = -1
+        for value in values:
+            at = step.find(value, at + 1)
+            if at < 0:
+                raise AssertionError("gateway counterexample source pin or order changed")
+    ordered(history, (
+        'cp internal/bftgateway/transaction_history_page_test.go "$YNX_HISTORY_CONTINUATION_CASE/fixed-test.go"',
+        'trap \'cp "$YNX_HISTORY_CONTINUATION_CASE/fixed-gateway.go"',
+        'cp "$YNX_HISTORY_CONTINUATION_CASE/fixed-test.go" internal/bftgateway/transaction_history_page_test.go\' EXIT',
+        'git show 1d2463ce6e4001f80ef7e8d05c50fdd51439a2e3:internal/bftgateway/gateway.go',
+        'git show 1d2463ce6e4001f80ef7e8d05c50fdd51439a2e3:internal/bftgateway/transaction_history_page.go',
+        'git show 72b124aff6130689d17f9093170b1a035680ad45:internal/bftgateway/transaction_history_page_test.go',
+        '6aa00481e92a736148e9f5786cea8d13c08f4c53e45310798d74895bf4846d23',
+        "-run '^TestGatewayTransactionHistoryContinuationAfterCommitAndColdRead$'",
+        'grep -Fq HISTORY_PAGE_MOVED_AFTER_COMMIT',
+        'cp "$YNX_HISTORY_CONTINUATION_CASE/fixed-test.go" internal/bftgateway/transaction_history_page_test.go\n',
+        "-run '^TestGatewayTransactionHistoryContinuationAfterCommitAndColdRead$'",
+    ))
+    ordered(wallet, (
+        'cp internal/bftgateway/transaction_history_page.go "$YNX_WALLET_STATUS_CASE/fixed-history.go"',
+        'git show 72b124aff6130689d17f9093170b1a035680ad45:internal/bftgateway/transaction_history_page.go',
+        'a52d6fdaaca2bb7a2478eddd86dcffbd60d8d83e497cb83d3172c537af6127b7',
+        'git show 6b50fe364925bfb130ba27103a0965fcc9b553da:internal/bftgateway/gateway.go',
+        'cp "$YNX_WALLET_STATUS_CASE/original-history.go" internal/bftgateway/transaction_history_page.go',
+        "-run '^TestGatewayStatusMatchesWalletHealthAndColdCommittedStorage$'",
+        'cp "$YNX_WALLET_STATUS_CASE/fixed-history.go" internal/bftgateway/transaction_history_page.go\n',
+        'actual Gateway response fails the existing Wallet contract',
+        'git show f3091d2d5cf02ba5fa3cd68e3f991818fc8c2240:internal/bftgateway/gateway.go',
+        'cp "$YNX_WALLET_STATUS_CASE/original-history.go" internal/bftgateway/transaction_history_page.go',
+        "-run '^TestGatewayStatusResamplesOneObservedForwardCommit$'",
+        'cp "$YNX_WALLET_STATUS_CASE/fixed-history.go" internal/bftgateway/transaction_history_page.go\n',
+        'one forward commit made the Wallet status unavailable: 502',
+    ))
+    if wallet.count('cp "$YNX_WALLET_STATUS_CASE/fixed-history.go" internal/bftgateway/transaction_history_page.go\' EXIT') != 2:
+        raise AssertionError("gateway counterexample cleanup changed")
+
+
 class NormalCIWorkflowSourceControls(unittest.TestCase):
+    def test_gateway_counterexample_pins_order_and_restoration(self):
+        raw = (Path(__file__).resolve().parents[2] / '.github/workflows/resource-market-ci.yml').read_text()
+        assert_gateway_history_counterexample_contract(raw)
+        for needle in (
+            '72b124aff6130689d17f9093170b1a035680ad45:internal/bftgateway/transaction_history_page_test.go',
+            '6aa00481e92a736148e9f5786cea8d13c08f4c53e45310798d74895bf4846d23',
+            '72b124aff6130689d17f9093170b1a035680ad45:internal/bftgateway/transaction_history_page.go',
+            'a52d6fdaaca2bb7a2478eddd86dcffbd60d8d83e497cb83d3172c537af6127b7',
+            'HISTORY_PAGE_MOVED_AFTER_COMMIT',
+            'actual Gateway response fails the existing Wallet contract',
+            'one forward commit made the Wallet status unavailable: 502',
+            'cp "$YNX_HISTORY_CONTINUATION_CASE/fixed-test.go" internal/bftgateway/transaction_history_page_test.go\' EXIT',
+            'cp "$YNX_WALLET_STATUS_CASE/fixed-history.go" internal/bftgateway/transaction_history_page.go\' EXIT',
+        ):
+            with self.subTest(needle=needle), self.assertRaises(AssertionError):
+                assert_gateway_history_counterexample_contract(raw.replace(needle, 'altered', 1))
     def test_resource_workflow_fits_github_size_limit(self):
         path = Path(__file__).resolve().parents[2] / '.github/workflows/resource-market-ci.yml'
         self.assertLessEqual(path.stat().st_size, 500 * 1024)
