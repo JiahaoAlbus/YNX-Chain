@@ -60,6 +60,15 @@ EXTRA_FOCUSED_STEPS=('Verify synthetic local Commit monotonic boundary',)
 # event contract must be frozen separately after the Core owner fixes it.
 HISTORY_JOB_NAME='source-history-counterexamples'
 LEGACY_FOUR_JOB_SOURCE='c697abae262c3be7859f235f45e9e8447bbccf63'
+BEFORE59_SOURCE='301b8171549193c08c88568309bc5f79714b6c04'
+BEFORE59_TREE='c10d778b4a39301097222ca70c02711cc91dd575'
+BEFORE59_FORK='5a128880d14bfc73de4334cba23218859ad3473c'
+BEFORE59_BRANCH='codex/perf-before59-clock-20261121'
+BEFORE59_STEPS=('Verify before59 original observer-only source',
+                'Verify before59 original transfer and height equivalence',
+                'Retain original before59 equivalence events',
+                'Measure original synthetic Commit and Finalize observation cost',
+                'Retain original synthetic clock A B test events')
 GETTER_JOB_NAME='Exact optional live getter source composition'
 GETTER_STEPS=(
     'Checkout exact getter source',
@@ -137,8 +146,10 @@ def binding_identity(binding,identity):
                 and len({binding[k] for k in keys})==6,
                 'distinct original source-history/getter job identities required')
     else:
-        require(binding['source']==LEGACY_FOUR_JOB_SOURCE,
-                'successor original source-history job NOT_SUPPLIED')
+        allowed=binding['source']==LEGACY_FOUR_JOB_SOURCE or (
+            binding['source']==BEFORE59_SOURCE and binding['tree']==BEFORE59_TREE
+            and binding['forkTree']==BEFORE59_FORK and binding['branch']==BEFORE59_BRANCH)
+        require(allowed,'successor original source-history job NOT_SUPPLIED')
     require(type(identity) is dict and all(identity.get(k)==binding[name] for k,name in
             (('commit','source'),('tree','tree'),('forkTree','forkTree'))),'exact original source/tree/fork differs')
 
@@ -259,6 +270,10 @@ def validate(binding,identity,run,focused,jobs):
                     'original required CI step incomplete: '+name)
     focused_steps=tuple(name for name in held.REQUIRED_STEPS if 'getterJob' not in binding or name not in GETTER_MOVED_STEPS)
     steps(producer,(*focused_steps,*EXTRA_FOCUSED_STEPS))
+    if binding['source']==BEFORE59_SOURCE:
+        steps(producer,BEFORE59_STEPS)
+        positions=[next(i for i,step in enumerate(producer['steps']) if step.get('name')==name) for name in BEFORE59_STEPS]
+        require(positions==sorted(positions),'before59 original equivalence/cost step order differs')
     steps(caddy,CADDY_STEPS)
     steps(delivery,held.DELIVERY_STEPS)
     steps(verifier,VERIFIER_STEPS)
@@ -279,6 +294,8 @@ def validate(binding,identity,run,focused,jobs):
         deliverySteps=list(held.DELIVERY_STEPS),verifierSteps=list(VERIFIER_STEPS),
         sourceOnlyEvidence=True,focusedOriginalLogVerified=False,binaryAndLiveProcessIndependentlyBound=False,runtimePermissionGranted=False,
         independentFinality=False,pressureAuthorized=False)
+    if binding['source']==BEFORE59_SOURCE:
+        result['before59OriginalEquivalenceVerified']=False;result['sourceOnlyEvidence']=False
     if history is not None:
         result['historyJob']=history['id'];result['historySteps']=list(HISTORY_STEPS)
         result['getterJob']=getter['id'];result['getterSteps']=list(GETTER_STEPS)
@@ -380,6 +397,11 @@ def qualification(identity,*,metadata_reader=None,focused_log_reader=None,origin
     # its preserved bytes; it never starts or retries an Actions log download.
     original=focused_log_reader(binding['run'],binding['focusedJob'],1)
     result['originalFocusedTestLog']=validate_original_log(binding,log_requirements,original)
+    if binding['source']==BEFORE59_SOURCE:
+        spec=importlib.util.spec_from_file_location('original_before59_equivalence',Path(__file__).with_name('pq-before59-equivalence-readback.py'))
+        before=importlib.util.module_from_spec(spec);spec.loader.exec_module(before)
+        result['originalBefore59Equivalence']=before.inspect_before59(binding,focused,original)
+        result['before59OriginalEquivalenceVerified']=True
     latest=metadata_reader('runs/%d'%binding['run'])
     require(type(latest) is dict and all(latest.get(key)==run.get(key) for key in
         ('id','head_sha','head_branch','event','run_attempt','workflow_id','path','status','conclusion'))
@@ -387,5 +409,5 @@ def qualification(identity,*,metadata_reader=None,focused_log_reader=None,origin
         'original source run changed while reading job inventory')
     validate(binding,identity,latest,focused,inventory['jobs'])
     result['focusedOriginalLogVerified']=True
-    if 'historyJob' in binding:result['sourceOnlyEvidence']=True
+    if 'historyJob' in binding or binding['source']==BEFORE59_SOURCE:result['sourceOnlyEvidence']=True
     return result

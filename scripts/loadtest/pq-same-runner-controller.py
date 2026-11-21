@@ -219,6 +219,9 @@ def preflight_clock_source(driver, identity, metadata_reader, options, clock_rea
     if 'historyJob' in driver.commit_clock_ci.BINDING:
         require(result.get('historyOriginalExecutionVerified') is True and result.get('getterOriginalEvidenceVerified') is True,
                 'original arm history/getter prequalification incomplete')
+    if getattr(driver.commit_clock_ci,'BEFORE59_SOURCE',None) is not None and driver.commit_clock_ci.BINDING.get('source')==driver.commit_clock_ci.BEFORE59_SOURCE:
+        require(result.get('before59OriginalEquivalenceVerified') is True,
+                'original before59 equivalence prequalification incomplete')
 
 
 def clock_log_reader_for_arm(label, driver, arm, options):
@@ -405,6 +408,9 @@ def prepare(binding, environment, api):
                     'original clock qualification/readback/process tool pins NOT_SUPPLIED')
         verify_tool_files(tools, arm['toolPins'])
         driver = module('same_runner_original_'+label, tools/'scripts/loadtest/pq-independent-load.py')
+        if config['options'].get('commit_clock_observation') is True and driver.commit_clock_ci.BINDING is not None and getattr(driver.commit_clock_ci,'BEFORE59_SOURCE',None) is not None and driver.commit_clock_ci.BINDING.get('source')==driver.commit_clock_ci.BEFORE59_SOURCE:
+            require('pq-before59-equivalence-readback.py' in arm['toolPins'],
+                    'original before59 equivalence evidence tool pin NOT_SUPPLIED')
         if config['options'].get('commit_clock_observation') is True and driver.commit_clock_ci.BINDING is not None and 'historyJob' in driver.commit_clock_ci.BINDING:
             require({'pq-source-evidence-archive.py','pq-source-history-readback.py','pq-getter-source-readback.py'} <= set(arm['toolPins']),
                     'original history/getter evidence tool pins NOT_SUPPLIED')

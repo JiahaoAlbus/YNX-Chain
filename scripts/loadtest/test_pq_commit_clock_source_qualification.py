@@ -95,6 +95,35 @@ class ClockSourceQualificationControls(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'fixed identity'):
                 m.inspect_frozen_originals(successor,req,evidence)
 
+    def test_before59_four_job_requires_exact_equivalence_original_step(self):
+        spec=importlib.util.spec_from_file_location('before59fixture',Path(__file__).with_name('test_pq_before59_equivalence_readback.py'))
+        helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
+        binding,identity,run,focused,jobs=self.fixture()
+        binding.update(source=m.BEFORE59_SOURCE,tree=m.BEFORE59_TREE,forkTree=m.BEFORE59_FORK,branch=m.BEFORE59_BRANCH)
+        identity.update(commit=binding['source'],tree=binding['tree'],forkTree=binding['forkTree'])
+        run.update(head_sha=binding['source'],head_branch=binding['branch'])
+        for item in [focused,*jobs]:item.update(head_sha=binding['source'],head_branch=binding['branch'])
+        _,semantic_job,semantic_raw=helper.fixture()
+        semantic_raw=semantic_raw.replace(helper.SOURCE.encode(),binding['source'].encode())
+        step=semantic_job['steps'][0]
+        for item in [focused,*jobs]:
+            if item['name']=='focused-go':
+                item['steps'].extend(copy.deepcopy(step) if name==step['name'] else dict(name=name,status='completed',conclusion='success') for name in m.BEFORE59_STEPS)
+        log_req,raw=self.original_log(binding);raw+=semantic_raw;log_req['sha256']=hashlib.sha256(raw).hexdigest()
+        def metadata(endpoint):return {'runs/101':run,'jobs/102':focused,'runs/101/jobs?per_page=100':dict(total_count=4,jobs=jobs)}[endpoint]
+        with mock.patch.object(m,'BINDING',binding),mock.patch.object(m,'LOG_REQUIREMENTS',log_req):
+            result=m.qualification(identity,metadata_reader=metadata,focused_log_reader=lambda *args:raw)
+            self.assertTrue(result['focusedOriginalLogVerified'] and result['before59OriginalEquivalenceVerified'] and result['sourceOnlyEvidence'])
+            self.assertFalse(result['runtimePermissionGranted'] or result['pressureAuthorized'] or result['independentFinality'])
+            altered=raw.replace(b'"Action": "pass", "Package":',b'"Action": "skip", "Package":',1)
+            altered_req=dict(log_req,sha256=hashlib.sha256(altered).hexdigest())
+            with mock.patch.object(m,'LOG_REQUIREMENTS',altered_req),self.assertRaises(ValueError):
+                m.qualification(identity,metadata_reader=metadata,focused_log_reader=lambda *args:altered)
+            with self.assertRaisesRegex(RuntimeError,'original same-job log'):
+                m.qualification(identity,metadata_reader=metadata,focused_log_reader=lambda *args:raw+b'x')
+        wrong=dict(binding,tree='b'*40);wrong_identity=dict(identity,tree=wrong['tree'])
+        with self.assertRaisesRegex(RuntimeError,'source-history job NOT_SUPPLIED'):m.binding_identity(wrong,wrong_identity)
+
     def test_moved_getter_steps_are_required_on_original_getter_job(self):
         binding,identity,run,focused,jobs=self.fixture();binding.update(historyJob=106,getterJob=107)
         for job in (focused,*jobs):

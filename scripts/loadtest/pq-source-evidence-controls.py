@@ -3,7 +3,7 @@ import importlib.util
 from pathlib import Path
 import unittest
 
-CONTROLS=(('test_pq_source_history_readback',10),('test_pq_getter_source_readback',6),('test_pq_source_evidence_archive',4))
+CONTROLS=(('test_pq_source_history_readback',10),('test_pq_getter_source_readback',6),('test_pq_source_evidence_archive',4),('test_pq_before59_equivalence_readback',8))
 
 def main():
     suite=unittest.TestSuite()

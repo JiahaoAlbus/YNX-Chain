@@ -106,6 +106,20 @@ class ControllerControls(unittest.TestCase):
             self.assertNotIn('before:execute',case.events)
             self.assertFalse(case.adapters['before'].work.exists())
 
+    def test_before59_preflight_requires_original_equivalence_evidence(self):
+        source='a'*40
+        result=dict(source=source,focusedOriginalLogVerified=True,sourceOnlyEvidence=True,
+            runtimePermissionGranted=False,pressureAuthorized=False,independentFinality=False,
+            before59OriginalEquivalenceVerified=False)
+        driver=types.SimpleNamespace(commit_clock=types.SimpleNamespace(COMMIT_CLOCK_SOURCE=source),
+            commit_clock_ci=types.SimpleNamespace(BEFORE59_SOURCE=source,BINDING={'source':source},
+                qualification=lambda *args,**kwargs:result))
+        opts=types.SimpleNamespace(commit_clock_observation=True)
+        with self.assertRaisesRegex(RuntimeError,'before59 equivalence'):
+            c.preflight_clock_source(driver,{'commit':source},lambda *x:None,opts,lambda *x:b'log',None)
+        result['before59OriginalEquivalenceVerified']=True
+        self.assertIsNone(c.preflight_clock_source(driver,{'commit':source},lambda *x:None,opts,lambda *x:b'log',None))
+
     def test_original_evidence_transport_is_arm_bound_and_cached(self):
         selected=arm();opts=types.SimpleNamespace(commit_clock_observation=True)
         binding=dict(source=selected['source'],historyJob=106,getterJob=107)
