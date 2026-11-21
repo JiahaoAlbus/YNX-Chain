@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/apps/network/governanceview"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
@@ -29,7 +30,12 @@ type HTTPReader struct {
 }
 
 func NewHTTPReader(governanceURL, chainURL string, network Network, client *http.Client) (*HTTPReader, error) {
-	for _, s := range []string{governanceURL, chainURL} {
+	// The same fixed source also feeds governanceview. Accept its canonical
+	// reverse-proxy prefix contract here instead of failing helper startup.
+	if _, err := governanceview.New(governanceURL, nil); err != nil {
+		return nil, ErrInvalid
+	}
+	for _, s := range []string{chainURL} {
 		u, e := url.Parse(s)
 		if e != nil || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || strings.TrimRight(u.Path, "/") != "" {
 			return nil, ErrInvalid
