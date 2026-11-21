@@ -32,6 +32,13 @@ REQUIRED_CHILDREN = {
  ('comet-layout', 2): ['TestCometJournalOperatorApplicationRealRegistryScheduleColdContinuation/'+n for n in ('atomic-json','snapshot-journal','block-journal')],
 }
 
+EXPECTED_RED_CHILDREN = {
+ ('signed-history', 1): {'TestProductionRoleScriptsPreserveSignedStateAndUnknownResults/existing-signed-install':'fail'},
+ ('signed-history', 2): {'TestProductionRollbackCallerRefusesBeforeTransport/without-archive':'fail'},
+ ('journal', 1): {'TestPQEngineStateReadActualLayoutsRegistryRotationRevocation/atomic-json':'pass', 'TestPQEngineStateReadActualLayoutsRegistryRotationRevocation/snapshot-journal':'fail', 'TestPQEngineStateReadActualLayoutsRegistryRotationRevocation/block-journal':'fail'},
+ ('comet-layout', 1): {'TestCometJournalOperatorApplicationRealRegistryScheduleColdContinuation/'+name:'fail' for name in ('atomic-json','snapshot-journal','block-journal')},
+}
+
 # These t.Run calls intentionally contain a slash in a single test name. They
 # have no intermediate RUN event, as confirmed by the original Go source and
 # retained raw streams. Other missing intermediate parents are refused.
@@ -71,6 +78,9 @@ def qualify(raw, case, index, exit_code):
         raise ValueError('top-level test set changed, missing, or empty')
     if not set(REQUIRED_CHILDREN.get((case,index), ())) <= set(events):
         raise ValueError('required original subtest missing')
+    for child, outcome in EXPECTED_RED_CHILDREN.get((case,index), {}).items():
+        if events.get(child) != ['run',outcome]:
+            raise ValueError('original counterexample child result differs: '+child)
     for name, actions in events.items():
         if any(pos >= package_end for pos in positions[name]):
             raise ValueError('test event follows package result: ' + name)

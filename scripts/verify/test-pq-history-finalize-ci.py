@@ -18,7 +18,7 @@ class OriginalEvents(unittest.TestCase):
     def test_all_history_cases_and_rejections(self):
         for (slug, index),(positive,names) in history.CASES.items():
             package='github.com/JiahaoAlbus/YNX-Chain/'+('cmd/ynx-consensus-key-init' if slug=='ceremony' and index==3 else 'cmd/ynx-comet' if slug=='comet-layout' else 'internal/consensus')
-            raw=''.join('=== RUN   '+name+'\n'+''.join('=== RUN   '+c+'\n' for c in history.REQUIRED_CHILDREN.get((slug,index),()) if c.startswith(name+'/'))+'--- '+('PASS' if positive else 'FAIL')+': '+name+' (0.00s)\n'+''.join('    --- '+('PASS' if positive else 'FAIL')+': '+c+' (0.00s)\n' for c in history.REQUIRED_CHILDREN.get((slug,index),()) if c.startswith(name+'/')) for name in names)+('ok' if positive else 'FAIL')+'\t'+package+'\t0.1s\n'+('' if positive else 'FAIL\n')
+            raw=''.join('=== RUN   '+name+'\n'+''.join('=== RUN   '+c+'\n' for c in history.REQUIRED_CHILDREN.get((slug,index),()) if c.startswith(name+'/'))+'--- '+('PASS' if positive else 'FAIL')+': '+name+' (0.00s)\n'+''.join('    --- '+history.EXPECTED_RED_CHILDREN.get((slug,index),{}).get(c, 'pass' if positive else 'fail').upper()+': '+c+' (0.00s)\n' for c in history.REQUIRED_CHILDREN.get((slug,index),()) if c.startswith(name+'/')) for name in names)+('ok' if positive else 'FAIL')+'\t'+package+'\t0.1s\n'+('' if positive else 'FAIL\n')
             status=0 if positive else 1
             with self.subTest(slug=slug,index=index):
                 history.qualify(raw,slug,index,status)
@@ -28,6 +28,11 @@ class OriginalEvents(unittest.TestCase):
                 if not positive:
                     for signal_exit in (124,130,137,143):
                         with self.assertRaises(ValueError): history.qualify(raw,slug,index,signal_exit)
+                for child, outcome in history.EXPECTED_RED_CHILDREN.get((slug,index),{}).items():
+                    opposite='PASS' if outcome=='fail' else 'FAIL'
+                    wrong=raw.replace('--- '+outcome.upper()+': '+child+' (0.00s)','--- '+opposite+': '+child+' (0.00s)')
+                    self.assertNotEqual(wrong,raw)
+                    with self.assertRaises(ValueError): history.qualify(wrong,slug,index,status)
 
     def test_go_verbose_parent_first_and_child_boundaries(self):
         p='TestProductionRoleScriptsPreserveSignedStateAndUnknownResults'; c=p+'/existing-signed-install'
@@ -63,7 +68,7 @@ class OriginalEvents(unittest.TestCase):
             source='a'*40
             for (case,index),(positive,names) in history.CASES.items():
                 package='github.com/JiahaoAlbus/YNX-Chain/'+('cmd/ynx-consensus-key-init' if case=='ceremony' and index==3 else 'cmd/ynx-comet' if case=='comet-layout' else 'internal/consensus')
-                raw=(''.join('=== RUN   '+name+'\n'+''.join('=== RUN   '+c+'\n' for c in history.REQUIRED_CHILDREN.get((case,index),()) if c.startswith(name+'/'))+'--- '+('PASS' if positive else 'FAIL')+': '+name+' (0.00s)\n'+''.join('    --- '+('PASS' if positive else 'FAIL')+': '+c+' (0.00s)\n' for c in history.REQUIRED_CHILDREN.get((case,index),()) if c.startswith(name+'/')) for name in names)+('ok' if positive else 'FAIL')+'\t'+package+'\t0.1s\n'+('' if positive else 'FAIL\n')).encode()
+                raw=(''.join('=== RUN   '+name+'\n'+''.join('=== RUN   '+c+'\n' for c in history.REQUIRED_CHILDREN.get((case,index),()) if c.startswith(name+'/'))+'--- '+('PASS' if positive else 'FAIL')+': '+name+' (0.00s)\n'+''.join('    --- '+history.EXPECTED_RED_CHILDREN.get((case,index),{}).get(c, 'pass' if positive else 'fail').upper()+': '+c+' (0.00s)\n' for c in history.REQUIRED_CHILDREN.get((case,index),()) if c.startswith(name+'/')) for name in names)+('ok' if positive else 'FAIL')+'\t'+package+'\t0.1s\n'+('' if positive else 'FAIL\n')).encode()
                 (d/f'{case}-{index}.log').write_bytes(raw)
                 status=0 if positive else 1
                 metadata=dict(case=case,index=index,exit=status,source=source,run='123',attempt='1',bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest(),events=history.qualify(raw.decode(),case,index,status))
