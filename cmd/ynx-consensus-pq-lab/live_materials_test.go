@@ -69,7 +69,7 @@ func TestPQLabLiveMaterialsCommandOriginalSourceResultAndProofContext(t *testing
 	if err = run(unknown, &bytes.Buffer{}); err == nil {
 		t.Fatal("normal CLI converted retained UNKNOWN to success")
 	}
-	if err = run(append([]string{"live-materials", "request", "--synthetic", "--policy", setup.Policy.Path, "--policy-sha256", setup.Policy.SHA256, "--sequence", "4"}), &bytes.Buffer{}); err == nil {
+	if err = run([]string{"live-materials", "request", "--synthetic", "--policy", setup.Policy.Path, "--policy-sha256", setup.Policy.SHA256, "--sequence", "4"}, &bytes.Buffer{}); err == nil {
 		t.Fatal("fixed operation capacity bypassed")
 	}
 	before, err := os.ReadFile(filepath.Join(filepath.Dir(setup.Policy.Path), "operation-000003", "failure.json"))
