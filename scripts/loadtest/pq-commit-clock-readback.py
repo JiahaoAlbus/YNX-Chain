@@ -157,7 +157,7 @@ def _source_binding(receipt, source, selection_raw, dependencies_raw, build_iden
     return binary,binary_path
 
 
-def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, selection_raw, dependencies_raw, build_identity_raw):
+def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, selection_raw, dependencies_raw, build_identity_raw, network_plan_raw):
     """Join original full-demand rows; missing/mismatched evidence stays censored.
 
     `node_evidence` contains four ordered original private snapshot bytes,
@@ -172,12 +172,17 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
             and all(type(row) is dict and type(row.get('index')) is int and pin(row.get('id'),64) for row in rows)
             and sorted(row['index'] for row in rows)==list(range(demand))
             and len({row['id'] for row in rows})==demand, 'original unique full demand required')
+    hashes=[row.get('hash') for row in rows if row.get('hash') is not None]
+    require(all(pin(value,64) for value in hashes) and len(hashes)==len(set(hashes)), 'original transaction hashes cannot be reused')
     result=dict(status='NOT_SUPPLIED',configuredDemand=demand,observed=0,censored=demand,rows=[],
                 independentFinality=False,runtimeAuthorized=False,physicalCommitMeaning='per-node local persistent ABCI Commit return upper bounds; not consensus vote or finality')
     try:
         require(COMMIT_CLOCK_SOURCE is not None and expected_source==COMMIT_CLOCK_SOURCE,
                 'exact reviewed original Commit clock source/CI NOT_SUPPLIED')
         binary,binary_path=_source_binding(receipt,expected_source,selection_raw,dependencies_raw,build_identity_raw)
+        require(sha(network_plan_raw)==receipt['activation']['networkPlanSHA256'], 'original network plan bytes differ')
+        network=strict(network_plan_raw,1<<20)
+        require(network['chainId']=='ynx_642399-1' and pin(network['originalGenesisHash'],64), 'original synthetic network identity differs')
         require(parent['processID']==receipt['commitClockParent']['processID'] and parent==receipt['commitClockParent']
                 and type(parent['processID']) is int and parent['processID']>0
                 and receipt['loadResult']['originProcessID']==parent['processID']
@@ -187,6 +192,15 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
         origin=int(receipt['loadResult']['originMonotonicNs'])
         require(int(parent['observedStartNs'])<=int(parent['observedEndNs'])<=origin, 'parent domain observation occurs after origin')
         require(type(node_evidence) is list and len(node_evidence)==4, 'four original node evidence slots required')
+        original_nodes=[]
+        for i in range(4):
+            matches=[process for process in receipt['processes'] if process['name']=='pq-node-%d'%i]
+            require(len(matches)==1 and type(matches[0]['pid']) is int and matches[0]['pid']>0
+                    and type(matches[0]['startTicks']) is int and matches[0]['startTicks']>0,
+                    'one original live identity per node required')
+            original_nodes.append(matches[0])
+        require(len({process['pid'] for process in original_nodes})==4
+                and all(process['pid']!=parent['processID'] for process in original_nodes), 'original node process identities reused')
     except (KeyError,ValueError,TypeError,IndexError,OverflowError): return result
     descriptors=receipt.get('normalCommitObservation',{}).get('originalSnapshots',[])
     clock_descriptors=receipt.get('commitMonotonicObservation',{}).get('originalSnapshots',[])
@@ -198,10 +212,9 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
             old,new=olds[0],news[0]
             require(sha(raw)==old['sha256'] and len(raw)==old['bytes'] and sha(clock_raw)==new['sha256'] and len(clock_raw)==new['bytes'], 'original snapshot bytes differ')
             commit=strict(raw,512<<10); clock=strict(clock_raw,512<<10)
-            processes=[x for x in receipt['processes'] if x['name']=='pq-node-%d'%i]
             probes=[x for x in receipt['commitClockProcessProbes'] if x['node']==i]
-            require(len(processes)==len(probes)==1 and probes[0]['probe']==probe, 'original node probe is not receipt-bound')
-            process=processes[0]
+            require(len(probes)==1 and probes[0]['probe']==probe, 'original node probe is not receipt-bound')
+            process=original_nodes[i]
             require(process['pid']==old['pid']==new['pid']==probe['pid']==commit['processID']==clock['processID']
                     and probe['identity']=='original-unpublished-pidfd-and-live-proc-exe' and probe['binarySHA256']==binary
                     and probe['binaryPath']==binary_path and process['command'].count(binary_path)==1
@@ -215,7 +228,8 @@ def reduce(receipt, *, expected_source, parent, node_evidence, inclusion, select
                     and clock['sourceBinding']==SOURCE_BINDING and clock['clock']=='CLOCK_MONOTONIC'
                     and clock['bootID']==parent['bootID'] and clock['timeNamespace']==parent['timeNamespace']
                     and clock['captureBoundary']==BOUNDARY and clock['independentFinality'] is False
-                    and clock['chainID']==commit['chainID'] and clock['originalGenesisHash']==commit['originalGenesisHash'], 'original clock domain/source differs')
+                    and clock['chainID']==commit['chainID']==network['chainId']
+                    and clock['originalGenesisHash']==commit['originalGenesisHash']==network['originalGenesisHash'], 'original clock domain/source differs')
             samples=clock['samples']; old_samples=commit['samples']
             require(type(samples) is list and type(old_samples) is list and len(samples)==len(old_samples)
                     and all(type(s['height']) is int and type(s['monotonicNs']) is str and re.fullmatch(r'[0-9]+',s['monotonicNs']) for s in samples)
