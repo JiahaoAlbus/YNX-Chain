@@ -113,17 +113,17 @@ class OriginalAdapterControls(unittest.TestCase):
         record=copy.deepcopy(self.record)
         record['configuration']['options']['commit_clock_observation']=True
         options=types.SimpleNamespace(**dict(record['configuration']['options'],source=str(self.source),execute=True))
-        seen=[];log_reader=lambda *args:b'original'
-        def run(args, *, clock_original_log_reader):
-            seen.append(clock_original_log_reader)
+        seen=[];log_reader=lambda *args:b'original';evidence_reader=lambda *args:b'evidence'
+        def run(args, *, clock_original_log_reader, clock_original_evidence_reader):
+            seen.append((clock_original_log_reader,clock_original_evidence_reader))
             raise RuntimeError('original driver stopped before Window')
         driver=types.SimpleNamespace(run=run,lab=original.lab)
         adapter=bridge.OriginalDriverAdapter(driver,options,record,verify_qualification=lambda:copy.deepcopy(record),
-            admit=lambda roots:None,storage_roots=(self.source,),clock_original_log_reader=log_reader)
+            admit=lambda roots:None,storage_roots=(self.source,),clock_original_log_reader=log_reader,clock_original_evidence_reader=evidence_reader)
         adapter.qualify();adapter.admit((self.root,))
         with self.assertRaisesRegex(RuntimeError,'original driver stopped'):
             adapter.execute(self.register)
-        self.assertEqual(seen,[log_reader]);self.assertIsNone(adapter.window)
+        self.assertEqual(seen,[(log_reader,evidence_reader)]);self.assertIsNone(adapter.window)
         adapter.retire()
 
     def test_unbound_source_refuses_before_factory_or_driver(self):

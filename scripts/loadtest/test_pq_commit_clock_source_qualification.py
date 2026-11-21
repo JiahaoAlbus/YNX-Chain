@@ -2,6 +2,8 @@
 import copy
 import hashlib
 import importlib.util
+import io
+import zipfile
 import json
 import os
 from pathlib import Path
@@ -15,24 +17,101 @@ m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 
 class ClockSourceQualificationControls(unittest.TestCase):
     def test_same_run_history_job_metadata_never_implies_current_execution(self):
-        binding,identity,run,focused,jobs=self.fixture();binding['historyJob']=106
+        binding,identity,run,focused,jobs=self.fixture();binding.update(historyJob=106,getterJob=107)
         history=copy.deepcopy(focused);history.update(id=106,name=m.HISTORY_JOB_NAME,
             steps=[dict(name=name,status='completed',conclusion='success') for name in m.HISTORY_STEPS])
-        jobs.append(history)
+        getter=copy.deepcopy(focused);getter.update(id=107,name=m.GETTER_JOB_NAME,
+            steps=[dict(name=name,status='completed',conclusion='success') for name in m.GETTER_STEPS])
+        jobs.extend((history,getter))
         result=m.validate(binding,identity,run,focused,jobs)
-        self.assertEqual(result['historyJob'],106);self.assertFalse(result['historyOriginalExecutionVerified'] or result['sourceOnlyEvidence'])
+        self.assertEqual((result['historyJob'],result['getterJob']),(106,107));self.assertFalse(result['historyOriginalExecutionVerified'] or result['sourceOnlyEvidence'])
         requirements,raw=self.original_log(binding);calls=[]
         def metadata(endpoint):
-            return {'runs/101':run,'jobs/102':focused,'runs/101/jobs?per_page=100':dict(total_count=5,jobs=jobs)}[endpoint]
+            return {'runs/101':run,'jobs/102':focused,'runs/101/jobs?per_page=100':dict(total_count=6,jobs=jobs)}[endpoint]
         with mock.patch.object(m,'BINDING',binding),mock.patch.object(m,'LOG_REQUIREMENTS',requirements):
             with self.assertRaisesRegex(RuntimeError,'history original test event contract NOT_SUPPLIED'):
                 m.qualification(identity,metadata_reader=metadata,focused_log_reader=lambda *args:calls.append(args))
         self.assertEqual(calls,[])
 
-    def test_history_job_rejects_cross_run_missing_duplicate_or_skipped(self):
-        binding,identity,run,focused,jobs=self.fixture();binding['historyJob']=106
+    def test_normal_qualification_consumes_each_frozen_original_once(self):
+        def module(name):
+            spec=importlib.util.spec_from_file_location(name,Path(__file__).with_name(name+'.py'))
+            item=importlib.util.module_from_spec(spec);spec.loader.exec_module(item);return item
+        history=module('test_pq_source_history_readback');getter=module('test_pq_getter_source_readback')
+        binding,identity,run,focused,jobs=self.fixture();binding.update(source=m.ORIGINAL_EVIDENCE_CONTRACT_SOURCE,historyJob=106,getterJob=107)
+        binding['tree'],binding['forkTree']=m.ORIGINAL_EVIDENCE_CONTRACTS[binding['source']]
+        identity.update(commit=binding['source'],tree=binding['tree'],forkTree=binding['forkTree']);run['head_sha']=binding['source']
+        for item in [focused,*jobs]:item['head_sha']=binding['source']
+        for item in (focused,*jobs):
+            if item['name']=='focused-go':item['steps']=[s for s in item['steps'] if s['name'] not in m.GETTER_MOVED_STEPS]
+        history_job=copy.deepcopy(focused);history_job.update(id=106,name=m.HISTORY_JOB_NAME,steps=[dict(name=n,status='completed',conclusion='success') for n in m.HISTORY_STEPS])
+        getter_job=copy.deepcopy(focused);getter_job.update(id=107,name=m.GETTER_JOB_NAME,steps=[dict(name=n,status='completed',conclusion='success') for n in m.GETTER_STEPS])
+        jobs.extend((history_job,getter_job))
+        with mock.patch.object(history,'SOURCE',binding['source']),mock.patch.object(history,'RUN',101):
+            raw,hm=history.fixture()
+        with mock.patch.object(getter,'S',binding['source']),mock.patch.object(getter,'T',binding['tree']),mock.patch.object(getter,'F',binding['forkTree']):
+            gm=getter.fixture()
+        # The getter source fixture's fixed run is 123; reconstruct its original
+        # qualification to bind the actual same-run 101 for this control.
+        getter_qualification=json.loads(gm['GETTER-QUALIFICATION.json']);getter_qualification['runId']='101'
+        gm['GETTER-QUALIFICATION.json']=getter.enc(getter_qualification)
+        def archive(members):
+            out=io.BytesIO()
+            with zipfile.ZipFile(out,'w') as z:
+                for name,value in members.items():z.writestr(name,value)
+            return out.getvalue()
+        hz,gz=archive(hm),archive({'wire-live-source-CONTROL/'+name:value for name,value in gm.items()})
+        req=dict(source=binding['source'],run=101,attempt=1,historyJob=106,getterJob=107,historyArtifact=201,getterArtifact=202,
+            historyArchiveSHA256=hashlib.sha256(hz).hexdigest(),getterArchiveSHA256=hashlib.sha256(gz).hexdigest(),historyJobLogSHA256=hashlib.sha256(raw).hexdigest(),
+            getterArchiveRoot='wire-live-source-CONTROL',historyMembers={k:hashlib.sha256(v).hexdigest() for k,v in hm.items()},getterMembers={k:hashlib.sha256(v).hexdigest() for k,v in gm.items()})
+        focused_req,focused_raw=self.original_log(binding);calls=[]
+        def evidence(kind,run_id,job,artifact,attempt):
+            calls.append((kind,run_id,job,artifact,attempt));return (raw,hz) if kind=='history' else gz
+        def metadata(endpoint):return {'runs/101':run,'jobs/102':focused,'runs/101/jobs?per_page=100':dict(total_count=6,jobs=jobs)}[endpoint]
+        with mock.patch.object(m,'BINDING',binding),mock.patch.object(m,'LOG_REQUIREMENTS',focused_req),mock.patch.object(m,'ORIGINAL_EVIDENCE_REQUIREMENTS',req):
+            result=m.qualification(identity,metadata_reader=metadata,focused_log_reader=lambda *args:focused_raw,original_evidence_reader=evidence)
+            self.assertTrue(result['historyOriginalExecutionVerified'] and result['getterOriginalEvidenceVerified'] and result['focusedOriginalLogVerified'])
+            self.assertFalse(result['runtimePermissionGranted'] or result['pressureAuthorized'] or result['independentFinality'])
+            self.assertEqual(calls,[('history',101,106,201,1),('getter',101,107,202,1)])
+            bad=dict(req,getterJob=999)
+            with mock.patch.object(m,'ORIGINAL_EVIDENCE_REQUIREMENTS',bad),self.assertRaisesRegex(RuntimeError,'fixed identity'):
+                m.qualification(identity,metadata_reader=metadata,focused_log_reader=lambda *args:focused_raw,original_evidence_reader=evidence)
+            with self.assertRaises(ValueError):
+                m.qualification(identity,metadata_reader=metadata,focused_log_reader=lambda *args:focused_raw,
+                    original_evidence_reader=lambda kind,*args:(raw,hz) if kind=='history' else b'not the original zip')
+            badroot=dict(req,getterArchiveRoot='wire-live-source-other')
+            with mock.patch.object(m,'ORIGINAL_EVIDENCE_REQUIREMENTS',badroot),self.assertRaisesRegex(ValueError,'inventory differs'):
+                m.qualification(identity,metadata_reader=metadata,focused_log_reader=lambda *args:focused_raw,original_evidence_reader=evidence)
+            oldsource=dict(binding,source='b'*40)
+            with self.assertRaisesRegex(RuntimeError,'fixed identity'):
+                m.inspect_frozen_originals(oldsource,req,evidence)
+            successor=dict(binding,source='72b124aff6130689d17f9093170b1a035680ad45',tree='a5aa5f7eb199908cc22edbec55c6d6e7d7808886')
+            with self.assertRaisesRegex(RuntimeError,'fixed identity'):
+                m.inspect_frozen_originals(successor,req,evidence)
+
+    def test_moved_getter_steps_are_required_on_original_getter_job(self):
+        binding,identity,run,focused,jobs=self.fixture();binding.update(historyJob=106,getterJob=107)
+        for job in (focused,*jobs):
+            if job['name']=='focused-go':
+                job['steps']=[step for step in job['steps'] if step['name'] not in m.GETTER_MOVED_STEPS]
         history=copy.deepcopy(focused);history.update(id=106,name=m.HISTORY_JOB_NAME,
             steps=[dict(name=name,status='completed',conclusion='success') for name in m.HISTORY_STEPS])
+        getter=copy.deepcopy(focused);getter.update(id=107,name=m.GETTER_JOB_NAME,
+            steps=[dict(name=name,status='completed',conclusion='success') for name in m.GETTER_STEPS])
+        jobs.extend((history,getter))
+        result=m.validate(binding,identity,run,focused,jobs)
+        self.assertEqual(result['getterJob'],107)
+        self.assertFalse(result['sourceOnlyEvidence'] or result['getterOriginalEvidenceVerified'])
+        getter['steps']=[step for step in getter['steps'] if step['name']!=m.GETTER_MOVED_STEPS[0]]
+        with self.assertRaisesRegex(RuntimeError,'required CI step incomplete'):m.validate(binding,identity,run,focused,jobs)
+
+    def test_history_job_rejects_cross_run_missing_duplicate_or_skipped(self):
+        binding,identity,run,focused,jobs=self.fixture();binding.update(historyJob=106,getterJob=107)
+        history=copy.deepcopy(focused);history.update(id=106,name=m.HISTORY_JOB_NAME,
+            steps=[dict(name=name,status='completed',conclusion='success') for name in m.HISTORY_STEPS])
+        getter=copy.deepcopy(focused);getter.update(id=107,name=m.GETTER_JOB_NAME,
+            steps=[dict(name=name,status='completed',conclusion='success') for name in m.GETTER_STEPS])
+        jobs.append(getter)
         for change in ('missing','duplicate','foreign_run','foreign_source','wrong_attempt','wrong_job','wrong_name','wrong_url','skipped','failed','duplicate_step','reordered'):
             candidate=copy.deepcopy(jobs);item=copy.deepcopy(history)
             if change=='foreign_run':item['run_id']=999
@@ -50,7 +129,11 @@ class ClockSourceQualificationControls(unittest.TestCase):
             with self.subTest(change=change),self.assertRaises(RuntimeError):m.validate(binding,identity,run,focused,candidate)
         changed=dict(binding,historyJob=binding['focusedJob'])
         with self.assertRaisesRegex(RuntimeError,'distinct original source-history'):m.binding_identity(changed,identity)
-        binding.pop('historyJob');binding['source']='f'*40;identity['commit']=binding['source'];calls=[]
+        candidate=copy.deepcopy(jobs);candidate[-1]['steps'][-1]['conclusion']='skipped';candidate.append(history)
+        with self.assertRaisesRegex(RuntimeError,'required CI step incomplete'):m.validate(binding,identity,run,focused,candidate)
+        with self.assertRaisesRegex(RuntimeError,'same-run job required'):
+            m.validate(binding,identity,run,focused,jobs[:-1]+[history])
+        binding.pop('historyJob');binding.pop('getterJob');binding['source']='f'*40;identity['commit']=binding['source'];calls=[]
         with mock.patch.object(m,'BINDING',binding),self.assertRaisesRegex(RuntimeError,'source-history job NOT_SUPPLIED'):
             m.qualification(identity,metadata_reader=calls.append)
         self.assertEqual(calls,[])

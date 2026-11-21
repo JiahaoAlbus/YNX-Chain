@@ -35,6 +35,7 @@ reader = producer.reader
 REPOSITORY = 'JiahaoAlbus/YNX-Chain'
 PROFILE = 'first100-held-public-owner-sequential-pair'
 CLOCK_LOG_BINDING = None  # Only owner-frozen same-arm original evidence; no CLI/environment override.
+CLOCK_EVIDENCE_BINDING = None  # Owner-frozen two-arm original artifacts and job logs only.
 WORKFLOW = '.github/workflows/pq-normal-process.yml'
 TOOL_CI_WORKFLOW = '.github/workflows/chain-core.yml'
 TOOL_CI_WORKFLOW_ID = 322083952
@@ -192,6 +193,34 @@ def configuration(arm):
         supplierTree=arm['supplierTree'], options=options, nodeCount=4, pressureLevel=1)
 
 
+
+def cached_original_reader(read):
+    """Read each exact original once; subsequent checks use identical in-memory bytes."""
+    values={};attempted=set()
+    def cached(*args):
+        require(args not in attempted or args in values,'original evidence prior read failed; no retry')
+        if args not in values:
+            attempted.add(args)
+            values[args]=read(*args)
+        return values[args]
+    return cached
+
+def preflight_clock_source(driver, identity, metadata_reader, options, clock_reader, evidence_reader):
+    if getattr(options,'commit_clock_observation',False) is not True:return
+    require(callable(clock_reader),'original focused clock log NOT_SUPPLIED')
+    kwargs=dict(metadata_reader=metadata_reader,focused_log_reader=clock_reader)
+    if evidence_reader is not None:kwargs['original_evidence_reader']=evidence_reader
+    result=driver.commit_clock_ci.qualification(identity,**kwargs)
+    require(type(result) is dict and result.get('source')==identity.get('commit')==driver.commit_clock.COMMIT_CLOCK_SOURCE
+        and result.get('focusedOriginalLogVerified') is True and result.get('sourceOnlyEvidence') is True
+        and result.get('runtimePermissionGranted') is False and result.get('pressureAuthorized') is False
+        and result.get('independentFinality') is False,
+        'original arm clock/source prequalification differs')
+    if 'historyJob' in driver.commit_clock_ci.BINDING:
+        require(result.get('historyOriginalExecutionVerified') is True and result.get('getterOriginalEvidenceVerified') is True,
+                'original arm history/getter prequalification incomplete')
+
+
 def clock_log_reader_for_arm(label, driver, arm, options):
     """Transport sole-collected bytes; source and job authority remain frozen in each driver."""
     enabled=getattr(options,'commit_clock_observation',False)
@@ -214,7 +243,42 @@ def clock_log_reader_for_arm(label, driver, arm, options):
     ci.original_log_identity(ci.BINDING,ci.LOG_REQUIREMENTS)
     require(all(entry[key]==ci.LOG_REQUIREMENTS[key] for key in ('source','run','job','attempt','sha256')),
             'original clock source/job/log binding differs')
-    return ci.retained_original_log_reader(entry['path'],driver.commit_clock.read_original)
+    return cached_original_reader(ci.retained_original_log_reader(entry['path'],driver.commit_clock.read_original))
+
+
+
+def clock_evidence_reader_for_arm(label, driver, arm, options):
+    """Transport original frozen arm files; never infer CI authority from paths."""
+    if getattr(options,'commit_clock_observation',False) is not True:return None
+    ci=driver.commit_clock_ci
+    if ci.BINDING is None or 'historyJob' not in ci.BINDING:return None
+    require(type(CLOCK_EVIDENCE_BINDING) is dict and set(CLOCK_EVIDENCE_BINDING)==set(reader.ARMS)
+            and label in reader.ARMS and ci.ORIGINAL_EVIDENCE_REQUIREMENTS is not None
+            and 'clock_original_evidence_reader' in inspect.signature(driver.run).parameters,
+            'original same-arm history/getter evidence NOT_SUPPLIED')
+    entry=CLOCK_EVIDENCE_BINDING[label]; required=ci.ORIGINAL_EVIDENCE_REQUIREMENTS
+    fields={'source','tools','run','attempt','historyJob','getterJob','historyArtifact','getterArtifact',
+            'historyLogPath','historyArchivePath','getterArchivePath'}
+    require(type(entry) is dict and set(entry)==fields and entry['source']==arm['source']
+            and entry['tools']==arm['tools'] and entry['source']==ci.BINDING['source']
+            and all(type(entry[k]) is int and entry[k]>0 and entry[k]==required.get(k)
+                    for k in ('run','attempt','historyJob','getterJob','historyArtifact','getterArtifact'))
+            and len({entry[k] for k in ('historyLogPath','historyArchivePath','getterArchivePath')})==3
+            and all(type(entry[k]) is str and Path(entry[k]).is_absolute() for k in ('historyLogPath','historyArchivePath','getterArchivePath')),
+            'original same-arm history/getter binding differs')
+    entry=dict(entry)  # Freeze this arm's reviewed source and path tuple.
+    attempted=set()
+    def read(kind,run,job,artifact,attempt):
+        require(kind in ('history','getter') and kind not in attempted,'original evidence already attempted or unknown')
+        attempted.add(kind)
+        require(type(run) is int and type(job) is int and type(artifact) is int and type(attempt) is int
+                and (run,job,artifact,attempt)==(entry['run'],entry[kind+'Job'],entry[kind+'Artifact'],entry['attempt']),
+                'original evidence callback identity differs')
+        if kind=='history':
+            return (driver.commit_clock.read_original(entry['historyLogPath'],128*1024*1024),
+                    driver.commit_clock.read_original(entry['historyArchivePath'],128*1024*1024))
+        return driver.commit_clock.read_original(entry['getterArchivePath'],128*1024*1024)
+    return cached_original_reader(read)
 
 
 def validate_binding(binding):
@@ -341,6 +405,9 @@ def prepare(binding, environment, api):
                     'original clock qualification/readback/process tool pins NOT_SUPPLIED')
         verify_tool_files(tools, arm['toolPins'])
         driver = module('same_runner_original_'+label, tools/'scripts/loadtest/pq-independent-load.py')
+        if config['options'].get('commit_clock_observation') is True and driver.commit_clock_ci.BINDING is not None and 'historyJob' in driver.commit_clock_ci.BINDING:
+            require({'pq-source-evidence-archive.py','pq-source-history-readback.py','pq-getter-source-readback.py'} <= set(arm['toolPins']),
+                    'original history/getter evidence tool pins NOT_SUPPLIED')
         require('source_metadata_reader' in inspect.signature(driver.run).parameters
                 and 'metadata_reader' in inspect.signature(driver.held_first_trial_source.qualification).parameters,
                 'original held metadata-only transport ABI NOT_SUPPLIED; no environment fallback')
@@ -351,8 +418,12 @@ def prepare(binding, environment, api):
                                   api.read('jobs/'+str(arm['toolsCI']['job'])),
                                   clock_observation=config['options'].get('commit_clock_observation',False))
         record = dict(plan, controllerCommit=pair['controllerCommit'], toolsCI=tools_ci)
+        options = argparse.Namespace(**dict(config['options'], source=str(source), execute=True))
+        clock_reader=clock_log_reader_for_arm(label,driver,arm,options)
+        evidence_reader=clock_evidence_reader_for_arm(label,driver,arm,options)
 
-        def qualify(arm=arm, source=source, tools=tools, driver=driver, record=record, config=config):
+        def qualify(arm=arm, source=source, tools=tools, driver=driver, record=record, config=config,
+                    options=options, clock_reader=clock_reader, evidence_reader=evidence_reader):
             checkout(controller, pair['controllerCommit'])
             checkout(source, arm['source'], arm['sourceTree']); checkout(tools, arm['tools'], arm['toolsTree'])
             verify_tool_files(tools, arm['toolPins'])
@@ -366,19 +437,18 @@ def prepare(binding, environment, api):
             source_ci = arm['sourceQualification']
             require(same(gate.qualification(metadata_reader=api.read), source_ci),
                     'original source qualification failed; candidate Tools CI is insufficient')
+            preflight_clock_source(driver,identity,api.read,options,clock_reader,evidence_reader)
             require(same(verify_tools_ci(arm['toolsCI'], api.read('runs/'+str(arm['toolsCI']['run'])),
                          api.read('jobs/'+str(arm['toolsCI']['job'])),
                          clock_observation=config['options'].get('commit_clock_observation',False)), record['toolsCI']),
                     'original Tools CI changed before admission')
             return copy.deepcopy(record)
 
-        options = argparse.Namespace(**dict(config['options'], source=str(source), execute=True))
-        clock_reader=clock_log_reader_for_arm(label,driver,arm,options)
         def deadline_check(label=label):
             pair_time_budget(api.read('jobs/'+str(pair['jobID'])),pair,
                              2 if label == 'before' else 1,execution_started)
         adapters[label] = RevalidatedArm(driver, options, record, source_metadata_reader=api.read,
-            clock_original_log_reader=clock_reader,
+            clock_original_log_reader=clock_reader, clock_original_evidence_reader=evidence_reader,
             deadline_check=deadline_check,
             verify_qualification=qualify, admit=FreshAdmission(driver.lab, parent), storage_roots=storage)
     return dict(pair=pair, plans=plans, adapters=adapters,

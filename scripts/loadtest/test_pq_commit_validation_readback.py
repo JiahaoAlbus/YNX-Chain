@@ -89,6 +89,30 @@ class CommitValidationReadbackControls(unittest.TestCase):
             self.assertEqual(result['status'],'prepared-only');self.assertEqual(result['commitClockSourceCI']['source'],args.commit)
             qualification.assert_called_once_with(identity,metadata_reader=None,focused_log_reader=None);window.assert_not_called()
 
+    def test_original_evidence_callback_reaches_normal_held_entry_only(self):
+        from unittest import mock
+        args=SimpleNamespace(first_trial_profile=driver.HELD_TRIAL_PROFILE,commit_clock_observation=True,
+            commit=driver.HELD_TRIAL_SOURCE,source='/synthetic/source',execute=False,rate=100)
+        identity=dict(commit=args.commit,tree=driver.HELD_TRIAL_TREE,forkTree='c'*40)
+        evidence=lambda *unused: None
+        with mock.patch.object(driver,'validate_options',return_value=500), \
+             mock.patch.object(driver,'sender_backend_kind',return_value='public-owner'), \
+             mock.patch.object(driver.lab,'check_source',return_value=identity), \
+             mock.patch.object(driver.lab,'Window') as window, \
+             mock.patch.object(driver.commit_clock,'COMMIT_CLOCK_SOURCE',args.commit), \
+             mock.patch.object(driver.commit_clock_ci,'qualification',return_value=dict(source=args.commit,
+                focusedOriginalLogVerified=True,runtimePermissionGranted=False,pressureAuthorized=False)) as qualification, \
+             mock.patch.object(driver,'load_conditions',return_value={}), \
+             mock.patch.object(driver,'process_capacity',return_value={}):
+            result=driver.run(args,clock_original_evidence_reader=evidence)
+            self.assertEqual(result['status'],'prepared-only')
+            qualification.assert_called_once_with(identity,metadata_reader=None,focused_log_reader=None,original_evidence_reader=evidence)
+            window.assert_not_called()
+            args.commit_clock_observation=False
+            with self.assertRaisesRegex(RuntimeError,'one original held metadata/log transport'):
+                driver.run(args,clock_original_evidence_reader=evidence)
+            window.assert_not_called()
+
     def test_clock_join_does_not_reuse_retired_original_guard(self):
         from unittest import mock
         for cause in (None,'earlier original failure'):

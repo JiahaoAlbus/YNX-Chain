@@ -1493,7 +1493,7 @@ def retire_original_proof_pidfd(process, *, deadline=None):
         return dict(status='ORIGINAL_PROOF_IDENTITY_CLOSE_FAILED',closed=False,errorType=type(error).__name__)
 
 
-def run(args, *, source_metadata_reader=None, clock_original_log_reader=None):
+def run(args, *, source_metadata_reader=None, clock_original_log_reader=None, clock_original_evidence_reader=None):
     demand=validate_options(args)
     backend_kind=sender_backend_kind(args) # Source/semantic/window gates below still run before any Window.
     lab.require(not getattr(args,'startup_timings',False) or args.commit in STARTUP_TIMING_ABI_SOURCES,'matching original startup timing ABI required; old source cannot inherit new flags')
@@ -1505,6 +1505,7 @@ def run(args, *, source_metadata_reader=None, clock_original_log_reader=None):
     log_path=getattr(args,'commit_clock_ci_original_log',None)
     lab.require((source_metadata_reader is None or held and callable(source_metadata_reader))
         and (clock_original_log_reader is None or held and clock_enabled and callable(clock_original_log_reader))
+        and (clock_original_evidence_reader is None or held and clock_enabled and callable(clock_original_evidence_reader))
         and (log_path is None or held and clock_enabled and type(log_path) is str)
         and not (log_path is not None and clock_original_log_reader is not None),
         'one original held metadata/log transport required; no ambiguous log source')
@@ -1515,8 +1516,9 @@ def run(args, *, source_metadata_reader=None, clock_original_log_reader=None):
         if getattr(args,'commit_clock_observation',False):
             if log_path is not None:
                 clock_original_log_reader=commit_clock_ci.retained_original_log_reader(log_path,commit_clock.read_original)
+            evidence_options={} if clock_original_evidence_reader is None else dict(original_evidence_reader=clock_original_evidence_reader)
             clock_source=commit_clock_ci.qualification(identity,metadata_reader=source_metadata_reader,
-                                                      focused_log_reader=clock_original_log_reader)
+                                                      focused_log_reader=clock_original_log_reader,**evidence_options)
             lab.require(type(clock_source) is dict and clock_source.get('source')==commit_clock.COMMIT_CLOCK_SOURCE==args.commit
                 and clock_source.get('focusedOriginalLogVerified') is True
                 and clock_source.get('runtimePermissionGranted') is False and clock_source.get('pressureAuthorized') is False,

@@ -64,7 +64,7 @@ def roots(paths):
 class OriginalDriverAdapter:
     """One-shot bridge; controller-owned qualification is deliberately explicit."""
     def __init__(self, driver, options, qualification_record, *, verify_qualification,
-                 admit, storage_roots, source_metadata_reader=None, clock_original_log_reader=None):
+                 admit, storage_roots, source_metadata_reader=None, clock_original_log_reader=None, clock_original_evidence_reader=None):
         self.driver, self._run, self._window = driver, driver.run, driver.lab.Window
         require(isinstance(self._window, type) and self._window.__new__ is object.__new__,
                 'unwrapped original Window class required; do not bypass another controller')
@@ -81,6 +81,10 @@ class OriginalDriverAdapter:
                  and getattr(options,'commit_clock_ci_original_log',None) is None),
                 'original clock log callback requires one explicit clock source')
         self._clock_original_log_reader = clock_original_log_reader
+        require(clock_original_evidence_reader is None or (callable(clock_original_evidence_reader)
+                and getattr(options,'commit_clock_observation',False) is True),
+                'original clock evidence callback requires explicit clock source')
+        self._clock_original_evidence_reader = clock_original_evidence_reader
         self.storage_roots = roots(storage_roots)
         self.retained_roots = ()
         self.qualified = self.admitted = self.used = self.retired = False
@@ -174,6 +178,8 @@ class OriginalDriverAdapter:
                 kwargs = {} if self._source_metadata_reader is None else dict(source_metadata_reader=self._source_metadata_reader)
                 if self._clock_original_log_reader is not None:
                     kwargs['clock_original_log_reader']=self._clock_original_log_reader
+                if self._clock_original_evidence_reader is not None:
+                    kwargs['clock_original_evidence_reader']=self._clock_original_evidence_reader
                 self.result = self._run(copy.deepcopy(self.options), **kwargs)
                 require(len(calls) == 1 and self.registration_error is None,
                         'original driver did not propagate Window registration failure')
