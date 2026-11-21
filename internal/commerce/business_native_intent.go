@@ -1,8 +1,10 @@
 package commerce
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"time"
 )
 
@@ -19,8 +21,9 @@ type NativeShopIntentObservation struct {
 }
 
 type nativeIntentObservationInput struct {
-	Order  Order
-	Origin string
+	Order           Order
+	Origin          string
+	OriginalRequest *NativeShopInvoiceRequestDATA `json:",omitempty"`
 }
 
 func originalNativeIntentObservation(order Order, raw json.RawMessage) (NativeShopIntentObservation, error) {
@@ -78,7 +81,20 @@ func (s *Server) nativePayIntentObservation(target string, proof businessActionA
 		if order.InvoiceID == "" || order.PayMerchant == "" || order.PayPayoutAddress == "" {
 			return nil, ErrInvalidState
 		}
-		return encodeEffect(nativeIntentObservationInput{order, pay.origin})
+		original, err := tx.readOriginalShopNativeInvoiceRequestLocked(actor, "buyer", target)
+		if err != nil && !errors.Is(err, ErrNotFound) {
+			return nil, err
+		}
+		// Legacy bindings without a captured create record keep the existing
+		// narrow read, but a priced Native order must have its original bill.
+		if errors.Is(err, ErrNotFound) && order.NativePrice != nil {
+			return nil, ErrNotFound
+		}
+		var request *NativeShopInvoiceRequestDATA
+		if err == nil {
+			request = &original
+		}
+		return encodeEffect(nativeIntentObservationInput{Order: order, Origin: pay.origin, OriginalRequest: request})
 	}
 	plan.check = func(tx *Store, actor string, record BusinessEffect) error {
 		var saved nativeIntentObservationInput
@@ -94,6 +110,17 @@ func (s *Server) nativePayIntentObservation(target string, proof businessActionA
 			order.StoreID != old.StoreID || order.InvoiceID != old.InvoiceID || order.PayIntentID != old.PayIntentID ||
 			order.PayMerchant != old.PayMerchant || order.PayPayoutAddress != old.PayPayoutAddress {
 			return ErrConflict
+		}
+		if saved.OriginalRequest != nil {
+			original, err := tx.readOriginalShopNativeInvoiceRequestLocked(actor, "buyer", target)
+			if err != nil {
+				return err
+			}
+			want, e := json.Marshal(saved.OriginalRequest)
+			got, f := json.Marshal(original)
+			if e != nil || f != nil || !bytes.Equal(want, got) {
+				return ErrConflict
+			}
 		}
 		// Expired/cancelled orders still query their original operation. Current
 		// catalog prices, stock and reservation deadlines cannot create a new one.
@@ -114,6 +141,20 @@ func (s *Server) nativePayIntentObservation(target string, proof businessActionA
 		order, err := tx.Order(actor, "buyer", target)
 		if err != nil {
 			return nil, err
+		}
+		var saved nativeIntentObservationInput
+		if err := decodeEffect(record.Input, &saved); err != nil {
+			return nil, err
+		}
+		if saved.OriginalRequest != nil {
+			observation, binding, err := nativeInvoiceReply(nativeInvoiceInput{Order: saved.Order, Origin: saved.Origin, Request: *saved.OriginalRequest}, record.Result, true)
+			if err != nil {
+				return nil, err
+			}
+			if binding.IntentID != order.PayIntentID || binding.InvoiceID != order.InvoiceID || binding.Merchant != order.PayMerchant || binding.PayoutAddress != order.PayPayoutAddress {
+				return nil, ErrConflict
+			}
+			return observation, nil
 		}
 		return originalNativeIntentObservation(order, record.Result)
 	}

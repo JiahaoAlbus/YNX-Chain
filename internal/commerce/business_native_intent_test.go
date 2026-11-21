@@ -187,3 +187,61 @@ func TestBusinessNativeIntentRefusesForeignAndReboundOriginal(t *testing.T) {
 		})
 	}
 }
+
+func TestBusinessNativeIntentReadUsesCapturedOriginalBill(t *testing.T) {
+	for _, mode := range []string{"same", "network", "amount", "asset", "session", "duplicate"} {
+		t.Run(mode, func(t *testing.T) {
+			s, buyer, order, request := publicSourceInvoiceRecord(t)
+			order, err := s.BindInvoice(buyer, order.ID, PayInvoiceHandoff{InvoiceID: "core_original", IntentID: "npi_" + strings.Repeat("ab", 24), Merchant: request.Merchant, PayoutAddress: request.Recipient})
+			if err != nil {
+				t.Fatal(err)
+			}
+			wire := []byte(publicNativeInvoiceResponse(request))
+			var from, to string
+			switch mode {
+			case "network":
+				from, to = `"genesis":"`+request.Genesis+`"`, `"genesis":"`+strings.Repeat("0", 64)+`"`
+			case "amount":
+				from, to = `"amountAtoms":"`+request.AmountAtoms+`"`, `"amountAtoms":"1"`
+			case "asset":
+				from, to = `"assetId":"`+request.AssetID+`"`, `"assetId":"foreign"`
+			case "session":
+				from, to = `"sessionId":"core_original_session"`, `"sessionId":""`
+			case "duplicate":
+				for _, record := range s.s.BusinessEffects {
+					if record.Kind == "pay.native-create" {
+						record.ID = "PUBLIC-duplicate-original"
+						s.s.BusinessEffects[record.ID] = record
+						break
+					}
+				}
+			}
+			if from != "" {
+				if !bytes.Contains(wire, []byte(from)) {
+					t.Fatal("test mutation missing", mode)
+				}
+				wire = bytes.Replace(wire, []byte(from), []byte(to), 1)
+			}
+			calls := 0
+			client := nativeIntentObservationClient(t, func(r *http.Request) (*http.Response, error) {
+				calls++
+				if r.Method != "GET" || r.URL.Path != "/v5/pay/invoice-intents/"+order.PayIntentID {
+					t.Fatal("not the original read", r.Method, r.URL.Path)
+				}
+				return nativeShopPayResponse(200, string(wire)), nil
+			})
+			server := NewServer(s, ServerConfig{NativePay: client, businessV2: controlledBusinessVerifier{account: buyer, role: "buyer"}})
+			w := businessHTTPRequest(server, "GET", "/api/orders/"+order.ID+"/native-pay-intent", strings.Repeat("z", 43), "")
+			if mode == "same" {
+				if w.Code != 200 || calls != 1 || !bytes.Contains(w.Body.Bytes(), []byte(`"queryOnly":true`)) {
+					t.Fatal(w.Code, w.Body.String(), calls)
+				}
+			} else if w.Code < 400 || (mode == "duplicate" && calls != 0) {
+				t.Fatal("foreign or ambiguous original accepted", mode, w.Code, calls)
+			}
+			if s.s.Orders[order.ID].Settlement != nil || s.s.Orders[order.ID].NativePayment != nil {
+				t.Fatal("read changed funds")
+			}
+		})
+	}
+}
