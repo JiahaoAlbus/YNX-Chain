@@ -49,7 +49,7 @@ public final class NativeCartTest {
     @Test public void guestImportRejectsAccountSwitchAndFailedAtomicWrite()throws Exception{
         Memory store=memory();store.put("cart:guest",items(2).toString());Server server=new Server(store);ProductSession expected=session(store);NativeCart.refresh(store,server,expected,0);
         store.login(B);Map<String,String> before=new HashMap<>(store.values);assertThrows(SecurityException.class,()->NativeCart.importGuest(store,server,expected,0));assertEquals(before,store.values);
-        store.login(A);before=new HashMap<>(store.values);store.failBatch=true;assertThrows(IOException.class,()->NativeCart.importGuest(store,server,expected,0));assertEquals(before,store.values);assertEquals(0,server.updates);
+        store.login(A);ProductSession restored=session(store);before=new HashMap<>(store.values);store.failBatch=true;assertThrows(IOException.class,()->NativeCart.importGuest(store,server,restored,0));assertEquals(before,store.values);assertEquals(0,server.updates);
     }
     @Test public void lostReplyRestartResendsSameKeyWithoutOverwritingLaterRemoteEdit()throws Exception{
         Memory store=memory();Server server=new Server(store);ProductSession expected=session(store);NativeCart.refresh(store,server,expected,0);NativeCart.edit(store,A,items(1));server.loseNext=true;
