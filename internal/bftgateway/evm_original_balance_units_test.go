@@ -108,6 +108,10 @@ func TestEVMOriginalBalanceUnitCompatibility(t *testing.T) {
 		case "/validators":
 			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"validators": []any{map[string]any{}, map[string]any{}, map[string]any{}, map[string]any{}}}})
 		case "/abci_query":
+			if r.URL.Query().Get("path") == fmt.Sprintf("%q", "/ide/contracts/"+owner) {
+				_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{"code": 1, "log": "IDE contract not found"}}})
+				return
+			}
 			if r.URL.Query().Get("path") != fmt.Sprintf("%q", "/accounts/"+owner) {
 				t.Error("unexpected original account query", r.URL.RawQuery)
 			}
@@ -144,6 +148,10 @@ func TestEVMOriginalBalanceUnitCompatibility(t *testing.T) {
 	assertRPCError(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":6,"method":"eth_getBalance","params":[%q]}`, owner), -32602)
 	assertRPCError(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":7,"method":"eth_getTransactionCount","params":[%q]}`, owner), -32602)
 	accountHeight = "1"
+	assertRPCResult(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":10,"method":"eth_getCode","params":[%q,"latest"]}`, owner), "0x")
+	assertRPCResult(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":11,"method":"eth_getCode","params":[%q]}`, owner), "0x")
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":12,"method":"eth_getCode","params":[]}`, -32602)
+	assertRPCError(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":13,"method":"eth_getCode","params":[%q,"latest","extra"]}`, owner), -32602)
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":8,"method":"eth_getBalance","params":[]}`, -32602)
 	assertRPCError(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":9,"method":"eth_getTransactionCount","params":[%q,"latest","extra"]}`, owner), -32602)
 	balance = -1

@@ -292,14 +292,18 @@ func (g *Gateway) evmCommittedAccountResult(ctx context.Context, method string, 
 
 func (g *Gateway) evmCommittedContractCode(ctx context.Context, raw json.RawMessage) (any, int, error) {
 	var params []json.RawMessage
-	if err := json.Unmarshal(raw, &params); err != nil || len(params) != 2 {
-		return nil, -32602, errors.New("eth_getCode requires an address and block tag")
+	if err := json.Unmarshal(raw, &params); err != nil || len(params) < 1 || len(params) > 2 {
+		return nil, -32602, errors.New("eth_getCode requires an address and optional block tag")
 	}
 	var address string
 	if err := json.Unmarshal(params[0], &address); err != nil || !isCanonicalEVMAddress(address) {
 		return nil, -32602, errors.New("canonical lowercase contract address is required")
 	}
-	if code, err := g.requireCurrentCommittedTag(ctx, params[1]); err != nil {
+	tag := json.RawMessage(`"latest"`)
+	if len(params) == 2 {
+		tag = params[1]
+	}
+	if code, err := g.requireCurrentCommittedTag(ctx, tag); err != nil {
 		return nil, code, err
 	}
 	contract, found, err := g.committedContract(ctx, address)
