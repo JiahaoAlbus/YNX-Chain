@@ -190,6 +190,9 @@ func (vm *evmSubsetVM) run() (evmStaticResult, error) {
 			}
 			vm.push(new(big.Int).SetBytes(legacyKeccak256(vm.memSlice(offset, intFromBig(size)))))
 		case op == 0x33: // CALLER
+			if vm.caller == nil {
+				return evmStaticResult{}, errors.New("static caller context unavailable")
+			}
 			vm.push(vm.caller)
 		case op == 0x34: // CALLVALUE
 			vm.push(big.NewInt(0))

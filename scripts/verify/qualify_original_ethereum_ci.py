@@ -4,6 +4,10 @@ import json
 import sys
 
 REQUIRED = {
+    "chain": (
+        "TestStaticEVMCallerRequiresOriginalContext",
+        "TestStaticPinnedERC20CallerFailsClosed",
+    ),
     "consensus": (
         "TestOriginalEthereumAdapterPublicWireCompatibility",
         "TestOriginalEthereumAdapterExecutionAndColdRestart",
@@ -72,6 +76,6 @@ def qualify(kind, events):
 
 if __name__ == "__main__":
     if len(sys.argv) != 3 or sys.argv[1] not in REQUIRED:
-        raise SystemExit("usage: qualify_original_ethereum_ci.py consensus|bftgateway EVENTS.jsonl")
+        raise SystemExit("usage: qualify_original_ethereum_ci.py chain|consensus|bftgateway EVENTS.jsonl")
     with open(sys.argv[2], encoding="utf-8") as stream:
         qualify(sys.argv[1], (json.loads(line) for line in stream))
