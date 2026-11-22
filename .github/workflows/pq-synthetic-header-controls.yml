@@ -5,25 +5,9 @@ on:
     branches:
       - codex/perf-commit-header-observer-20261122
       - codex/ynx-pq-perf-integration
-    paths:
-      - .github/workflows/pq-synthetic-header-controls.yml
-      - .github/workflows/resource-market-ci.yml
-      - cmd/ynx-comet/**
-      - internal/consensus/**
-      - third_party/cometbft/**
-      - go.mod
-      - go.sum
   pull_request:
     branches:
       - codex/ynx-pq-perf-integration
-    paths:
-      - .github/workflows/pq-synthetic-header-controls.yml
-      - .github/workflows/resource-market-ci.yml
-      - cmd/ynx-comet/**
-      - internal/consensus/**
-      - third_party/cometbft/**
-      - go.mod
-      - go.sum
 
 permissions:
   contents: read
@@ -49,11 +33,15 @@ jobs:
       - name: Verify five synthetic header controls
         env:
           GOMAXPROCS: '2'
+          YNX_PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          YNX_PR_BASE: ${{ github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
           test "$(wc -c < .github/workflows/resource-market-ci.yml)" -lt 512000
           export YNX_HEADER_TREE="$(git rev-parse 'HEAD^{tree}')"
+          export YNX_HEADER_FORK_TREE="$(git rev-parse 'HEAD:third_party/cometbft')"
           mkdir "$RUNNER_TEMP/ynx-synthetic-header-public"
           set +e
           go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run '^(TestCommitHeaderProbeRealBlockExecutor|TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts|TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence|TestSyntheticCommitHeaderCaptureStateSyncInvalidates|TestSyntheticCommitHeaderConcurrentReaders)$' ./cmd/ynx-comet > "$RUNNER_TEMP/ynx-synthetic-header-public/events.jsonl"
@@ -63,6 +51,8 @@ jobs:
           cat "$RUNNER_TEMP/ynx-synthetic-header-public/events.jsonl"
           printf 'YNX-SYNTHETIC-HEADER-RAW-END/v1 source=%s run=%s attempt=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT"
           test "$YNX_HEADER_GO_STATUS" -eq 0
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
           python3 -B - <<'PY'
           import hashlib, json, os
           from pathlib import Path
@@ -80,8 +70,10 @@ jobs:
           for name in names:
               if [(e.get('Package'), e.get('Action')) for e in events if e.get('Test') == name and e.get('Action') in ('run', 'pass', 'skip', 'fail')] != [(package, 'run'), (package, 'pass')]:
                   raise RuntimeError('synthetic header control did not run and pass exactly once: ' + name)
-          metadata = dict(version='YNX-SYNTHETIC-HEADER-CONTROLS/v1', sourceCommit=os.environ['GITHUB_SHA'], sourceTree=os.environ['YNX_HEADER_TREE'], runId=os.environ['GITHUB_RUN_ID'], attempt=os.environ['GITHUB_RUN_ATTEMPT'], job=os.environ['GITHUB_JOB'], eventsBytes=len(raw), eventsSha256=hashlib.sha256(raw).hexdigest(), tests=names, runtimeAuthorized=False, independentFinalityVerified=False)
-          (out / 'metadata.json').write_text(json.dumps(metadata, sort_keys=True, separators=(',', ':')) + '\n')
+          metadata = dict(version='YNX-SYNTHETIC-HEADER-CONTROLS/v1', sourceCommit=os.environ['GITHUB_SHA'], sourceTree=os.environ['YNX_HEADER_TREE'], forkTree=os.environ['YNX_HEADER_FORK_TREE'], eventName=os.environ['GITHUB_EVENT_NAME'], pullRequestHead=os.environ['YNX_PR_HEAD'], pullRequestBase=os.environ['YNX_PR_BASE'], runId=os.environ['GITHUB_RUN_ID'], attempt=os.environ['GITHUB_RUN_ATTEMPT'], job=os.environ['GITHUB_JOB'], eventsBytes=len(raw), eventsSha256=hashlib.sha256(raw).hexdigest(), tests=names, runtimeAuthorized=False, independentFinalityVerified=False)
+          metadata_line = json.dumps(metadata, sort_keys=True, separators=(',', ':'))
+          (out / 'metadata.json').write_text(metadata_line + '\n')
+          print('YNX-SYNTHETIC-HEADER-METADATA/v1 ' + metadata_line)
           print('YNX_SYNTHETIC_HEADER_CONTROLS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], tests=names, runtimeAuthorized=False, independentFinalityVerified=False), sort_keys=True))
           PY
       - name: Preserve only original synthetic control events
