@@ -67,17 +67,37 @@ jobs:
           out = Path(os.environ['RUNNER_TEMP']) / 'ynx-synthetic-header-public'
           raw = (out / 'events.jsonl').read_bytes()
           events = [json.loads(line) for line in raw.splitlines()]
-          if any(e.get('Action') in ('fail', 'skip', 'build-fail') for e in events):
-              raise RuntimeError('synthetic header control failed or skipped')
-          for pkg in (package, consensus):
-              if [e.get('Action') for e in events if e.get('Package') == pkg and not e.get('Test') and e.get('Action') in ('start', 'pass')] != ['start', 'pass']:
-                  raise RuntimeError('synthetic header package did not execute exactly once: ' + pkg)
-          if {e['Test'] for e in events if e.get('Test')} != set(names + children + [overflow] + overflow_children):
-              raise RuntimeError('unexpected or missing synthetic header control')
-          for pkg, required in ((package, names + children), (consensus, [overflow] + overflow_children)):
-              for name in required:
-                  if [(e.get('Package'), e.get('Action')) for e in events if e.get('Test') == name and e.get('Action') in ('run', 'pass', 'skip', 'fail')] != [(pkg, 'run'), (pkg, 'pass')]:
-                      raise RuntimeError('synthetic header control did not run and pass exactly once: ' + name)
+          def qualify(stream):
+              if any(e.get('Action') in ('fail', 'skip', 'build-fail') or ('Package' in e and e['Package'] not in (package, consensus)) for e in stream):
+                  raise RuntimeError('synthetic header control failed, skipped or changed package')
+              if {e['Test'] for e in stream if e.get('Test')} != set(names + children + [overflow] + overflow_children):
+                  raise RuntimeError('unexpected or missing synthetic header control')
+              for pkg, required in ((package, names + children), (consensus, [overflow] + overflow_children)):
+                  bounds = [(i, e.get('Action')) for i, e in enumerate(stream) if e.get('Package') == pkg and not e.get('Test') and e.get('Action') in ('start', 'pass')]
+                  if len(bounds) != 2 or [action for _, action in bounds] != ['start', 'pass']:
+                      raise RuntimeError('synthetic header package did not execute exactly once: ' + pkg)
+                  positions = {}
+                  for name in required:
+                      found = [(i, e.get('Package'), e.get('Action')) for i, e in enumerate(stream) if e.get('Test') == name and e.get('Action') in ('run', 'pass', 'skip', 'fail')]
+                      if len(found) != 2 or [(p, action) for _, p, action in found] != [(pkg, 'run'), (pkg, 'pass')] or not bounds[0][0] < found[0][0] < found[1][0] < bounds[1][0]:
+                          raise RuntimeError('synthetic header control did not run and pass exactly once: ' + name)
+                      positions[name] = (found[0][0], found[1][0])
+                  for child in (children if pkg == package else overflow_children):
+                      parent = child.split('/', 1)[0]
+                      if not positions[parent][0] < positions[child][0] < positions[child][1] < positions[parent][1]:
+                          raise RuntimeError('synthetic header child escaped parent: ' + child)
+          qualify(events)
+          mutants = [[dict(e) for e in events] for _ in range(4)]
+          mutants[0].append(dict(Package='unexpected/package', Action='start'))
+          next(e for e in mutants[1] if e.get('Test') == names[0] and e.get('Action') == 'run')['Package'] = consensus
+          mutants[2] = [e for e in mutants[2] if e.get('Test') != overflow_children[0]]
+          next(e for e in mutants[3] if e.get('Test') == children[0] and e.get('Action') == 'pass')['Action'] = 'skip'
+          for mutant in mutants:
+              try:
+                  qualify(mutant)
+              except RuntimeError:
+                  continue
+              raise RuntimeError('synthetic header stream negative control was accepted')
           metadata = dict(version='YNX-SYNTHETIC-HEADER-CONTROLS/v1', sourceCommit=os.environ['GITHUB_SHA'], sourceTree=os.environ['YNX_HEADER_TREE'], forkTree=os.environ['YNX_HEADER_FORK_TREE'], eventName=os.environ['GITHUB_EVENT_NAME'], pullRequestHead=os.environ['YNX_PR_HEAD'], pullRequestBase=os.environ['YNX_PR_BASE'], runId=os.environ['GITHUB_RUN_ID'], attempt=os.environ['GITHUB_RUN_ATTEMPT'], job=os.environ['GITHUB_JOB'], eventsBytes=len(raw), eventsSha256=hashlib.sha256(raw).hexdigest(), tests=names + [overflow], children=children + overflow_children, runtimeAuthorized=False, independentFinalityVerified=False)
           metadata_line = json.dumps(metadata, sort_keys=True, separators=(',', ':'))
           (out / 'metadata.json').write_text(metadata_line + '\n')
