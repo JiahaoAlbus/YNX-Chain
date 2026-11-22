@@ -458,3 +458,41 @@ func TestSyntheticCommitHeaderRealEngineOffOnEquivalent(t *testing.T) {
 		})
 	}
 }
+
+func TestSyntheticCommitHeaderAndTimingAtomicSnapshot(t *testing.T) {
+	f := newCommitObservationFixture(t)
+	app, _, _ := makeObservedOperatorApplication(t, f, "atomic-json", filepath.Join(t.TempDir(), "state"), false)
+	if err := app.SetSyntheticCommitHeaderCapture(true); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, ok := app.LastSyntheticCommitHeaderAndTiming(); ok {
+		t.Fatal("missing timing was accepted")
+	}
+	app.SetCommitTimingEnabled(true)
+	next, block, err := executeObservedEngineCommit(t, f, app, log.NewNopLogger(), cmttypes.Txs{f.transfer})
+	if err != nil {
+		t.Fatal(err)
+	}
+	header, timing, ok := app.LastSyntheticCommitHeaderAndTiming()
+	if !ok || timing.Height != block.Height || !timing.Durable || header.Height != block.Height || !bytes.Equal(header.HeaderHash[:], block.Hash()) || !bytes.Equal(header.AppHash[:], next.AppHash) || len(timing.StagesNs) == 0 {
+		t.Fatal("atomic diagnostic did not describe the original application commit")
+	}
+	for key := range timing.StagesNs {
+		timing.StagesNs[key] = -1
+	}
+	header.HeaderHash[0] ^= 0xff
+	again, second, ok := app.LastSyntheticCommitHeaderAndTiming()
+	if !ok || !bytes.Equal(again.HeaderHash[:], block.Hash()) {
+		t.Fatal("header ownership lost")
+	}
+	for _, value := range second.StagesNs {
+		if value < 0 {
+			t.Fatal("timing map ownership lost")
+		}
+	}
+	app.SetCommitTimingEnabled(false)
+	app.SetCommitTimingEnabled(true)
+	if _, _, ok := app.LastSyntheticCommitHeaderAndTiming(); ok {
+		t.Fatal("timing re-enable revived an old association")
+	}
+}

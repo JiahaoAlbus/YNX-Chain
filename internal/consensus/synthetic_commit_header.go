@@ -61,6 +61,27 @@ func (a *Application) LastSyntheticCommitHeader() (SyntheticCommitHeader, bool) 
 	return value, true
 }
 
+// LastSyntheticCommitHeaderAndTiming reads both latest values under one
+// application lock. It is still only a local storage attempt, not a clock
+// reading, source identity, full BlockID, or finality observation.
+func (a *Application) LastSyntheticCommitHeaderAndTiming() (SyntheticCommitHeader, CommitTimingSample, bool) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	if a.commitHeaderCapture == nil || a.commitHeaderCapture.latest == nil || a.snapshotRestore != nil || a.commitTimingLatest == nil {
+		return SyntheticCommitHeader{}, CommitTimingSample{}, false
+	}
+	header := *a.commitHeaderCapture.latest
+	timing := *a.commitTimingLatest
+	if !timing.Durable || timing.Height != header.Height || a.committed.Height != header.Height || a.committed.AppHash != hex.EncodeToString(header.AppHash[:]) {
+		return SyntheticCommitHeader{}, CommitTimingSample{}, false
+	}
+	timing.StagesNs = make(map[string]int64, len(a.commitTimingLatest.StagesNs))
+	for stage, ns := range a.commitTimingLatest.StagesNs {
+		timing.StagesNs[stage] = ns
+	}
+	return header, timing, true
+}
+
 // Caller holds a.mu; these helpers only maintain diagnostic memory and never
 // change a consensus response, persistence result, or normal error.
 func (a *Application) captureSyntheticFinalizeHeader(req interface{ GetHash() []byte }, pending CommittedState) {
