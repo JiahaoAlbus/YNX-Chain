@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/ed25519"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -16,6 +17,7 @@ import (
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/cometbft/cometbft/libs/log"
 	"github.com/cometbft/cometbft/mempool"
+	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	"github.com/cometbft/cometbft/proxy"
 	sm "github.com/cometbft/cometbft/state"
 	blockstore "github.com/cometbft/cometbft/store"
@@ -434,12 +436,41 @@ func TestCommitHeaderProbeRealBlockExecutor(t *testing.T) {
 	if bytes.Equal(block.AppHash, probe.finalizedAppHash) {
 		t.Fatal("the real transfer did not distinguish pre- and post-state")
 	}
-	successor, err := next.MakeBlock(next.LastBlockHeight+1, nil, &cmttypes.Commit{}, nil, next.Validators.GetProposer().Address)
+	commit := &cmttypes.Commit{Height: block.Height, BlockID: blockID}
+	for i, member := range state.Validators.Validators {
+		vote := &cmttypes.Vote{Type: cmtproto.PrecommitType, Height: block.Height, BlockID: blockID, Timestamp: block.Time.Add(time.Second), ValidatorAddress: bytes.Clone(member.Address), ValidatorIndex: int32(i)}
+		for j := range f.migration.Validators {
+			key := ed25519.NewKeyFromSeed(bytes.Repeat([]byte{byte(121 + j)}, ed25519.SeedSize))
+			if bytes.Equal(key.Public().(ed25519.PublicKey), member.PubKey.Bytes()) {
+				vote.Signature = ed25519.Sign(key, cmttypes.VoteSignBytes(f.doc.ChainID, vote.ToProto()))
+			}
+			clear(key)
+		}
+		if err := vote.Verify(f.doc.ChainID, member.PubKey); err != nil {
+			t.Fatal(err)
+		}
+		commit.Signatures = append(commit.Signatures, vote.CommitSig())
+	}
+	blocks.SaveBlock(block, parts, commit)
+	successor, err := next.MakeBlock(next.LastBlockHeight+1, nil, commit, nil, next.Validators.GetProposer().Address)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !successor.LastBlockID.Equals(blockID) || !bytes.Equal(successor.AppHash, probe.finalizedAppHash) {
 		t.Fatal("H+1 did not carry the original H BlockID and post-state")
+	}
+	successorParts, err := successor.MakePartSet(cmttypes.BlockPartSizeBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	successorID := cmttypes.BlockID{Hash: bytes.Clone(successor.Hash()), PartSetHeader: successorParts.Header()}
+	second, err := executor.ApplyBlock(next, successorID, successor)
+	if err != nil {
+		t.Fatal("actual H+1 BlockExecutor failed", err)
+	}
+	last, ok := app.LastSyntheticCommitHeader()
+	if !ok || last.Height != successor.Height || !bytes.Equal(last.HeaderHash[:], successorID.Hash) || !bytes.Equal(last.AppHash[:], second.AppHash) {
+		t.Fatal("actual H+1 commit did not advance the owned observation")
 	}
 	if _, err := app.FinalizeBlock(context.Background(), &abci.RequestFinalizeBlock{Height: block.Height}); err == nil {
 		t.Fatal("stale finalize unexpectedly accepted")
