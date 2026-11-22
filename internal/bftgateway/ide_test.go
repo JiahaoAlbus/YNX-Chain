@@ -77,6 +77,26 @@ func TestGatewayCommitsBoundedIDEAndReturnsEVMLogs(t *testing.T) {
 	if _, _, err := futureGateway.evmContractAtHeight(context.Background(), futureContract.Address, uint64(futureContract.BlockHeight)); err == nil {
 		t.Fatal("future contract update accepted for an earlier committed height")
 	}
+	callHeight := strconv.FormatInt(futureContract.BlockHeight+1, 10)
+	callRPC := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("height") != strconv.FormatInt(futureContract.BlockHeight, 10) {
+			t.Error("contract call did not request the committed height")
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{
+			"code": 0, "height": callHeight, "value": base64.StdEncoding.EncodeToString([]byte(`{}`)),
+		}}})
+	}))
+	defer callRPC.Close()
+	callGateway, err := New(Config{CometRPCURL: callRPC.URL})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, bad := range []string{callHeight, "", "010"} {
+		callHeight = bad
+		if err := callGateway.evmCallAtHeight(context.Background(), "/ide/call/example", uint64(futureContract.BlockHeight), &struct{}{}); !errors.Is(err, errEVMCallHeightMismatch) {
+			t.Fatalf("contract call accepted wrong response height %q: %v", bad, err)
+		}
+	}
 	var verifier map[string]any
 	getJSON(t, server.URL+"/ide/verifier/"+deployed.Contract.Address, &verifier)
 	if verifier["verificationStatus"] != "source_and_deployed_bytecode_identity_committed" || verifier["remotePublicProofStatus"] != "not_claimed" {

@@ -362,18 +362,19 @@ func (g *Gateway) evmCommittedContractCall(ctx context.Context, method string, r
 			return result, code, err
 		}
 	}
+	tag := json.RawMessage(`"latest"`)
 	if len(params) == 2 {
-		if code, err := g.requireCurrentCommittedTag(ctx, params[1]); err != nil {
-			return nil, code, err
-		}
-	} else if code, err := g.requireCurrentCommittedTag(ctx, json.RawMessage(`"latest"`)); err != nil {
+		tag = params[1]
+	}
+	height, code, err := g.currentCommittedHeight(ctx, tag)
+	if err != nil {
 		return nil, code, err
 	}
 	address, calldata, err := parseBoundedEVMCallObject(params[0])
 	if err != nil {
 		return nil, -32602, err
 	}
-	if _, found, err := g.committedContract(ctx, address); err != nil {
+	if _, found, err := g.evmContractAtHeight(ctx, address, height); err != nil {
 		return nil, -32603, err
 	} else if !found {
 		return nil, -32000, errors.New("committed bounded contract not found")
@@ -384,7 +385,10 @@ func (g *Gateway) evmCommittedContractCall(ctx context.Context, method string, r
 		OpcodeStepCount int    `json:"opcodeStepCount"`
 		RuntimeMode     string `json:"runtimeMode"`
 	}
-	if err := g.queryABCIJSON(ctx, "/ide/call/"+address+"/"+calldata, &result); err != nil {
+	if err := g.evmCallAtHeight(ctx, "/ide/call/"+address+"/"+calldata, height, &result); err != nil {
+		if errors.Is(err, errEVMCallHeightMismatch) {
+			return nil, -32603, err
+		}
 		return nil, -32000, err
 	}
 	if result.Address != address || result.RuntimeMode != chain.BoundedContractRuntimeMode || !isCanonicalEVMData(result.EncodedResult, 0, 64<<10) || result.OpcodeStepCount <= 0 {

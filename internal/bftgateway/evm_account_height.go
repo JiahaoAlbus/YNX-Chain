@@ -100,3 +100,39 @@ func (g *Gateway) evmContractAtHeight(ctx context.Context, address string, heigh
 	}
 	return contract, true, nil
 }
+
+var errEVMCallHeightMismatch = errors.New("contract call snapshot height differs from requested committed block")
+
+// Contract execution and its preceding contract lookup must observe the same
+// committed height. Do not follow redirects or silently retry a moving node.
+func (g *Gateway) evmCallAtHeight(ctx context.Context, path string, height uint64, out any) error {
+	var upstream struct {
+		cometABCIQuery
+		Error *cometRPCError `json:"error"`
+	}
+	httpClient := *g.client.httpClient
+	httpClient.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	client := *g.client
+	client.httpClient = &httpClient
+	limit := int64((consensus.MaxPQWalletQueryBytes+2)/3*4 + (64 << 10))
+	query := url.Values{"path": {fmt.Sprintf("%q", path)}, "height": {strconv.FormatUint(height, 10)}}
+	if err := client.getBounded(ctx, "/abci_query", query, &upstream, limit); err != nil {
+		return err
+	}
+	if upstream.Error != nil {
+		return errors.New(cometError(upstream.Error))
+	}
+	response := upstream.Result.Response
+	h, err := strconv.ParseUint(response.Height, 10, 64)
+	if err != nil || strconv.FormatUint(h, 10) != response.Height || h != height {
+		return errEVMCallHeightMismatch
+	}
+	if response.Code != 0 {
+		return errors.New("ABCI contract call rejected: " + response.Log)
+	}
+	payload, err := base64.StdEncoding.DecodeString(response.Value)
+	if err != nil || len(payload) == 0 || len(payload) > consensus.MaxPQWalletQueryBytes || base64.StdEncoding.EncodeToString(payload) != response.Value {
+		return errors.New("invalid bounded ABCI contract call value")
+	}
+	return strictPQJSON(payload, out)
+}

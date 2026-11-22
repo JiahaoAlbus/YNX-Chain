@@ -95,12 +95,18 @@ func TestEVMContractReadRejectsSnapshotHeightMismatch(t *testing.T) {
 	defer server.Close()
 	code := `{"jsonrpc":"2.0","id":1,"method":"eth_getCode","params":["` + address + `","0xa"]}`
 	storage := `{"jsonrpc":"2.0","id":2,"method":"eth_getStorageAt","params":["` + address + `","0x0","0xa"]}`
+	call := `{"jsonrpc":"2.0","id":3,"method":"eth_call","params":[{"to":"` + address + `","data":"0x12345678"},"0xa"]}`
+	estimate := `{"jsonrpc":"2.0","id":4,"method":"eth_estimateGas","params":[{"to":"` + address + `","data":"0x12345678"},"0xa"]}`
 	for _, bad := range []string{"9", "11", "", "010"} {
 		height = bad
 		assertRPCError(t, server.URL+"/evm", code, -32603)
 		assertRPCError(t, server.URL+"/evm", storage, -32603)
+		assertRPCError(t, server.URL+"/evm", call, -32603)
+		assertRPCError(t, server.URL+"/evm", estimate, -32603)
 	}
 	height = "10"
 	assertRPCResult(t, server.URL+"/evm", code, "0x")
 	assertRPCResult(t, server.URL+"/evm", storage, "0x"+strings.Repeat("0", 64))
+	assertRPCError(t, server.URL+"/evm", call, -32000)
+	assertRPCError(t, server.URL+"/evm", estimate, -32000)
 }
