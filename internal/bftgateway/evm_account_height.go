@@ -5,8 +5,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"maps"
+	"math"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
@@ -92,13 +95,60 @@ func (g *Gateway) evmContractAtHeight(ctx context.Context, address string, heigh
 	if err := strictPQJSON(payload, &contract); err != nil {
 		return contract, false, err
 	}
-	if err := validateCommittedContract(contract, address); err != nil {
+	if contract.SourceAnchor != "" {
+		if err := g.validateMigratedContractAtHeight(ctx, contract, address, height); err != nil {
+			return contract, false, err
+		}
+	} else if err := validateCommittedContract(contract, address); err != nil {
 		return contract, false, err
 	}
 	if uint64(contract.LastUpdatedHeight) > height {
 		return contract, false, errors.New("contract update height exceeds requested committed block")
 	}
 	return contract, true, nil
+}
+
+// An imported contract has no fabricated BFT deployment receipt. Bind its
+// original identity and unchanged source to the same configured bootstrap and
+// committed height; this is a configured-RPC observation, not light proof.
+func (g *Gateway) validateMigratedContractAtHeight(ctx context.Context, contract consensus.BFTContract, address string, height uint64) error {
+	if height > math.MaxInt64 || contract.Address != address || !consensus.IsNativeAddress(contract.Deployer) || !identityHash(contract.SourceAnchor) || contract.BlockHeight != 0 || contract.TxHash != "" || contract.RuntimeMode != chain.BoundedContractRuntimeMode || contract.AuditHash != consensus.BFTContractAuditHash(contract) {
+		return errors.New("invalid imported contract identity")
+	}
+	bytecodeHash, err := chain.ValidateBoundedPinnedIdentity(contract.Name, contract.SourceHash, contract.DeployedBytecode)
+	if err != nil || bytecodeHash != contract.DeployedBytecodeHash || !isCanonicalEVMData(contract.DeployedBytecode, 1, 12<<10) {
+		return errors.New("invalid imported contract artifact")
+	}
+	for slot, value := range contract.RuntimeStorage {
+		if !evmWordPattern.MatchString(slot) || !evmWordPattern.MatchString(value) {
+			return errors.New("invalid imported contract storage")
+		}
+	}
+	var identity consensus.PQWalletIdentityView
+	if err := g.evmCallAtHeight(ctx, consensus.PQWalletIdentityPath, height, &identity); err != nil || consensus.ValidatePQWalletIdentityView(identity, int64(height)) != nil || identity.MigrationStateHash != contract.SourceAnchor || (g.migrationHeight != 0 && identity.MigrationHeight != g.migrationHeight) {
+		return errors.New("imported contract bootstrap identity unavailable or inconsistent")
+	}
+	var original struct {
+		chain.ContractArtifact
+		SourceAnchor string `json:"sourceAnchor"`
+	}
+	if err := g.evmCallAtHeight(ctx, "/ide/source/"+address, height, &original); err != nil || original.SourceAnchor != contract.SourceAnchor || original.Address != address || original.Name != contract.Name || original.Deployer != contract.Deployer || original.SourceHash != contract.SourceHash || original.DeployedBytecodeHash != contract.DeployedBytecodeHash || !slices.Equal(original.ConstructorArgs, contract.ConstructorArgs) {
+		return errors.New("imported contract differs from original source identity")
+	}
+	if contract.LastCallTxHash == "" {
+		if contract.LastUpdatedHeight != 0 || !maps.Equal(original.RuntimeStorage, contract.RuntimeStorage) {
+			return errors.New("untouched imported contract differs from original storage")
+		}
+		return nil
+	}
+	if !transactionHashPattern.MatchString(contract.LastCallTxHash) || contract.LastUpdatedHeight <= int64(identity.MigrationHeight) || uint64(contract.LastUpdatedHeight) > height {
+		return errors.New("invalid imported contract update identity")
+	}
+	var receipt consensus.BFTEVMReceipt
+	if err := g.evmCallAtHeight(ctx, "/evm/receipts/"+contract.LastCallTxHash, height, &receipt); err != nil || consensus.ValidateBFTEVMReceipt(receipt) != nil || receipt.TxHash != contract.LastCallTxHash || receipt.To != address || receipt.Action != consensus.ActionIDEContractCall || receipt.BlockHeight != contract.LastUpdatedHeight {
+		return errors.New("imported contract update receipt unavailable or inconsistent")
+	}
+	return nil
 }
 
 var errEVMCallHeightMismatch = errors.New("contract call snapshot height differs from requested committed block")

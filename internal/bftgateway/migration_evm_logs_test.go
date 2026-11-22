@@ -27,7 +27,7 @@ func TestGatewayOriginalEVMLogsCrossMigrationAndColdRead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	source, _ := gatewayBoundedFixture(t)
+	source, bytecode := gatewayBoundedFixture(t)
 	var address string
 	f := newPQIdentityFixture(t, func(d *chain.Devnet) {
 		if _, err := d.Faucet(owner, 1000); err != nil {
@@ -246,6 +246,15 @@ func TestGatewayOriginalEVMLogsCrossMigrationAndColdRead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	gateway := httptest.NewServer(g.Handler())
+	defer gateway.Close()
+	assertContractReads := func() {
+		t.Helper()
+		assertRPCResult(t, gateway.URL+"/evm", `{"jsonrpc":"2.0","id":1,"method":"eth_getCode","params":["`+address+`","latest"]}`, bytecode)
+		assertRPCResult(t, gateway.URL+"/evm", `{"jsonrpc":"2.0","id":2,"method":"eth_getStorageAt","params":["`+address+`","0x0","latest"]}`, "0x"+strings.Repeat("0", 62)+"11")
+		assertRPCResult(t, gateway.URL+"/evm", `{"jsonrpc":"2.0","id":3,"method":"eth_call","params":[{"to":"`+address+`","data":"0x06661abd"},"latest"]}`, "0x"+strings.Repeat("0", 62)+"11")
+	}
+	assertContractReads()
 	read := func(filter string) ([]byte, []map[string]any, string) {
 		t.Helper()
 		w := httptest.NewRecorder()
@@ -363,6 +372,7 @@ func TestGatewayOriginalEVMLogsCrossMigrationAndColdRead(t *testing.T) {
 		t.Fatal(err)
 	}
 	f.app, live.app = cold, cold
+	assertContractReads()
 	if afterCold, _, failure := read(crossFilter); failure != "" || !bytes.Equal(beforeCold, afterCold) {
 		t.Fatal("cold original/new log read changed event bytes", failure)
 	}

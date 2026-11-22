@@ -192,6 +192,12 @@ func bftContractAuditHash(value BFTContract) string {
 	value.AuditHash = ""
 	return recordAuditHash("YNX_BFT_CONTRACT_AUDIT_V1", value)
 }
+
+// BFTContractAuditHash exposes the existing commitment for read-only source
+// verification; it does not authenticate a remote node or grant authority.
+func BFTContractAuditHash(value BFTContract) string {
+	return bftContractAuditHash(value)
+}
 func bftEVMReceiptAuditHash(value BFTEVMReceipt) string {
 	value.AuditHash = ""
 	return recordAuditHash("YNX_BFT_EVM_RECEIPT_AUDIT_V1", value)
