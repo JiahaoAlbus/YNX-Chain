@@ -14,6 +14,7 @@ REQUIRED = {
         "TestEVMOriginalBalanceUnitCompatibility",
         "TestEVMAccountReadRejectsSnapshotHeightMismatch",
         "TestEVMContractReadRejectsSnapshotHeightMismatch",
+        "TestEVMOriginalEstimatePinsSenderHeight",
         "TestEVMNativeSignedTransferProjectionUsesWei",
         "TestEVMOriginalSignedTransactionAndReceiptUnits",
         "TestEVMOriginalSignedBroadcastAndReadback",

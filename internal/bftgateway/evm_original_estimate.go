@@ -8,7 +8,6 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ethnative"
 )
 
@@ -112,18 +111,20 @@ func (g *Gateway) evmEstimateOriginalNativeTransfer(ctx context.Context, params 
 	if err != nil || height != status.Height {
 		return nil, -32602, true, errors.New("gas quote requires current committed block")
 	}
-	if _, found, e := g.committedContract(ctx, to); e != nil {
+	if _, found, e := g.evmContractAtHeight(ctx, to, height); e != nil {
 		return nil, -32603, true, e
 	} else if found {
 		return nil, -32000, true, errors.New("native transfer to contract is unsupported")
 	}
 	if hasFrom {
-		var account chain.ConsensusAccount
-		h, e := g.queryPQWalletJSON(ctx, "/accounts/"+from, &account)
+		account, found, e := g.evmAccountAtHeight(ctx, from, height)
 		if e != nil {
-			return nil, -32000, true, e
+			return nil, -32603, true, e
 		}
-		if h < 0 || uint64(h) != height || account.Address != from || account.Balance < 0 {
+		if !found {
+			return nil, -32000, true, errors.New("native transfer sender account not found")
+		}
+		if account.Address != from || account.Balance < 0 {
 			return nil, -32603, true, errors.New("account snapshot does not match committed quote")
 		}
 		if account.Nonce == math.MaxUint64 || nonce != nil && nonce.Uint64() != account.Nonce {
