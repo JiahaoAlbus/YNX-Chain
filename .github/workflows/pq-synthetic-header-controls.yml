@@ -30,7 +30,7 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version-file: go.mod
-      - name: Verify eight synthetic header controls
+      - name: Verify nine synthetic header controls
         env:
           GOMAXPROCS: '2'
           YNX_PR_HEAD: ${{ github.event.pull_request.head.sha }}
@@ -45,7 +45,7 @@ jobs:
           export YNX_HEADER_FORK_TREE="$(git rev-parse 'HEAD:third_party/cometbft')"
           mkdir "$RUNNER_TEMP/ynx-synthetic-header-public"
           set +e
-          go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run '^(TestCommitHeaderProbeRealBlockExecutor|TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts|TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence|TestSyntheticCommitHeaderCaptureStateSyncInvalidates|TestSyntheticCommitHeaderConcurrentReaders|TestSyntheticCommitHeaderRealEngineOffOnEquivalent|TestSyntheticCommitHeaderAndTimingAtomicSnapshot|TestSyntheticCommitHeaderIdentityOverflowRefuses)$' ./cmd/ynx-comet ./internal/consensus > "$RUNNER_TEMP/ynx-synthetic-header-public/events.jsonl"
+          go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run '^(TestCommitHeaderProbeRealBlockExecutor|TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts|TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence|TestSyntheticCommitHeaderCaptureStateSyncInvalidates|TestSyntheticCommitHeaderConcurrentReaders|TestSyntheticCommitHeaderRealEngineOffOnEquivalent|TestSyntheticCommitHeaderAndTimingAtomicSnapshot|TestSyntheticCommitHeaderOriginalClockCallback|TestSyntheticCommitHeaderIdentityOverflowRefuses)$' ./cmd/ynx-comet ./internal/consensus > "$RUNNER_TEMP/ynx-synthetic-header-public/events.jsonl"
           YNX_HEADER_GO_STATUS=$?
           set -e
           printf 'YNX-SYNTHETIC-HEADER-RAW-BEGIN/v1 source=%s run=%s attempt=%s exit=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$YNX_HEADER_GO_STATUS"
@@ -60,7 +60,7 @@ jobs:
           from pathlib import Path
           package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet'
           consensus = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
-          names = ['TestCommitHeaderProbeRealBlockExecutor', 'TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts', 'TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence', 'TestSyntheticCommitHeaderCaptureStateSyncInvalidates', 'TestSyntheticCommitHeaderConcurrentReaders', 'TestSyntheticCommitHeaderRealEngineOffOnEquivalent', 'TestSyntheticCommitHeaderAndTimingAtomicSnapshot']
+          names = ['TestCommitHeaderProbeRealBlockExecutor', 'TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts', 'TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence', 'TestSyntheticCommitHeaderCaptureStateSyncInvalidates', 'TestSyntheticCommitHeaderConcurrentReaders', 'TestSyntheticCommitHeaderRealEngineOffOnEquivalent', 'TestSyntheticCommitHeaderAndTimingAtomicSnapshot', 'TestSyntheticCommitHeaderOriginalClockCallback']
           children = ['TestSyntheticCommitHeaderRealEngineOffOnEquivalent/' + layout for layout in ('atomic-json', 'snapshot-journal', 'block-journal')]
           overflow = 'TestSyntheticCommitHeaderIdentityOverflowRefuses'
           overflow_children = [overflow + '/' + name for name in ('epoch', 'attempt')]
