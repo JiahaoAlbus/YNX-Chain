@@ -97,6 +97,7 @@ func TestEVMNativeSignedTransferProjectionUsesWei(t *testing.T) {
 func TestEVMOriginalBalanceUnitCompatibility(t *testing.T) {
 	const owner = "0x1111111111111111111111111111111111111111"
 	var balance int64
+	accountHeight := "1"
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/status":
@@ -114,7 +115,7 @@ func TestEVMOriginalBalanceUnitCompatibility(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{"code": 0, "height": "1", "value": base64.StdEncoding.EncodeToString(account)}}})
+			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{"code": 0, "height": accountHeight, "value": base64.StdEncoding.EncodeToString(account)}}})
 		default:
 			t.Error("unexpected Comet path", r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
@@ -134,7 +135,17 @@ func TestEVMOriginalBalanceUnitCompatibility(t *testing.T) {
 		}
 		assertRPCResult(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":1,"method":"eth_getBalance","params":[%q,"latest"]}`, owner), want)
 		assertRPCResult(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":2,"method":"eth_getTransactionCount","params":[%q,"latest"]}`, owner), "0x7")
+		// The original native-Ethereum adapter treats an omitted block tag as
+		// latest. Both forms must use the same committed account observation.
+		assertRPCResult(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":4,"method":"eth_getBalance","params":[%q]}`, owner), want)
+		assertRPCResult(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":5,"method":"eth_getTransactionCount","params":[%q]}`, owner), "0x7")
 	}
+	accountHeight = "2"
+	assertRPCError(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":6,"method":"eth_getBalance","params":[%q]}`, owner), -32602)
+	assertRPCError(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":7,"method":"eth_getTransactionCount","params":[%q]}`, owner), -32602)
+	accountHeight = "1"
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":8,"method":"eth_getBalance","params":[]}`, -32602)
+	assertRPCError(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":9,"method":"eth_getTransactionCount","params":[%q,"latest","extra"]}`, owner), -32602)
 	balance = -1
 	assertRPCError(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":3,"method":"eth_getBalance","params":[%q,"latest"]}`, owner), -32602)
 }

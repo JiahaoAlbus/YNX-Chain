@@ -248,8 +248,8 @@ func (g *Gateway) evmCommittedAccountResult(ctx context.Context, method string, 
 	if err := json.Unmarshal(raw, &params); err != nil {
 		return nil, errors.New("JSON-RPC params must be an array")
 	}
-	if len(params) != 2 {
-		return nil, fmt.Errorf("%s requires an address and block tag", method)
+	if len(params) < 1 || len(params) > 2 {
+		return nil, fmt.Errorf("%s requires an address and optional block tag", method)
 	}
 	var address string
 	if err := json.Unmarshal(params[0], &address); err != nil || !isCanonicalEVMAddress(address) {
@@ -259,7 +259,11 @@ func (g *Gateway) evmCommittedAccountResult(ctx context.Context, method string, 
 	if err != nil {
 		return nil, err
 	}
-	height, err := parseCommittedBlockTag(params[1], status.EarliestBlockHeight, status.Height)
+	tag := json.RawMessage(`"latest"`)
+	if len(params) == 2 {
+		tag = params[1]
+	}
+	height, err := parseCommittedBlockTag(tag, status.EarliestBlockHeight, status.Height)
 	if err != nil {
 		return nil, err
 	}
