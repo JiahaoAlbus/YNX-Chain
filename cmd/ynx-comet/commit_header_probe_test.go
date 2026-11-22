@@ -97,7 +97,7 @@ func TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts(t *testing.T) {
 	hash[0] ^= 0xff // caller mutation must not modify the owned snapshot
 	commit()
 	got, ok := app.LastSyntheticCommitHeader()
-	if !ok || !bytes.Equal(got.HeaderHash[:], original) {
+	if !ok || got.CaptureEpoch == 0 || got.Attempt == 0 || !bytes.Equal(got.HeaderHash[:], original) {
 		t.Fatal("fresh valid attempt should be observed")
 	}
 	if err := app.SetSyntheticCommitHeaderCapture(false); err != nil {
@@ -111,6 +111,14 @@ func TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts(t *testing.T) {
 	}
 	if _, ok := app.LastSyntheticCommitHeader(); ok {
 		t.Fatal("re-enabling revived an old observation")
+	}
+	if err := finalize(h+7, original); err != nil {
+		t.Fatal(err)
+	}
+	commit()
+	newer, ok := app.LastSyntheticCommitHeader()
+	if !ok || newer.CaptureEpoch <= got.CaptureEpoch || newer.Attempt != 1 {
+		t.Fatal("re-enabling did not create a fresh capture epoch")
 	}
 }
 
@@ -298,7 +306,7 @@ func TestSyntheticCommitHeaderConcurrentReaders(t *testing.T) {
 					continue
 				}
 				reads.Add(1)
-				if v.Height < f.doc.InitialHeight || v.Height >= f.doc.InitialHeight+8 || !bytes.Equal(v.HeaderHash[:], bytes.Repeat([]byte{byte(v.Height)}, 32)) || v.AppHash == [32]byte{} || !timing.Durable || timing.Height != v.Height {
+				if v.CaptureEpoch == 0 || v.Attempt == 0 || v.Height < f.doc.InitialHeight || v.Height >= f.doc.InitialHeight+8 || !bytes.Equal(v.HeaderHash[:], bytes.Repeat([]byte{byte(v.Height)}, 32)) || v.AppHash == [32]byte{} || !timing.Durable || timing.Height != v.Height {
 					select {
 					case errs <- "inconsistent owned snapshot":
 					default:

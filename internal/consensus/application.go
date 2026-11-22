@@ -48,6 +48,7 @@ type Application struct {
 	finalizeTiming              *finalizeTimingCapture        // nil by default; never state/schema
 	finalizeTimingActive        *finalizeTimings              // current Finalize only, under mu
 	commitHeaderCapture         *syntheticCommitHeaderCapture // explicit diagnostics only; guarded by mu
+	syntheticHeaderCaptureEpoch uint64                        // application-instance lifetime; guarded by mu
 	nativeVerification          nativeVerificationCache
 	replayStateVersion          int                      // decoder-owned historical journal replay only; zero for normal execution
 	replayVerificationFacts     *nativeVerificationCache // decoder-owned crypto facts only; never mutable execution state
@@ -895,6 +896,11 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 		// never be paired with a later commit merely because a height matches.
 		a.commitHeaderCapture.pending = nil
 		a.commitHeaderCapture.latest = nil
+		if a.commitHeaderCapture.attempt == ^uint64(0) {
+			a.commitHeaderCapture.exhausted = true
+		} else {
+			a.commitHeaderCapture.attempt++
+		}
 	}
 	timing := a.beginFinalizeTiming(req)
 	defer a.finishFinalizeTiming(timing)

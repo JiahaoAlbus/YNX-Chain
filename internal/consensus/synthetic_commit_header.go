@@ -12,16 +12,20 @@ import (
 // BlockID, a validator vote, a state-store completion, or finality evidence.
 // It is deliberately absent from all consensus and existing observation JSON.
 type SyntheticCommitHeader struct {
-	Height     int64
-	HeaderHash [32]byte
-	AppHash    [32]byte
+	Height       int64
+	HeaderHash   [32]byte
+	AppHash      [32]byte
+	CaptureEpoch uint64
+	Attempt      uint64
 }
 
 type syntheticCommitHeader = SyntheticCommitHeader
 
 type syntheticCommitHeaderCapture struct {
-	pending *syntheticCommitHeader
-	latest  *syntheticCommitHeader
+	pending        *syntheticCommitHeader
+	latest         *syntheticCommitHeader
+	epoch, attempt uint64
+	exhausted      bool
 }
 
 // SetSyntheticCommitHeaderCapture enables a private, latest-attempt snapshot.
@@ -41,7 +45,11 @@ func (a *Application) SetSyntheticCommitHeaderCapture(enabled bool) error {
 	if a.migration.Network.ChainID != PQLabNativeChainID || a.migration.Network.IsPublicNet || !strings.HasPrefix(a.migration.Network.Slug, "pq-lab-") || a.statePath == "" {
 		return errors.New("synthetic header capture requires lab-shaped configuration and a state path")
 	}
-	a.commitHeaderCapture = &syntheticCommitHeaderCapture{}
+	if a.syntheticHeaderCaptureEpoch == ^uint64(0) {
+		return errors.New("synthetic header capture epoch exhausted")
+	}
+	a.syntheticHeaderCaptureEpoch++
+	a.commitHeaderCapture = &syntheticCommitHeaderCapture{epoch: a.syntheticHeaderCaptureEpoch}
 	return nil
 }
 
@@ -55,7 +63,7 @@ func (a *Application) LastSyntheticCommitHeader() (SyntheticCommitHeader, bool) 
 		return SyntheticCommitHeader{}, false
 	}
 	value := *a.commitHeaderCapture.latest
-	if a.committed.Height != value.Height || a.committed.AppHash != hex.EncodeToString(value.AppHash[:]) {
+	if a.commitHeaderCapture.exhausted || value.CaptureEpoch != a.commitHeaderCapture.epoch || value.Attempt != a.commitHeaderCapture.attempt || a.committed.Height != value.Height || a.committed.AppHash != hex.EncodeToString(value.AppHash[:]) {
 		return SyntheticCommitHeader{}, false
 	}
 	return value, true
@@ -72,7 +80,7 @@ func (a *Application) LastSyntheticCommitHeaderAndTiming() (SyntheticCommitHeade
 	}
 	header := *a.commitHeaderCapture.latest
 	timing := *a.commitTimingLatest
-	if !timing.Durable || timing.Height != header.Height || a.committed.Height != header.Height || a.committed.AppHash != hex.EncodeToString(header.AppHash[:]) {
+	if a.commitHeaderCapture.exhausted || header.CaptureEpoch != a.commitHeaderCapture.epoch || header.Attempt != a.commitHeaderCapture.attempt || !timing.Durable || timing.Height != header.Height || a.committed.Height != header.Height || a.committed.AppHash != hex.EncodeToString(header.AppHash[:]) {
 		return SyntheticCommitHeader{}, CommitTimingSample{}, false
 	}
 	timing.StagesNs = make(map[string]int64, len(a.commitTimingLatest.StagesNs))
@@ -85,7 +93,7 @@ func (a *Application) LastSyntheticCommitHeaderAndTiming() (SyntheticCommitHeade
 // Caller holds a.mu; these helpers only maintain diagnostic memory and never
 // change a consensus response, persistence result, or normal error.
 func (a *Application) captureSyntheticFinalizeHeader(req interface{ GetHash() []byte }, pending CommittedState) {
-	if a.commitHeaderCapture == nil || a.snapshotRestore != nil || req == nil {
+	if a.commitHeaderCapture == nil || a.commitHeaderCapture.exhausted || a.snapshotRestore != nil || req == nil {
 		return
 	}
 	hash := req.GetHash()
@@ -93,14 +101,14 @@ func (a *Application) captureSyntheticFinalizeHeader(req interface{ GetHash() []
 	if len(hash) != 32 || bytes.Equal(hash, make([]byte, 32)) || err != nil || len(stateHash) != 32 || pending.Height <= 0 {
 		return
 	}
-	value := &syntheticCommitHeader{Height: pending.Height}
+	value := &syntheticCommitHeader{Height: pending.Height, CaptureEpoch: a.commitHeaderCapture.epoch, Attempt: a.commitHeaderCapture.attempt}
 	copy(value.HeaderHash[:], hash)
 	copy(value.AppHash[:], stateHash)
 	a.commitHeaderCapture.pending = value
 }
 
 func (a *Application) captureSyntheticCommittedHeader(value *syntheticCommitHeader) {
-	if a.commitHeaderCapture == nil || value == nil || a.statePath == "" || a.committed.Height != value.Height || a.committed.AppHash != hex.EncodeToString(value.AppHash[:]) {
+	if a.commitHeaderCapture == nil || a.commitHeaderCapture.exhausted || value == nil || value.CaptureEpoch != a.commitHeaderCapture.epoch || value.Attempt != a.commitHeaderCapture.attempt || a.statePath == "" || a.committed.Height != value.Height || a.committed.AppHash != hex.EncodeToString(value.AppHash[:]) {
 		return
 	}
 	a.commitHeaderCapture.latest = value
