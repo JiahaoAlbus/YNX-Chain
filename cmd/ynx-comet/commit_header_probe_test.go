@@ -100,6 +100,14 @@ func TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts(t *testing.T) {
 	if !ok || got.CaptureEpoch == 0 || got.Attempt == 0 || !bytes.Equal(got.HeaderHash[:], original) {
 		t.Fatal("fresh valid attempt should be observed")
 	}
+	if err := finalize(h+7, original); err != nil {
+		t.Fatal(err)
+	}
+	commit()
+	advanced, ok := app.LastSyntheticCommitHeader()
+	if !ok || advanced.CaptureEpoch != got.CaptureEpoch || advanced.Attempt <= got.Attempt {
+		t.Fatal("successive commits shared an attempt identity")
+	}
 	if err := app.SetSyntheticCommitHeaderCapture(false); err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +120,7 @@ func TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts(t *testing.T) {
 	if _, ok := app.LastSyntheticCommitHeader(); ok {
 		t.Fatal("re-enabling revived an old observation")
 	}
-	if err := finalize(h+7, original); err != nil {
+	if err := finalize(h+8, original); err != nil {
 		t.Fatal(err)
 	}
 	commit()
