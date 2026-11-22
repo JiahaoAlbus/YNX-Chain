@@ -16,6 +16,7 @@ REQUIRED = {
         "TestEVMContractReadRejectsSnapshotHeightMismatch",
         "TestEVMOriginalEstimatePinsSenderHeight",
         "TestEVMMigratedContractOriginalReads",
+        "TestEVMMigratedContractPQUpdateReadAndRestart",
         "TestGatewayOriginalEVMLogsCrossMigrationAndColdRead",
         "TestEVMNativeSignedTransferProjectionUsesWei",
         "TestEVMOriginalSignedTransactionAndReceiptUnits",
