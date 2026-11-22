@@ -27,6 +27,19 @@ type syntheticHeaderCallbackLogger struct {
 	callback *syntheticHeaderCallback
 }
 
+func syntheticRawTimingMatchesProjection(raw, projection consensus.CommitTimingSample) bool {
+	if raw.Height != projection.Height || raw.Storage != projection.Storage || raw.Durable != projection.Durable || raw.ElapsedNs != projection.ElapsedNs || raw.PayloadBytes != projection.PayloadBytes {
+		return false
+	}
+	for key, value := range raw.StagesNs {
+		got, exists := projection.StagesNs[key]
+		if !exists || got != value {
+			return false
+		}
+	}
+	return true
+}
+
 func (l *syntheticHeaderCallbackLogger) Debug(s string, kv ...interface{}) { l.base.Debug(s, kv...) }
 func (l *syntheticHeaderCallbackLogger) Error(s string, kv ...interface{}) { l.base.Error(s, kv...) }
 func (l *syntheticHeaderCallbackLogger) With(kv ...interface{}) log.Logger {
@@ -71,10 +84,23 @@ func TestSyntheticCommitHeaderOriginalClockCallback(t *testing.T) {
 	if sample.Height != cb.header.Height || sample.Persistence.Height != cb.timing.Height || clock.Height != cb.header.Height || clock.AppHash != sample.AppHash {
 		t.Fatal("callback projections differ")
 	}
-	for key, value := range cb.timing.StagesNs {
-		if sample.Persistence.StagesNs[key] != value {
-			t.Fatal("raw timing changed in projection")
-		}
+	if !syntheticRawTimingMatchesProjection(cb.timing, sample.Persistence) {
+		t.Fatal("raw timing changed in projection")
+	}
+	zero := consensus.CommitTimingSample{Height: 1, Storage: "atomic-json", Durable: true, StagesNs: map[string]int64{"required": 0}}
+	missing := zero
+	missing.StagesNs = map[string]int64{}
+	if syntheticRawTimingMatchesProjection(zero, missing) {
+		t.Fatal("missing zero-valued raw stage was accepted")
+	}
+	missing.StagesNs["required"], missing.StagesNs["validation-child"] = 0, 1
+	if !syntheticRawTimingMatchesProjection(zero, missing) {
+		t.Fatal("extra validation projection rejected")
+	}
+	changed := missing
+	changed.ElapsedNs++
+	if syntheticRawTimingMatchesProjection(zero, changed) {
+		t.Fatal("different persistence timing accepted")
 	}
 	if runtime.GOOS == "linux" {
 		assertCommitMonotonicBetween(t, before, clock.NS, after)
