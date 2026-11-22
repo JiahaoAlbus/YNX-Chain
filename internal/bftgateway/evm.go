@@ -303,10 +303,11 @@ func (g *Gateway) evmCommittedContractCode(ctx context.Context, raw json.RawMess
 	if len(params) == 2 {
 		tag = params[1]
 	}
-	if code, err := g.requireCurrentCommittedTag(ctx, tag); err != nil {
+	height, code, err := g.currentCommittedHeight(ctx, tag)
+	if err != nil {
 		return nil, code, err
 	}
-	contract, found, err := g.committedContract(ctx, address)
+	contract, found, err := g.evmContractAtHeight(ctx, address, height)
 	if err != nil {
 		return nil, -32603, err
 	}
@@ -329,10 +330,11 @@ func (g *Gateway) evmCommittedContractStorage(ctx context.Context, raw json.RawM
 	if err != nil {
 		return nil, -32602, err
 	}
-	if code, err := g.requireCurrentCommittedTag(ctx, params[2]); err != nil {
+	height, code, err := g.currentCommittedHeight(ctx, params[2])
+	if err != nil {
 		return nil, code, err
 	}
-	contract, found, err := g.committedContract(ctx, address)
+	contract, found, err := g.evmContractAtHeight(ctx, address, height)
 	if err != nil {
 		return nil, -32603, err
 	}
@@ -542,18 +544,23 @@ func (g *Gateway) evmEstimateValueTransfer(ctx context.Context, params []json.Ra
 }
 
 func (g *Gateway) requireCurrentCommittedTag(ctx context.Context, raw json.RawMessage) (int, error) {
+	_, code, err := g.currentCommittedHeight(ctx, raw)
+	return code, err
+}
+
+func (g *Gateway) currentCommittedHeight(ctx context.Context, raw json.RawMessage) (uint64, int, error) {
 	status, err := g.status(ctx)
 	if err != nil {
-		return -32603, err
+		return 0, -32603, err
 	}
 	height, err := parseCommittedBlockTag(raw, status.EarliestBlockHeight, status.Height)
 	if err != nil {
-		return -32602, err
+		return 0, -32602, err
 	}
 	if height != status.Height {
-		return -32602, errors.New("historical contract state is not available from the current CometBFT gateway")
+		return 0, -32602, errors.New("historical contract state is not available from the current CometBFT gateway")
 	}
-	return 0, nil
+	return height, 0, nil
 }
 
 func (g *Gateway) committedContract(ctx context.Context, address string) (consensus.BFTContract, bool, error) {
@@ -564,19 +571,26 @@ func (g *Gateway) committedContract(ctx context.Context, address string) (consen
 		}
 		return consensus.BFTContract{}, false, err
 	}
+	if err := validateCommittedContract(contract, address); err != nil {
+		return consensus.BFTContract{}, false, err
+	}
+	return contract, true, nil
+}
+
+func validateCommittedContract(contract consensus.BFTContract, address string) error {
 	if contract.Address != address || contract.RuntimeMode != chain.BoundedContractRuntimeMode || contract.BlockHeight <= 0 || contract.LastUpdatedHeight < contract.BlockHeight || !transactionHashPattern.MatchString(contract.TxHash) {
-		return consensus.BFTContract{}, false, errors.New("ABCI bounded contract evidence is invalid")
+		return errors.New("ABCI bounded contract evidence is invalid")
 	}
 	bytecodeHash, err := chain.ValidateBoundedPinnedIdentity(contract.Name, contract.SourceHash, contract.DeployedBytecode)
 	if err != nil || bytecodeHash != contract.DeployedBytecodeHash || !isCanonicalEVMData(contract.DeployedBytecode, 1, 12<<10) {
-		return consensus.BFTContract{}, false, errors.New("ABCI bounded contract artifact identity is invalid")
+		return errors.New("ABCI bounded contract artifact identity is invalid")
 	}
 	for slot, value := range contract.RuntimeStorage {
 		if !evmWordPattern.MatchString(slot) || !evmWordPattern.MatchString(value) {
-			return consensus.BFTContract{}, false, errors.New("ABCI bounded contract storage evidence is invalid")
+			return errors.New("ABCI bounded contract storage evidence is invalid")
 		}
 	}
-	return contract, true, nil
+	return nil
 }
 
 func parseCanonicalEVMStoragePosition(raw json.RawMessage) (string, error) {

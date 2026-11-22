@@ -109,7 +109,7 @@ func TestEVMOriginalBalanceUnitCompatibility(t *testing.T) {
 			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"validators": []any{map[string]any{}, map[string]any{}, map[string]any{}, map[string]any{}}}})
 		case "/abci_query":
 			if r.URL.Query().Get("path") == fmt.Sprintf("%q", "/ide/contracts/"+owner) {
-				_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{"code": 1, "log": "IDE contract not found"}}})
+				_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{"code": 1, "height": "1", "log": "IDE contract not found"}}})
 				return
 			}
 			if r.URL.Query().Get("path") != fmt.Sprintf("%q", "/accounts/"+owner) {

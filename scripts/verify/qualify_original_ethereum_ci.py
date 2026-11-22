@@ -13,6 +13,7 @@ REQUIRED = {
         "TestEVMUnversionedValueUnitsHeldBeforeBroadcast",
         "TestEVMOriginalBalanceUnitCompatibility",
         "TestEVMAccountReadRejectsSnapshotHeightMismatch",
+        "TestEVMContractReadRejectsSnapshotHeightMismatch",
         "TestEVMNativeSignedTransferProjectionUsesWei",
         "TestEVMOriginalSignedTransactionAndReceiptUnits",
         "TestEVMOriginalSignedBroadcastAndReadback",

@@ -53,3 +53,50 @@ func (g *Gateway) evmAccountAtHeight(ctx context.Context, address string, height
 	}
 	return account, true, nil
 }
+
+// Pin both presence and absence to the requested committed height. A moving
+// node must never turn a newer missing-contract result into an older zero value.
+func (g *Gateway) evmContractAtHeight(ctx context.Context, address string, height uint64) (consensus.BFTContract, bool, error) {
+	var contract consensus.BFTContract
+	var upstream struct {
+		cometABCIQuery
+		Error *cometRPCError `json:"error"`
+	}
+	httpClient := *g.client.httpClient
+	httpClient.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	client := *g.client
+	client.httpClient = &httpClient
+	limit := int64((consensus.MaxPQWalletQueryBytes+2)/3*4 + (64 << 10))
+	query := url.Values{"path": {fmt.Sprintf("%q", "/ide/contracts/"+address)}, "height": {strconv.FormatUint(height, 10)}}
+	if err := client.getBounded(ctx, "/abci_query", query, &upstream, limit); err != nil {
+		return contract, false, err
+	}
+	if upstream.Error != nil {
+		return contract, false, errors.New(cometError(upstream.Error))
+	}
+	response := upstream.Result.Response
+	h, err := strconv.ParseUint(response.Height, 10, 64)
+	if err != nil || strconv.FormatUint(h, 10) != response.Height || h != height {
+		return contract, false, errors.New("contract snapshot height differs from requested committed block")
+	}
+	if response.Code != 0 {
+		if response.Log == "IDE contract not found" && response.Value == "" {
+			return contract, false, nil
+		}
+		return contract, false, errors.New("ABCI contract query rejected")
+	}
+	payload, err := base64.StdEncoding.DecodeString(response.Value)
+	if err != nil || len(payload) == 0 || len(payload) > consensus.MaxPQWalletQueryBytes || base64.StdEncoding.EncodeToString(payload) != response.Value {
+		return contract, false, errors.New("invalid bounded ABCI contract value")
+	}
+	if err := strictPQJSON(payload, &contract); err != nil {
+		return contract, false, err
+	}
+	if err := validateCommittedContract(contract, address); err != nil {
+		return contract, false, err
+	}
+	if uint64(contract.LastUpdatedHeight) > height {
+		return contract, false, errors.New("contract update height exceeds requested committed block")
+	}
+	return contract, true, nil
+}

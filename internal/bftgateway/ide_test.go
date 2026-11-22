@@ -1,12 +1,15 @@
 package bftgateway
 
 import (
+	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -53,6 +56,27 @@ func TestGatewayCommitsBoundedIDEAndReturnsEVMLogs(t *testing.T) {
 	if deployed.Contract.Address == "" || deployed.Receipt.ContractAddress != deployed.Contract.Address {
 		t.Fatalf("bad gateway deployment: %+v", deployed)
 	}
+	// Even a structurally valid contract cannot be returned for a snapshot
+	// older than its last update, including when an RPC labels the value H.
+	futureContract := deployed.Contract
+	futureContract.LastUpdatedHeight = futureContract.BlockHeight + 1
+	futureJSON, err := json.Marshal(futureContract)
+	if err != nil {
+		t.Fatal(err)
+	}
+	futureRPC := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{
+			"code": 0, "height": strconv.FormatInt(futureContract.BlockHeight, 10), "value": base64.StdEncoding.EncodeToString(futureJSON),
+		}}})
+	}))
+	defer futureRPC.Close()
+	futureGateway, err := New(Config{CometRPCURL: futureRPC.URL})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := futureGateway.evmContractAtHeight(context.Background(), futureContract.Address, uint64(futureContract.BlockHeight)); err == nil {
+		t.Fatal("future contract update accepted for an earlier committed height")
+	}
 	var verifier map[string]any
 	getJSON(t, server.URL+"/ide/verifier/"+deployed.Contract.Address, &verifier)
 	if verifier["verificationStatus"] != "source_and_deployed_bytecode_identity_committed" || verifier["remotePublicProofStatus"] != "not_claimed" {
@@ -78,6 +102,7 @@ func TestGatewayCommitsBoundedIDEAndReturnsEVMLogs(t *testing.T) {
 	}
 
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":10,"method":"eth_getCode","params":["`+deployed.Contract.Address+`","latest"]}`, bytecode)
+	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":101,"method":"eth_getCode","params":["`+deployed.Contract.Address+`"]}`, bytecode)
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":11,"method":"eth_getCode","params":["0x0000000000000000000000000000000000000000","latest"]}`, "0x")
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":17,"method":"eth_getStorageAt","params":["`+deployed.Contract.Address+`","0x0","latest"]}`, "0x"+strings.Repeat("0", 63)+"c")
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":18,"method":"eth_getStorageAt","params":["`+deployed.Contract.Address+`","0x1","latest"]}`, "0x"+strings.Repeat("0", 64))
