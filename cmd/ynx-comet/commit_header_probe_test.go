@@ -123,6 +123,7 @@ func TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence(t *testing.T
 	if err := app.SetSyntheticCommitHeaderCapture(true); err != nil {
 		t.Fatal(err)
 	}
+	app.SetCommitTimingEnabled(true)
 	snapshot, err := app.CommittedPQEngineSnapshot()
 	if err != nil {
 		t.Fatal(err)
@@ -150,6 +151,9 @@ func TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence(t *testing.T
 	if _, ok := app.LastSyntheticCommitHeader(); ok {
 		t.Fatal("failed persistence exposed a commit header")
 	}
+	if _, _, ok := app.LastSyntheticCommitHeaderAndTiming(); ok {
+		t.Fatal("failed persistence exposed an atomic header and timing")
+	}
 	if err := os.Remove(dir); err != nil {
 		t.Fatal(err)
 	}
@@ -162,6 +166,9 @@ func TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence(t *testing.T
 	if _, ok := app.LastSyntheticCommitHeader(); ok {
 		t.Fatal("retry after failed persistence revived the discarded header")
 	}
+	if _, _, ok := app.LastSyntheticCommitHeaderAndTiming(); ok {
+		t.Fatal("retry revived an atomic header and timing")
+	}
 }
 
 func TestSyntheticCommitHeaderCaptureStateSyncInvalidates(t *testing.T) {
@@ -171,6 +178,7 @@ func TestSyntheticCommitHeaderCaptureStateSyncInvalidates(t *testing.T) {
 	if err := target.SetSyntheticCommitHeaderCapture(true); err != nil {
 		t.Fatal(err)
 	}
+	target.SetCommitTimingEnabled(true)
 	ctx := context.Background()
 	advance := func(app *consensus.Application, h int64) {
 		t.Helper()
@@ -195,6 +203,9 @@ func TestSyntheticCommitHeaderCaptureStateSyncInvalidates(t *testing.T) {
 	if _, ok := target.LastSyntheticCommitHeader(); !ok {
 		t.Fatal("target did not capture its own original commit")
 	}
+	if _, _, ok := target.LastSyntheticCommitHeaderAndTiming(); !ok {
+		t.Fatal("target did not capture its own atomic timing")
+	}
 	advance(source, h+1)
 	advance(source, h+2)
 	info, err := source.Info(ctx, &abci.RequestInfo{})
@@ -213,11 +224,17 @@ func TestSyntheticCommitHeaderCaptureStateSyncInvalidates(t *testing.T) {
 	if _, ok := target.LastSyntheticCommitHeader(); ok {
 		t.Fatal("state-sync offer retained the old header")
 	}
+	if _, _, ok := target.LastSyntheticCommitHeaderAndTiming(); ok {
+		t.Fatal("state-sync offer retained the old atomic timing")
+	}
 	// The application accepts ordinary calls while chunks are outstanding.
 	// They must not publish an observation during the restore.
 	advance(target, h+1)
 	if _, ok := target.LastSyntheticCommitHeader(); ok {
 		t.Fatal("commit during state sync published a header")
+	}
+	if _, _, ok := target.LastSyntheticCommitHeaderAndTiming(); ok {
+		t.Fatal("commit during state sync published an atomic timing")
 	}
 	bad, err := target.ApplySnapshotChunk(ctx, &abci.RequestApplySnapshotChunk{Index: 0})
 	if err != nil || bad.Result != abci.ResponseApplySnapshotChunk_REJECT_SNAPSHOT {
@@ -225,6 +242,9 @@ func TestSyntheticCommitHeaderCaptureStateSyncInvalidates(t *testing.T) {
 	}
 	if _, ok := target.LastSyntheticCommitHeader(); ok {
 		t.Fatal("failed restore revived a header")
+	}
+	if _, _, ok := target.LastSyntheticCommitHeaderAndTiming(); ok {
+		t.Fatal("failed restore revived an atomic timing")
 	}
 	offer, err = target.OfferSnapshot(ctx, &abci.RequestOfferSnapshot{Snapshot: snapshot, AppHash: info.LastBlockAppHash})
 	if err != nil || offer.Result != abci.ResponseOfferSnapshot_ACCEPT {
@@ -243,6 +263,9 @@ func TestSyntheticCommitHeaderCaptureStateSyncInvalidates(t *testing.T) {
 	if _, ok := target.LastSyntheticCommitHeader(); ok {
 		t.Fatal("restored state was reported as this instance's Commit")
 	}
+	if _, _, ok := target.LastSyntheticCommitHeaderAndTiming(); ok {
+		t.Fatal("restored state was reported as an atomic Commit timing")
+	}
 }
 
 func TestSyntheticCommitHeaderConcurrentReaders(t *testing.T) {
@@ -251,6 +274,7 @@ func TestSyntheticCommitHeaderConcurrentReaders(t *testing.T) {
 	if err := app.SetSyntheticCommitHeaderCapture(true); err != nil {
 		t.Fatal(err)
 	}
+	app.SetCommitTimingEnabled(true)
 	stop := make(chan struct{})
 	ready := make(chan struct{}, 4)
 	errs := make(chan string, 4)
@@ -267,12 +291,12 @@ func TestSyntheticCommitHeaderConcurrentReaders(t *testing.T) {
 					return
 				default:
 				}
-				v, ok := app.LastSyntheticCommitHeader()
+				v, timing, ok := app.LastSyntheticCommitHeaderAndTiming()
 				if !ok {
 					continue
 				}
 				reads.Add(1)
-				if v.Height < f.doc.InitialHeight || v.Height >= f.doc.InitialHeight+8 || !bytes.Equal(v.HeaderHash[:], bytes.Repeat([]byte{byte(v.Height)}, 32)) || v.AppHash == [32]byte{} {
+				if v.Height < f.doc.InitialHeight || v.Height >= f.doc.InitialHeight+8 || !bytes.Equal(v.HeaderHash[:], bytes.Repeat([]byte{byte(v.Height)}, 32)) || v.AppHash == [32]byte{} || !timing.Durable || timing.Height != v.Height {
 					select {
 					case errs <- "inconsistent owned snapshot":
 					default:
