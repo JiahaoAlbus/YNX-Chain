@@ -125,6 +125,11 @@ func (a *Application) OfferSnapshot(_ context.Context, req *abcitypes.RequestOff
 		return &abcitypes.ResponseOfferSnapshot{Result: abcitypes.ResponseOfferSnapshot_REJECT}, nil
 	}
 
+	if a.commitHeaderCapture != nil {
+		// State sync is a different state lineage, even before all chunks arrive.
+		a.commitHeaderCapture.pending = nil
+		a.commitHeaderCapture.latest = nil
+	}
 	a.snapshotRestore = &stateSyncSnapshotRestore{
 		snapshot:        cloneABCSnapshot(snapshot),
 		metadata:        metadata,
@@ -213,6 +218,11 @@ func (a *Application) ApplySnapshotChunk(_ context.Context, req *abcitypes.Reque
 	}
 	a.committed = state
 	a.pending = nil
+	if a.commitHeaderCapture != nil {
+		// A restored state is not the result of this instance's observed Commit.
+		a.commitHeaderCapture.pending = nil
+		a.commitHeaderCapture.latest = nil
+	}
 	a.pendingBlockRequest = nil
 	a.pendingBlockResponseHash = ""
 	a.snapshotRestore = nil
