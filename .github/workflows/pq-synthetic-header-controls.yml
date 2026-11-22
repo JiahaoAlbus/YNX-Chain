@@ -1,0 +1,73 @@
+name: Synthetic Commit Header Controls
+
+on:
+  push:
+    branches:
+      - codex/perf-commit-header-observer-20261122
+      - codex/ynx-pq-perf-integration
+    paths:
+      - .github/workflows/pq-synthetic-header-controls.yml
+      - .github/workflows/resource-market-ci.yml
+      - cmd/ynx-comet/**
+      - internal/consensus/**
+      - third_party/cometbft/**
+      - go.mod
+      - go.sum
+  pull_request:
+    branches:
+      - codex/ynx-pq-perf-integration
+    paths:
+      - .github/workflows/pq-synthetic-header-controls.yml
+      - .github/workflows/resource-market-ci.yml
+      - cmd/ynx-comet/**
+      - internal/consensus/**
+      - third_party/cometbft/**
+      - go.mod
+      - go.sum
+
+permissions:
+  contents: read
+
+concurrency:
+  group: synthetic-commit-header-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  synthetic-header:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Set up source Go toolchain
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+      - name: Verify five synthetic header controls
+        env:
+          GOMAXPROCS: '2'
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(wc -c < .github/workflows/resource-market-ci.yml)" -lt 512000
+          go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run '^(TestCommitHeaderProbeRealBlockExecutor|TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts|TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence|TestSyntheticCommitHeaderCaptureStateSyncInvalidates|TestSyntheticCommitHeaderConcurrentReaders)$' ./cmd/ynx-comet > "$RUNNER_TEMP/ynx-synthetic-header-tests.jsonl"
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet'
+          names = ['TestCommitHeaderProbeRealBlockExecutor', 'TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts', 'TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence', 'TestSyntheticCommitHeaderCaptureStateSyncInvalidates', 'TestSyntheticCommitHeaderConcurrentReaders']
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-synthetic-header-tests.jsonl').read_text().splitlines()]
+          if any(e.get('Action') in ('fail', 'skip', 'build-fail') for e in events):
+              raise RuntimeError('synthetic header control failed or skipped')
+          if [(e.get('Package'), e.get('Action')) for e in events if not e.get('Test') and e.get('Action') in ('start', 'pass')] != [(package, 'start'), (package, 'pass')]:
+              raise RuntimeError('synthetic header package did not execute exactly once')
+          if {e['Test'] for e in events if e.get('Test')} != set(names):
+              raise RuntimeError('unexpected or missing synthetic header control')
+          for name in names:
+              if [(e.get('Package'), e.get('Action')) for e in events if e.get('Test') == name and e.get('Action') in ('run', 'pass', 'skip', 'fail')] != [(package, 'run'), (package, 'pass')]:
+                  raise RuntimeError('synthetic header control did not run and pass exactly once: ' + name)
+          print('YNX_SYNTHETIC_HEADER_CONTROLS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], tests=names, runtimeAuthorized=False, independentFinalityVerified=False), sort_keys=True))
+          PY

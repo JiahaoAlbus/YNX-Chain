@@ -2842,28 +2842,6 @@ jobs:
               raise RuntimeError('observer stream failed or an observer child skipped')
           print('YNX_PQ_OBSERVER_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=observer_required, nodeStarted=False, liveSyncVerified=False, independentFinalityVerified=False, nativeGrant=False), sort_keys=True))
           PY
-      - name: Verify synthetic Commit header diagnostic controls
-        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
-        timeout-minutes: 3
-        run: |
-          set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run '^(TestCommitHeaderProbeRealBlockExecutor|TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts|TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence|TestSyntheticCommitHeaderCaptureStateSyncInvalidates|TestSyntheticCommitHeaderConcurrentReaders)$' ./cmd/ynx-comet > "$RUNNER_TEMP/ynx-synthetic-header-tests.jsonl"
-          python3 -B - <<'PY'
-          import json, os
-          from pathlib import Path
-          package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet'
-          names = ['TestCommitHeaderProbeRealBlockExecutor', 'TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts', 'TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence', 'TestSyntheticCommitHeaderCaptureStateSyncInvalidates', 'TestSyntheticCommitHeaderConcurrentReaders']
-          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-synthetic-header-tests.jsonl').read_text().splitlines()]
-          if any(e.get('Action') in ('fail', 'skip', 'build-fail') for e in events):
-              raise RuntimeError('synthetic header control failed or skipped')
-          if [(e.get('Package'), e.get('Action')) for e in events if not e.get('Test') and e.get('Action') in ('start', 'pass')] != [(package, 'start'), (package, 'pass')]:
-              raise RuntimeError('synthetic header package did not execute exactly once')
-          for name in names:
-              if [(e.get('Package'), e.get('Action')) for e in events if e.get('Test') == name and e.get('Action') in ('run', 'pass', 'skip', 'fail')] != [(package, 'run'), (package, 'pass')]:
-                  raise RuntimeError('synthetic header control did not run and pass exactly once: ' + name)
-          print('YNX_SYNTHETIC_HEADER_CONTROLS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], tests=names, runtimeAuthorized=False, independentFinalityVerified=False), sort_keys=True))
-          PY
       - name: Verify synthetic local Commit monotonic boundary
         id: syntheticclock
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
