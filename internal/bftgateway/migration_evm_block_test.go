@@ -279,6 +279,24 @@ func TestGatewayImportedEVMBlocksActualSourceAndColdRead(t *testing.T) {
 	if row, failed := f.rpc(t, "eth_getTransactionByBlockHashAndIndex", hash, "0x0"); failed || !bytes.Equal(row, first) {
 		t.Fatal("source indexed transaction differs from full block")
 	}
+	nativeBytes, err := json.Marshal(native)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nativeHash := "0x" + strings.TrimPrefix(f.block.Transactions[1].Hash, "0x")
+	checkNativeByHash := func() {
+		t.Helper()
+		if row, failed := f.rpc(t, "eth_getTransactionByHash", nativeHash); failed || !bytes.Equal(row, nativeBytes) {
+			t.Fatal("source native transaction by hash differs from its full block", string(row), failed)
+		}
+		if row, failed := f.rpc(t, "eth_getTransactionByBlockNumberAndIndex", number, "0x1"); failed || !bytes.Equal(row, nativeBytes) {
+			t.Fatal("source native transaction by index differs from its full block", string(row), failed)
+		}
+		if _, failed := f.rpc(t, "eth_getTransactionReceipt", nativeHash); !failed {
+			t.Fatal("source native transaction acquired an unavailable receipt")
+		}
+	}
+	checkNativeByHash()
 	if row, failed := f.rpc(t, "eth_getTransactionByBlockNumberAndIndex", number, "0x2"); failed || string(row) != "null" {
 		t.Fatal("source out-of-range transaction index did not return null")
 	}
@@ -294,6 +312,7 @@ func TestGatewayImportedEVMBlocksActualSourceAndColdRead(t *testing.T) {
 		t.Fatal(err)
 	}
 	f.f.app = cold
+	checkNativeByHash()
 	if !bytes.Equal(full, readBlock(hash, true, true)) {
 		t.Fatal("cold recovery changed original EVM block fields or anchor")
 	}

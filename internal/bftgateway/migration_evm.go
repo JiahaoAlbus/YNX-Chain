@@ -55,7 +55,10 @@ func (g *Gateway) importedEVMTransaction(ctx context.Context, hash string, recei
 		return nil, true, fmt.Errorf("invalid original Ethereum envelope: %w", err)
 	}
 	if !present {
-		return nil, true, errors.New("original native transaction has no Ethereum envelope; historical Ethereum projection is unsupported")
+		// Preserve the same original-only projection exposed by the source
+		// block and indexed routes. Missing Ethereum fields stay null.
+		projected, err := projectImportedEVMTransaction(original.Transaction, uint64(index), original.MigrationHistoryAnchor)
+		return projected, true, err
 	}
 	if original.Type != "transfer" || !ethnative.Matches(eth, original.Hash, original.From, original.To, original.Amount, original.Fee, original.Nonce) {
 		return nil, true, errors.New("original Ethereum envelope differs from the retained native transaction")

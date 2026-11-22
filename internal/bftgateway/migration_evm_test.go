@@ -214,13 +214,28 @@ func TestGatewayOriginalEthereumTransactionAndUnavailableReceipt(t *testing.T) {
 	if _, _, failure := read("eth_getTransactionReceipt", eth.Hash); !strings.Contains(failure, "no retained Ethereum execution receipt") {
 		t.Fatal("old receipt absence was masked or fabricated", failure)
 	}
-	if _, _, failure := read("eth_getTransactionByHash", nativeHash); !strings.Contains(failure, "historical Ethereum projection is unsupported") {
-		t.Fatal("ordinary original native transaction was projected as Ethereum", failure)
+	nativeBefore, native, failure := read("eth_getTransactionByHash", nativeHash)
+	if failure != "" || native["hash"] != nativeHash || native["ynxEncoding"] != "native-source" || native["independentFinality"] != false {
+		t.Fatal("ordinary original native transaction lost its source projection", native, failure)
+	}
+	for _, field := range []string{"value", "nonce", "gas", "gasPrice", "v", "r", "s", "type", "input"} {
+		if value, found := native[field]; !found || value != nil {
+			t.Fatal("ordinary original native transaction acquired a fabricated Ethereum field", field, value)
+		}
+	}
+	if _, _, failure := read("eth_getTransactionReceipt", nativeHash); !strings.Contains(failure, "no retained Ethereum execution receipt") {
+		t.Fatal("native source acquired an unavailable receipt", failure)
 	}
 	for _, bad := range []string{"source-http", "block-http", "amount", "nonce", "malformed-memo", "different-signed-memo", "wrong-block", "duplicate-position", "missing-position", "different-record", "block-anchor", "inconsistent-membership"} {
 		mode.Store(bad)
 		if _, _, failure := read("eth_getTransactionByHash", eth.Hash); failure == "" {
 			t.Fatal("invalid original source accepted", bad)
+		}
+	}
+	for _, bad := range []string{"source-http", "block-http", "wrong-block", "block-anchor", "inconsistent-membership"} {
+		mode.Store(bad)
+		if _, _, failure := read("eth_getTransactionByHash", nativeHash); failure == "" {
+			t.Fatal("invalid original native source accepted", bad)
 		}
 	}
 	mode.Store("")
@@ -232,6 +247,9 @@ func TestGatewayOriginalEthereumTransactionAndUnavailableReceipt(t *testing.T) {
 		t.Fatal(err)
 	}
 	f.app = cold
+	if again, _, failure := read("eth_getTransactionByHash", nativeHash); failure != "" || !bytes.Equal(nativeBefore, again) {
+		t.Fatal("cold source query changed original native fields", failure)
+	}
 	if again, _, failure := read("eth_getTransactionByHash", eth.Hash); failure != "" || !bytes.Equal(first, again) {
 		t.Fatal("cold source query changed original Ethereum fields", failure)
 	}
