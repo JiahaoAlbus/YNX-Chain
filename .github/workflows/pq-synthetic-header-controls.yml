@@ -30,7 +30,7 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version-file: go.mod
-      - name: Verify five synthetic header controls
+      - name: Verify six synthetic header controls
         env:
           GOMAXPROCS: '2'
           YNX_PR_HEAD: ${{ github.event.pull_request.head.sha }}
@@ -38,13 +38,14 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          test -z "$(git status --porcelain --untracked-files=no)"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          test -z "$(git ls-files --others --ignored --exclude-standard)"
           test "$(wc -c < .github/workflows/resource-market-ci.yml)" -lt 512000
           export YNX_HEADER_TREE="$(git rev-parse 'HEAD^{tree}')"
           export YNX_HEADER_FORK_TREE="$(git rev-parse 'HEAD:third_party/cometbft')"
           mkdir "$RUNNER_TEMP/ynx-synthetic-header-public"
           set +e
-          go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run '^(TestCommitHeaderProbeRealBlockExecutor|TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts|TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence|TestSyntheticCommitHeaderCaptureStateSyncInvalidates|TestSyntheticCommitHeaderConcurrentReaders)$' ./cmd/ynx-comet > "$RUNNER_TEMP/ynx-synthetic-header-public/events.jsonl"
+          go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run '^(TestCommitHeaderProbeRealBlockExecutor|TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts|TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence|TestSyntheticCommitHeaderCaptureStateSyncInvalidates|TestSyntheticCommitHeaderConcurrentReaders|TestSyntheticCommitHeaderRealEngineOffOnEquivalent)$' ./cmd/ynx-comet > "$RUNNER_TEMP/ynx-synthetic-header-public/events.jsonl"
           YNX_HEADER_GO_STATUS=$?
           set -e
           printf 'YNX-SYNTHETIC-HEADER-RAW-BEGIN/v1 source=%s run=%s attempt=%s exit=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$YNX_HEADER_GO_STATUS"
@@ -52,12 +53,14 @@ jobs:
           printf 'YNX-SYNTHETIC-HEADER-RAW-END/v1 source=%s run=%s attempt=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT"
           test "$YNX_HEADER_GO_STATUS" -eq 0
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          test -z "$(git status --porcelain --untracked-files=no)"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          test -z "$(git ls-files --others --ignored --exclude-standard)"
           python3 -B - <<'PY'
           import hashlib, json, os
           from pathlib import Path
           package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet'
-          names = ['TestCommitHeaderProbeRealBlockExecutor', 'TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts', 'TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence', 'TestSyntheticCommitHeaderCaptureStateSyncInvalidates', 'TestSyntheticCommitHeaderConcurrentReaders']
+          names = ['TestCommitHeaderProbeRealBlockExecutor', 'TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts', 'TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence', 'TestSyntheticCommitHeaderCaptureStateSyncInvalidates', 'TestSyntheticCommitHeaderConcurrentReaders', 'TestSyntheticCommitHeaderRealEngineOffOnEquivalent']
+          children = ['TestSyntheticCommitHeaderRealEngineOffOnEquivalent/' + layout for layout in ('atomic-json', 'snapshot-journal', 'block-journal')]
           out = Path(os.environ['RUNNER_TEMP']) / 'ynx-synthetic-header-public'
           raw = (out / 'events.jsonl').read_bytes()
           events = [json.loads(line) for line in raw.splitlines()]
@@ -65,12 +68,12 @@ jobs:
               raise RuntimeError('synthetic header control failed or skipped')
           if [(e.get('Package'), e.get('Action')) for e in events if not e.get('Test') and e.get('Action') in ('start', 'pass')] != [(package, 'start'), (package, 'pass')]:
               raise RuntimeError('synthetic header package did not execute exactly once')
-          if {e['Test'] for e in events if e.get('Test')} != set(names):
+          if {e['Test'] for e in events if e.get('Test')} != set(names + children):
               raise RuntimeError('unexpected or missing synthetic header control')
-          for name in names:
+          for name in names + children:
               if [(e.get('Package'), e.get('Action')) for e in events if e.get('Test') == name and e.get('Action') in ('run', 'pass', 'skip', 'fail')] != [(package, 'run'), (package, 'pass')]:
                   raise RuntimeError('synthetic header control did not run and pass exactly once: ' + name)
-          metadata = dict(version='YNX-SYNTHETIC-HEADER-CONTROLS/v1', sourceCommit=os.environ['GITHUB_SHA'], sourceTree=os.environ['YNX_HEADER_TREE'], forkTree=os.environ['YNX_HEADER_FORK_TREE'], eventName=os.environ['GITHUB_EVENT_NAME'], pullRequestHead=os.environ['YNX_PR_HEAD'], pullRequestBase=os.environ['YNX_PR_BASE'], runId=os.environ['GITHUB_RUN_ID'], attempt=os.environ['GITHUB_RUN_ATTEMPT'], job=os.environ['GITHUB_JOB'], eventsBytes=len(raw), eventsSha256=hashlib.sha256(raw).hexdigest(), tests=names, runtimeAuthorized=False, independentFinalityVerified=False)
+          metadata = dict(version='YNX-SYNTHETIC-HEADER-CONTROLS/v1', sourceCommit=os.environ['GITHUB_SHA'], sourceTree=os.environ['YNX_HEADER_TREE'], forkTree=os.environ['YNX_HEADER_FORK_TREE'], eventName=os.environ['GITHUB_EVENT_NAME'], pullRequestHead=os.environ['YNX_PR_HEAD'], pullRequestBase=os.environ['YNX_PR_BASE'], runId=os.environ['GITHUB_RUN_ID'], attempt=os.environ['GITHUB_RUN_ATTEMPT'], job=os.environ['GITHUB_JOB'], eventsBytes=len(raw), eventsSha256=hashlib.sha256(raw).hexdigest(), tests=names, children=children, runtimeAuthorized=False, independentFinalityVerified=False)
           metadata_line = json.dumps(metadata, sort_keys=True, separators=(',', ':'))
           (out / 'metadata.json').write_text(metadata_line + '\n')
           print('YNX-SYNTHETIC-HEADER-METADATA/v1 ' + metadata_line)

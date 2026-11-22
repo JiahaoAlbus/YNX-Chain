@@ -5,6 +5,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -421,5 +422,39 @@ func TestCommitHeaderProbeRealBlockExecutor(t *testing.T) {
 	}
 	if _, ok := app.LastSyntheticCommitHeader(); ok {
 		t.Fatal("a failed later finalize reused the old header observation")
+	}
+}
+
+func TestSyntheticCommitHeaderRealEngineOffOnEquivalent(t *testing.T) {
+	f := newCommitObservationFixture(t)
+	for _, layout := range []string{"atomic-json", "snapshot-journal", "block-journal"} {
+		t.Run(layout, func(t *testing.T) {
+			var states, fees, hashes [][]byte
+			var stores []map[string][]byte
+			for _, enabled := range []bool{false, true} {
+				dir := t.TempDir()
+				app, _, _ := makeObservedOperatorApplication(t, f, layout, filepath.Join(dir, "state"), false)
+				if enabled {
+					if err := app.SetSyntheticCommitHeaderCapture(true); err != nil {
+						t.Fatal(err)
+					}
+				}
+				next, block, err := executeObservedEngineCommit(t, f, app, log.NewNopLogger(), cmttypes.Txs{f.transfer})
+				if err != nil {
+					t.Fatal(err)
+				}
+				states = append(states, cometJournalQuery(t, app, "/state", nil))
+				fees = append(fees, cometJournalQuery(t, app, "/economics/fees", nil))
+				hashes = append(hashes, bytes.Clone(next.AppHash))
+				stores = append(stores, commitObservationStateFiles(t, dir))
+				value, ok := app.LastSyntheticCommitHeader()
+				if ok != enabled || (enabled && (value.Height != block.Height || !bytes.Equal(value.HeaderHash[:], block.Hash()) || !bytes.Equal(value.AppHash[:], next.AppHash))) {
+					t.Fatal("header observation does not match the original engine commit")
+				}
+			}
+			if !bytes.Equal(states[0], states[1]) || !bytes.Equal(fees[0], fees[1]) || !bytes.Equal(hashes[0], hashes[1]) || !reflect.DeepEqual(stores[0], stores[1]) {
+				t.Fatal("header capture changed state, fees, AppHash, or persisted bytes")
+			}
+		})
 	}
 }
