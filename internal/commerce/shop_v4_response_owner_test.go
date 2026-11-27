@@ -22,6 +22,38 @@ type publicUnknownShopListener struct {
 	first  error
 }
 
+type publicBlockedShopLease struct{ entered, release, done chan struct{} }
+
+func (l *publicBlockedShopLease) Drain(context.Context) error {
+	close(l.entered)
+	<-l.release
+	close(l.done)
+	return nil
+}
+
+func TestShopSessionInventoryV4BlockedLeaseRetainsOwnerAfterCancel(t *testing.T) {
+	lease := &publicBlockedShopLease{entered: make(chan struct{}), release: make(chan struct{}), done: make(chan struct{})}
+	ctx, cancel := context.WithCancel(context.Background())
+	result := make(chan error, 1)
+	go func() { result <- waitOriginalShopV4LeaseDrain(ctx, lease) }()
+	<-lease.entered
+	cancel()
+	if err := <-result; !errors.Is(err, context.Canceled) {
+		t.Fatalf("blocked original ignored cancellation: %v", err)
+	}
+	select {
+	case <-lease.done:
+		t.Fatal("blocked original was falsely completed")
+	default:
+	}
+	close(lease.release)
+	select {
+	case <-lease.done:
+	case <-time.After(time.Second):
+		t.Fatal("original was lost after cancel")
+	}
+}
+
 func (l *publicUnknownShopListener) Accept() (net.Conn, error) { return nil, l.first }
 func (l *publicUnknownShopListener) Close() error              { l.closes++; return l.first }
 func (l *publicUnknownShopListener) Addr() net.Addr {

@@ -189,6 +189,19 @@ func (s *OriginalShopInvoiceReadService) Serve() error {
 	return s.link.Serve(s.listener)
 }
 
+// A product owner's close can be stuck below the context boundary. Keep the
+// same lease alive while allowing this particular shutdown wait to expire.
+func waitOriginalShopV4LeaseDrain(ctx context.Context, lease interface{ Drain(context.Context) error }) error {
+	done := make(chan error, 1)
+	go func() { done <- lease.Drain(ctx) }()
+	select {
+	case err := <-done:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
 // Retire/Join always precede parent authority close; timeout leaves real drain
 // debt held. The Store is borrowed and is never closed/reopened by this service.
 func (s *OriginalShopInvoiceReadService) Close(ctx context.Context) error {
@@ -290,7 +303,7 @@ func (s *OriginalShopInvoiceReadService) Close(ctx context.Context) error {
 		for _, lease := range leases {
 			status := lease.Status()
 			if !status.OwnerPhysicalClosed {
-				_ = lease.Drain(ctx)
+				_ = waitOriginalShopV4LeaseDrain(ctx, lease)
 				status = lease.Status()
 			}
 			if status.OwnerPhysicalClosed {
