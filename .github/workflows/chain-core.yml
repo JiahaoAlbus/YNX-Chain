@@ -203,6 +203,7 @@ jobs:
           # changes, even though this normal push omits the full release job.
           git diff --name-only "$BEFORE" "$AFTER" -- \
             .github/workflows/chain-core.yml \
+            .github/workflows/resource-market-ci.yml \
             scripts/verify/integration-contract-check.mjs \
             scripts/ops/test_validate_integration_contract_ci.py \
             release/chain-core/product-release.json \
@@ -250,6 +251,51 @@ jobs:
           else
             printf 'client_changed=false\n' >> "$GITHUB_OUTPUT"
           fi
+
+  pr-go-security:
+    name: Pull request Go dependency security controls
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GOMAXPROCS: '2'
+      GOGC: '50'
+      GOMEMLIMIT: '1536MiB'
+      CGO_ENABLED: '0'
+      GOPROXY: https://proxy.golang.org
+      GOSUMDB: sum.golang.org
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Bind the exact pull request merge, base and head
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ && "$BASE_SHA" =~ ^[0-9a-f]{40}$ && "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git show -s --format=%P "$SOURCE_SHA")" = "$BASE_SHA $HEAD_SHA"
+      - name: Check reachable vulnerabilities in the original eight production commands
+        run: >-
+          go run golang.org/x/vuln/cmd/govulncheck@v1.1.4
+          ./cmd/ynx-abci ./cmd/ynx-comet ./cmd/ynx-bft-gatewayd
+          ./cmd/ynx-consensus-pq-remote-signer ./cmd/ynx-consensus-pq-key-init
+          ./cmd/ynx-consensus-proof-verify ./cmd/ynx-consensus-package ./cmd/ynx-consensus-keycheck
+      - name: Verify Go dependency controls and unchanged module inputs
+        run: |
+          set -euo pipefail
+          python3 -B scripts/ops/test_validate_integration_contract_ci.py
+          git diff --exit-code -- go.mod go.sum third_party/cometbft/go.mod third_party/cometbft/go.sum
 
   contract-tooling:
     name: Contract tooling dependency and compatibility

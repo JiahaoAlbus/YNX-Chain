@@ -7,6 +7,8 @@ on:
       - 'codex/ynx-pq-public-upgrade'
       - 'codex/ynx-pq-perf-integration'
     paths:
+      - '.github/workflows/chain-core.yml'
+      - 'scripts/ops/test_validate_integration_contract_ci.py'
       - 'scripts/verify/qualify_pq_private_synthetic_ci.py'
       - 'scripts/verify/*qualify_original_ethereum_ci.py'
       - 'scripts/verify/original-ethereum-gateway-ci.sh'
@@ -216,6 +218,11 @@ on:
       - 'packages/wallet-auth/native/source-parent/**'
   pull_request:
     paths:
+      - '.github/workflows/chain-core.yml'
+      - 'scripts/ops/test_validate_integration_contract_ci.py'
+      - 'go.mod'
+      - 'go.sum'
+      - 'third_party/cometbft/**'
       - 'scripts/verify/qualify_pq_private_synthetic_ci.py'
       - 'scripts/verify/*qualify_original_ethereum_ci.py'
       - 'scripts/verify/original-ethereum-gateway-ci.sh'
