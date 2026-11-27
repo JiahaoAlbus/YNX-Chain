@@ -28,6 +28,36 @@ PINS = {
 }
 
 
+def run_nist_preserving(window, monitor, operation, after_stop, work, public, state, identity):
+    try:
+        return guard.run_preserving(window, monitor, operation, after_stop, work, public, state, identity)
+    except BaseException as original:
+        # The generic failure receipt covers the current owned command. If a
+        # later source/readback step failed, retain the earlier NIST log too.
+        try:
+            if state.get('name') != 'original-nist-test':
+                public.mkdir(mode=0o700, exist_ok=True)
+                info = public.lstat()
+                lab.require(stat.S_ISDIR(info.st_mode) and stat.S_IMODE(info.st_mode) == 0o700 and info.st_uid == os.geteuid()
+                    and public.resolve(strict=True) == public, 'failure evidence directory unavailable')
+                path = work / '.private/original-nist-test.log'
+                extra = dict(version='YNX-PERF-NIST-FAILURE-EVIDENCE/v1', status='NOT_SUPPLIED',
+                    originalErrorType=type(original).__name__, genericReceiptUnmodified=True,
+                    firstCauseStatus='ORIGINAL_EXCEPTION_RETHROWN', runtimeAuthorized=False)
+                try:
+                    if path.exists():
+                        raw = guard.read_log(path)
+                        with open(public / 'failure-nist-test-original.log', 'xb') as output: output.write(raw)
+                        extra.update(status='ORIGINAL_BOUNDED_LOG', bytes=len(raw), sha256=hashlib.sha256(raw).hexdigest())
+                except BaseException as error:
+                    extra['readbackErrorType'] = type(error).__name__
+                encoded = (json.dumps(extra, sort_keys=True, separators=(',', ':')) + '\n').encode()
+                with open(public / 'failure-nist-evidence.json', 'xb') as output: output.write(encoded)
+        except BaseException as error:
+            original.add_note('NIST failure evidence unavailable: ' + type(error).__name__)
+        raise
+
+
 def check_fixture_pins(tree):
     entries = tree.split(b'\0')
     lab.require(entries[-1] == b'', 'original source tree truncated')
@@ -139,7 +169,7 @@ def main():
         raw, _, _ = result
         lab.require(guard.read_log(work / '.private/original-nist-test.log') == raw, 'original NIST test stream changed after retirement')
 
-    raw, events, metadata = guard.run_preserving(window, monitor, operation, after_stop, work, public, state,
+    raw, events, metadata = run_nist_preserving(window, monitor, operation, after_stop, work, public, state,
         dict(source=SOURCE, toolsSource=os.environ['GITHUB_SHA'], runId=os.environ['GITHUB_RUN_ID'], attempt=os.environ['GITHUB_RUN_ATTEMPT']))
     metadata['postRetirementReadRSS'] = 'UNKNOWN'
     public.mkdir(mode=0o700)

@@ -1,8 +1,14 @@
 import importlib.util
+import contextlib
+import io
 import json
 from pathlib import Path
 import sys
+import tempfile
+import threading
+import types
 import unittest
+from unittest import mock
 
 spec = importlib.util.spec_from_file_location('original_client_nist_controls', Path(__file__).with_name('pq-perf-client-491188-nist-ci.py'))
 nist = importlib.util.module_from_spec(spec); sys.modules[spec.name] = nist; spec.loader.exec_module(nist)
@@ -44,3 +50,44 @@ class OriginalNISTControls(unittest.TestCase):
         raw = raw_events()
         for value in (raw.rsplit(b'\n', 2)[0]+b'\n', raw.replace(nist.TEST.encode(), b'UnknownTest', 1)):
             with self.assertRaises((RuntimeError, ValueError)): nist.inspect_nist_events(value)
+
+    def test_later_failure_retains_original_nist_log_and_first_cause(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve(); work = root/'work'; private = work/'.private'; private.mkdir(parents=True)
+            public = root/'public'; state = dict(name='tree-after', process=types.SimpleNamespace(returncode=0))
+            (private/'original-nist-test.log').write_bytes(raw_events())
+            (private/'tree-after.log').write_bytes(b'original tree failure')
+            class Monitor:
+                def __init__(self): self.thread = threading.Thread(target=lambda: None)
+                def close(self): self.thread.join(timeout=2); raise OSError('secondary monitor close')
+                def failure_snapshot(self): return None
+            window = types.SimpleNamespace(stop=mock.Mock(side_effect=OSError('secondary stop')))
+            def operation(): raise ValueError()
+            with contextlib.redirect_stdout(io.StringIO()):
+                with self.assertRaises(ValueError):
+                    nist.run_nist_preserving(window, Monitor(), operation, lambda _: None, work, public, state,
+                        dict(source=nist.SOURCE, toolsSource='a'*40, runId='1', attempt='1'))
+            window.stop.assert_called_once()
+            primary = json.loads((public/'failure-metadata.json').read_bytes())
+            extra = json.loads((public/'failure-nist-evidence.json').read_bytes())
+            self.assertEqual((primary['firstCaughtErrorType'], primary['firstCaughtError'], primary['status']), ('ValueError', '', 'UNKNOWN'))
+            self.assertEqual(extra['status'], 'ORIGINAL_BOUNDED_LOG')
+            self.assertEqual((public/'failure-nist-test-original.log').read_bytes(), raw_events())
+
+    def test_post_retirement_failure_retains_original_nist_log(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve(); work = root/'work'; private = work/'.private'; private.mkdir(parents=True)
+            public = root/'public'; state = dict(name='original-nist-test', process=types.SimpleNamespace(returncode=0))
+            (private/'original-nist-test.log').write_bytes(raw_events())
+            class Monitor:
+                def __init__(self): self.thread = threading.Thread(target=lambda: None)
+                def close(self): self.thread.join(timeout=2)
+                def failure_snapshot(self): return None
+            window = types.SimpleNamespace(stop=mock.Mock(return_value=True))
+            def after_stop(_): raise ValueError('original post-retirement failure')
+            with contextlib.redirect_stdout(io.StringIO()):
+                with self.assertRaisesRegex(ValueError, 'original post-retirement failure'):
+                    nist.run_nist_preserving(window, Monitor(), lambda: object(), after_stop, work, public, state,
+                        dict(source=nist.SOURCE, toolsSource='a'*40, runId='1', attempt='1'))
+            self.assertEqual(state['name'], 'post-retirement-readback')
+            self.assertEqual((public/'failure-nist-test-original.log').read_bytes(), raw_events())
