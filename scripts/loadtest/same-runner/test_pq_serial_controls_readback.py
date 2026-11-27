@@ -140,7 +140,8 @@ class SerialControlsReadback(unittest.TestCase):
             args[0]['artifactBytes'], args[0]['artifactSha256'] = len(args[5]), digest(args[5])
             artifact = args[3]['artifacts'][0]
             artifact['size_in_bytes'], artifact['digest'] = len(args[5]), 'sha256:' + digest(args[5])
-            with self.subTest(change=change), self.assertRaises(ValueError):
+            expected='original test manifest inventory differs' if change=='wrong_manifest' else ''
+            with self.subTest(change=change), self.assertRaisesRegex(ValueError,expected):
                 m.inspect_serial_controls(*args)
 
     def test_metadata_boolean_attempt_and_group_order_fail(self):
