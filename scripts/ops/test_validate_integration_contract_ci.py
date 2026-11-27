@@ -128,6 +128,24 @@ def validate_go_pr_security_job(workflow):
         raise AssertionError('PR vulnerability scan must execute the original command without a conditional')
 
 
+def validate_ide_fee_job(workflow):
+    job = workflow.split('\n  integration-ide-fee:\n', 1)[1].split('\n  contract-tooling-scope:\n', 1)[0]
+    steps = job.split('    steps:\n', 1)[1]
+    if re.search(r'^ {8,}if:', steps, re.M) or 'continue-on-error' in steps:
+        raise AssertionError('IDE controls cannot conditionally skip or soften a step')
+    build = steps.split('      - name: Build the original contract fixture from locked source\n', 1)[1].split('\n      - name:', 1)[0]
+    expected = ('        run: |\n'
+                '          set -euo pipefail\n'
+                '          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"\n'
+                '          npm ci\n'
+                '          npm run hardhat:build\n'
+                '          test -s artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json')
+    if build != expected:
+        raise AssertionError('IDE contract build must execute the original locked source commands')
+    if steps.index('Build the original contract fixture from locked source') > steps.index('Verify signed IDE fee projection and original transaction readback'):
+        raise AssertionError('IDE contract fixture must precede readback controls')
+
+
 class IntegrationContractCI(unittest.TestCase):
     def setUp(self):
         self.workflow = WORKFLOW.read_text()
@@ -228,6 +246,7 @@ class IntegrationContractCI(unittest.TestCase):
         self.assertIn("printf 'integration_changed=false\\n'", self.workflow)
 
     def test_original_ide_fee_controls_build_the_source_contract_first(self):
+        validate_ide_fee_job(self.workflow)
         job = self.workflow.split('\n  integration-ide-fee:\n', 1)[1].split('\n  contract-tooling-scope:\n', 1)[0]
         for required in ('ref: ${{ github.sha }}', 'go-version-file: go.mod',
                          'node-version: "24"', 'npm ci', 'npm run hardhat:build',
@@ -239,6 +258,15 @@ class IntegrationContractCI(unittest.TestCase):
         self.assertLess(job.index('npm run hardhat:build'), job.index('go test -mod=readonly -json'))
         self.assertNotIn('continue-on-error', job)
         self.assertNotIn('if: false', job)
+        for old, new in (('          npm ci\n', '          npm ci || true\n'),
+                         ('          npm run hardhat:build\n', '          true\n'),
+                         ('      - name: Build the original contract fixture from locked source\n',
+                          '      - name: Build the original contract fixture from locked source\n        if: false\n'),
+                         ('      - name: Verify signed IDE fee projection and original transaction readback\n',
+                          '      - name: Verify signed IDE fee projection and original transaction readback\n        if: false\n')):
+            self.assertEqual(job.count(old), 1)
+            with self.subTest(mutation=old), self.assertRaises(AssertionError):
+                validate_ide_fee_job(self.workflow.replace(job, job.replace(old, new, 1), 1))
 
     def test_real_git_diff_selects_source_changes_and_ignores_unrelated_files(self):
         with tempfile.TemporaryDirectory(prefix='ynx-integration-scope-') as directory:
