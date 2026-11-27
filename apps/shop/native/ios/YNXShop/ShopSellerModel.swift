@@ -398,9 +398,16 @@ import SwiftUI
         guard matches.count==1,matches[0].Status=="pending",matches[0].UpdatedAt==updated,matches[0].Role==role,matches[0].Account==account,
               accept ? account==api.currentSession?.account:canManageMembers else{throw ShopError.contextChanged}
     }
+    private func assertPreparedCreationAuthority(_ original:SellerMutationJournal.Record)throws {
+        switch original.kind {
+        case "create-product":guard can("catalog.write") else{throw ShopError.contextChanged}
+        case "invite":guard canManageMembers else{throw ShopError.contextChanged}
+        default:return
+        }
+    }
     private func sendPrepared(_ original:SellerMutationJournal.Record,view:Int,check:@escaping ()throws->Void)async throws {
         guard original.phase=="prepared" else{throw ShopError.unresolvedMutation}
-        let response=try await api.raw(String(original.path.dropFirst()),json:journal.input(original),beforeDispatch:{try check();guard self.selection==view,(original.kind=="create-store" || original.kind=="accept-invitation" || self.selectedStoreID==original.storeID) else{throw ShopError.contextChanged};try self.assertPreparedCatalogCurrent(original);try self.assertPreparedStoreCurrent(original);try self.assertPreparedFulfillmentCurrent(original);try self.assertPreparedInvitationCurrent(original);try self.journal.dispatch(original)})
+        let response=try await api.raw(String(original.path.dropFirst()),json:journal.input(original),beforeDispatch:{try check();guard self.selection==view,(original.kind=="create-store" || original.kind=="accept-invitation" || self.selectedStoreID==original.storeID) else{throw ShopError.contextChanged};try self.assertPreparedCatalogCurrent(original);try self.assertPreparedStoreCurrent(original);try self.assertPreparedFulfillmentCurrent(original);try self.assertPreparedInvitationCurrent(original);try self.assertPreparedCreationAuthority(original);try self.journal.dispatch(original)})
         try check();try validate(response,original:original,recovery:false);try journal.confirm(original,result:response);if original.kind=="accept-invitation"{receivedInvitations.removeAll{$0.ID==original.target}}
     }
     func perform(_ command:SellerCommand){guard signedIn,!busy else{return};do{

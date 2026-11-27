@@ -26,11 +26,12 @@ final class SetupHTTP:URLProtocol,@unchecked Sendable {
         func until(_ ready:()->Bool)async throws{for _ in 0..<200_000{if ready(){return};await Task.yield()};throw NSError(domain:"bounded setup flow",code:1)}
         let authority=SetupAuthority(),storeID="store_new_original",time="2026-11-07T00:00:00Z"
         var store:[String:Any]=[:],products:[[String:Any]]=[],invitations:[[String:Any]]=[],pending:[SetupHTTP]=[],writes=0,role="owner"
+        var permissions=["seller.read","catalog.write","inventory.write","team.read"]
         SetupHTTP.handler={r in
             let path=r.request.url!.path
             if r.request.httpMethod != "GET"{writes+=1;pending.append(r);return}
             switch path {
-            case "/api/seller/stores":try! r.respond(["stores":store.isEmpty ? []:[store],"access":store.isEmpty ? [:]:[storeID:["role":role,"permissions":["seller.read","catalog.write","inventory.write","team.read"]]]])
+            case "/api/seller/stores":try! r.respond(["stores":store.isEmpty ? []:[store],"access":store.isEmpty ? [:]:[storeID:["role":role,"permissions":permissions]]])
             case "/api/seller/products":try! r.respond(["products":products])
             case "/api/seller/orders":try! r.respond(["orders":[]])
             case "/api/seller/stores/"+storeID+"/roles":try! r.respond(["roles":[authority.account:"owner"],"revocations":[],"invitations":invitations])
@@ -73,12 +74,22 @@ final class SetupHTTP:URLProtocol,@unchecked Sendable {
         store["Status"]="active";try activate.respond(["Store":store,"OriginalApplied":true,"QueryOnly":false]);try await until{!model.busy}
         try check(model.stores[0].Status=="active","activation is reflected only after actual confirmation and fresh read")
         let draft=SellerListingDraft(productID:"",expectedRevision:"0",title:"Unpublished original",description:"",category:"",variants:[SellerVariantDraft(Name:"Own SKU",SKU:"own-sku",PriceYNXT:String(Int64.max),Inventory:"0")])
-        model.perform(.createProduct(draft));let productRequest=try await take("seller/products"),productBody=try productRequest.body();let variant=(productBody["Variants"] as! [[String:Any]])[0]
+        let beforeCreate=writes;authority.proofFails=true;model.perform(.createProduct(draft));try await until{!model.busy}
+        let preparedProduct=try journal.records(authority.account).values.first(where:{$0.kind=="create-product" && $0.phase=="prepared"})!
+        authority.proofFails=false;permissions.removeAll{$0=="catalog.write"};model.refresh();try await until{!model.busy};model.retryPreparedOriginals();try await until{!model.busy}
+        try check(writes==beforeCreate && (try journal.records(authority.account)[preparedProduct.key])==preparedProduct,"revoked catalog permission preserves the original product creation unsent")
+        permissions.append("catalog.write");model.refresh();try await until{!model.busy};model.retryPreparedOriginals();let productRequest=try await take("seller/products"),productBody=try productRequest.body();let variant=(productBody["Variants"] as! [[String:Any]])[0]
+        try check(try CanonicalJSON.data(productBody)==preparedProduct.body,"restored creation sends the exact original body and key")
         try check((variant["PriceYNXT"] as? NSNumber)?.int64Value==Int64.max,"new unpublished product freezes every price digit without floating point rounding")
         let product:[String:Any]=["ID":"product_original","StoreID":storeID,"Title":"Unpublished original","Description":"","Category":"","Published":false,"Revision":1,"Media":[],"Variants":[["ID":"variant_original","Name":"Own SKU","SKU":"own-sku","PriceYNXT":Int64.max,"Inventory":0,"Reserved":0]]]
         products=[product];try productRequest.respond(product);try await until{!model.busy && model.products.count==1};try check(!model.products[0].Published,"creating a remote draft does not publish or claim an order")
         let target="ynx1"+String(repeating:"p",count:38)
-        model.perform(.invite(account:target,role:"support",ttlSeconds:"900"));let invitation=try await take("seller/stores/"+storeID+"/native-invitations")
+        let beforeInvite=writes;authority.proofFails=true;model.perform(.invite(account:target,role:"support",ttlSeconds:"900"));try await until{!model.busy}
+        let preparedInvite=try journal.records(authority.account).values.first(where:{$0.kind=="invite" && $0.phase=="prepared"})!
+        authority.proofFails=false;role="viewer";model.refresh();try await until{!model.busy};model.retryPreparedOriginals();try await until{!model.busy}
+        try check(writes==beforeInvite && (try journal.records(authority.account)[preparedInvite.key])==preparedInvite,"lost owner role preserves the original invitation unsent")
+        role="owner";model.refresh();try await until{!model.busy};model.retryPreparedOriginals();let invitation=try await take("seller/stores/"+storeID+"/native-invitations")
+        try check(try CanonicalJSON.data(invitation.body())==preparedInvite.body,"restored owner sends the exact original invitation and key")
         let row:[String:Any]=["ID":"invitation_original","StoreID":storeID,"Account":target,"Role":"support","CreatedBy":authority.account,"Status":"pending","Reason":"","CreatedAt":time,"ExpiresAt":"2099-01-01T00:00:00Z","UpdatedAt":time,"AcceptedAt":"0001-01-01T00:00:00Z","CancelledAt":"0001-01-01T00:00:00Z"]
         invitations=[row];try invitation.respond(["Invitation":row,"OriginalApplied":true,"QueryOnly":false]);try await until{!model.busy && model.invitations.count==1}
         try check(model.invitations[0].Status=="pending" && !model.members.contains(where:{$0.Account==target}),"pending invitation grants no role or approved Wallet session")
