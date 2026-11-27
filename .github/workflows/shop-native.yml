@@ -551,7 +551,12 @@ jobs:
           shasum -a 256 "$apk" | tee "$RUNNER_TEMP/shop-device-apk.sha256"
           adb install "$apk"
           path="$(adb shell pm path com.ynxweb4.shop.debug | tr -d '\r' | sed -n 's/^package://p')"
-          test "$(adb exec-out cat "$path" | sha256sum | cut -d' ' -f1)" = "$(sha256sum "$apk" | cut -d' ' -f1)"
+          if [ -z "$path" ]; then echo 'Installed Shop package path was not returned by the emulator' >&2; exit 1; fi
+          adb exec-out cat "$path" | sha256sum | tee "$RUNNER_TEMP/shop-device-installed.sha256"
+          if [ "$(cut -d' ' -f1 "$RUNNER_TEMP/shop-device-installed.sha256")" != "$(sha256sum "$apk" | cut -d' ' -f1)" ]; then
+            echo 'Installed Shop APK differs from the selected candidate' >&2
+            exit 1
+          fi
           for attempt in 1 2; do
             adb shell am force-stop com.ynxweb4.shop.debug
             adb shell am start -W -n com.ynxweb4.shop.debug/com.ynxweb4.shop.MainActivity | tee "$RUNNER_TEMP/shop-device-launch-$attempt.log"
@@ -605,7 +610,7 @@ jobs:
           path: |
             ${{ runner.temp }}/shop-device-*.log
             ${{ runner.temp }}/shop-device-*.xml
-            ${{ runner.temp }}/shop-device-apk.sha256
+            ${{ runner.temp }}/shop-device-*.sha256
           if-no-files-found: warn
 
   android-catalog-reordering:
