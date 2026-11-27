@@ -47,7 +47,7 @@ func TestShopSessionInventoryV4ServicePreservesUnknownListenerClose(t *testing.T
 	}
 }
 
-func TestShopSessionInventoryV4ListenerUnknownPrecedesLINKRetire(t *testing.T) {
+func TestShopSessionInventoryV4RejectsUnqualifiedListenerBeforeLINKRetire(t *testing.T) {
 	first := errors.New("PUBLIC first listener close unknown")
 	listener := &publicUnknownShopListener{first: first}
 	authority := &publicInvoiceReadAuthority{}
@@ -60,14 +60,14 @@ func TestShopSessionInventoryV4ListenerUnknownPrecedesLINKRetire(t *testing.T) {
 		t.Fatal(err)
 	}
 	service := &OriginalShopInvoiceReadService{sessionRequired: true, listener: listener, authority: authority, link: link}
-	if err := service.Close(context.Background()); !errors.Is(err, first) {
-		t.Fatalf("lost first listener close: %v", err)
+	if err := service.Close(context.Background()); !errors.Is(err, securelink.ErrDenied) {
+		t.Fatalf("unqualified listener was accepted: %v", err)
 	}
-	if err := service.Close(context.Background()); !errors.Is(err, first) {
-		t.Fatalf("lost first listener close on recovery: %v", err)
+	if err := service.Close(context.Background()); !errors.Is(err, securelink.ErrDenied) {
+		t.Fatalf("unqualified listener was accepted on recovery: %v", err)
 	}
-	if listener.closes != 1 || authority.closed.Load() != 0 || service.PhysicalClosed() {
-		t.Fatal("unknown listener was retried or parent released")
+	if listener.closes != 0 || authority.closed.Load() != 0 || service.PhysicalClosed() {
+		t.Fatal("unqualified listener was closed or parent released")
 	}
 	if !errors.Is(link.Join(context.Background()), securelink.ErrDenied) {
 		t.Fatal("LINK retired after unknown original listener close")
@@ -138,7 +138,7 @@ func checkShopV4ResponseOwnerRealUnixConnection(t *testing.T, revoked bool) {
 		t.Fatal(err)
 	}
 	socket := filepath.Join(dir, "s")
-	listener, err := securelink.ListenPrivate(socket, uint32(os.Geteuid()))
+	listener, err := securelink.ListenPrivateWithCloseWitness(socket, uint32(os.Geteuid()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -207,6 +207,16 @@ func checkShopV4ResponseOwnerRealUnixConnection(t *testing.T, revoked bool) {
 	}
 	if !owner.PhysicalClosed() || held.closes.Load() != 1 {
 		t.Fatal("same original holders did not close after Unix connection")
+	}
+	if !revoked {
+		cancelled, cancel := context.WithCancel(context.Background())
+		cancel()
+		if err := service.Close(cancelled); !errors.Is(err, context.Canceled) {
+			t.Fatalf("cancelled close: %v", err)
+		}
+		if service.PhysicalClosed() || authority.closed.Load() != 0 {
+			t.Fatal("cancelled close released parent")
+		}
 	}
 	closeCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()

@@ -165,7 +165,11 @@ func prepareOriginalShopInvoiceReadServiceMode(ctx context.Context, a originalSh
 		}
 		return s, err
 	}
-	s.listener, err = securelink.ListenPrivate(p.socket, p.uid)
+	if sessionRequired {
+		s.listener, err = securelink.ListenPrivateWithCloseWitness(p.socket, p.uid)
+	} else {
+		s.listener, err = securelink.ListenPrivate(p.socket, p.uid)
+	}
 	if err != nil {
 		if sessionRequired {
 			err = errors.Join(ErrShopInvoiceReadListenerIdentity, err)
@@ -213,19 +217,60 @@ func (s *OriginalShopInvoiceReadService) Close(ctx context.Context) error {
 	if s.authority != nil {
 		remember(s.authority.retire())
 	}
-	// Close the original listener before LINK's HTTP server can close it on
-	// our behalf. A failed first close is UNKNOWN; a later ErrClosed cannot
-	// prove that earlier operation completed and must never replace it.
-	if s.listener != nil && !s.listenerCloseAttempted {
-		s.listenerCloseAttempted = true
-		s.listenerCloseError = s.listener.Close()
-	}
-	if s.listenerCloseError != nil {
-		remember(s.listenerCloseError)
-		return s.finalCloseError()
-	}
-	if s.link != nil {
-		remember(s.link.Retire())
+	if s.sessionRequired && s.listener != nil {
+		status, err := securelink.InspectOriginalPrivateListener(s.listener)
+		if err != nil {
+			remember(err)
+			return s.finalCloseError()
+		}
+		if !status.CloseStarted && !s.listenerCloseAttempted {
+			s.listenerCloseAttempted = true
+			// A stuck first physical close stays owned by LINK; the caller's
+			// context can expire without selecting another close.
+			go func(listener net.Listener) { _ = listener.Close() }(s.listener)
+		}
+		for !status.CloseReturned {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(10 * time.Millisecond):
+			}
+			status, err = securelink.InspectOriginalPrivateListener(s.listener)
+			if err != nil {
+				remember(err)
+				return s.finalCloseError()
+			}
+		}
+		if !status.CloseConfirmed {
+			if status.FirstError != nil {
+				remember(status.FirstError)
+			} else {
+				remember(securelink.ErrOriginalPrivateListenerCloseUnknown)
+			}
+			return s.finalCloseError()
+		}
+		if s.link != nil {
+			if err = s.link.Retire(); err != nil && !errors.Is(err, securelink.ErrLocalCallerDraining) {
+				remember(err)
+			}
+		}
+	} else {
+		// Preserve the original legacy listener and cleanup ordering.
+		if s.link != nil {
+			remember(s.link.Retire())
+		}
+		if s.listener != nil {
+			if s.link != nil {
+				_ = s.listener.Close()
+			} else if !s.listenerCloseAttempted {
+				s.listenerCloseAttempted = true
+				s.listenerCloseError = s.listener.Close()
+			}
+		}
+		if s.listenerCloseError != nil {
+			remember(s.listenerCloseError)
+			return s.finalCloseError()
+		}
 	}
 	// LINK Join retains pending owners. Advance the same transferred leases
 	// before joining; never select another close on their original sockets.
