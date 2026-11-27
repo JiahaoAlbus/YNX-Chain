@@ -172,6 +172,19 @@ final class FulfillmentHTTP:URLProtocol,@unchecked Sendable {
         first=received(first,"receipt_first")
         model.recoverOriginals(for:"order_first");let recovered=try await take("seller/mutations/lookup");try lookup(recovered,record,first);try await until{!model.busy}
         try check(try journal.records(account)[record.key]?.phase=="confirmed" && model.pendingOperations(for:"order_first").isEmpty && model.pendingOperations(for:"order_second").count==1,"read-only matching lookup confirms only the selected order")
+        let secondOriginal=second,beforeBlocked=sent.count
+        second["LogisticsStatus"]="changed_after_review";model.refresh();try await until{!model.busy}
+        model.retryPreparedOriginals(for:"order_second");try await until{!model.busy}
+        try check(sent.count==beforeBlocked && (try journal.records(account)[prepared.key])==prepared,"changed fulfillment order retains its original prepared operation without dispatch")
+        second=secondOriginal;permissions.removeAll{$0=="fulfillment.write"};model.refresh();try await until{!model.busy}
+        model.retryPreparedOriginals(for:"order_second");try await until{!model.busy}
+        try check(sent.count==beforeBlocked && (try journal.records(account)[prepared.key])==prepared,"lost fulfillment permission retains the original operation without dispatch")
+        permissions.append("fulfillment.write");model.refresh();try await until{!model.busy}
+        var oldStorage:[String:Data]=[:]
+        let oldJournal=SellerMutationJournal(read:{oldStorage[$0]},write:{oldStorage[$0]=$1})
+        let legacy=try oldJournal.prepare(account:account,storeID:store,target:"order_second",kind:"receive-return",path:"/orders/order_second/return-receipts",input:["ReturnID":"return_order_second"])
+        do{try oldJournal.assertReviewedOrder(legacy,order:decode(second));throw NSError(domain:"legacy fulfillment accepted",code:1)}catch ShopError.contextChanged{}
+        try check(try oldJournal.records(account)[legacy.key]?.phase=="prepared","legacy fulfillment without reviewed order remains preserved and unsent")
         model.retryPreparedOriginals(for:"order_second");let retry=try await take("orders/order_second/return-receipts");try check(try retry.body()==prepared.body,"explicit known-unsent retry retains exact original bytes")
         second=received(second,"receipt_second");try retry.respond(second);try await until{!model.busy}
         let current=model.orders.first(where:{$0.ID=="order_first"})!,receipt=current.ReturnReceipts!.first!

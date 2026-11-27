@@ -6,6 +6,7 @@ import Foundation
         let body:Data
         var phase:String
         var result:Data?
+        let reviewedOrderDigest:String?
     }
     private let read:(String)throws->Data?,write:(String,Data)throws->Void
     init(read:@escaping (String)throws->Data?={try Vault.read($0)},write:@escaping (String,Data)throws->Void={try Vault.put($0,$1)}){self.read=read;self.write=write}
@@ -17,7 +18,7 @@ import Foundation
         for (key,r) in values {
             guard r.key==key,r.account==account,["prepared","unknown","confirmed"].contains(r.phase),NativeWire.matches(key,"^[A-Za-z0-9-]{8,128}$"),
                   (NativeWire.matches(r.storeID,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$") || (r.storeID.isEmpty && r.kind=="create-store" && r.path=="/seller/stores" && r.target=="create-store")),r.method=="POST",r.path.hasPrefix("/"),!r.path.hasPrefix("/api/"),r.body.count<=1_048_576,
-                  let text=String(data:r.body,encoding:.utf8),NativeWire.hash(text)==r.requestHash,
+                  (r.reviewedOrderDigest == nil || NativeWire.matches(r.reviewedOrderDigest!,"^[a-f0-9]{64}$")),let text=String(data:r.body,encoding:.utf8),NativeWire.hash(text)==r.requestHash,
                   var input=try JSONSerialization.jsonObject(with:r.body) as? [String:Any],input["IdempotencyKey"] as? String==key,
                   try CanonicalJSON.data(input)==r.body else{throw ShopError.security}
             _ = try AppleNativeBusinessPolicy.scopes(r.method,"/api"+r.path,profile:.seller)
@@ -28,8 +29,11 @@ import Foundation
         return values
     }
     private func save(_ values:[String:Record],account:String)throws{let bytes=try JSONEncoder().encode(values);try write(namespace(account),bytes);guard try read(namespace(account))==bytes else{throw ShopError.security}}
-    func prepare(account:String,storeID:String,target:String,kind:String,path:String,input:[String:Any])throws->Record {
+    private func orderDigest(_ order:SellerOrder)throws->String{let encoder=JSONEncoder();encoder.outputFormatting=[.sortedKeys];return NativeWire.hash(String(decoding:try encoder.encode(order),as:UTF8.self))}
+    func assertReviewedOrder(_ r:Record,order:SellerOrder)throws{guard let original=try records(r.account)[r.key],original==r,original.phase=="prepared",order.ID==r.target,order.StoreID==r.storeID else{throw ShopError.unresolvedMutation};guard let digest=original.reviewedOrderDigest,digest == (try orderDigest(order)) else{throw ShopError.contextChanged}}
+    func prepare(account:String,storeID:String,target:String,kind:String,path:String,input:[String:Any],reviewedOrder:SellerOrder?=nil)throws->Record {
         _ = try AppleNativeBusinessPolicy.scopes("POST","/api"+path,profile:.seller)
+        if let order=reviewedOrder{guard ["ship","return","receive-return","restock-return"].contains(kind),order.ID==target,order.StoreID==storeID else{throw ShopError.security}}
         guard input["IdempotencyKey"]==nil else{throw ShopError.security}
         let intent=NativeWire.hash(String(data:try CanonicalJSON.data(input),encoding:.utf8)!)
         var all=try records(account)
@@ -39,7 +43,7 @@ import Foundation
         guard all.count<256 else{throw ShopError.security}
         let key=UUID().uuidString.lowercased();var value=input;value["IdempotencyKey"]=key
         let body=try CanonicalJSON.data(value);guard body.count<=1_048_576 else{throw ShopError.security}
-        let r=Record(key:key,account:account,storeID:storeID,target:target,kind:kind,method:"POST",path:path,intentHash:intent,requestHash:NativeWire.hash(String(data:body,encoding:.utf8)!),body:body,phase:"prepared",result:nil)
+        let r=Record(key:key,account:account,storeID:storeID,target:target,kind:kind,method:"POST",path:path,intentHash:intent,requestHash:NativeWire.hash(String(data:body,encoding:.utf8)!),body:body,phase:"prepared",result:nil,reviewedOrderDigest:try reviewedOrder.map{try orderDigest($0)})
         all[key]=r;try save(all,account:account);return r
     }
     func input(_ r:Record)throws->[String:Any]{guard let original=try records(r.account)[r.key],original.requestHash==r.requestHash,let input=try JSONSerialization.jsonObject(with:original.body) as? [String:Any] else{throw ShopError.security};return input}

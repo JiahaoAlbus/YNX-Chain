@@ -375,9 +375,21 @@ import SwiftUI
             guard current.UpdatedAt==updated,current.Policy==policy,current.SettlementAccount==settlement else{throw ShopError.contextChanged}
         }
     }
+    private func assertPreparedFulfillmentCurrent(_ original:SellerMutationJournal.Record)throws {
+        let permission:String
+        switch original.kind {
+        case "ship","receive-return":permission="fulfillment.write"
+        case "return":permission="returns.resolve"
+        case "restock-return":permission="inventory.write"
+        default:return
+        }
+        let matches=orders.filter{$0.ID==original.target && $0.StoreID==original.storeID}
+        guard can(permission),matches.count==1 else{throw ShopError.contextChanged}
+        try journal.assertReviewedOrder(original,order:matches[0])
+    }
     private func sendPrepared(_ original:SellerMutationJournal.Record,view:Int,check:@escaping ()throws->Void)async throws {
         guard original.phase=="prepared" else{throw ShopError.unresolvedMutation}
-        let response=try await api.raw(String(original.path.dropFirst()),json:journal.input(original),beforeDispatch:{try check();guard self.selection==view,(original.kind=="create-store" || original.kind=="accept-invitation" || self.selectedStoreID==original.storeID) else{throw ShopError.contextChanged};try self.assertPreparedCatalogCurrent(original);try self.assertPreparedStoreCurrent(original);try self.journal.dispatch(original)})
+        let response=try await api.raw(String(original.path.dropFirst()),json:journal.input(original),beforeDispatch:{try check();guard self.selection==view,(original.kind=="create-store" || original.kind=="accept-invitation" || self.selectedStoreID==original.storeID) else{throw ShopError.contextChanged};try self.assertPreparedCatalogCurrent(original);try self.assertPreparedStoreCurrent(original);try self.assertPreparedFulfillmentCurrent(original);try self.journal.dispatch(original)})
         try check();try validate(response,original:original,recovery:false);try journal.confirm(original,result:response);if original.kind=="accept-invitation"{receivedInvitations.removeAll{$0.ID==original.target}}
     }
     func perform(_ command:SellerCommand){guard signedIn,!busy else{return};do{
@@ -386,7 +398,9 @@ import SwiftUI
         let store:String;if case .invitationDecision(let row,let accept,_) = command,accept{store=row.StoreID}else{store=creatingStore ? "":selectedStoreID}
         guard creatingStore || !store.isEmpty else{throw ShopError.security}
         let(kind,target,path,input)=try self.command(command,store:store)
-        let original=try journal.prepare(account:account,storeID:store,target:target,kind:kind,path:path,input:input)
+        let reviewedOrder:SellerOrder?
+        if ["ship","return","receive-return","restock-return"].contains(kind){let matches=orders.filter{$0.ID==target && $0.StoreID==store};guard matches.count==1 else{throw ShopError.contextChanged};reviewedOrder=matches[0]}else{reviewedOrder=nil}
+        let original=try journal.prepare(account:account,storeID:store,target:target,kind:kind,path:path,input:input,reviewedOrder:reviewedOrder)
         guard original.phase=="prepared" else{throw ShopError.unresolvedMutation}
         busy=true;Task{var reload=false;defer{if at==epoch{busy=false;updatePending();if reload{refresh()}}};do{
             try await sendPrepared(original,view:view,check:check)
