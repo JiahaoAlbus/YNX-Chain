@@ -121,6 +121,42 @@ class OriginalScannerEvents(unittest.TestCase):
             self.assertNotEqual(child.returncode, 0)
             self.assertIn(b'source file shape differs', child.stderr)
 
+    def test_source_inventory_growth_stops_at_original_size_plus_one(self):
+        spec = importlib.util.spec_from_file_location('original_vuln_growth_fixture', Path(__file__).with_name('pq-perf-client-vuln-ci.py'))
+        ci = importlib.util.module_from_spec(spec); sys.modules[spec.name] = ci; spec.loader.exec_module(ci)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); path = root / 'source'; path.write_bytes(b'abc')
+            blob = hashlib.sha1(b'blob 3\0abc').hexdigest().encode()
+            original_read = os.read; lengths = []
+            def grow(fd, maximum):
+                data = original_read(fd, maximum); lengths.append(len(data))
+                if len(lengths) == 1:
+                    with path.open('ab') as stream: stream.write(b'x' * 65536)
+                return data
+            with mock.patch.object(ci.os, 'read', side_effect=grow):
+                with self.assertRaisesRegex(RuntimeError, 'grew beyond bound'):
+                    ci.inventory(root, b'100644 blob ' + blob + b'\tsource\0', expected_files=1)
+            self.assertEqual(lengths, [3, 1])
+
+    def test_scanner_descriptor_growth_stops_at_original_size_plus_one(self):
+        spec = importlib.util.spec_from_file_location('original_vuln_scanner_growth_fixture', Path(__file__).with_name('pq-perf-client-vuln-ci.py'))
+        ci = importlib.util.module_from_spec(spec); sys.modules[spec.name] = ci; spec.loader.exec_module(ci)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'scanner'; path.write_bytes(b'abc'); fd = os.open(path, os.O_RDONLY)
+            try:
+                original_read = os.read; lengths = []
+                def grow(descriptor, maximum):
+                    data = original_read(descriptor, maximum); lengths.append(len(data))
+                    if len(lengths) == 1:
+                        with path.open('ab') as stream: stream.write(b'x' * 65536)
+                    return data
+                with mock.patch.object(ci.os, 'read', side_effect=grow):
+                    with self.assertRaisesRegex(RuntimeError, 'grew beyond bound'):
+                        ci.hash_scanner_descriptor(fd, os.fstat(fd))
+                self.assertEqual(lengths, [3, 1])
+            finally:
+                os.close(fd)
+
     def test_original_window_rejects_registered_overlimit_stream(self):
         ci_spec = importlib.util.spec_from_file_location('original_vuln_window_fixture', Path(__file__).with_name('pq-perf-client-vuln-ci.py'))
         ci = importlib.util.module_from_spec(ci_spec); sys.modules[ci_spec.name] = ci; ci_spec.loader.exec_module(ci)
@@ -214,13 +250,23 @@ class OriginalScannerEvents(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()):
                 with self.assertRaises(ValueError):
                     ci.run_preserving(window, Monitor(), operation, lambda _: None, work, public, state,
-                        dict(toolsSource='a'*40, runId='1', attempt='1'))
+                        dict(source=ci.SOURCE, toolsSource='a'*40, runId='1', attempt='1'))
             window.stop.assert_called_once()
             receipt = json.loads((public / 'failure-metadata.json').read_bytes())
             self.assertEqual((receipt['status'], receipt['firstCaughtErrorType'], receipt['firstCaughtError'], receipt['originalReturnCode']),
                 ('UNKNOWN', 'ValueError', '', 7))
             self.assertEqual((public / 'failure-original-stderr.log').read_bytes(), b'original child error')
             self.assertEqual((public / 'failure-scanner-events.partial').read_bytes(), b'{"config":')
+
+    def test_candidate_source_profile_is_closed_and_exact(self):
+        spec = importlib.util.spec_from_file_location('original_vuln_profile_fixture', Path(__file__).with_name('pq-perf-client-vuln-ci.py'))
+        ci = importlib.util.module_from_spec(spec); sys.modules[spec.name] = ci; spec.loader.exec_module(ci)
+        self.assertEqual(set(ci.PROFILES), {'original70e', 'fixed-e339'})
+        expected = list(ci.PROFILES['fixed-e339']); ci.check_profile('fixed-e339', expected)
+        for index in range(3):
+            wrong = expected.copy(); wrong[index] = 'a' * 40
+            with self.assertRaises(RuntimeError): ci.check_profile('fixed-e339', wrong)
+        with self.assertRaises(RuntimeError): ci.check_profile('unknown', expected)
 
     def test_exec_rejects_real_wrong_cwd_and_environment_before_output(self):
         helper = Path(__file__).with_name('pq-perf-client-vuln-exec.py')

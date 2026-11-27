@@ -16,6 +16,12 @@ ROOT = Path(__file__).resolve().parent
 SOURCE = '70e7e450997a0ae77dbad5a8be3682f482c6ddd8'
 TREE = '4866cc3924c060eb6a29939915d39b1c5c625607'
 FORK = 'fa760970088d4f1a275d4cab254d63a014db9c74'
+PROFILES = {
+    'original70e': (SOURCE, TREE, FORK),
+    'fixed-e339': ('e33955c90f05ba929d2053a90b969cb4f6b4edc1',
+        'eefd84ce10d74ebb91f5aa48c6d828d556d4cac1', '9f2065952854305d5b3c0b6ee9f323e7eb3e63b9'),
+}
+FIXED_WEBSOCKET = 'v1.5.4-0.20240701034025-d67f41855da4'
 
 
 def load(name, path):
@@ -30,6 +36,11 @@ cross = load('perf_vuln_original_cross', 'pq-synthetic-header-cross-source-ci.py
 events = load('perf_vuln_original_events', 'pq-perf-client-vuln-events.py')
 lab, driver = cross.lab, cross.driver
 UNKNOWN_STREAM_CUSTODY = []
+
+
+def check_profile(profile, actual):
+    lab.require(profile in PROFILES and type(actual) is list and actual == list(PROFILES[profile]),
+        'exact original source/tree/fork identity differs')
 
 
 class OnceStream:
@@ -111,6 +122,19 @@ def read_log(path):
         close_once([fd])
 
 
+def hash_scanner_descriptor(fd, info):
+    lab.require(stat.S_ISREG(info.st_mode) and 0 < info.st_size <= 128 << 20,
+        'scanner descriptor size unavailable')
+    digest = hashlib.sha256(); count = 0
+    while True:
+        chunk = os.read(fd, min(65536, info.st_size + 1 - count))
+        if not chunk: break
+        digest.update(chunk); count += len(chunk)
+        lab.require(count <= info.st_size, 'scanner descriptor grew beyond bound')
+    lab.require(count == info.st_size, 'scanner descriptor truncated')
+    return digest.digest()
+
+
 def capture_failure(work, public, state, original, identity):
     public.mkdir(mode=0o700, exist_ok=True)
     failures, files = [], []
@@ -127,7 +151,7 @@ def capture_failure(work, public, state, original, identity):
             failures.append(dict(file=destination, errorType=type(error).__name__))
     try: first_message = str(original); formatting_error = None
     except BaseException as error: first_message = None; formatting_error = type(error).__name__
-    failure = dict(version='YNX-PERF-CLIENT-VULN-FAILURE/v1', status='UNKNOWN', source=SOURCE,
+    failure = dict(version='YNX-PERF-CLIENT-VULN-FAILURE/v1', status='UNKNOWN', source=identity['source'],
         toolsSource=identity['toolsSource'], runId=identity['runId'], attempt=identity['attempt'],
         failedOwnedCommand=state['name'], originalReturnCode=getattr(state['process'], 'returncode', None),
         firstCaughtErrorType=type(original).__name__, firstCaughtError=first_message,
@@ -178,9 +202,10 @@ def inventory(root, tree_bytes, *, expected_files=6065):
                 blob = hashlib.sha1(b'blob ' + str(before.st_size).encode() + b'\0')
                 read = 0
                 while True:
-                    chunk = os.read(fd, 65536)
+                    chunk = os.read(fd, min(65536, before.st_size + 1 - read))
                     if not chunk: break
                     blob.update(chunk); read += len(chunk)
+                    lab.require(read <= before.st_size, 'tracked source grew beyond bound')
                 after = os.fstat(fd)
                 lab.require(read == before.st_size and (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns, before.st_ctime_ns)
                     == (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns)
@@ -199,6 +224,9 @@ def main():
         and os.environ.get('GITHUB_ACTIONS') == 'true' and os.environ.get('RUNNER_ENVIRONMENT') == 'github-hosted'
         and os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_RUN_ATTEMPT') == '1',
         'original hosted Linux source-only push required')
+    profile = os.environ.get('YNX_PERF_VULN_PROFILE', 'original70e')
+    lab.require(profile in PROFILES, 'exact frozen source profile required')
+    source_commit, source_tree, fork_tree = PROFILES[profile]
     source, tools = (Path(os.environ[k]) for k in ('YNX_CLIENT_SOURCE', 'YNX_TOOLS_SOURCE'))
     work, public = (Path(os.environ[k]) for k in ('YNX_PRIVATE_WORK', 'YNX_PUBLIC_OUTPUT'))
     temp = Path(os.environ['RUNNER_TEMP']).resolve(strict=True)
@@ -241,9 +269,9 @@ def main():
             return ident
         client_identity = checkout(source, 'client-before')
         tools_identity = checkout(tools, 'tools-before')
-        lab.require(client_identity == [SOURCE, TREE, FORK] and tools_identity[0] == os.environ['GITHUB_SHA'],
-            'exact original source/tree/fork identity differs')
-        before = run('source-tree-before', ['git', 'ls-tree', '-r', '-z', SOURCE])
+        check_profile(profile, client_identity)
+        lab.require(tools_identity[0] == os.environ['GITHUB_SHA'], 'exact Tools source identity differs')
+        before = run('source-tree-before', ['git', 'ls-tree', '-r', '-z', source_commit])
         first = inventory(source, before)
         go_env_raw = run('target-go-env', [go, 'env', '-json', 'GOVERSION', 'GOOS', 'GOARCH', 'CGO_ENABLED', 'GOAMD64'])
         env = json.loads(go_env_raw)
@@ -270,12 +298,8 @@ def main():
             key = lambda x: (x.st_dev, x.st_ino, x.st_mode, x.st_nlink, x.st_size, x.st_mtime_ns, x.st_ctime_ns)
             lab.require(stat.S_ISREG(scan_stat.st_mode) and scan_stat.st_nlink == 1 and key(scan_stat) == key(named),
                 'scanner original descriptor identity differs')
-            fd_hash = hashlib.sha256()
-            while True:
-                chunk = os.read(scanner_fd, 65536)
-                if not chunk: break
-                fd_hash.update(chunk)
-            lab.require(fd_hash.digest() == hashlib.sha256(scanner_bytes).digest() and key(os.fstat(scanner_fd)) == key(scan_stat),
+            fd_hash = hash_scanner_descriptor(scanner_fd, scan_stat)
+            lab.require(fd_hash == hashlib.sha256(scanner_bytes).digest() and key(os.fstat(scanner_fd)) == key(scan_stat),
                 'scanner original descriptor bytes differ')
             # Register the same original stdout FD with the unchanged Window's
             # 4 MiB sampled process-log guard before publishing it to the child.
@@ -283,18 +307,21 @@ def main():
             stderr, exit_code = run('original-scanner-stderr', [sys.executable, '-I', str(ROOT / 'pq-perf-client-vuln-exec.py'),
                 str(scanner_fd), str(stream.fileno())], with_status=True, pass_fds=(scanner_fd, stream.fileno()))
             lab.require(key(os.fstat(scanner_fd)) == key(scan_stat) == key(scanner.stat(follow_symlinks=False))
-                and hashlib.sha256(driver.commit_clock.read_original(scanner, 128 << 20)).digest() == fd_hash.digest(),
+                and hashlib.sha256(driver.commit_clock.read_original(scanner, 128 << 20)).digest() == fd_hash,
                 'scanner original descriptor or named bytes changed')
         finally:
             close_once([scanner_fd])
         raw = driver.commit_clock.read_original(output, events.MAX_BYTES)
         observed = events.inspect(raw, exit_code=exit_code, output_complete=True)
-        after = run('source-tree-after', ['git', 'ls-tree', '-r', '-z', SOURCE])
+        if profile == 'fixed-e339':
+            lab.require(observed['targetModuleVersion'] == FIXED_WEBSOCKET and observed['targetFindings'] == [],
+                'candidate version or original target advisory findings differ')
+        after = run('source-tree-after', ['git', 'ls-tree', '-r', '-z', source_commit])
         second = inventory(source, after)
         lab.require(before == after and first == second
             and checkout(source, 'client-after') == client_identity
             and checkout(tools, 'tools-after') == tools_identity, 'source identity changed')
-        observed.update(source=SOURCE, sourceTree=TREE, forkTree=FORK, toolsSource=os.environ['GITHUB_SHA'],
+        observed.update(source=source_commit, sourceTree=source_tree, forkTree=fork_tree, toolsSource=os.environ['GITHUB_SHA'],
             toolsTree=tools_identity[1], toolsForkTree=tools_identity[2],
             runId=os.environ['GITHUB_RUN_ID'], attempt=os.environ['GITHUB_RUN_ATTEMPT'], job=os.environ['GITHUB_JOB'],
             scanExitCode=exit_code, scannerStderrBytes=len(stderr), scannerStderrSHA256=hashlib.sha256(stderr).hexdigest(),
@@ -312,7 +339,7 @@ def main():
         stopped_stderr = read_log(work / '.private/original-scanner-stderr.log')
         lab.require(stopped_raw == raw and stopped_stderr == stderr, 'original scanner stream changed before child retirement')
     raw, stderr, scanner_info, advisory, observed = run_preserving(window, monitor, operation, post_retirement,
-        work, public, state, dict(toolsSource=os.environ['GITHUB_SHA'], runId=os.environ['GITHUB_RUN_ID'], attempt=os.environ['GITHUB_RUN_ATTEMPT']))
+        work, public, state, dict(source=source_commit, toolsSource=os.environ['GITHUB_SHA'], runId=os.environ['GITHUB_RUN_ID'], attempt=os.environ['GITHUB_RUN_ATTEMPT']))
     # This bounded post-retirement read is not covered by the stopped monitor.
     observed['postRetirementStreamMatched'] = True
     observed['postRetirementReadRSS'] = 'UNKNOWN'

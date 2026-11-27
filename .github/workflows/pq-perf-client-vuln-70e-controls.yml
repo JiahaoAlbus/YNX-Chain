@@ -33,9 +33,9 @@ jobs:
           spec=importlib.util.spec_from_file_location('original_vuln_controls',path)
           module=importlib.util.module_from_spec(spec);sys.modules[spec.name]=module;spec.loader.exec_module(module)
           suite=unittest.defaultTestLoader.loadTestsFromModule(module)
-          if suite.countTestCases()!=21: raise RuntimeError('exact scanner controls inventory differs')
+          if suite.countTestCases()!=24: raise RuntimeError('exact scanner controls inventory differs')
           result=unittest.TextTestRunner(verbosity=2).run(suite)
-          if result.testsRun!=21 or result.skipped or not result.wasSuccessful(): raise RuntimeError('scanner controls failed or skipped')
+          if result.testsRun!=24 or result.skipped or not result.wasSuccessful(): raise RuntimeError('scanner controls failed or skipped')
           PY
           test -z "$(git status --porcelain --untracked-files=all)"
           test -z "$(git ls-files --others --ignored --exclude-standard)"
