@@ -4,10 +4,12 @@ package securelink
 
 import (
 	"context"
+	"errors"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -31,6 +33,17 @@ func privateParent(path string, uid uint32) error {
 // directory. It never deletes a pre-existing socket or changes another owner's
 // permissions. UID is an OS service principal, not a header or request field.
 func ListenPrivate(path string, callerUID uint32) (net.Listener, error) {
+	return listenPrivate(path, callerUID, false)
+}
+
+// ListenPrivateWithCloseWitness retains the original listener and the result
+// of its first physical Close. Every caller must retain this returned object;
+// an unknown first close is never retried or treated as confirmed.
+func ListenPrivateWithCloseWitness(path string, callerUID uint32) (net.Listener, error) {
+	return listenPrivate(path, callerUID, true)
+}
+
+func listenPrivate(path string, callerUID uint32, witnessed bool) (net.Listener, error) {
 	if err := privateParent(path, uint32(os.Geteuid())); err != nil {
 		return nil, err
 	}
@@ -41,16 +54,107 @@ func ListenPrivate(path string, callerUID uint32) (net.Listener, error) {
 	// Do not unlink after shutdown: preserve the original endpoint identity for
 	// the service operator to reconcile, rather than deleting a replacement.
 	l.SetUnlinkOnClose(false)
-	if err = os.Chmod(path, 0600); err != nil {
-		_ = l.Close()
-		return nil, err
+	private := &privateListener{Listener: l, uid: callerUID}
+	if witnessed {
+		private.closeState = &privateListenerCloseState{}
 	}
-	return &privateListener{Listener: l, uid: callerUID}, nil
+	return finishPrivateListenerSetup(private, path, witnessed, os.Chmod)
+}
+
+func finishPrivateListenerSetup(private *privateListener, path string, witnessed bool, chmod func(string, os.FileMode) error) (net.Listener, error) {
+	if err := chmod(path, 0600); err != nil {
+		closeErr := private.Close()
+		if !witnessed {
+			return nil, err
+		}
+		if witnessed && closeErr != nil {
+			return private, errors.Join(err, closeErr)
+		}
+		return nil, errors.Join(err, closeErr)
+	}
+	return private, nil
 }
 
 type privateListener struct {
 	net.Listener
-	uid uint32
+	uid        uint32
+	closeState *privateListenerCloseState
+}
+
+type privateListenerCloseState struct {
+	mu                sync.Mutex
+	started, returned bool
+	err               error
+}
+
+// A failed first physical close must keep its original object alive even if
+// every product and server reference is later dropped.
+var originalPrivateListenerCustody = struct {
+	sync.Mutex
+	live map[*privateListener]struct{}
+}{live: make(map[*privateListener]struct{})}
+
+func (l *privateListener) Close() error {
+	if l.closeState == nil {
+		return l.Listener.Close()
+	}
+	s := l.closeState
+	s.mu.Lock()
+	if s.started {
+		if !s.returned {
+			s.mu.Unlock()
+			return ErrLocalCallerDraining
+		}
+		err := s.err
+		s.mu.Unlock()
+		return err
+	}
+	s.started = true
+	originalPrivateListenerCustody.Lock()
+	originalPrivateListenerCustody.live[l] = struct{}{}
+	originalPrivateListenerCustody.Unlock()
+	s.mu.Unlock()
+
+	err := closeOriginalPrivateListener(l.Listener)
+	if err != nil {
+		err = errors.Join(ErrOriginalPrivateListenerCloseUnknown, err)
+	}
+	s.mu.Lock()
+	s.returned, s.err = true, err
+	s.mu.Unlock()
+	if err == nil {
+		originalPrivateListenerCustody.Lock()
+		delete(originalPrivateListenerCustody.live, l)
+		originalPrivateListenerCustody.Unlock()
+	}
+	return err
+}
+
+func closeOriginalPrivateListener(l net.Listener) (err error) {
+	returned := false
+	defer func() {
+		if !returned {
+			_ = recover()
+			err = ErrOriginalPrivateListenerCloseUnknown
+		}
+	}()
+	err = l.Close()
+	returned = true
+	return err
+}
+
+// InspectOriginalPrivateListener reports the same listener's first close. It
+// cannot witness accepted connection drain, product authority, or admission.
+func InspectOriginalPrivateListener(listener net.Listener) (OriginalPrivateListenerStatus, error) {
+	l, ok := listener.(*privateListener)
+	if !ok || l == nil || l.closeState == nil {
+		return OriginalPrivateListenerStatus{}, ErrDenied
+	}
+	s := l.closeState
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return OriginalPrivateListenerStatus{CloseStarted: s.started, CloseReturned: s.returned,
+		CloseConfirmed: s.returned && s.err == nil, FirstError: s.err}, nil
 }
 
 func (l *privateListener) Accept() (net.Conn, error) {

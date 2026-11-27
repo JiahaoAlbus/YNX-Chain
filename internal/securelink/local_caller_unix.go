@@ -311,7 +311,15 @@ func newLocalCallerServerProfile(cfg LocalCallerServerConfig, routes map[string]
 
 type localCallerListener struct {
 	net.Listener
-	server *LocalCallerServer
+	server     *LocalCallerServer
+	closeOwner *privateListener
+}
+
+func (l *localCallerListener) Close() error {
+	if l.closeOwner != nil {
+		return l.closeOwner.Close()
+	}
+	return l.Listener.Close()
 }
 
 func (l *localCallerListener) Accept() (net.Conn, error) {
@@ -413,7 +421,7 @@ func (s *LocalCallerServer) Serve(l net.Listener) error {
 	if s.proofV4Required {
 		// The same private Unix listener is used, with its UID check performed
 		// inside localCallerListener after the original connection is retained.
-		return s.http.Serve(&localCallerListener{Listener: private.Listener, server: s})
+		return s.http.Serve(&localCallerListener{Listener: private.Listener, server: s, closeOwner: private})
 	}
 	return s.http.Serve(&localCallerListener{Listener: l, server: s})
 }
