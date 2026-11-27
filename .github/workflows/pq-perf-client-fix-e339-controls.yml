@@ -29,7 +29,7 @@ jobs:
           test -z "$(git status --porcelain --untracked-files=all)"
           python3 -B - <<'PY'
           import importlib.util, pathlib, sys, unittest
-          for file, count in [('test_pq_perf_client_vuln_events.py',24),('test_pq_perf_client_fix_build.py',8)]:
+          for file, count in [('test_pq_perf_client_vuln_events.py',25),('test_pq_perf_client_fix_build.py',9)]:
               path=pathlib.Path('scripts/loadtest')/file
               spec=importlib.util.spec_from_file_location('e339_'+file.replace('.','_'),path)
               module=importlib.util.module_from_spec(spec);sys.modules[spec.name]=module;spec.loader.exec_module(module)

@@ -20,7 +20,10 @@ PROFILES = {
     'original70e': (SOURCE, TREE, FORK),
     'fixed-e339': ('e33955c90f05ba929d2053a90b969cb4f6b4edc1',
         'eefd84ce10d74ebb91f5aa48c6d828d556d4cac1', '9f2065952854305d5b3c0b6ee9f323e7eb3e63b9'),
+    'fixed-491188-go12611': ('491188519d038b361ce04faa80137e79a409bd0e',
+        '1f1ee4d9c0fdafc258f9a64ceaa3548efcac028d', '3dc2cd40c99512ae628714d17ddb4dab2692e8c6'),
 }
+PROFILE_TOOLCHAINS = {'original70e': 'go1.26.10', 'fixed-e339': 'go1.26.10', 'fixed-491188-go12611': 'go1.26.11'}
 FIXED_WEBSOCKET = 'v1.5.4-0.20240701034025-d67f41855da4'
 
 
@@ -225,8 +228,9 @@ def main():
         and os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_RUN_ATTEMPT') == '1',
         'original hosted Linux source-only push required')
     profile = os.environ.get('YNX_PERF_VULN_PROFILE', 'original70e')
-    lab.require(profile in PROFILES, 'exact frozen source profile required')
+    lab.require(profile in PROFILES and set(PROFILES) == set(PROFILE_TOOLCHAINS), 'exact frozen source profile required')
     source_commit, source_tree, fork_tree = PROFILES[profile]
+    expected_go = PROFILE_TOOLCHAINS[profile]
     source, tools = (Path(os.environ[k]) for k in ('YNX_CLIENT_SOURCE', 'YNX_TOOLS_SOURCE'))
     work, public = (Path(os.environ[k]) for k in ('YNX_PRIVATE_WORK', 'YNX_PUBLIC_OUTPUT'))
     temp = Path(os.environ['RUNNER_TEMP']).resolve(strict=True)
@@ -275,14 +279,14 @@ def main():
         first = inventory(source, before)
         go_env_raw = run('target-go-env', [go, 'env', '-json', 'GOVERSION', 'GOOS', 'GOARCH', 'CGO_ENABLED', 'GOAMD64'])
         env = json.loads(go_env_raw)
-        lab.require(env == dict(GOVERSION='go1.26.10', GOOS='linux', GOARCH='amd64', CGO_ENABLED='1', GOAMD64='v1'),
+        lab.require(env == dict(GOVERSION=expected_go, GOOS='linux', GOARCH='amd64', CGO_ENABLED='1', GOAMD64='v1'),
             'actual source-scan Go target identity differs')
         run('install-original-scanner', [go, 'install', 'golang.org/x/vuln/cmd/govulncheck@v1.1.4'])
         scanner = work / '.private/bin/govulncheck'
         scanner_bytes = driver.commit_clock.read_original(scanner, 128 << 20)
         scanner_info = run('original-scanner-build-info', [go, 'version', '-m', str(scanner)])
         lab.require(b'golang.org/x/vuln/cmd/govulncheck' in scanner_info
-            and re.search(rb'\bgo1\.26\.10\b', scanner_info) is not None
+            and re.search(rb'\b' + re.escape(expected_go.encode()) + rb'\b', scanner_info) is not None
             and re.search(rb'\bmod\s+golang.org/x/vuln\s+v1\.1\.4\s+h1:', scanner_info) is not None,
             'original scanner build identity differs')
         advisory = run('official-target-advisory', ['curl', '--fail', '--silent', '--show-error', '--proto', '=https',
@@ -312,8 +316,8 @@ def main():
         finally:
             close_once([scanner_fd])
         raw = driver.commit_clock.read_original(output, events.MAX_BYTES)
-        observed = events.inspect(raw, exit_code=exit_code, output_complete=True)
-        if profile == 'fixed-e339':
+        observed = events.inspect(raw, exit_code=exit_code, output_complete=True, expected_go=expected_go)
+        if profile in ('fixed-e339', 'fixed-491188-go12611'):
             lab.require(observed['targetModuleVersion'] == FIXED_WEBSOCKET and observed['targetFindings'] == [],
                 'candidate version or original target advisory findings differ')
         after = run('source-tree-after', ['git', 'ls-tree', '-r', '-z', source_commit])
@@ -321,7 +325,7 @@ def main():
         lab.require(before == after and first == second
             and checkout(source, 'client-after') == client_identity
             and checkout(tools, 'tools-after') == tools_identity, 'source identity changed')
-        observed.update(source=source_commit, sourceTree=source_tree, forkTree=fork_tree, toolsSource=os.environ['GITHUB_SHA'],
+        observed.update(sourceProfile=profile, source=source_commit, sourceTree=source_tree, forkTree=fork_tree, toolsSource=os.environ['GITHUB_SHA'],
             toolsTree=tools_identity[1], toolsForkTree=tools_identity[2],
             runId=os.environ['GITHUB_RUN_ID'], attempt=os.environ['GITHUB_RUN_ATTEMPT'], job=os.environ['GITHUB_JOB'],
             scanExitCode=exit_code, scannerStderrBytes=len(stderr), scannerStderrSHA256=hashlib.sha256(stderr).hexdigest(),

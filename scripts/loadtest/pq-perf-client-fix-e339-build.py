@@ -20,6 +20,8 @@ lab, driver, cross = guard.lab, guard.driver, guard.cross
 SOURCE, TREE, FORK = guard.PROFILES['fixed-e339']
 TARGET = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client'
 TESTS = {'TestEndpointAndWorkloadBounds', 'TestExpandedDecoderBoundIsFinite'}
+BUILD_PROFILES = {'fixed-e339': (SOURCE, TREE, FORK, 'go1.26.10'),
+    'fixed-491188-go12611': (*guard.PROFILES['fixed-491188-go12611'], 'go1.26.11')}
 
 
 def inspect_test_events(raw):
@@ -47,9 +49,11 @@ def inspect_test_events(raw):
     return b''.join(original), downloads
 
 
-def inspect_build_info(raw):
+def inspect_build_info(raw, *, source=SOURCE, expected_go='go1.26.10'):
+    lab.require(any((source, expected_go) == (row[0], row[3]) for row in BUILD_PROFILES.values()),
+        'original client build source/toolchain is not frozen')
     lines = raw.decode('utf-8').splitlines()
-    lab.require(lines and lines[0].endswith(': go1.26.10'), 'original client Go BuildInfo version differs')
+    lab.require(lines and lines[0].endswith(': ' + expected_go), 'original client Go BuildInfo version differs')
     paths = []; settings = {}
     for line in lines[1:]:
         fields = line.split('\t')
@@ -61,7 +65,7 @@ def inspect_build_info(raw):
             settings[key] = value
     lab.require(paths == [TARGET] and all(settings.get(k) == v for k, v in {
         'GOOS': 'linux', 'GOARCH': 'amd64', 'CGO_ENABLED': '1', '-trimpath': 'true',
-        'vcs.revision': SOURCE, 'vcs.modified': 'false'}.items()), 'original client BuildInfo identity differs')
+        'vcs.revision': source, 'vcs.modified': 'false'}.items()), 'original client BuildInfo identity differs')
     return settings
 
 
@@ -90,6 +94,9 @@ def main():
         and os.environ.get('GITHUB_ACTIONS') == 'true' and os.environ.get('RUNNER_ENVIRONMENT') == 'github-hosted'
         and os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_RUN_ATTEMPT') == '1',
         'original hosted Linux source-only push required')
+    profile = os.environ.get('YNX_PERF_BUILD_PROFILE', 'fixed-e339')
+    lab.require(profile in BUILD_PROFILES, 'exact frozen client build profile required')
+    source_commit, source_tree, fork_tree, expected_go = BUILD_PROFILES[profile]
     source, tools = (Path(os.environ[k]) for k in ('YNX_CLIENT_SOURCE', 'YNX_TOOLS_SOURCE'))
     work, public = (Path(os.environ[k]) for k in ('YNX_PRIVATE_WORK', 'YNX_PUBLIC_OUTPUT'))
     temp = Path(os.environ['RUNNER_TEMP']).resolve(strict=True)
@@ -124,26 +131,26 @@ def main():
                 and not run(prefix+'-ignored', ['git', '-C', str(path), 'ls-files', '--others', '--ignored', '--exclude-standard']),
                 'original clean checkout identity unavailable')
             return ident
-        client = checkout(source, 'client-before'); guard.check_profile('fixed-e339', client)
+        client = checkout(source, 'client-before'); guard.check_profile(profile, client)
         tools_id = checkout(tools, 'tools-before'); lab.require(tools_id[0] == os.environ['GITHUB_SHA'], 'Tools source differs')
-        before = run('tree-before', ['git', 'ls-tree', '-r', '-z', SOURCE]); first = guard.inventory(source, before)
+        before = run('tree-before', ['git', 'ls-tree', '-r', '-z', source_commit]); first = guard.inventory(source, before)
         go_env = json.loads(run('original-go-env', [go, 'env', '-json', 'GOVERSION', 'GOOS', 'GOARCH', 'CGO_ENABLED', 'GOAMD64']))
-        lab.require(go_env == dict(GOVERSION='go1.26.10', GOOS='linux', GOARCH='amd64', CGO_ENABLED='1', GOAMD64='v1'),
+        lab.require(go_env == dict(GOVERSION=expected_go, GOOS='linux', GOARCH='amd64', CGO_ENABLED='1', GOAMD64='v1'),
             'actual client build toolchain differs')
         binary = work / '.private/bin/ynx-consensus-perf-client'
         build_log = run('original-client-build', [go, 'build', '-mod=readonly', '-p', '1', '-trimpath', '-buildvcs=true',
             '-o', str(binary), './cmd/ynx-consensus-perf-client'])
         first_binary = binary_digest(binary)
         info = run('original-client-build-info', [go, 'version', '-m', str(binary)])
-        inspect_build_info(info)
+        inspect_build_info(info, source=source_commit, expected_go=expected_go)
         test_log = run('original-independent-client-race-controls', [go, 'test', '-mod=readonly', '-p', '1', '-race', '-json',
             '-count=1', '-timeout=60s', '-run', '^(' + '|'.join(sorted(TESTS)) + ')$',
             './cmd/ynx-consensus-perf-client'])
         test_events, downloads = inspect_test_events(test_log)
-        after = run('tree-after', ['git', 'ls-tree', '-r', '-z', SOURCE]); second = guard.inventory(source, after)
+        after = run('tree-after', ['git', 'ls-tree', '-r', '-z', source_commit]); second = guard.inventory(source, after)
         lab.require(before == after and first == second and checkout(source, 'client-after') == client
             and checkout(tools, 'tools-after') == tools_id and binary_digest(binary) == first_binary, 'original source or client binary changed')
-        metadata = dict(version='YNX-PERF-CLIENT-FIX-BUILD/v1', source=SOURCE, sourceTree=TREE, forkTree=FORK,
+        metadata = dict(version='YNX-PERF-CLIENT-FIX-BUILD/v1', sourceProfile=profile, source=source_commit, sourceTree=source_tree, forkTree=fork_tree,
             toolsSource=tools_id[0], toolsTree=tools_id[1], toolsForkTree=tools_id[2], runId=os.environ['GITHUB_RUN_ID'],
             attempt=os.environ['GITHUB_RUN_ATTEMPT'], job=os.environ['GITHUB_JOB'], goEnv=go_env, sourceInventory=first,
             binaryBytes=first_binary['bytes'], binarySHA256=first_binary['sha256'], buildInfoSHA256=hashlib.sha256(info).hexdigest(),
@@ -164,7 +171,7 @@ def main():
             'original build or test output changed after retirement')
 
     binary, info, build_log, test_log, test_events, metadata = guard.run_preserving(window, monitor, operation, after_stop, work, public, state,
-        dict(source=SOURCE, toolsSource=os.environ['GITHUB_SHA'], runId=os.environ['GITHUB_RUN_ID'], attempt=os.environ['GITHUB_RUN_ATTEMPT']))
+        dict(source=source_commit, toolsSource=os.environ['GITHUB_SHA'], runId=os.environ['GITHUB_RUN_ID'], attempt=os.environ['GITHUB_RUN_ATTEMPT']))
     metadata['postRetirementReadRSS'] = 'UNKNOWN'
     public.mkdir(mode=0o700)
     (public/'client-build-info.txt').write_bytes(info)

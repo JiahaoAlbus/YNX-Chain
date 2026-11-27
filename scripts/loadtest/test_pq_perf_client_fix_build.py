@@ -58,6 +58,12 @@ class OriginalClientBuildControls(unittest.TestCase):
     def test_wrong_go_version_rejected(self):
         with self.assertRaises(RuntimeError): build.inspect_build_info(info().replace(b'go1.26.10', b'go1.26.11'))
 
+    def test_successor_build_requires_own_source_and_toolchain(self):
+        source, _, _, go = build.BUILD_PROFILES['fixed-491188-go12611']
+        raw = info().replace(build.SOURCE.encode(), source.encode()).replace(b'go1.26.10', go.encode())
+        self.assertEqual(build.inspect_build_info(raw, source=source, expected_go=go)['vcs.revision'], source)
+        with self.assertRaises(RuntimeError): build.inspect_build_info(raw, source=source, expected_go='go1.26.10')
+
     def test_original_race_events_require_two_complete_top_tests(self):
         raw, downloads = build.inspect_test_events(test_stream())
         self.assertEqual(downloads, 1)

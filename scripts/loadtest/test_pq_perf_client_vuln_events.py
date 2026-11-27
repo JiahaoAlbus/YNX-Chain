@@ -50,6 +50,12 @@ class OriginalScannerEvents(unittest.TestCase):
             data = base(); data[0]['config'][key] = value
             with self.subTest(key=key), self.assertRaises(ValueError): events.inspect(stream(*data), exit_code=0, output_complete=True)
 
+    def test_toolchain_12611_is_explicit_and_cannot_borrow_12610(self):
+        data = base(); data[0]['config']['go_version'] = 'go1.26.11'
+        with self.assertRaises(ValueError): events.inspect(stream(*data), exit_code=0, output_complete=True)
+        self.assertEqual(events.inspect(stream(*data), exit_code=0, output_complete=True, expected_go='go1.26.11')['goVersion'], 'go1.26.11')
+        with self.assertRaises(ValueError): events.inspect(stream(*data), exit_code=0, output_complete=True, expected_go='go1.26.12')
+
     def test_invalid_database_calendar_time_rejected(self):
         for timestamp in ('2026-02-30T25:00:00Z', '2026-11-28T00:00:00+00:60', '2026-11-28T00:00:00+24:00'):
             data = base(); data[0]['config']['db_last_modified'] = timestamp
@@ -261,7 +267,8 @@ class OriginalScannerEvents(unittest.TestCase):
     def test_candidate_source_profile_is_closed_and_exact(self):
         spec = importlib.util.spec_from_file_location('original_vuln_profile_fixture', Path(__file__).with_name('pq-perf-client-vuln-ci.py'))
         ci = importlib.util.module_from_spec(spec); sys.modules[spec.name] = ci; spec.loader.exec_module(ci)
-        self.assertEqual(set(ci.PROFILES), {'original70e', 'fixed-e339'})
+        self.assertEqual(set(ci.PROFILES), {'original70e', 'fixed-e339', 'fixed-491188-go12611'})
+        self.assertEqual(ci.PROFILE_TOOLCHAINS['fixed-491188-go12611'], 'go1.26.11')
         expected = list(ci.PROFILES['fixed-e339']); ci.check_profile('fixed-e339', expected)
         for index in range(3):
             wrong = expected.copy(); wrong[index] = 'a' * 40

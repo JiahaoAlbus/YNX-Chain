@@ -1,0 +1,151 @@
+name: Exact 491188 Client Go 1.26.11 Source Controls
+
+on:
+  push:
+    branches:
+      - codex/perf-client-vuln-491188-go12611-20261128
+
+permissions:
+  contents: read
+
+concurrency:
+  group: perf-client-491188-go12611-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact Tools source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify exact source scanner and build controls
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          python3 -B - <<'PY'
+          import importlib.util, pathlib, sys, unittest
+          for file, count in [('test_pq_perf_client_vuln_events.py',25),('test_pq_perf_client_fix_build.py',9)]:
+              path=pathlib.Path('scripts/loadtest')/file
+              spec=importlib.util.spec_from_file_location('client_491188_go12611_'+file.replace('.','_'),path)
+              module=importlib.util.module_from_spec(spec);sys.modules[spec.name]=module;spec.loader.exec_module(module)
+              suite=unittest.defaultTestLoader.loadTestsFromModule(module)
+              if suite.countTestCases()!=count: raise RuntimeError('exact source controls inventory differs')
+              result=unittest.TextTestRunner(verbosity=2).run(suite)
+              if result.testsRun!=count or result.skipped or not result.wasSuccessful(): raise RuntimeError('source controls failed or skipped')
+          PY
+          test -z "$(git status --porcelain --untracked-files=all)"
+          test -z "$(git ls-files --others --ignored --exclude-standard)"
+
+  source-scan:
+    needs: controls
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact Tools source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: tools
+          persist-credentials: false
+      - name: Checkout exact original 491188 candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 491188519d038b361ce04faa80137e79a409bd0e
+          path: client
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up exact Go 1.26.11 toolchain
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: 1.26.11
+          cache: false
+      - name: Scan exact candidate under original resource Window
+        env:
+          YNX_TOOLS_SOURCE: ${{ github.workspace }}/tools
+          YNX_CLIENT_SOURCE: ${{ github.workspace }}/client
+          YNX_PRIVATE_WORK: ${{ runner.temp }}/ynx-491188-go12611-scan-private
+          YNX_PUBLIC_OUTPUT: ${{ runner.temp }}/ynx-491188-go12611-scan-public
+          YNX_PERF_VULN_PROFILE: fixed-491188-go12611
+        run: |
+          set -euo pipefail
+          mkdir -m 700 "$YNX_PRIVATE_WORK"
+          python3 -B "$YNX_TOOLS_SOURCE/scripts/loadtest/pq-perf-client-vuln-ci.py"
+      - name: Preserve original public scanner events
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-client-491188-go12611-scan-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ynx-491188-go12611-scan-public/govulncheck-original.json
+            ${{ runner.temp }}/ynx-491188-go12611-scan-public/scanner-build-info.txt
+            ${{ runner.temp }}/ynx-491188-go12611-scan-public/official-advisory.json
+            ${{ runner.temp }}/ynx-491188-go12611-scan-public/metadata.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Preserve original bounded scan failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-client-491188-go12611-scan-failure-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ynx-491188-go12611-scan-public/failure-*
+          if-no-files-found: ignore
+          retention-days: 7
+
+  original-client-build:
+    needs: controls
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact Tools source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: tools
+          persist-credentials: false
+      - name: Checkout exact original 491188 candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 491188519d038b361ce04faa80137e79a409bd0e
+          path: client
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up exact Go 1.26.11 toolchain
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: 1.26.11
+          cache: false
+      - name: Build original client under original resource Window
+        env:
+          YNX_TOOLS_SOURCE: ${{ github.workspace }}/tools
+          YNX_CLIENT_SOURCE: ${{ github.workspace }}/client
+          YNX_PRIVATE_WORK: ${{ runner.temp }}/ynx-491188-go12611-build-private
+          YNX_PUBLIC_OUTPUT: ${{ runner.temp }}/ynx-491188-go12611-build-public
+          YNX_PERF_BUILD_PROFILE: fixed-491188-go12611
+        run: |
+          set -euo pipefail
+          mkdir -m 700 "$YNX_PRIVATE_WORK"
+          python3 -B "$YNX_TOOLS_SOURCE/scripts/loadtest/pq-perf-client-fix-e339-build.py"
+      - name: Preserve public build identity without the binary
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-client-491188-go12611-build-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ynx-491188-go12611-build-public/client-build-info.txt
+            ${{ runner.temp }}/ynx-491188-go12611-build-public/client-build.log
+            ${{ runner.temp }}/ynx-491188-go12611-build-public/client-test-original.log
+            ${{ runner.temp }}/ynx-491188-go12611-build-public/client-test-events.jsonl
+            ${{ runner.temp }}/ynx-491188-go12611-build-public/metadata.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Preserve original bounded build failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-client-491188-go12611-build-failure-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ynx-491188-go12611-build-public/failure-*
+          if-no-files-found: ignore
+          retention-days: 7

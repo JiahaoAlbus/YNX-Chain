@@ -31,9 +31,11 @@ def _pairs(pairs):
     return out
 
 
-def inspect(raw, *, exit_code, output_complete):
+def inspect(raw, *, exit_code, output_complete, expected_go='go1.26.10'):
     if type(exit_code) is not int or exit_code != 0 or output_complete is not True:
         raise ValueError('original scanner did not complete successfully')
+    if expected_go not in ('go1.26.10', 'go1.26.11'):
+        raise ValueError('original scanner toolchain is not frozen')
     if type(raw) is not bytes or not 0 < len(raw) <= MAX_BYTES:
         raise ValueError('original scanner stream unavailable or oversized')
     text = raw.decode('utf-8')
@@ -57,7 +59,7 @@ def inspect(raw, *, exit_code, output_complete):
     config = messages[0]['config']
     if (type(config) is not dict or config.get('protocol_version') != 'v1.0.0' or config.get('scanner_name') != 'govulncheck'
             or config.get('scanner_version') != 'v1.1.4'
-            or config.get('go_version') != 'go1.26.10'
+            or config.get('go_version') != expected_go
             or config.get('db') != 'https://vuln.go.dev'
             or not valid_time(config.get('db_last_modified'))
             or config.get('scan_level') != 'symbol' or config.get('scan_mode') != 'source'):
