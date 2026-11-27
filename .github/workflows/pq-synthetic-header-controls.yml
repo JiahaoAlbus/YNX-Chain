@@ -118,3 +118,52 @@ jobs:
             ${{ runner.temp }}/ynx-synthetic-header-public/metadata.json
           if-no-files-found: error
           retention-days: 7
+      - name: Verify synthetic stream cost event qualification
+        run: python3 -B scripts/verify/test_qualify_synthetic_stream_cost.py
+      - name: Verify original transfer and private output guards
+        run: |
+          set -euo pipefail
+          if ! go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run '^(TestBefore59CostOriginalEngineTransferResult|TestBefore59CostPrivateOutputDir)$' ./cmd/ynx-comet > "$RUNNER_TEMP/ynx-synthetic-header-public/stream-cost-guards.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-synthetic-header-public/stream-cost-guards.jsonl"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/ynx-synthetic-header-public/stream-cost-guards.jsonl"
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet'
+          names = {'TestBefore59CostOriginalEngineTransferResult', 'TestBefore59CostPrivateOutputDir'}
+          rows = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-synthetic-header-public/stream-cost-guards.jsonl').read_text().splitlines()]
+          if any(row.get('Action') in ('fail', 'skip', 'build-fail') or ('Package' in row and row['Package'] != package) for row in rows):
+              raise RuntimeError('original transfer or private output guard failed or skipped')
+          bounds = [(i, row['Action']) for i, row in enumerate(rows) if row.get('Package') == package and not row.get('Test') and row.get('Action') in ('start', 'pass')]
+          if len(bounds) != 2 or [action for _, action in bounds] != ['start', 'pass'] or {row['Test'] for row in rows if row.get('Test')} != names:
+              raise RuntimeError('original guard package or test set differs')
+          for name in names:
+              found = [(i, row['Action']) for i, row in enumerate(rows) if row.get('Test') == name and row.get('Action') in ('run', 'pass', 'fail', 'skip')]
+              if len(found) != 2 or [action for _, action in found] != ['run', 'pass'] or not bounds[0][0] < found[0][0] < found[1][0] < bounds[1][0]:
+                  raise RuntimeError('original guard did not uniquely run and pass: ' + name)
+          PY
+      - name: Measure synthetic stream-only cost on Linux
+        env:
+          GOMAXPROCS: '2'
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          if ! go test -mod=readonly -json -p 1 -count=1 -timeout=120s -run '^TestBefore59SyntheticStreamOnlyCost$' ./cmd/ynx-comet > "$RUNNER_TEMP/ynx-synthetic-header-public/stream-cost-events.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-synthetic-header-public/stream-cost-events.jsonl"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/ynx-synthetic-header-public/stream-cost-events.jsonl"
+          python3 -B scripts/verify/qualify_synthetic_stream_cost.py "$RUNNER_TEMP/ynx-synthetic-header-public/stream-cost-events.jsonl" "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Preserve original synthetic stream cost events
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-synthetic-stream-cost-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ynx-synthetic-header-public/stream-cost-guards.jsonl
+            ${{ runner.temp }}/ynx-synthetic-header-public/stream-cost-events.jsonl
+          if-no-files-found: error
+          retention-days: 7
