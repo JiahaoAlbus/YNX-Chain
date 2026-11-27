@@ -140,7 +140,8 @@ jobs:
               'TestOriginalV4ResponseOwnerReentrantFenceDoesNotDeadlock',
               'TestOriginalV4ResponseOwnerDrainDoesNotRetireInFlightCallback',
               'TestOriginalV4ResponseOwnerDrainRetainsJoinedPhysicalError',
-              'TestOriginalV4ResponseOwnerNilPanicIsUnknown']);
+              'TestOriginalV4ResponseOwnerNilPanicIsUnknown',
+              'TestOriginalV4ResponseOwnerConcurrentRejectionCannotBecomeSuccess']);
           const result={exit:Number(process.env.YNX_LINK_OWNED_LOCAL_CLIENT_TEST_STATUS),required:names,
             run:names.filter(n=>rows.filter(r=>r.Test===n&&r.Action==='run').length===1),
             pass:names.filter(n=>rows.filter(r=>r.Test===n&&r.Action==='pass').length===1),
@@ -618,7 +619,7 @@ jobs:
               test "$(grep -c "^--- PASS: TestOriginalLocalCallerShopProofV4$v4_test " "$RUNNER_TEMP/securelink-evidence/$evidence_log")" = 1
             done
           done
-          for owner_test in OwnerFencesRealConnectionAndDrains OwnerRejectsImplicitSuccessAndRevokedWrite OwnerCloseWaitsForHandlerAndExplicitDrain OwnerUnknownTransportNeverReleases UnknownConnectionIsRetainedWithoutOwner RejectsWrongPeerAndDrainsConnection OwnerCloseWaitsForInFlightFence OwnerReentrantFenceDoesNotDeadlock OwnerDrainDoesNotRetireInFlightCallback OwnerDrainRetainsJoinedPhysicalError OwnerNilPanicIsUnknown; do
+          for owner_test in OwnerFencesRealConnectionAndDrains OwnerRejectsImplicitSuccessAndRevokedWrite OwnerCloseWaitsForHandlerAndExplicitDrain OwnerUnknownTransportNeverReleases UnknownConnectionIsRetainedWithoutOwner RejectsWrongPeerAndDrainsConnection OwnerCloseWaitsForInFlightFence OwnerReentrantFenceDoesNotDeadlock OwnerDrainDoesNotRetireInFlightCallback OwnerDrainRetainsJoinedPhysicalError OwnerNilPanicIsUnknown OwnerConcurrentRejectionCannotBecomeSuccess; do
             for evidence_log in native-check.log unavailable-check.log; do
               test "$(grep -c "^--- PASS: TestOriginalV4Response$owner_test " "$RUNNER_TEMP/securelink-evidence/$evidence_log")" = 1
             done

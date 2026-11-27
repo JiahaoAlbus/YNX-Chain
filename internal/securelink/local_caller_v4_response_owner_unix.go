@@ -313,16 +313,16 @@ func callOriginalV4Owner(fn func() error) (err error) {
 	return err
 }
 
-func (w *originalV4ResponseWriter) start() error {
+func (w *originalV4ResponseWriter) start(status int, explicitHeader bool) (bool, error) {
 	w.mu.Lock()
 	if w.started {
 		err := w.err
 		w.mu.Unlock()
-		return err
+		return false, err
 	}
 	if w.checking {
 		w.mu.Unlock()
-		return ErrLocalCallerDraining
+		return false, ErrLocalCallerDraining
 	}
 	w.checking = true
 	w.mu.Unlock()
@@ -351,7 +351,7 @@ func (w *originalV4ResponseWriter) start() error {
 	}
 	var err error
 	if l == nil {
-		if s.server.cfg.RequireOriginalV4ResponseOwner {
+		if s.server.cfg.RequireOriginalV4ResponseOwner && (status < 400 || status > 599) {
 			err = ErrDenied
 		}
 	} else {
@@ -382,9 +382,13 @@ func (w *originalV4ResponseWriter) start() error {
 			w.Header().Del(key)
 		}
 		w.ResponseWriter.WriteHeader(http.StatusForbidden)
+	} else if explicitHeader {
+		// Publish the chosen first status before another concurrent Write can
+		// implicitly commit 200. No product callback runs under this lock.
+		w.ResponseWriter.WriteHeader(status)
 	}
 	w.mu.Unlock()
-	return err
+	return true, err
 }
 
 func (w *originalV4ResponseWriter) WriteHeader(status int) {
@@ -392,7 +396,8 @@ func (w *originalV4ResponseWriter) WriteHeader(status int) {
 		return
 	}
 	defer w.state.endOriginalV4ResponseUse()
-	if w.start() != nil {
+	first, err := w.start(status, true)
+	if err != nil || first {
 		return
 	}
 	w.mu.Lock()
@@ -405,7 +410,7 @@ func (w *originalV4ResponseWriter) Write(p []byte) (int, error) {
 		return 0, ErrDenied
 	}
 	defer w.state.endOriginalV4ResponseUse()
-	if err := w.start(); err != nil {
+	if _, err := w.start(http.StatusOK, false); err != nil {
 		return 0, err
 	}
 	w.mu.Lock()
@@ -424,15 +429,10 @@ func (w *originalV4ResponseWriter) finish() {
 		return
 	}
 	if !started {
-		err := w.start()
+		_, err := w.start(http.StatusOK, true)
 		if errors.Is(err, ErrLocalCallerDraining) {
 			_ = w.state.conn.Close()
 			return
-		}
-		if err == nil {
-			w.mu.Lock()
-			w.ResponseWriter.WriteHeader(http.StatusOK)
-			w.mu.Unlock()
 		}
 	}
 }
