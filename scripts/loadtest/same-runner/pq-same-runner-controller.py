@@ -39,6 +39,34 @@ PROFILE = 'first100-held-public-owner-sequential-pair'
 CLOCK_LOG_BINDING = None  # Owner-frozen same-arm original focused logs only.
 CLOCK_EVIDENCE_BINDING = None  # Owner-frozen same-arm original source artifacts only.
 BEFORE59_COMPOSITION_BINDING = None  # Owner-frozen original Tools source/build artifact only.
+SERIAL_VERIFIER_BINDING = None  # Owner-frozen per-arm serial CI evidence only; never an environment override.
+SERIAL_CONTROL_MINIMUMS = {'staged':23, 'serial':28, 'independent':25, 'bounded-sender':24,
+    'header-data':11, 'header-driver-data':8,
+    'commit-validation':13, 'initialization':39, 'go-evidence-parser':7, 'scheduler-boundaries':18}
+SERIAL_CRITICAL_TESTS = {
+    'staged': ('StagedIndependentSchedulerControls', (
+        'test_terminal_snapshot_spanning_deadline_is_unknown_and_never_drains',
+        'test_unknown_after_post_retains_pending_and_never_resigns',
+        'test_resource_failure_never_enters_post_cutoff_drain',
+        'test_original_confirmation_gate_survives_stage_adaptation')),
+    'serial': ('SerialVerifierControls', (
+        'test_crossed_terminal_snapshot_remains_lower_bound_in_actual_report',
+        'test_original_live_proof_caller_binds_the_same_operation_and_keeps_normal_verifier',
+        'test_real_linux_original_window_keeps_one_verifier_and_its_deadline',
+        'test_real_linux_popen_crossing_cutoff_keeps_original_child_owned',
+        'test_real_linux_serial_queue_deadline_preserves_existing_diagnostic_drain',
+        'test_real_linux_serial_queue_deadline_resource_failure_never_enters_drain')),
+    'scheduler-boundaries': ('SchedulerBoundaryControls', (
+        'test_empty_original_failure_survives_secondary_cleanup_for_both_schedulers',
+        'test_staged_claim_or_queue_journal_crossing_never_starts_publish',
+        'test_original_claim_journal_crossing_never_starts_callee',
+        'test_actual_broadcast_intent_fsync_crossing_does_not_post',
+        'test_submission_attempt_interval_crossing_window_is_not_counted_as_inside',
+        'test_duplicate_stage_on_one_row_does_not_fill_missing_other_row',
+        'test_qualified_event_cannot_precede_last_original_stage',
+        'test_journal_write_fsync_failure_is_sticky_and_never_rewrites',
+        'test_qualified_emit_failure_never_releases_original_account')),
+}
 WORKFLOW = '.github/workflows/pq-normal-process.yml'
 TOOL_CI_WORKFLOW = '.github/workflows/chain-core.yml'
 TOOL_CI_WORKFLOW_ID = 322083952
@@ -172,7 +200,38 @@ def verify_tool_files(tools, pins):
                 'frozen original TOOL_PINS differs: '+name)
 
 
-def configuration(arm):
+def reject_tool_bytecode(tools):
+    """Refuse preexisting Python caches; never remove another owner's files."""
+    root=tools/'scripts/loadtest'
+    require(root.is_dir() and not root.is_symlink(), 'original Tools Python directory differs')
+    def fail(error):
+        raise error
+    for _,directories,files in os.walk(root,topdown=True,onerror=fail,followlinks=False):
+        require('__pycache__' not in directories and all(not name.endswith(('.pyc','.pyo')) for name in files),
+                'original Tools Python bytecode cache NOT_SUPPLIED')
+
+
+def serial_arm_binding(label, arm):
+    """Select only a reviewed, immutable-source arm; never invent CI authority."""
+    if SERIAL_VERIFIER_BINDING is None:
+        return None
+    require(type(SERIAL_VERIFIER_BINDING) is dict and set(SERIAL_VERIFIER_BINDING)==set(reader.ARMS)
+            and label in reader.ARMS, 'both original serial verifier arm bindings NOT_SUPPLIED')
+    entry=SERIAL_VERIFIER_BINDING[label]
+    reader.fields(entry, 'source tools toolsTree drainSeconds ciPin logPath archivePath', 'frozen serial verifier arm')
+    require(entry['source']==arm['source'] and entry['tools']==arm['tools'] and entry['toolsTree']==arm['toolsTree']
+            and type(entry['drainSeconds']) is int and entry['drainSeconds'] in (0,30),
+            'original serial verifier arm or drain differs')
+    pin=entry['ciPin']
+    require(type(pin) is dict and pin.get('sourceCommit')==arm['tools'] and pin.get('sourceTree')==arm['toolsTree'],
+            'original serial verifier CI source differs')
+    paths=(entry['logPath'],entry['archivePath'])
+    require(all(type(path) is str and Path(path).is_absolute() and str(Path(path))==path and '..' not in Path(path).parts
+                for path in paths) and paths[0]!=paths[1], 'distinct original serial evidence paths required')
+    return copy.deepcopy(entry)
+
+
+def configuration(arm, *, label=None):
     reader.fields(arm, 'source sourceTree tools toolsTree toolsCI toolPins sourceQualification go supplier supplierTree',
                   'frozen original arm')
     for key in ('source', 'sourceTree', 'tools', 'toolsTree', 'supplier', 'supplierTree'):
@@ -200,6 +259,9 @@ def configuration(arm):
         require(type(CLOCK_LOG_BINDING) is dict and set(CLOCK_LOG_BINDING)==set(reader.ARMS),
                 'both original clock log arm bindings NOT_SUPPLIED')
         options.update(commit_clock_observation=True,commit_clock_ci_original_log=None)
+    serial=serial_arm_binding(label,arm)
+    if serial is not None:
+        options.update(serial_verifier=True,post_cutoff_verifier_drain_seconds=serial['drainSeconds'])
     return dict(profile='first100-held-public-owner', ref='refs/heads/'+reader.BRANCH, workflow=WORKFLOW,
         source=arm['source'], sourceTree=arm['sourceTree'], tools=arm['tools'], toolsTree=arm['toolsTree'],
         toolsRun=ci['run'], toolsJobName=TOOL_CI_JOB, go=arm['go'], supplier=arm['supplier'],
@@ -216,6 +278,45 @@ def cached_original_reader(read):
             values[args]=read(*args)
         return values[args]
     return cached
+
+
+def serial_preflight_for_arm(label, arm, tools, driver, api):
+    """Verify frozen original serial controls; never turn DATA into authority."""
+    entry=serial_arm_binding(label,arm)
+    if entry is None:
+        return None
+    require({'pq-independent-scheduler.py','pq-serial-verifier-admission.py'} <= set(arm['toolPins']),
+            'original serial scheduler and admission tool pins NOT_SUPPLIED')
+    read_original=getattr(getattr(driver,'commit_clock',None),'read_original',None)
+    require(callable(read_original), 'original bounded serial evidence reader NOT_SUPPLIED')
+    inspector=module('same_runner_serial_controls_'+label,Path(__file__).with_name('pq-serial-controls-readback.py'))
+    pin=copy.deepcopy(entry['ciPin'])
+    inspector.validate_pin(pin)
+    groups={group['name']:group['tests'] for group in pin['groups']}
+    require(set(groups)==set(SERIAL_CONTROL_MINIMUMS)
+            and all(len(groups[name])>=count for name,count in SERIAL_CONTROL_MINIMUMS.items())
+            and all({method+' (original_serial_ci_'+name+'.'+cls+'.'+method+')' for method in methods}
+                    <= set(groups[name]) for name,(cls,methods) in SERIAL_CRITICAL_TESTS.items()),
+            'original serial staged, admission and boundary controls NOT_SUPPLIED')
+    require(pin['runId']!=arm['toolsCI']['run'] and pin['jobId']!=arm['toolsCI']['job'],
+            'original serial controls must be a separate CI run and job')
+    require(git(tools,'rev-parse','HEAD:third_party/cometbft')==pin['forkTree'],
+            'original serial Tools fork identity differs')
+    log=cached_original_reader(lambda: read_original(entry['logPath'],8<<20))
+    archive=cached_original_reader(lambda: read_original(entry['archivePath'],4<<20))
+    def verify():
+        run=api.read('runs/'+str(pin['runId']))
+        job=api.read('jobs/'+str(pin['jobId']))
+        inventory=api.read('runs/'+str(pin['runId'])+'/artifacts?per_page=100')
+        inspector.validate_metadata(pin,run,job,inventory)  # Metadata refusal precedes file reads.
+        result=inspector.inspect_serial_controls(pin,run,job,inventory,log(),archive())
+        require(type(result) is dict and result.get('classification')=='DATA_ONLY'
+                and result.get('sourceCommit')==arm['tools'] and result.get('runId')==pin['runId']
+                and result.get('jobId')==pin['jobId'] and result.get('runtimeAuthorized') is False
+                and result.get('independentFinalityVerified') is False,
+                'original serial control result differs')
+        return result
+    return verify
 
 
 def preflight_clock_source(driver, identity, metadata_reader, options, clock_reader, evidence_reader):
@@ -308,7 +409,7 @@ def validate_binding(binding):
                         and CLOCK_LOG_BINDING[label].get('tools')==binding['arms'][label]['tools']
                         for label in reader.ARMS),
                 'original clock log pair arm identities differ')
-    configurations = {arm: configuration(value) for arm, value in binding['arms'].items()}
+    configurations = {arm: configuration(value,label=arm) for arm, value in binding['arms'].items()}
     conditions = [reader.configuration_conditions(config, dict(toolsCI=dict(
         run=config['toolsRun'], job=binding['arms'][arm]['toolsCI']['job'],
         source=config['tools'], conclusion='success')))[0] for arm, config in configurations.items()]
@@ -496,6 +597,9 @@ def prepare(binding, environment, api):
                      'pq-experimental-owner-pidfd.py'} <= set(arm['toolPins']),
                     'original clock qualification/readback/process tool pins NOT_SUPPLIED')
         verify_tool_files(tools, arm['toolPins'])
+        if SERIAL_VERIFIER_BINDING is not None:
+            require(sys.dont_write_bytecode, 'original serial controller requires Python no-bytecode mode')
+            reject_tool_bytecode(tools)
         driver = module('same_runner_original_'+label, tools/'scripts/loadtest/pq-independent-load.py')
         require('source_metadata_reader' in inspect.signature(driver.run).parameters,
                 'original held metadata-only transport ABI NOT_SUPPLIED; no environment fallback')
@@ -546,15 +650,19 @@ def prepare(binding, environment, api):
         record = dict(plan, controllerCommit=pair['controllerCommit'], toolsCI=tools_ci)
         if is_before:record['before59OriginalToolBuild']=check_composition()
         options = argparse.Namespace(**dict(config['options'], source=str(source), execute=True))
+        check_serial=serial_preflight_for_arm(label,arm,tools,driver,api)
+        if check_serial is not None:
+            record['serialOriginalControls']=check_serial()
         clock_reader=clock_log_reader_for_arm(label,driver,arm,options)
         evidence_reader=clock_evidence_reader_for_arm(label,driver,arm,options)
 
         def qualify(arm=arm, source=source, tools=tools, driver=driver, gate=gate, is_before=is_before, record=record,
                     clock_enabled=clock_enabled, options=options, clock_reader=clock_reader, evidence_reader=evidence_reader,
-                    check_composition=check_composition if is_before else None):
+                    check_composition=check_composition if is_before else None, check_serial=check_serial):
             checkout(controller, pair['controllerCommit'])
             checkout(source, arm['source'], arm['sourceTree']); checkout(tools, arm['tools'], arm['toolsTree'])
             verify_tool_files(tools, arm['toolPins'])
+            if check_serial is not None:reject_tool_bytecode(tools)
             require(git(source, 'rev-parse', arm['supplier']+':third_party/cometbft') == arm['supplierTree'],
                     'immutable original supplier object differs')
             require(subprocess.check_output([go, 'env', 'GOVERSION'], cwd=source, timeout=10, text=True).strip() == arm['go'],
@@ -564,6 +672,9 @@ def prepare(binding, environment, api):
             if is_before:
                 require(same(check_composition(),record['before59OriginalToolBuild']),
                         'original before59 Tools source-build evidence changed')
+            if check_serial is not None:
+                require(same(check_serial(),record['serialOriginalControls']),
+                        'original serial source controls changed before admission')
             source_ci = arm['sourceQualification']
             source_options=dict(metadata_reader=api.read)
             if is_before:source_options['focused_log_reader']=clock_reader

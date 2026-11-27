@@ -6,6 +6,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import py_compile
 import socket
 import subprocess
 import sys
@@ -33,6 +34,16 @@ def arm():
         toolPins={name:'a'*64 for name in c.REQUIRED_TOOL_PINS},
         sourceQualification=dict(source='1'*40, sourceTree='2'*40, run=200, job=201,
             requiredSteps=['CONTROL original source validation'], sourceOnlyQualified=True, runtimePermissionGranted=False))
+
+
+def serial_control_groups():
+    groups=[]
+    for name,count in c.SERIAL_CONTROL_MINIMUMS.items():
+        cls,methods=c.SERIAL_CRITICAL_TESTS.get(name,('Control',()))
+        tests=[method+' (original_serial_ci_'+name+'.'+cls+'.'+method+')' for method in methods]
+        tests.extend('CONTROL_'+str(index) for index in range(count-len(tests)))
+        groups.append(dict(name=name,tests=tests))
+    return groups
 
 
 def argparse_namespace(config, root):
@@ -111,6 +122,123 @@ class ControllerControls(unittest.TestCase):
                 mock.patch.dict(os.environ, YNX_PAIR_BINDING='CONTROL', YNX_HELD_DISPATCH_PROFILE=c.PROFILE):
             with self.assertRaisesRegex(RuntimeError, 'NOT_SUPPLIED'): c.execute()
 
+    def test_serial_pair_configuration_is_closed_and_arm_bound(self):
+        pair=dict(schema='YNX-PERF-ORIGINAL-PAIR-BINDING/v1',arms=dict(before=arm(),after=arm()))
+        ordinary=c.validate_binding(pair)
+        self.assertNotIn('serial_verifier',ordinary['before']['options'])
+        def entry(value):
+            return dict(source=value['source'],tools=value['tools'],toolsTree=value['toolsTree'],drainSeconds=0,
+                ciPin=dict(sourceCommit=value['tools'],sourceTree=value['toolsTree']),
+                logPath='/CONTROL/original.log',archivePath='/CONTROL/original.zip')
+        frozen={label:entry(value) for label,value in pair['arms'].items()}
+        with mock.patch.object(c,'SERIAL_VERIFIER_BINDING',frozen):
+            configured=c.validate_binding(pair)
+            for label in ('before','after'):
+                self.assertIs(configured[label]['options']['serial_verifier'],True)
+                self.assertEqual(configured[label]['options']['post_cutoff_verifier_drain_seconds'],0)
+            with self.assertRaisesRegex(RuntimeError,'arm bindings'):
+                c.configuration(arm())
+        for field,value in (('source','f'*40),('tools','e'*40),('toolsTree','d'*40),
+                            ('drainSeconds',True),('drainSeconds',1),('archivePath','/CONTROL/original.log')):
+            bad=copy.deepcopy(frozen);bad['after'][field]=value
+            with self.subTest(field=field,value=value), mock.patch.object(c,'SERIAL_VERIFIER_BINDING',bad):
+                with self.assertRaises(RuntimeError):c.validate_binding(pair)
+        bad=copy.deepcopy(frozen);bad['after']['ciPin']['sourceCommit']='f'*40
+        with mock.patch.object(c,'SERIAL_VERIFIER_BINDING',bad),self.assertRaisesRegex(RuntimeError,'CI source differs'):
+            c.validate_binding(pair)
+        with mock.patch.object(c,'SERIAL_VERIFIER_BINDING',{'before':frozen['before']}),self.assertRaisesRegex(RuntimeError,'arm bindings'):
+            c.validate_binding(pair)
+
+    def test_serial_preflight_validates_metadata_before_one_shot_bytes(self):
+        selected=arm()
+        selected['toolPins'].update({'pq-independent-scheduler.py':'a'*64,'pq-serial-verifier-admission.py':'b'*64})
+        pin=dict(sourceCommit=selected['tools'],sourceTree=selected['toolsTree'],forkTree='9'*40,runId=10,jobId=11,
+                 groups=serial_control_groups())
+        entry=dict(source=selected['source'],tools=selected['tools'],toolsTree=selected['toolsTree'],drainSeconds=0,
+                   ciPin=pin,logPath='/CONTROL/original.log',archivePath='/CONTROL/original.zip')
+        frozen=dict(before=entry,after=copy.deepcopy(entry))
+        api=types.SimpleNamespace(read=mock.Mock(side_effect=lambda path: {'path':path}))
+        inspector=types.SimpleNamespace(validate_pin=mock.Mock(),validate_metadata=mock.Mock(),
+            inspect_serial_controls=mock.Mock(return_value=dict(classification='DATA_ONLY',sourceCommit=selected['tools'],
+                runId=10,jobId=11,runtimeAuthorized=False,independentFinalityVerified=False)))
+        original_read=mock.Mock(side_effect=lambda path,limit: path.encode())
+        driver=types.SimpleNamespace(commit_clock=types.SimpleNamespace(read_original=original_read))
+        with mock.patch.object(c,'SERIAL_VERIFIER_BINDING',frozen),mock.patch.object(c,'module',return_value=inspector),mock.patch.object(c,'git',return_value='9'*40):
+            incomplete=copy.deepcopy(frozen)
+            linux=next(group for group in incomplete['before']['ciPin']['groups'] if group['name']=='serial')
+            linux['tests'][0]='substituted same-count CONTROL'
+            with mock.patch.object(c,'SERIAL_VERIFIER_BINDING',incomplete),self.assertRaisesRegex(RuntimeError,'controls NOT_SUPPLIED'):
+                c.serial_preflight_for_arm('before',selected,Path('/CONTROL/tools'),driver,api)
+            api.read.assert_not_called();original_read.assert_not_called()
+            extra=copy.deepcopy(frozen);extra['before']['ciPin']['groups'].append(dict(name='extra',tests=['CONTROL']))
+            with mock.patch.object(c,'SERIAL_VERIFIER_BINDING',extra),self.assertRaisesRegex(RuntimeError,'controls NOT_SUPPLIED'):
+                c.serial_preflight_for_arm('before',selected,Path('/CONTROL/tools'),driver,api)
+            check=c.serial_preflight_for_arm('before',selected,Path('/CONTROL/tools'),driver,api)
+            inspector.validate_metadata.side_effect=ValueError('wrong original job')
+            with self.assertRaisesRegex(ValueError,'wrong original job'):check()
+            original_read.assert_not_called()
+            inspector.validate_metadata.side_effect=None
+            first=check();self.assertEqual(first,check())
+            self.assertEqual(original_read.call_count,2)
+            self.assertEqual(inspector.validate_metadata.call_count,3)
+            self.assertEqual(inspector.inspect_serial_controls.call_count,2)
+            self.assertEqual([call.args[0] for call in original_read.call_args_list],['/CONTROL/original.log','/CONTROL/original.zip'])
+            # An uncertain original read is never attempted a second time.
+            original_read.reset_mock(side_effect=True);original_read.side_effect=OSError('original unavailable')
+            failed=c.serial_preflight_for_arm('after',selected,Path('/CONTROL/tools'),driver,api)
+            with self.assertRaisesRegex(OSError,'original unavailable'):failed()
+            with self.assertRaisesRegex(RuntimeError,'prior read failed'):failed()
+            self.assertEqual(original_read.call_count,1)
+
+    def test_after_serial_metadata_failure_prevents_first_window(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace=Path(tmp).resolve();parent=workspace/'tmp';parent.mkdir()
+            for name in ('controller','source-before','source-after','tools-before','tools-after','go/bin'):
+                (workspace/name).mkdir(parents=True)
+            go=workspace/'go/bin/go';go.write_text('CONTROL only')
+            binding=dict(schema='YNX-PERF-ORIGINAL-PAIR-BINDING/v1',arms=dict(before=arm(),after=arm()))
+            binding['arms']['after']['source']='8'*40;binding['arms']['after']['sourceQualification']['source']='8'*40
+            binding['arms']['after']['tools']='7'*40;binding['arms']['after']['toolsCI']['source']='7'*40
+            for selected in binding['arms'].values():
+                selected['toolPins'].update({'pq-independent-scheduler.py':'a'*64,'pq-serial-verifier-admission.py':'b'*64})
+            def serial_entry(label,selected):
+                return dict(source=selected['source'],tools=selected['tools'],toolsTree=selected['toolsTree'],drainSeconds=0,
+                    ciPin=dict(sourceCommit=selected['tools'],sourceTree=selected['toolsTree'],forkTree='6'*40,
+                        runId=10 if label=='before' else 20,jobId=11 if label=='before' else 21,
+                        groups=serial_control_groups()),
+                    logPath='/CONTROL/'+label+'.log',archivePath='/CONTROL/'+label+'.zip')
+            frozen={label:serial_entry(label,selected) for label,selected in binding['arms'].items()}
+            inspector=types.SimpleNamespace(validate_pin=mock.Mock(),validate_metadata=mock.Mock(),inspect_serial_controls=mock.Mock())
+            inspector.validate_metadata.side_effect=lambda pin,*_: (_ for _ in ()).throw(ValueError('after original CI differs')) if pin['sourceCommit']=='7'*40 else None
+            inspector.inspect_serial_controls.side_effect=lambda pin,*_: dict(classification='DATA_ONLY',sourceCommit=pin['sourceCommit'],runId=pin['runId'],jobId=pin['jobId'],runtimeAuthorized=False,independentFinalityVerified=False)
+            original_read=mock.Mock(side_effect=lambda path,limit:path.encode())
+            drivers={}
+            for label,selected in binding['arms'].items():
+                gate=types.SimpleNamespace(SOURCE=selected['source'],TREE='2'*40,validate=mock.Mock(),qualification=mock.Mock(return_value=selected['sourceQualification']))
+                gate.qualification.__signature__=c.inspect.signature(original.held_first_trial_source.qualification)
+                driver=types.SimpleNamespace(run=mock.Mock(),lab=original.lab,HELD_TRIAL_SOURCE=selected['source'],HELD_TRIAL_TREE='2'*40,
+                    held_first_trial_source=gate,commit_clock=types.SimpleNamespace(read_original=original_read))
+                driver.run.__signature__=c.inspect.signature(original.run);drivers[label]=driver
+            api=types.SimpleNamespace(token=None,read=lambda path:dict(path=path))
+            with ExitStack() as stack:
+                stack.enter_context(mock.patch.object(c,'SERIAL_VERIFIER_BINDING',frozen))
+                stack.enter_context(mock.patch.object(c,'__file__',str(workspace/'controller/scripts/loadtest/same-runner/pq-same-runner-controller.py')))
+                stack.enter_context(mock.patch.object(c,'active_pair',return_value=dict(controllerCommit='e'*40,runID=1,jobID=2)))
+                stack.enter_context(mock.patch.object(c,'checkout'));stack.enter_context(mock.patch.object(c,'verify_tool_files'))
+                stack.enter_context(mock.patch.object(c,'reject_tool_bytecode'))
+                stack.enter_context(mock.patch.object(c.sys,'dont_write_bytecode',True))
+                stack.enter_context(mock.patch.object(c,'verify_tools_ci',side_effect=lambda binding,*a,**k:dict(source=binding['source'])))
+                stack.enter_context(mock.patch.object(c.shutil,'which',return_value=str(go)))
+                stack.enter_context(mock.patch.object(c,'module',side_effect=lambda name,path:inspector if name.startswith('same_runner_serial_controls_') else drivers[name.rsplit('_',1)[-1]]))
+                stack.enter_context(mock.patch.object(c,'git',return_value='6'*40))
+                stack.enter_context(mock.patch.object(c.subprocess,'check_output',return_value='go1.26.11\n'))
+                constructor=stack.enter_context(mock.patch.object(original.lab.Window,'__init__',side_effect=AssertionError('no Window in preflight')))
+                with self.assertRaisesRegex(ValueError,'after original CI differs'):
+                    c.prepare(binding,dict(GITHUB_WORKSPACE=str(workspace),RUNNER_TEMP=str(parent)),api)
+                self.assertEqual([call.args[0] for call in original_read.call_args_list],['/CONTROL/before.log','/CONTROL/before.zip'])
+                constructor.assert_not_called()
+                for driver in drivers.values():driver.run.assert_not_called()
+
     def test_frozen_pair_keeps_supplier_toolchain_and_source_qualification(self):
         binding=dict(schema='YNX-PERF-ORIGINAL-PAIR-BINDING/v1',arms=dict(before=arm(),after=arm()))
         binding['arms']['after']['tools'] = '7'*40
@@ -156,6 +284,11 @@ class ControllerControls(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'TOOL_PINS differs'):c.verify_tool_files(root,pins)
             path.unlink();path.symlink_to(folder/'consensus-linux-cohort.py')
             with self.assertRaises((RuntimeError,OSError)):c.verify_tool_files(root,pins)
+            c.reject_tool_bytecode(root)
+            # A real ignored cache can be accepted by SourceFileLoader even with -B.
+            py_compile.compile(str(folder/'consensus-linux-cohort.py'),doraise=True)
+            with self.assertRaisesRegex(RuntimeError,'bytecode cache NOT_SUPPLIED'):
+                c.reject_tool_bytecode(root)
 
     def test_checkout_real_git_rejects_dirty_and_wrong_tree(self):
         with tempfile.TemporaryDirectory() as tmp:
