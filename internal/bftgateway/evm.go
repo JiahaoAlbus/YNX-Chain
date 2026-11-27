@@ -19,6 +19,7 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ethnative"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
+	cmttypes "github.com/cometbft/cometbft/types"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -189,6 +190,14 @@ func (g *Gateway) evmCommittedResult(ctx context.Context, method string, raw jso
 		if err != nil || !found {
 			return nil, err
 		}
+		if isIDEFeeProjection(tx.Type) {
+			if gas, err := parseCometGas(upstream.TxResult.GasUsed); err != nil || gas != 1 || upstream.TxResult.Code != 0 {
+				return nil, errors.New("IDE original transaction result has invalid execution gas")
+			}
+			if err := g.validateIDEFeeProjection(ctx, tx, upstream.Index, upstream.Tx); err != nil {
+				return nil, err
+			}
+		}
 		if method == "eth_getTransactionByHash" {
 			return evmCommittedTransaction(tx, upstream.Index, upstream.Tx), nil
 		}
@@ -226,6 +235,9 @@ func (g *Gateway) evmCommittedResult(ctx context.Context, method string, raw jso
 			return receipt, nil
 		} else if err.Error() != "EVM receipt not found" {
 			return nil, err
+		}
+		if isIDEFeeProjection(tx.Type) {
+			return nil, errors.New("IDE original execution receipt unavailable")
 		}
 		receipt := evmCommittedReceipt(tx, upstream.Index, gasUsed, cumulativeGasUsed, upstream.Tx)
 		if receipt == nil {
@@ -836,14 +848,31 @@ func (g *Gateway) evmCommittedBlockResult(ctx context.Context, method string, ra
 	if len(evidence.RawTransactions) > 0 && (evidence.DataHash == "" || !blockHashPattern.MatchString(evidence.DataHash)) {
 		return nil, errors.New("CometBFT transaction block is missing a valid data hash")
 	}
-	gasUsed, err := g.committedBlockGas(ctx, evidence.Block.Height, len(evidence.RawTransactions))
+	results, err := g.wholeBlockResults(ctx, evidence.Block.Height, len(evidence.RawTransactions))
+	if err != nil {
+		return nil, err
+	}
+	gasUsed, err := committedBlockGasFromResults(results)
 	if err != nil {
 		return nil, err
 	}
 	if full {
+		var ideBlockChecked bool
 		for index := range evidence.RawTransactions {
-			if _, err := mappedAtCometIndex(evidence, uint64(index)); err != nil {
+			mapped, err := mappedAtCometIndex(evidence, uint64(index))
+			if err != nil {
 				return nil, err
+			}
+			if isIDEFeeProjection(mapped.Type) {
+				if !ideBlockChecked {
+					if err := validateIDEFeeBlock(evidence, results); err != nil {
+						return nil, err
+					}
+					ideBlockChecked = true
+				}
+				if err := validateIDEFeeAtIndex(mapped, uint32(index), evidence.RawTransactions[index], evidence, results); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
@@ -908,6 +937,18 @@ func (g *Gateway) evmCommittedBlockTransactionResult(ctx context.Context, method
 	mapped, err := mappedAtCometIndex(evidence, index)
 	if err != nil {
 		return nil, -32603, err
+	}
+	if isIDEFeeProjection(mapped.Type) {
+		results, err := g.wholeBlockResults(ctx, evidence.Block.Height, len(evidence.RawTransactions))
+		if err != nil {
+			return nil, -32603, err
+		}
+		if err := validateIDEFeeBlock(evidence, results); err != nil {
+			return nil, -32603, err
+		}
+		if err := validateIDEFeeAtIndex(mapped, uint32(index), evidence.RawTransactions[index], evidence, results); err != nil {
+			return nil, -32603, err
+		}
 	}
 	return evmCommittedTransaction(mapped, uint32(index), evidence.RawTransactions[index]), 0, nil
 }
@@ -975,8 +1016,12 @@ func (g *Gateway) committedBlockGas(ctx context.Context, height uint64, transact
 	if err != nil || parsedHeight != height || len(upstream.Result.TxsResults) != transactionCount {
 		return 0, errors.New("CometBFT block result count does not match block transactions")
 	}
+	return committedBlockGasFromResults(upstream.Result.TxsResults)
+}
+
+func committedBlockGasFromResults(results []cometTxResult) (uint64, error) {
 	var total uint64
-	for _, result := range upstream.Result.TxsResults {
+	for _, result := range results {
 		if result.Code != 0 {
 			return 0, errors.New("CometBFT block result contains a failed transaction")
 		}
@@ -1218,8 +1263,16 @@ func evmCommittedTransaction(t chain.Transaction, index uint32, raws ...[]byte) 
 	nonce := t.Nonce
 	var raw []byte
 	var ethereumEnvelope *consensus.EthereumValueTransfer
+	var ideAction consensus.SignedApplicationAction
+	var ideVerified bool
 	if len(raws) > 0 {
 		raw = raws[0]
+	}
+	if isIDEFeeProjection(t.Type) {
+		ideAction, ideVerified = verifiedIDEFeeAction(t, raw)
+		if !ideVerified {
+			return nil
+		}
 	}
 	if ethereumTx, err := consensus.DecodeEthereumValueTransfer(raw); err == nil {
 		ethereumEnvelope = &ethereumTx
@@ -1235,10 +1288,13 @@ func evmCommittedTransaction(t chain.Transaction, index uint32, raws ...[]byte) 
 	} else if native, ok := verifiedNativeEVMTransfer(t, raw); ok {
 		value = ethnative.Quantity(ethnative.Wei(native.Amount))
 		gasPrice = ethnative.Quantity(ethnative.Wei(native.Fee))
-	} else if action, err := consensus.DecodeSignedApplicationAction(raw); err == nil && action.Action == consensus.ActionIDEContractCall {
-		var payload consensus.IDEContractCallPayload
-		if json.Unmarshal(action.Payload, &payload) == nil {
-			to, input = payload.Address, payload.Calldata
+	} else if ideVerified {
+		gasPrice = ethnative.Quantity(ethnative.Wei(ideAction.Fee))
+		if ideAction.Action == consensus.ActionIDEContractCall {
+			var payload consensus.IDEContractCallPayload
+			if json.Unmarshal(ideAction.Payload, &payload) == nil {
+				to, input = payload.Address, payload.Calldata
+			}
 		}
 	}
 	if t.To == "" {
@@ -1276,6 +1332,79 @@ func verifiedNativeEVMTransfer(t chain.Transaction, raw []byte) (consensus.Signe
 	return native, true
 }
 
+func isIDEFeeProjection(kind string) bool {
+	return kind == consensus.ActionIDEContractCall || kind == consensus.ActionIDEContractDeploy
+}
+
+// The action is the original signed native envelope, not an Ethereum RLP.
+// No mapped fields may supply or change its fee, sender, target or identity.
+func verifiedIDEFeeAction(t chain.Transaction, raw []byte) (consensus.SignedApplicationAction, bool) {
+	action, err := consensus.DecodeSignedApplicationAction(raw)
+	if err != nil || !isIDEFeeProjection(action.Action) || action.Verify(6423) != nil || action.Action != t.Type || action.Signer != t.From || action.Nonce != t.Nonce || action.Fee != t.Fee || action.Fee <= 0 || t.Amount != 0 || consensus.ApplicationActionHash(raw) != t.Hash {
+		return consensus.SignedApplicationAction{}, false
+	}
+	if action.Action == consensus.ActionIDEContractCall {
+		var payload consensus.IDEContractCallPayload
+		if json.Unmarshal(action.Payload, &payload) != nil || payload.Address != t.To {
+			return consensus.SignedApplicationAction{}, false
+		}
+	} else if t.To != "" {
+		return consensus.SignedApplicationAction{}, false
+	}
+	return action, true
+}
+
+// Bind a fee projection to one configured-RPC block and result set. This does
+// not claim independent consensus finality.
+func (g *Gateway) validateIDEFeeProjection(ctx context.Context, tx chain.Transaction, index uint32, raw []byte) error {
+	evidence, err := g.blockAtHeight(ctx, tx.BlockNum)
+	if err != nil {
+		return err
+	}
+	results, err := g.wholeBlockResults(ctx, tx.BlockNum, len(evidence.RawTransactions))
+	if err != nil {
+		return err
+	}
+	if err := validateIDEFeeBlock(evidence, results); err != nil {
+		return err
+	}
+	return validateIDEFeeAtIndex(tx, index, raw, evidence, results)
+}
+
+// Once per block, not once per IDE action; callers retain this same evidence
+// and the same complete block-result slice through the per-index checks.
+func validateIDEFeeBlock(evidence committedBlockEvidence, results []cometTxResult) error {
+	if len(results) != len(evidence.RawTransactions) {
+		return errors.New("IDE fee block result count differs from original transactions")
+	}
+	transactions := make(cmttypes.Txs, len(evidence.RawTransactions))
+	for i, item := range evidence.RawTransactions {
+		transactions[i] = cmttypes.Tx(item)
+	}
+	if evidence.DataHash == "" || !strings.EqualFold(evidence.DataHash, hex.EncodeToString(transactions.Hash())) {
+		return errors.New("IDE fee source block data hash differs from original transactions")
+	}
+	return nil
+}
+
+func validateIDEFeeAtIndex(tx chain.Transaction, index uint32, raw []byte, evidence committedBlockEvidence, results []cometTxResult) error {
+	if _, ok := verifiedIDEFeeAction(tx, raw); !ok {
+		return errors.New("IDE fee source does not match the original signed action")
+	}
+	if uint64(index) >= uint64(len(evidence.RawTransactions)) || uint64(index) >= uint64(len(results)) || !bytes.Equal(evidence.RawTransactions[index], raw) || evidence.Block.Height != tx.BlockNum || evidence.Block.Hash != strings.TrimPrefix(tx.BlockHash, "0x") {
+		return errors.New("IDE fee source has no matching original block position")
+	}
+	mapped, err := mappedAtCometIndex(evidence, uint64(index))
+	if err != nil || mapped.Hash != tx.Hash || mapped.Type != tx.Type || mapped.From != tx.From || mapped.To != tx.To || mapped.Fee != tx.Fee || mapped.Nonce != tx.Nonce {
+		return errors.New("IDE fee source differs from original block transaction")
+	}
+	gas, err := parseCometGas(results[index].GasUsed)
+	if err != nil || gas != 1 || results[index].Code != 0 {
+		return errors.New("IDE fee execution gas or result unavailable")
+	}
+	return nil
+}
+
 func evmIDEReceipt(t chain.Transaction, index uint32, gasUsed, cumulativeGasUsed uint64, receipt consensus.BFTEVMReceipt, logs []map[string]any, raws ...[]byte) map[string]any {
 	base := evmCommittedReceipt(t, index, gasUsed, cumulativeGasUsed, raws...)
 	if base == nil {
@@ -1303,6 +1432,17 @@ func evmCommittedReceipt(t chain.Transaction, index uint32, gasUsed, cumulativeG
 		return pqEthereumEVMReceipt(t, index, gasUsed, cumulativeGasUsed, raws[0], intent)
 	}
 	var to any = t.To
+	var ideAction consensus.SignedApplicationAction
+	var ideVerified bool
+	if isIDEFeeProjection(t.Type) {
+		if len(raws) != 1 {
+			return nil
+		}
+		ideAction, ideVerified = verifiedIDEFeeAction(t, raws[0])
+		if !ideVerified {
+			return nil
+		}
+	}
 	if t.To == "" {
 		to = nil
 	}
@@ -1311,6 +1451,11 @@ func evmCommittedReceipt(t chain.Transaction, index uint32, gasUsed, cumulativeG
 		if ethereumTx, err := consensus.DecodeEthereumValueTransfer(raws[0]); err == nil {
 			effectiveGasPrice = hexEVMQuantity(ethereumTx.GasPrice)
 			txType = hexEVMQuantity(uint64(ethereumTx.TransactionType))
+		} else if ideVerified {
+			if gasUsed != 1 {
+				return nil
+			}
+			effectiveGasPrice = ethnative.Quantity(ethnative.Wei(ideAction.Fee))
 		} else if native, ok := verifiedNativeEVMTransfer(t, raws[0]); ok {
 			if gasUsed != 1 {
 				return nil

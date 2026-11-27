@@ -161,6 +161,35 @@ jobs:
                   raise RuntimeError('signed PQ envelope control not uniquely run and passed: ' + name)
           PY
 
+      - name: Verify signed IDE fee projection and original transaction readback
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          tests='^(TestGatewayCommitsBoundedIDEAndReturnsEVMLogs|TestGatewayMapsBoundedEthereumDynamicFeeTransfer|TestEVMNativeSignedTransferProjectionUsesWei|TestGatewayOriginalEthereumTransactionAndUnavailableReceipt|TestGatewayImportedEVMBlocksActualSourceAndColdRead|TestEVMOriginalSignedTransactionAndReceiptUnits)$'
+          if ! go test -mod=readonly -json -p 1 -count=1 -timeout=120s -run "$tests" ./internal/bftgateway > "$RUNNER_TEMP/ynx-ide-fee-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-ide-fee-tests.jsonl"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/ynx-ide-fee-tests.jsonl"
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          package = 'github.com/JiahaoAlbus/YNX-Chain/internal/bftgateway'
+          names = {'TestGatewayCommitsBoundedIDEAndReturnsEVMLogs', 'TestGatewayMapsBoundedEthereumDynamicFeeTransfer', 'TestEVMNativeSignedTransferProjectionUsesWei', 'TestGatewayOriginalEthereumTransactionAndUnavailableReceipt', 'TestGatewayImportedEVMBlocksActualSourceAndColdRead', 'TestEVMOriginalSignedTransactionAndReceiptUnits'}
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-ide-fee-tests.jsonl').read_text().splitlines()]
+          if any(e.get('Action') in ('fail', 'skip', 'build-fail') or ('Package' in e and e['Package'] != package) for e in events):
+              raise RuntimeError('IDE fee test failed, skipped or changed package')
+          boundaries = [(i, e.get('Action')) for i, e in enumerate(events) if e.get('Package') == package and not e.get('Test') and e.get('Action') in ('start', 'pass')]
+          if len(boundaries) != 2 or [a for _, a in boundaries] != ['start', 'pass']:
+              raise RuntimeError('IDE fee package lifecycle differs')
+          if {e['Test'].split('/')[0] for e in events if e.get('Test')} != names:
+              raise RuntimeError('IDE fee test set differs')
+          for name in names:
+              found = [(i, e.get('Action')) for i, e in enumerate(events) if e.get('Test') == name and e.get('Action') in ('run', 'pass', 'fail', 'skip')]
+              if len(found) != 2 or [a for _, a in found] != ['run', 'pass'] or not boundaries[0][0] < found[0][0] < found[1][0] < boundaries[1][0]:
+                  raise RuntimeError('IDE fee test did not uniquely run and pass: ' + name)
+          PY
+
   contract-tooling-scope:
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
     runs-on: ubuntu-24.04
