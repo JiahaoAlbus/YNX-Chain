@@ -40,3 +40,8 @@ export function merchantInvoiceInput(values,catalog,merchantId,{recover=false}={
 }
 
 export async function currentMerchantInvoice(api,assertCurrent,subject,id){assertCurrent();const snapshot=await api.state();assertCurrent();const records=realRecords(snapshot,subject),matches=records.invoices.filter(row=>row.id===id);if(matches.length!==1)throw reject();return merchantInvoicePresentation(matches[0],subject.merchantId);}
+export async function currentMerchantRefund(api,assertCurrent,subject,id){
+ assertCurrent();const snapshot=await api.state();assertCurrent();const records=realRecords(snapshot,subject),matches=records.refunds.filter(row=>row.id===id);
+ if(matches.length!==1||!merchantRefundRecoveryLabel('refund',matches[0].status))throw Object.assign(new Error('The original refund is unavailable. Refresh your merchant records.'),{code:'MERCHANT_REFUND_ORIGINAL_CHANGED'});
+ return matches[0];
+}
