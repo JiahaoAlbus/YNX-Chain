@@ -228,6 +228,17 @@ class Controls(unittest.TestCase):
                 for key in ('receiptBase64','receiptSHA256','receiptBytes'):record[key]=other[key]
             with self.subTest(name=name): self.assert_rejected(events(data))
 
+    def test_noncanonical_base64_pad_bits_rejected_even_if_bytes_match(self):
+        alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+        for label in ('stream','receipt'):
+            data=metric();record=data['records'][0];key=label+'Base64';original=record[key]
+            self.assertTrue(original.endswith('='))
+            position=-3 if original.endswith('==') else -2
+            index=alphabet.index(original[position]);replacement=alphabet[index ^ 1]
+            record[key]=original[:position]+replacement+original[position+1:]
+            self.assertEqual(base64.b64decode(original,validate=True),base64.b64decode(record[key],validate=True))
+            with self.subTest(label=label):self.assert_rejected(events(data))
+
     def test_stream_event_and_framing_rejected_even_after_all_pins_recomputed(self):
         for name in ('header', 'truncated', 'extra_line', 'height', 'header_hash', 'app_hash',
                      'epoch', 'attempt', 'ns_zero', 'ns_leading_zero', 'ns_overflow',
