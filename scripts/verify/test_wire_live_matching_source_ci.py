@@ -683,8 +683,13 @@ class WireLiveSourceControls(unittest.TestCase):
                 self.assert_optional_partition(workflow.replace(client, mutated, 1))
         for path in ('scripts/verify/pq-clock-ab-ci.sh', 'scripts/verify/pq-enrollment-original-ci-receipt.py', 'scripts/verify/qualify_pq_private_synthetic_ci.py', '.github/workflows/resource-market-ci.yml'):
             scope = workflow_job(workflow, 'contract-tooling-scope')
+            start = scope.index('git diff --name-only "$BEFORE" "$AFTER" -- \\\n            go.mod go.sum')
+            end = scope.index(' > "$RUNNER_TEMP/client-observation-changes.txt"', start)
+            client_paths = scope[start:end]
+            self.assertEqual(client_paths.count(path), 1)
+            mutated = scope[:start] + client_paths.replace(path, 'missing-original-dependency', 1) + scope[end:]
             with self.assertRaises(AssertionError):
-                self.assert_optional_partition(workflow.replace(scope, scope.replace(path, 'missing-original-dependency', 1), 1))
+                self.assert_optional_partition(workflow.replace(scope, mutated, 1))
 
     def test_workflow_fetches_only_fixed_supplier_with_ephemeral_read_credential(self):
         workflow = (HERE.parents[1] / ".github/workflows/chain-core.yml").read_text()
