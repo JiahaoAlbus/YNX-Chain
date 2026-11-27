@@ -41,7 +41,7 @@ jobs:
           import hashlib, importlib.util, io, json, os, pathlib, platform, sys, unittest
           if sys.platform != 'linux': raise RuntimeError('actual original Linux controls required')
           root=pathlib.Path('scripts/loadtest'); out=pathlib.Path(os.environ['RUNNER_TEMP'])/'ynx-serial-verifier-public'
-          groups=[('staged','test_pq_staged_independent_scheduler.py',23),('serial','test_pq_serial_verifier_admission.py',28),('independent','test_pq_independent_load.py',25),('bounded-sender','test_pq_bounded_sender_backend.py',24),('header-data','test_pq_synthetic_header_stream_data.py',11),('header-driver-data','test_pq_synthetic_header_driver_data.py',8),('header-stream-only','test_pq_header_stream_only.py',13),('commit-validation','test_pq_commit_validation_readback.py',13),('initialization','test_pq_initialization_measurements.py',39),('go-evidence-parser','test_pq_synthetic_header_cross_source_ci.py',7),('scheduler-boundaries','test_pq_scheduler_boundary_controls.py',23)]
+          groups=[('staged','test_pq_staged_independent_scheduler.py',23),('serial','test_pq_serial_verifier_admission.py',28),('independent','test_pq_independent_load.py',25),('bounded-sender','test_pq_bounded_sender_backend.py',24),('header-data','test_pq_synthetic_header_stream_data.py',11),('header-driver-data','test_pq_synthetic_header_driver_data.py',8),('header-stream-only','test_pq_header_stream_only.py',15),('native-source','test_pq_7c25_native_source_dependencies.py',9),('normal-live-source','test_pq_normal_live_build_source.py',14),('commit-validation','test_pq_commit_validation_readback.py',13),('initialization','test_pq_initialization_measurements.py',39),('go-evidence-parser','test_pq_synthetic_header_cross_source_ci.py',11),('scheduler-boundaries','test_pq_scheduler_boundary_controls.py',26)]
           metadata=dict(version='YNX-SERIAL-VERIFIER-CONTROLS/v1',sourceCommit=os.environ['GITHUB_SHA'],sourceTree=os.environ['YNX_SERIAL_TREE'],forkTree=os.environ['YNX_SERIAL_FORK'],eventName=os.environ['GITHUB_EVENT_NAME'],pullRequestHead=os.environ['YNX_PR_HEAD'],pullRequestBase=os.environ['YNX_PR_BASE'],runId=os.environ['GITHUB_RUN_ID'],attempt=os.environ['GITHUB_RUN_ATTEMPT'],job=os.environ['GITHUB_JOB'],platform=sys.platform,kernel=platform.release(),groups=[],runtimeAuthorized=False,independentFinalityVerified=False)
           manifest=dict(version='YNX-SERIAL-VERIFIER-TEST-MANIFEST/v1',sourceCommit=os.environ['GITHUB_SHA'],groups=[])
           def test_ids(suite):
@@ -86,6 +86,8 @@ jobs:
             ${{ runner.temp }}/ynx-serial-verifier-public/header-data.log
             ${{ runner.temp }}/ynx-serial-verifier-public/header-driver-data.log
             ${{ runner.temp }}/ynx-serial-verifier-public/header-stream-only.log
+            ${{ runner.temp }}/ynx-serial-verifier-public/native-source.log
+            ${{ runner.temp }}/ynx-serial-verifier-public/normal-live-source.log
             ${{ runner.temp }}/ynx-serial-verifier-public/commit-validation.log
             ${{ runner.temp }}/ynx-serial-verifier-public/initialization.log
             ${{ runner.temp }}/ynx-serial-verifier-public/scheduler-boundaries.log
@@ -99,6 +101,12 @@ jobs:
     needs: controls
     runs-on: ubuntu-24.04
     timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        producer:
+          - edf5b12deb65f94e6e731708f336ca1af23bcfe1
+          - bbe860e8744a479e1838db9b7ae26b8d9a8bb34e
     steps:
       - name: Checkout exact Tools source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -109,8 +117,9 @@ jobs:
       - name: Checkout exact original synthetic writer
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: edf5b12deb65f94e6e731708f336ca1af23bcfe1
+          ref: ${{ matrix.producer }}
           path: producer
+          fetch-depth: 0
           persist-credentials: false
       - name: Set up original Go version
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
@@ -121,6 +130,7 @@ jobs:
         env:
           YNX_TOOLS_SOURCE: ${{ github.workspace }}/tools
           YNX_PRODUCER_SOURCE: ${{ github.workspace }}/producer
+          YNX_PRODUCER_COMMIT: ${{ matrix.producer }}
           YNX_PRIVATE_WORK: ${{ runner.temp }}/ynx-header-cross-private
           YNX_PUBLIC_OUTPUT: ${{ runner.temp }}/ynx-header-cross-public
         run: |
@@ -135,7 +145,7 @@ jobs:
       - name: Preserve only public Go events and DATA summary
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: ynx-synthetic-header-cross-source-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ynx-synthetic-header-cross-source-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.producer }}
           path: |
             ${{ runner.temp }}/ynx-header-cross-public/go-events.jsonl
             ${{ runner.temp }}/ynx-header-cross-public/metadata.json

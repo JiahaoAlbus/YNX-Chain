@@ -42,11 +42,11 @@ class StreamOnlyControls(unittest.TestCase):
         args=SimpleNamespace(first_trial_profile=d.HELD_TRIAL_PROFILE,staged_publication=True,header_stream_only_data=True,
             header_stream_data=False,commit_observation=False,commit_clock_observation=False,commit_validation_observation=False,
             commit=d.SYNTHETIC_HEADER_STREAM_ONLY_ABI_SOURCE)
-        self.assertIsNone(d.SYNTHETIC_HEADER_STREAM_ONLY_SOURCE)
+        self.assertIsNone(d.SYNTHETIC_HEADER_STREAM_ONLY_BINDINGS)
         with mock.patch.object(d.lab,'Window') as window,self.assertRaisesRegex(RuntimeError,'stream-only DATA source/CI'):
             d.validate_options(args)
         window.assert_not_called()
-        with mock.patch.object(d,'SYNTHETIC_HEADER_STREAM_ONLY_SOURCE',d.SYNTHETIC_HEADER_STREAM_ONLY_ABI_SOURCE):
+        with mock.patch.object(d,'SYNTHETIC_HEADER_STREAM_ONLY_BINDINGS',dict(d.SYNTHETIC_HEADER_STREAM_ONLY_ABI_SOURCES)):
             for field in ('header_stream_data','commit_observation','commit_clock_observation','commit_validation_observation'):
                 bad=copy.copy(args);setattr(bad,field,True)
                 with self.subTest(field=field),self.assertRaises(RuntimeError):d.validate_options(bad)
@@ -75,6 +75,44 @@ class StreamOnlyControls(unittest.TestCase):
                 self.assertEqual(argv.count('--commit-observation-scope'),1);self.assertEqual(argv.count('--commit-header-stream-output'),1)
                 self.assertFalse(any(x in argv for x in ('--commit-observation-output','--commit-monotonic-output','--commit-validation-observation','--finalize-observation-output')))
             self.assertEqual(len({item['path'] for item in owner.header_stream_descriptors}),4)
+
+    def test_each_stream_abi_source_is_exact_and_still_requires_frozen_gate(self):
+        identities={
+            'edf5b12deb65f94e6e731708f336ca1af23bcfe1':('a2348dc67ee627fcfc3021c513315acd7b9abc7b','aadf0831c6b65559065ca82228bab30811d36c67'),
+            'bbe860e8744a479e1838db9b7ae26b8d9a8bb34e':('7f70fd791e1706ad151b2e3d6e68a16c586650aa','5a128880d14bfc73de4334cba23218859ad3473c')}
+        self.assertEqual(d.SYNTHETIC_HEADER_STREAM_ONLY_ABI_SOURCES,identities);self.assertIsNone(d.SYNTHETIC_HEADER_STREAM_ONLY_BINDINGS)
+        for commit in identities:
+            args=SimpleNamespace(first_trial_profile=d.HELD_TRIAL_PROFILE,staged_publication=True,header_stream_only_data=True,
+                header_stream_data=False,commit_observation=False,commit_clock_observation=False,commit_validation_observation=False,commit=commit)
+            with self.subTest(commit=commit),self.assertRaisesRegex(RuntimeError,'stream-only DATA source/CI'):
+                d.validate_options(args)
+            with mock.patch.object(d,'SYNTHETIC_HEADER_STREAM_ONLY_BINDINGS',{commit:identities[commit]}):
+                self.assertTrue(d.stream_only_source_allowed(commit)) # CONTROL only; held gate remains independent.
+                other=next(source for source in identities if source!=commit)
+                self.assertFalse(d.stream_only_source_allowed(other))
+            with mock.patch.object(d,'SYNTHETIC_HEADER_STREAM_ONLY_BINDINGS',{commit:identities[next(source for source in identities if source!=commit)]}):
+                self.assertFalse(d.stream_only_source_allowed(commit))
+
+    def test_actual_driver_rejects_swapped_original_tree_and_fork_before_window(self):
+        identities=d.SYNTHETIC_HEADER_STREAM_ONLY_ABI_SOURCES
+        for source,(tree,fork) in identities.items():
+            args=SimpleNamespace(first_trial_profile=d.HELD_TRIAL_PROFILE,staged_publication=True,header_stream_only_data=True,
+                header_stream_data=False,commit_observation=False,commit_clock_observation=False,commit_validation_observation=False,
+                commit=source,mode='online',rate=100,seconds=5,accounts=500,per_account=1,tail_seconds=30,proof_timeout=30,
+                sender_backend='public-owner',initialize_before_load=True,startup_timings=True,wire_observation=True,
+                network_accounting=True,owned_storage_accounting=True,source='/CONTROL-not-read',execute=False)
+            other=next(value for key,value in identities.items() if key!=source)
+            with mock.patch.object(d,'SYNTHETIC_HEADER_STREAM_ONLY_BINDINGS',dict(identities)), \
+                 mock.patch.object(d,'STARTUP_TIMING_ABI_SOURCES',d.STARTUP_TIMING_ABI_SOURCES|{source}), \
+                 mock.patch.object(d,'select_held_source',return_value=SimpleNamespace(SOURCE=source,TREE=tree)), \
+                 mock.patch.object(d,'sender_backend_kind',return_value='public-owner'), \
+                 mock.patch.object(d.lab,'Window') as window:
+                for wrong_tree,wrong_fork in ((other[0],fork),(tree,other[1])):
+                    with self.subTest(source=source,wrong_tree=wrong_tree,wrong_fork=wrong_fork), \
+                         mock.patch.object(d.lab,'check_source',return_value=dict(commit=source,tree=wrong_tree,forkTree=wrong_fork)), \
+                         self.assertRaisesRegex(RuntimeError,'source tree|source tree/fork'):
+                        d.run(args)
+                window.assert_not_called()
 
     def test_actual_stopped_reader_uses_sampled_scope_and_keeps_data_only(self):
         with tempfile.TemporaryDirectory() as t:

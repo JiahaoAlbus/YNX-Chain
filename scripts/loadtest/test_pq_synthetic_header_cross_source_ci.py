@@ -3,6 +3,8 @@ import contextlib
 import io
 import json
 from pathlib import Path
+import sys
+import tempfile
 import threading
 from types import SimpleNamespace
 import unittest
@@ -23,6 +25,60 @@ def valid():
         event('output',output='PASS\n'),event('output',output='ok  '+m.PACKAGE+'\t0.010s\n'),event('pass')))
 
 class OriginalGoEvidenceControls(unittest.TestCase):
+    def test_source_only_composer_control_projects_no_private_bytes(self):
+        spec=importlib.util.spec_from_file_location('header_original_compose_control',Path(__file__).with_name('pq-synthetic-header-compose-control.py'))
+        control=importlib.util.module_from_spec(spec);spec.loader.exec_module(control)
+        with tempfile.TemporaryDirectory() as t:
+            root=Path(t);source=root/'source';source.mkdir();destination=root/'composition';destination.mkdir()
+            (destination/'SOURCE-SELECTION.json').write_bytes(b'{"control":"PRIVATE_SENTINEL"}\n')
+            (destination/'SOURCE-NATIVE-DEPENDENCIES.json').write_bytes(b'{"control":"PRIVATE_SENTINEL"}\n')
+            commit=next(iter(m.PRODUCERS));tree,fork=m.PRODUCERS[commit];supplier,supplier_tree=m.SUPPLIERS[commit]
+            result=dict(source=dict(commit=commit,tree=tree,forkTree=fork),sourceCompositionOnly=True,
+                runtimeAuthorized=False,sourceCIQualified=False,pressureAuthorized=False,carrierEnabled=False,
+                actualNetworkWindow=False,optionalForkCommit=supplier,optionalForkTree=supplier_tree)
+            with mock.patch.object(sys,'argv',['control',str(source),str(destination),commit]), \
+                 mock.patch.object(control,'source_identity',return_value=(commit,tree,fork)), \
+                 mock.patch.object(control.reader,'prepare_matching_source',return_value=result) as compose:
+                control.main()
+            compose.assert_called_once_with(source,destination,held_source_only=True)
+            raw=(root/'composition-control.json').read_bytes();self.assertNotIn(b'PRIVATE_SENTINEL',raw)
+            value=json.loads(raw);self.assertEqual((value['source'],value['sourceTree'],value['forkTree']),(commit,tree,fork))
+            self.assertFalse(value['runtimeAuthorized'] or value['sourceCIQualified'] or value['pressureAuthorized'])
+
+    def test_source_only_composer_control_refuses_false_scope_before_output(self):
+        spec=importlib.util.spec_from_file_location('header_original_compose_control_bad',Path(__file__).with_name('pq-synthetic-header-compose-control.py'))
+        control=importlib.util.module_from_spec(spec);spec.loader.exec_module(control)
+        with tempfile.TemporaryDirectory() as t:
+            root=Path(t);source=root/'source';source.mkdir();destination=root/'composition';destination.mkdir();commit=next(iter(m.PRODUCERS))
+            result=dict(source=dict(commit=commit),sourceCompositionOnly=True,runtimeAuthorized=True,sourceCIQualified=False,
+                pressureAuthorized=False,carrierEnabled=False,actualNetworkWindow=False)
+            with mock.patch.object(sys,'argv',['control',str(source),str(destination),commit]), \
+                 mock.patch.object(control,'source_identity',return_value=(commit,*m.PRODUCERS[commit])), \
+                 mock.patch.object(control.reader,'prepare_matching_source',return_value=result),self.assertRaises(RuntimeError):control.main()
+            self.assertFalse((root/'composition-control.json').exists())
+
+    def test_actual_git_wrong_original_source_refuses_before_output(self):
+        spec=importlib.util.spec_from_file_location('header_original_compose_control_wrong',Path(__file__).with_name('pq-synthetic-header-compose-control.py'))
+        control=importlib.util.module_from_spec(spec);spec.loader.exec_module(control);self.assertEqual(control.SOURCES,m.PRODUCERS)
+        with tempfile.TemporaryDirectory() as t:
+            source=Path(__file__).resolve().parents[2];destination=Path(t)/'composition';commit=next(iter(m.PRODUCERS))
+            with mock.patch.object(sys,'argv',['control',str(source),str(destination),commit]), \
+                 mock.patch.object(control.reader,'prepare_matching_source') as compose,self.assertRaisesRegex(RuntimeError,'before output'):
+                control.main()
+            compose.assert_not_called();self.assertFalse(destination.exists());self.assertFalse((Path(t)/'composition-control.json').exists())
+
+    def test_two_exact_producer_identities_never_admit_near_or_missing_source(self):
+        expected={
+            'edf5b12deb65f94e6e731708f336ca1af23bcfe1':('a2348dc67ee627fcfc3021c513315acd7b9abc7b','aadf0831c6b65559065ca82228bab30811d36c67'),
+            'bbe860e8744a479e1838db9b7ae26b8d9a8bb34e':('7f70fd791e1706ad151b2e3d6e68a16c586650aa','5a128880d14bfc73de4334cba23218859ad3473c')}
+        self.assertEqual(m.PRODUCERS,expected)
+        self.assertEqual(m.PRODUCERS,m.driver.SYNTHETIC_HEADER_STREAM_ONLY_ABI_SOURCES)
+        self.assertEqual(m.SUPPLIERS,{
+            'edf5b12deb65f94e6e731708f336ca1af23bcfe1':('28a769cc934ea5bffe971214cabe7285b30d80d2','d1614fd27dedde42da4142648ae7201aeb988036'),
+            'bbe860e8744a479e1838db9b7ae26b8d9a8bb34e':('5a49f5c91452604dffb910df736702b3b9df2562','08747364c24c065bf2b13527c210625d7ec95fba')})
+        for source,pins in expected.items():self.assertEqual(m.producer_identity(source),(source,*pins))
+        for bad in (None,'',next(iter(expected))[:-1]+'0','0'*40):
+            with self.subTest(bad=bad),self.assertRaises(RuntimeError):m.producer_identity(bad)
     def test_original_events_preserved_with_downloads_private(self):
         raw=valid();out,n=m.original_go_events(b'go: downloading example.invalid/module v1.0.0\n'+raw)
         self.assertEqual(out,raw);self.assertEqual(n,1)

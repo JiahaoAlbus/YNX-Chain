@@ -77,8 +77,10 @@ def preserve_first_cause(result,message,*,error=None):
 
 def retain_worker_cleanup_debt(result):
     load=result.get('loadResult',{});pipeline=load.get('pipeline')
-    if ((pipeline is not None and (not isinstance(pipeline,dict) or pipeline.get('workerThreadsRetired') is not True))
-            or ('workerThreadsRetired' in load and load['workerThreadsRetired'] is not True)):
+    if ((pipeline is not None and (not isinstance(pipeline,dict) or pipeline.get('workerThreadsRetired') is not True
+                                   or pipeline.get('arrivalClockCleanupDebt') is True))
+            or ('workerThreadsRetired' in load and load['workerThreadsRetired'] is not True)
+            or load.get('arrivalClockCleanupDebt') is True):
         result['workerCleanupDebt']=True;result['cleanupComplete']=False
         preserve_first_cause(result,'original staged workers did not retire; preserve cleanup debt')
 
@@ -153,7 +155,11 @@ COMMIT_VALIDATION_ABI_SOURCE = None
 # ABI identity only; the independent original clock/source gates remain closed.
 SYNTHETIC_HEADER_ABI_SOURCE = 'ec8710b30673414487115f4fad6aa51a778d6284'
 SYNTHETIC_HEADER_STREAM_ONLY_ABI_SOURCE = 'edf5b12deb65f94e6e731708f336ca1af23bcfe1'
-SYNTHETIC_HEADER_STREAM_ONLY_SOURCE = None  # Frozen source, independent CI and resource scope still required.
+SYNTHETIC_HEADER_STREAM_ONLY_ABI_SOURCES = {
+    SYNTHETIC_HEADER_STREAM_ONLY_ABI_SOURCE:('a2348dc67ee627fcfc3021c513315acd7b9abc7b','aadf0831c6b65559065ca82228bab30811d36c67'),
+    'bbe860e8744a479e1838db9b7ae26b8d9a8bb34e':('7f70fd791e1706ad151b2e3d6e68a16c586650aa','5a128880d14bfc73de4334cba23218859ad3473c'),
+} # Exact ABI identities only; independent source and runtime qualification remain closed.
+SYNTHETIC_HEADER_STREAM_ONLY_BINDINGS = None  # Frozen per-source identities and independent CI still required.
 # A new large-owner normal callee/ABI must be explicitly qualified by CORE.
 STAGED_CALLEE_SOURCE = initialization.LIVE_SOURCE
 STAGED_CALLEE_TREE = initialization.LIVE_TREE
@@ -174,6 +180,12 @@ def select_held_source(commit):
     if commit==before59_held_source.SOURCE and before59_held_source.BINDING is not None:
         return before59_held_source
     raise RuntimeError('exact held source and independent same-run binding NOT_SUPPLIED')
+
+
+def stream_only_source_allowed(source):
+    return (type(source) is str and type(SYNTHETIC_HEADER_STREAM_ONLY_BINDINGS) is dict
+            and source in SYNTHETIC_HEADER_STREAM_ONLY_ABI_SOURCES
+            and SYNTHETIC_HEADER_STREAM_ONLY_BINDINGS.get(source)==SYNTHETIC_HEADER_STREAM_ONLY_ABI_SOURCES[source])
 
 
 def callee_snapshot(value):
@@ -489,8 +501,7 @@ class LoadCeremony(normal.Ceremony):
             'exact synthetic header DATA ABI/source NOT_SUPPLIED')
         lab.require(type(header_stream_only_data) is bool and (not header_stream_only_data or
             (header_stream_data is False and commit_observation is False and commit_validation_observation is False and commit_clock_observation is False
-             and SYNTHETIC_HEADER_STREAM_ONLY_SOURCE is not None
-             and consumer_source==SYNTHETIC_HEADER_STREAM_ONLY_SOURCE==SYNTHETIC_HEADER_STREAM_ONLY_ABI_SOURCE)),
+             and stream_only_source_allowed(consumer_source))),
             'exact synthetic stream-only DATA source/CI NOT_SUPPLIED or legacy observer selected')
         super().__init__(*args,**kwargs);self.operations=operations;self.proof_timeout=proof_timeout;self.live=[]
         self.commit_observation_enabled=commit_observation;self.commit_observation_descriptors=[]
@@ -1496,8 +1507,7 @@ def validate_options(args):
         (profile==HELD_TRIAL_PROFILE and getattr(args,'staged_publication',False) is True
          and header is False and getattr(args,'commit_observation',False) is False
          and getattr(args,'commit_clock_observation',False) is False and getattr(args,'commit_validation_observation',False) is False
-         and SYNTHETIC_HEADER_STREAM_ONLY_SOURCE is not None
-         and args.commit==SYNTHETIC_HEADER_STREAM_ONLY_SOURCE==SYNTHETIC_HEADER_STREAM_ONLY_ABI_SOURCE)),
+         and stream_only_source_allowed(args.commit))),
         'exact synthetic stream-only DATA source/CI NOT_SUPPLIED or legacy observer selected')
     lab.require(type(getattr(args,'commit_validation_observation',False)) is bool and
         (not getattr(args,'commit_validation_observation',False) or
@@ -1913,6 +1923,10 @@ def run(args, *, source_metadata_reader=None, clock_original_log_reader=None, cl
         trial_source = select_held_source(args.commit)
         identity = lab.check_source(Path(args.source), args.commit)
         lab.require(identity['tree'] == trial_source.TREE, 'exact held-session source tree differs')
+        if getattr(args,'header_stream_only_data',False):
+            lab.require(stream_only_source_allowed(args.commit)
+                and (identity['tree'],identity['forkTree'])==SYNTHETIC_HEADER_STREAM_ONLY_ABI_SOURCES[args.commit],
+                'exact stream-only source tree/fork differs; preserve UNKNOWN')
         before_source_qualification=None
         if trial_source is before59_held_source:
             lab.require(commit_clock_ci.BINDING is not None and commit_clock_ci.LOG_REQUIREMENTS is not None

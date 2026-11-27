@@ -49,6 +49,7 @@ def failure_text(error):
 
 
 _BACKEND_STOP_CUSTODY=sys.__dict__.setdefault('_ynx_original_backend_stop_custody_v1',[])
+_ARRIVAL_CLOCK_CUSTODY=sys.__dict__.setdefault('_ynx_original_arrival_clock_custody_v1',[])
 
 
 def stop_backend_once(backend):
@@ -254,7 +255,7 @@ def run(plan,backend,emit,check_resources,stop,origin=None):
         if persistence_failure is not None:raise RuntimeError('original journal persistence UNKNOWN; no retry')
         try:emit(event)
         except BaseException as error:persistence_failure=error;raise
-    ledger=Ledger(plan,emit_once);events=queue.Queue(maxsize=max(256,len(plan["rows"])*32));futures={};failure=None;failure_type=None;late_evidence=[]
+    ledger=Ledger(plan,emit_once);events=queue.Queue(maxsize=max(256,len(plan["rows"])*32));futures={};failure=None;failure_type=None;failure_order_unknown=False;backend_stop_error=None;late_evidence=[]
     def preserve_failure(error):
         nonlocal failure,failure_type
         if failure is None:failure=failure_text(error);failure_type=type(error).__name__
@@ -308,13 +309,30 @@ def run(plan,backend,emit,check_resources,stop,origin=None):
         cutoff_observed_ns=time.monotonic_ns();external_stop=stop.is_set()
         observation_deadline=min(deadline,cutoff_observed_ns)
         stop.set()
-        if clock.thread.ident is not None:clock.thread.join(timeout=1)
-        if clock.thread.is_alive():failure=failure or "independent original arrival clock did not retire"
+        # An already-latched guard failure predates cleanup and journal I/O.
+        try:check_resources()
+        except BaseException as error:preserve_failure(error)
+        clock_debt=False
+        try:
+            if clock.thread.ident is not None:clock.thread.join(timeout=1)
+            if clock.thread.is_alive():
+                clock_debt=True;preserve_failure(RuntimeError('independent original arrival clock did not retire'))
+        except BaseException as error:
+            clock_debt=True;preserve_failure(error)
+        if clock_debt:_ARRIVAL_CLOCK_CUSTODY.append(clock)
         if persistence_failure is None:
             try:ledger.release_clock(clock)
             except BaseException as error:preserve_failure(error)
-        try:stop_backend_once(backend)
+        try:check_resources()
         except BaseException as error:preserve_failure(error)
+        try:stop_backend_once(backend)
+        except BaseException as error:
+            backend_stop_error=dict(errorType=type(error).__name__,reason=failure_text(error),cleanupDebt=True)
+            try:check_resources()
+            except BaseException as resource_error:
+                failure_order_unknown=True
+                preserve_failure(resource_error)
+            else:preserve_failure(error)
         _,unfinished=concurrent.futures.wait(list(futures.values()),timeout=10)
         if unfinished:failure=failure or "normal backend workers did not retire within bounded cleanup"
         pool.shutdown(wait=False,cancel_futures=True)
@@ -336,8 +354,11 @@ def run(plan,backend,emit,check_resources,stop,origin=None):
         result['observationCutoffStatus']='UNKNOWN_EXTERNAL_STOP'
         result['windowCompleted']=False
     result['firstCauseErrorType']=failure_type
+    if failure_order_unknown:result['firstCauseOrder']='UNKNOWN'
+    if backend_stop_error is not None:result['backendStopError']=backend_stop_error
     result['journalPersistenceStatus']='UNKNOWN' if persistence_failure is not None else 'ORIGINAL_EMIT_RETURNED'
     result['workerThreadsRetired']=not bool(unfinished)
+    result['arrivalClockCleanupDebt']=clock_debt
     if unfinished:
         result['submissionCoverage']='UNKNOWN_WORKER_NOT_RETIRED'
         result['notSubmitted']=None;result['actualSubmissionAttemptTPS']=None

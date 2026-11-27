@@ -185,8 +185,14 @@ def run(plan,backend,emit,check_resources,stop,origin=None,ledger_module=None,ve
         # original failure before cleanup can report a secondary timeout.
         try:check_resources()
         except BaseException as error:preserve_failure(error)
-        if clock.thread.ident is not None:clock.thread.join(timeout=1)
-        if clock.thread.is_alive():failure=failure or 'original arrival clock did not retire'
+        clock_debt=False
+        try:
+            if clock.thread.ident is not None:clock.thread.join(timeout=1)
+            if clock.thread.is_alive():
+                clock_debt=True;preserve_failure(RuntimeError('original arrival clock did not retire'))
+        except BaseException as error:
+            clock_debt=True;preserve_failure(error)
+        if clock_debt:s._ARRIVAL_CLOCK_CUSTODY.append(clock)
         try:s.stop_backend_once(backend)
         except BaseException as error:preserve_failure(error)
         until=time.monotonic()+10
@@ -217,6 +223,7 @@ def run(plan,backend,emit,check_resources,stop,origin=None,ledger_module=None,ve
     result['journalPersistenceStatus']='UNKNOWN' if persistence_failure is not None else 'ORIGINAL_EMIT_RETURNED'
     result.update(originMonotonicNs=str(origin),offeredWindowEndMonotonicNs=str(origin+plan['windowNs']),clockMeaning='same original parent monotonic clock; publication/inclusion/final-proof queues separated')
     result['pipeline']=dict(stageWorkers=dict(WORKERS),queueCapacity=dict(config['queueCapacity']),queuePeak=peak,queueAtCutoff=queue_at_cutoff,queueAtRetirement={k:q.qsize() for k,q in queues.items()},completedByStage=done,completedByStageMeaning='worker calls returned or raised; not successful business counts',workerThreadsRetired=not worker_timeouts,workerRetirementTimeouts=worker_timeouts,workerRetirementObservedNs=retired_ns,retainedUnfinishedHandles=list(retained.values()),lateEvidence=late_evidence,lateEvidenceMeaning='original events observed at/after the actual observation cutoff; retained for same-operation reconciliation, never cutoff qualification or nonce release',queueSamples=samples,queueSamplingAtomic=False,extraNodeOrSignerPIDStartedByScheduler=False,fullDemandUnchanged=n,chainSaturationProven=False)
+    result['pipeline']['arrivalClockCleanupDebt']=clock_debt
     if drain_error is not None:result['pipeline']['postCutoffVerifierDrainError']=drain_error
     if worker_timeouts:
         result['submissionCoverage']='UNKNOWN_WORKER_NOT_RETIRED'

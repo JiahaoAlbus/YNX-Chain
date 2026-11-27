@@ -246,6 +246,70 @@ class SchedulerBoundaryControls(unittest.TestCase):
         self.assertEqual(backend.stop.call_count,1);self.assertEqual(outer['firstCause'],'CONTROL original stop failed')
         self.assertTrue(outer['backendStopError']['cleanupDebt']);self.assertIn(backend,original._BACKEND_STOP_CUSTODY)
         original._BACKEND_STOP_CUSTODY.remove(backend) # CONTROL backend owns no real OS resources.
+    def test_staged_clock_join_error_retains_clock_and_still_stops_backend(self):
+        backend=staged_tests.StructuralBackend();before=list(original._ARRIVAL_CLOCK_CUSTODY);real_join=threading.Thread.join
+        def join(thread,*args,**kwargs):
+            if thread.name=='independent-original-arrivals':raise OSError('CONTROL original clock join UNKNOWN')
+            return real_join(thread,*args,**kwargs)
+        try:
+            with mock.patch.object(threading.Thread,'join',join):
+                result=staged.run(staged_tests.plan(count=1,accounts=1),backend,lambda _:None,lambda:None,threading.Event())
+            self.assertEqual(result['firstCause'],'CONTROL original clock join UNKNOWN')
+            self.assertTrue(result['pipeline']['arrivalClockCleanupDebt']);self.assertEqual(backend.stop_calls,1)
+            receipt=dict(firstCause=result['firstCause'],cleanupComplete=True,loadResult=result)
+            driver.retain_worker_cleanup_debt(receipt);self.assertFalse(receipt['cleanupComplete'])
+            self.assertEqual(len([clock for clock in original._ARRIVAL_CLOCK_CUSTODY if clock not in before]),1)
+        finally:
+            for clock in list(original._ARRIVAL_CLOCK_CUSTODY):
+                if clock not in before:
+                    real_join(clock.thread,2);self.assertFalse(clock.thread.is_alive());original._ARRIVAL_CLOCK_CUSTODY.remove(clock)
+
+    def test_nonstaged_real_resource_latch_precedes_unretired_clock_and_journal_failure(self):
+        begin=threading.Event();release_clock=threading.Event();stop=threading.Event();clock_ready=threading.Event()
+        class Window:
+            def _sample(self):begin.wait(2);raise OSError('CONTROL original resource first')
+            def sample(self):return self._sample()
+        monitor=driver.Monitor(Window(),stop);monitor.thread.start()
+        def blocked_clock(clock):
+            clock.offsets[0]=0;clock_ready.set();stop.wait(2);clock.offsets[1]=1;release_clock.wait(3)
+        def perform(*_):begin.set();self.assertTrue(stop.wait(2))
+        backend=SimpleNamespace(perform=perform,stop=lambda:None)
+        def emit(event):
+            if event['kind']=='logical_release' and event['index']==1:raise ValueError('CONTROL later journal failure')
+        before=list(original._ARRIVAL_CLOCK_CUSTODY)
+        try:
+            with mock.patch.object(original.ArrivalClock,'loop',blocked_clock):
+                result=original.run(independent_tests.plan(count=2,accounts=1),backend,emit,monitor.check,stop)
+            self.assertTrue(clock_ready.is_set());self.assertEqual(result['firstCause'],'CONTROL original resource first')
+            self.assertTrue(result['arrivalClockCleanupDebt']);self.assertEqual(result['journalPersistenceStatus'],'UNKNOWN')
+            retained=[clock for clock in original._ARRIVAL_CLOCK_CUSTODY if clock not in before]
+            self.assertEqual(len(retained),1);self.assertTrue(retained[0].thread.is_alive())
+        finally:
+            begin.set();release_clock.set();monitor.finished.set();monitor.thread.join(2)
+            for clock in list(original._ARRIVAL_CLOCK_CUSTODY):
+                if clock not in before:
+                    clock.thread.join(2);self.assertFalse(clock.thread.is_alive());original._ARRIVAL_CLOCK_CUSTODY.remove(clock)
+
+    def test_nonstaged_real_monitor_latch_precedes_backend_cleanup_error(self):
+        begin=threading.Event();latched=threading.Event();stop=threading.Event();cleanup=[]
+        class Window:
+            def _sample(self):
+                begin.wait(2);latched.set();raise OSError('CONTROL first resource failure')
+            def sample(self):return self._sample()
+        monitor=driver.Monitor(Window(),stop);monitor.thread.start()
+        def perform(*_):begin.set();self.assertTrue(latched.wait(2));self.assertTrue(stop.wait(2))
+        def finish():cleanup.append(1);raise RuntimeError('CONTROL later backend cleanup')
+        backend=SimpleNamespace(perform=perform,stop=finish)
+        try:
+            result=original.run(independent_tests.plan(count=1,accounts=1),backend,lambda _:None,monitor.check,stop)
+            self.assertEqual(result['firstCause'],'CONTROL first resource failure')
+            self.assertEqual(result['backendStopError']['reason'],'CONTROL later backend cleanup')
+            self.assertEqual(cleanup,[1]);self.assertEqual(result['notQualified'],1)
+        finally:
+            begin.set();monitor.finished.set();monitor.thread.join(2)
+            if backend in original._BACKEND_STOP_CUSTODY:original._BACKEND_STOP_CUSTODY.remove(backend) # CONTROL owns no child.
+        self.assertFalse(monitor.thread.is_alive())
+
     def test_real_monitor_latch_precedes_backend_cleanup_error(self):
         reached=threading.Event()
         class Window:

@@ -143,6 +143,7 @@ class HeldSignerSourceControls(unittest.TestCase):
         loader=SimpleNamespace(exec_module=lambda module:None)
         with ExitStack() as stack:
             stack.enter_context(mock.patch.object(reader,'HELD_SIGNER_COMPOSITION',profile))
+            stack.enter_context(mock.patch.object(reader,'PATCHED_SIGNER_STREAM_COMPOSITION',profile))
             if fixture_held_composer:
                 held_profile=dict(reader.HELD_SESSION_COMPOSITION,
                                   compositionScriptSHA256=profile['compositionScriptSHA256'])
@@ -203,6 +204,29 @@ class HeldSignerSourceControls(unittest.TestCase):
                     with self.assertRaises(RuntimeError):self.compose(f,held_source_only=mode!='normal')
                     f[4].prepare_wire_live_source.assert_not_called()
                     self.assertFalse(f[1].exists())
+
+    def test_patched_stream_composition_uses_only_its_exact_fork_and_supplier(self):
+        native=reader.native_source_dependencies
+        for mode in ('exact','commit','tree','fork','supplier'):
+            with self.subTest(mode=mode):
+                f=list(self.fixture());profile=f[2];identity=f[3]
+                script_sha=profile['compositionScriptSHA256'];profile.clear();profile.update(reader.PATCHED_SIGNER_STREAM_COMPOSITION)
+                profile['compositionScriptSHA256']=script_sha
+                identity.update(commit=native.PATCHED_SIGNER_STREAM_SOURCE,tree=native.PATCHED_SIGNER_STREAM_TREE,forkTree=profile['forkTree'])
+                if mode in ('commit','tree','fork'):identity[{'commit':'commit','tree':'tree','fork':'forkTree'}[mode]]='0'*40
+                if mode=='supplier':
+                    original=f[5]
+                    def wrong(command,**kwargs):
+                        if command[-1]==profile['optionalForkCommit']+':third_party/cometbft':return b'0'*40
+                        return original(command,**kwargs)
+                    f[5]=wrong
+                if mode=='exact':
+                    result=self.compose(f);self.assertTrue(result['sourceCompositionOnly'])
+                    self.assertFalse(result['runtimeAuthorized'] or result['sourceCIQualified'] or result['pressureAuthorized'])
+                    self.assertEqual(result['optionalForkTree'],profile['optionalForkTree'])
+                else:
+                    with self.assertRaises(RuntimeError):self.compose(f)
+                    f[4].prepare_wire_live_source.assert_not_called();self.assertFalse(f[1].exists())
 
     def test_commit_tree_fork_and_composer_changes_refuse_before_export(self):
         for field in ('commit','tree','forkTree','compositionScriptSHA256'):

@@ -28,6 +28,9 @@ HELD_BUSINESS_TREE="8bb878e0cd0fdb9cd9bb84a41f3b680d0defb932"
 # not qualify its CI, enable an observer or authorize a business window.
 BEFORE59_OBSERVER_SOURCE='de54c52b669ad56ebc702a484e2eaca51d0efc2e'
 BEFORE59_OBSERVER_TREE='d22b51801073930a4715dcea20b0320259d27fb4'
+# Exact before-stream source materialization only; no CI or runtime grant.
+BEFORE59_STREAM_SOURCE='bbe860e8744a479e1838db9b7ae26b8d9a8bb34e'
+BEFORE59_STREAM_TREE='7f70fd791e1706ad151b2e3d6e68a16c586650aa'
 _held_spec=importlib.util.spec_from_file_location('held_first100_source_pin',Path(__file__).with_name('pq-held-first100-source.py'))
 _held=importlib.util.module_from_spec(_held_spec)
 _held_spec.loader.exec_module(_held)
@@ -37,6 +40,7 @@ HELD_SOURCE_TREES={HELD_SOURCE:HELD_TREE, HELD_CI_SOURCE:HELD_CI_TREE,
                    HELD_REGRESSION_SOURCE:HELD_REGRESSION_TREE,
                    HELD_BUSINESS_SOURCE:HELD_BUSINESS_TREE,
                    BEFORE59_OBSERVER_SOURCE:BEFORE59_OBSERVER_TREE,
+                   BEFORE59_STREAM_SOURCE:BEFORE59_STREAM_TREE,
                    _held.PREVIOUS_SOURCE:_held.PREVIOUS_TREE,
                    _held.STREAM_SOURCE:_held.STREAM_TREE,
                    _held.PREPARED_SOURCE:_held.PREPARED_TREE,
@@ -46,7 +50,11 @@ HELD_SOURCE_TREES={HELD_SOURCE:HELD_TREE, HELD_CI_SOURCE:HELD_CI_TREE,
 # deliberately separate from historical held runtime/source-CI qualifications.
 SIGNER_SOURCE_ONLY='027c23d8a4b2af4dbd9e0ff126bacddc02ad663f'
 SIGNER_SOURCE_ONLY_TREE='d11c0d073e88649093008c042e2d4e86204accc9'
+# Exact patched producer is admitted only for original source materialization.
+PATCHED_SIGNER_STREAM_SOURCE='edf5b12deb65f94e6e731708f336ca1af23bcfe1'
+PATCHED_SIGNER_STREAM_TREE='a2348dc67ee627fcfc3021c513315acd7b9abc7b'
 SIGNER_SOURCE_ONLY_TREES={SIGNER_SOURCE_ONLY:SIGNER_SOURCE_ONLY_TREE,
+                          PATCHED_SIGNER_STREAM_SOURCE:PATCHED_SIGNER_STREAM_TREE,
                           '9ecbaec72a92a3203e67d8cfe04520b8be4a79f1':'b1b54139eb2111ed063d7cecb87415f3fcd34a94'}
 SOURCE_TREES={SOURCE:TREE, **HELD_SOURCE_TREES,
               **SIGNER_SOURCE_ONLY_TREES}

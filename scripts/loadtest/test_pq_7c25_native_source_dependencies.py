@@ -79,6 +79,36 @@ class OriginalDependencies(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'exact clean'):
                 d.source_identity(self.source)
 
+    def test_before_stream_source_materialization_requires_its_own_exact_tree(self):
+        commit='bbe860e8744a479e1838db9b7ae26b8d9a8bb34e';tree='7f70fd791e1706ad151b2e3d6e68a16c586650aa'
+        def original_git(source,*args):
+            if args==('rev-parse','HEAD'):return commit.encode()
+            if args==('rev-parse','HEAD^{tree}'):return tree.encode()
+            if args[:3]==('ls-tree','-z',commit):args=('ls-tree','-z',d.SOURCE,*args[3:])
+            return self.git(source,*args)
+        with mock.patch.object(d,'git',side_effect=original_git):
+            record=d.materialize(self.source,self.build,self.receipt)['sourceDependencies']
+        self.assertEqual((record['source'],record['sourceTree']),(commit,tree))
+        self.assertFalse(record['authorityGranted'] or record['nodeStarted'])
+        for args in (('rev-parse','HEAD'),('rev-parse','HEAD^{tree}')):
+            def wrong(source,*actual):return b'0'*40 if actual==args else original_git(source,*actual)
+            with self.subTest(mutation=args),mock.patch.object(d,'git',side_effect=wrong),self.assertRaisesRegex(RuntimeError,'exact clean'):
+                d.source_identity(self.source)
+
+    def test_patched_stream_native_source_requires_exact_tree(self):
+        commit='edf5b12deb65f94e6e731708f336ca1af23bcfe1';tree='a2348dc67ee627fcfc3021c513315acd7b9abc7b'
+        def original_git(source,*args):
+            if args==('rev-parse','HEAD'):return commit.encode()
+            if args==('rev-parse','HEAD^{tree}'):return tree.encode()
+            if args[:3]==('ls-tree','-z',commit):args=('ls-tree','-z',d.SOURCE,*args[3:])
+            return self.git(source,*args)
+        with mock.patch.object(d,'git',side_effect=original_git):record=d.materialize(self.source,self.build,self.receipt)['sourceDependencies']
+        self.assertEqual((record['source'],record['sourceTree']),(commit,tree));self.assertFalse(record['authorityGranted'] or record['nodeStarted'])
+        for args in (('rev-parse','HEAD'),('rev-parse','HEAD^{tree}')):
+            def wrong(source,*actual):return b'0'*40 if actual==args else original_git(source,*actual)
+            with self.subTest(mutation=args),mock.patch.object(d,'git',side_effect=wrong),self.assertRaisesRegex(RuntimeError,'exact clean'):
+                d.source_identity(self.source)
+
     def test_signer_source_only_uses_all_original_native_bytes_and_exact_tree(self):
         def signer_git(source,*args):
             if args==('rev-parse','HEAD'):return d.SIGNER_SOURCE_ONLY.encode()

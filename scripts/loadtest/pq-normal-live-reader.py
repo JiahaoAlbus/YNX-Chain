@@ -30,6 +30,12 @@ HELD_SIGNER_COMPOSITION = dict(
     optionalForkTree='08747364c24c065bf2b13527c210625d7ec95fba',
     compositionScriptSHA256='6127446317b29b361aee1f741fb38493e5f0214e67db3a62bb37359390bf192c',
     ciEvidenceSHA256=None)
+PATCHED_SIGNER_STREAM_COMPOSITION = dict(
+    forkTree='aadf0831c6b65559065ca82228bab30811d36c67',
+    optionalForkCommit='28a769cc934ea5bffe971214cabe7285b30d80d2',
+    optionalForkTree='d1614fd27dedde42da4142648ae7201aeb988036',
+    compositionScriptSHA256='08e1e98799d0f2a3de26ca3040b9653b160f3c325411ea17d489ba03a07d7c12',
+    ciEvidenceSHA256=None)
 HELD_SESSION_COMPOSITION = dict(
     optionalForkCommit='5a49f5c91452604dffb910df736702b3b9df2562',
     optionalForkTree='08747364c24c065bf2b13527c210625d7ec95fba',
@@ -105,9 +111,11 @@ def prepare_matching_source(source, destination, *, held_source_only=False):
     signer = signer_tree is not None
     if held_source_only:
         if signer:
-            require(identity['tree'] == signer_tree and identity['forkTree'] == HELD_SIGNER_COMPOSITION['forkTree'],
+            original=(PATCHED_SIGNER_STREAM_COMPOSITION if identity['commit']==native_source_dependencies.PATCHED_SIGNER_STREAM_SOURCE
+                      else HELD_SIGNER_COMPOSITION)
+            require(identity['tree'] == signer_tree and identity['forkTree'] == original['forkTree'],
                     'exact held signer source identity required')
-            q = dict(HELD_SIGNER_COMPOSITION)
+            q = dict(original)
             q.update(commit=identity['commit'], tree=signer_tree)
         else:
             require(held and identity['tree'] == held_tree
