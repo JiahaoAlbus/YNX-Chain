@@ -14,7 +14,7 @@ enum PayStatusMessage {
         case "NATIVE_PAY_MAIN_CURRENT_UNAVAILABLE", "NATIVE_PAY_PRODUCT_CURRENT_RESULT":
             return "Wallet session changed. Reconnect and read the original invoice again."
         default:
-            if outcomeUnknown { return "Payment or refund is awaiting verification. Check the original invoice before requesting another review." }
+            if outcomeUnknown { return "The original operation's status is unknown. Check the original invoice before requesting another review." }
             return code
         }
     }
