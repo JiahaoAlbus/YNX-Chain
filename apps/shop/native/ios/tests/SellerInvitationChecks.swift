@@ -1,12 +1,13 @@
 import Foundation
 @MainActor final class InvitationAuthority:AppleNativeAuthority {
     var current:ShopSession?
+    var proofFails=false
     let account="ynx1"+String(repeating:"q",count:38)
     func restore()async throws{}
     func connect()async throws{current=ShopSession(account:account,token:String(repeating:"t",count:32),expiresAt:ISO8601DateFormatter().string(from:Date().addingTimeInterval(3600)),nativeGeneration:1)}
     func disconnect()throws{current=nil}
     func handleReturn(_ url:URL)async throws{throw ShopError.unavailable}
-    func proof(method:String,path:String,body:String,expected:ShopSession)async throws->[String:Any]{guard current==expected else{throw ShopError.contextChanged};_ = try AppleNativeBusinessPolicy.scopes(method,path,profile:.seller);return ["body":body,"identityHeader":String(repeating:"i",count:43),"actionHeader":String(repeating:"a",count:43)]}
+    func proof(method:String,path:String,body:String,expected:ShopSession)async throws->[String:Any]{guard !proofFails,current==expected else{throw ShopError.contextChanged};_ = try AppleNativeBusinessPolicy.scopes(method,path,profile:.seller);return ["body":body,"identityHeader":String(repeating:"i",count:43),"actionHeader":String(repeating:"a",count:43)]}
 }
 final class InvitationHTTP:URLProtocol,@unchecked Sendable {
     @MainActor static var handler:((InvitationHTTP)->Void)?
@@ -49,8 +50,16 @@ final class InvitationHTTP:URLProtocol,@unchecked Sendable {
   model.loadInvitationInbox();try await until{!model.busy};try check(model.receivedInvitations.count==1 && writes==0,"actual account invitation read works before any Store membership")
   let invitation=model.receivedInvitations[0]
   model.perform(.invitationDecision(invitation,accept:false,reason:"Not an owner"));try check(writes==0,"invited target cannot cancel as owner")
-  model.perform(.invitationDecision(invitation,accept:true,reason:""));try await until{pending.count==1}
+  auth.proofFails=true;model.perform(.invitationDecision(invitation,accept:true,reason:""));try await until{!model.busy}
+  let prepared=try journal.records(auth.account).values.first!
+  try check(prepared.phase=="prepared" && writes==0,"proof refusal retains the original invitation decision unsent")
+  auth.proofFails=false;row["Role"]="viewer";inbox=[row];model.loadInvitationInbox();try await until{!model.busy}
+  model.retryPreparedOriginals();try await until{!model.busy}
+  try check(writes==0 && (try journal.records(auth.account)[prepared.key])==prepared,"changed invitation role blocks the retained original")
+  row["Role"]="support";inbox=[row];model.loadInvitationInbox();try await until{!model.busy}
+  model.retryPreparedOriginals();try await until{pending.count==1}
   let request=pending.removeFirst(),body=try request.body(),original=try journal.records(auth.account).values.first!
+  try check(try CanonicalJSON.data(body)==prepared.body,"restored invitation sends the original request and key")
   try check(request.request.url!.path=="/api/seller/stores/"+storeID+"/invitations/"+invitation.ID+"/native-accept","explicit decision uses the actual fixed original invitation route")
   try check(body["ExpectedAccount"] as? String==auth.account && body["ExpectedRole"] as? String=="support" && body["ExpectedUpdatedAt"] as? String==time && original.storeID==storeID && original.phase=="unknown","immutable decision freezes reviewed account role Store and version before HTTP")
   request.lost();try await until{!model.busy};try check(model.stores.isEmpty && model.invitationPending(invitation),"lost acknowledgement does not grant local membership")

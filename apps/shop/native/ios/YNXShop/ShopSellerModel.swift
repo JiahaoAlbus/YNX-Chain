@@ -387,9 +387,20 @@ import SwiftUI
         guard can(permission),matches.count==1 else{throw ShopError.contextChanged}
         try journal.assertReviewedOrder(original,order:matches[0])
     }
+    private func assertPreparedInvitationCurrent(_ original:SellerMutationJournal.Record)throws {
+        guard original.kind=="accept-invitation" || original.kind=="cancel-invitation" else{return}
+        let input=try journal.input(original),accept=original.kind=="accept-invitation"
+        let suffix=accept ? "/native-accept":"/native-cancel"
+        guard original.path=="/seller/stores/\(original.storeID)/invitations/\(original.target)\(suffix)",
+              let updated=input["ExpectedUpdatedAt"] as? String,let role=input["ExpectedRole"] as? String,
+              let account=input["ExpectedAccount"] as? String else{throw ShopError.security}
+        let matches=(accept ? receivedInvitations:invitations).filter{$0.ID==original.target && $0.StoreID==original.storeID}
+        guard matches.count==1,matches[0].Status=="pending",matches[0].UpdatedAt==updated,matches[0].Role==role,matches[0].Account==account,
+              accept ? account==api.currentSession?.account:canManageMembers else{throw ShopError.contextChanged}
+    }
     private func sendPrepared(_ original:SellerMutationJournal.Record,view:Int,check:@escaping ()throws->Void)async throws {
         guard original.phase=="prepared" else{throw ShopError.unresolvedMutation}
-        let response=try await api.raw(String(original.path.dropFirst()),json:journal.input(original),beforeDispatch:{try check();guard self.selection==view,(original.kind=="create-store" || original.kind=="accept-invitation" || self.selectedStoreID==original.storeID) else{throw ShopError.contextChanged};try self.assertPreparedCatalogCurrent(original);try self.assertPreparedStoreCurrent(original);try self.assertPreparedFulfillmentCurrent(original);try self.journal.dispatch(original)})
+        let response=try await api.raw(String(original.path.dropFirst()),json:journal.input(original),beforeDispatch:{try check();guard self.selection==view,(original.kind=="create-store" || original.kind=="accept-invitation" || self.selectedStoreID==original.storeID) else{throw ShopError.contextChanged};try self.assertPreparedCatalogCurrent(original);try self.assertPreparedStoreCurrent(original);try self.assertPreparedFulfillmentCurrent(original);try self.assertPreparedInvitationCurrent(original);try self.journal.dispatch(original)})
         try check();try validate(response,original:original,recovery:false);try journal.confirm(original,result:response);if original.kind=="accept-invitation"{receivedInvitations.removeAll{$0.ID==original.target}}
     }
     func perform(_ command:SellerCommand){guard signedIn,!busy else{return};do{

@@ -84,7 +84,15 @@ final class SetupHTTP:URLProtocol,@unchecked Sendable {
         try check(model.invitations[0].Status=="pending" && !model.members.contains(where:{$0.Account==target}),"pending invitation grants no role or approved Wallet session")
         let pendingInvitation=model.invitations[0]
         model.perform(.invitationDecision(pendingInvitation,accept:true,reason:""));try check(pending.isEmpty,"store owner cannot accept an invitation addressed to a different account")
-        model.perform(.invitationDecision(pendingInvitation,accept:false,reason:"Not needed anymore"));let cancel=try await take("seller/stores/"+storeID+"/invitations/"+pendingInvitation.ID+"/native-cancel"),cancelBody=try cancel.body()
+        let beforeCancel=writes;authority.proofFails=true;model.perform(.invitationDecision(pendingInvitation,accept:false,reason:"Not needed anymore"));try await until{!model.busy}
+        let preparedCancel=try journal.records(authority.account).values.first(where:{$0.kind=="cancel-invitation" && $0.phase=="prepared"})!
+        authority.proofFails=false;var changedRow=row;changedRow["Role"]="viewer";invitations=[changedRow];model.refresh();try await until{!model.busy}
+        model.retryPreparedOriginals();try await until{!model.busy}
+        try check(writes==beforeCancel && (try journal.records(authority.account)[preparedCancel.key])==preparedCancel,"changed invitation role blocks original cancellation")
+        invitations=[row];role="viewer";model.refresh();try await until{!model.busy};model.retryPreparedOriginals();try await until{!model.busy}
+        try check(writes==beforeCancel && (try journal.records(authority.account)[preparedCancel.key])==preparedCancel,"lost owner role blocks original cancellation")
+        role="owner";model.refresh();try await until{!model.busy};model.retryPreparedOriginals();let cancel=try await take("seller/stores/"+storeID+"/invitations/"+pendingInvitation.ID+"/native-cancel"),cancelBody=try cancel.body()
+        try check(try CanonicalJSON.data(cancelBody)==preparedCancel.body,"restored cancellation sends the original body and key")
         try check(cancelBody["ExpectedAccount"] as? String==target && cancelBody["ExpectedRole"] as? String=="support" && cancelBody["ExpectedUpdatedAt"] as? String==time,"owner cancellation freezes the actual reviewed invitation")
         var cancelled=row;cancelled["Status"]="cancelled";cancelled["Reason"]="Not needed anymore";cancelled["CancelledAt"]=time;invitations=[cancelled]
         try cancel.respond(["Invitation":cancelled,"OriginalApplied":true,"QueryOnly":false]);try await until{!model.busy}
