@@ -555,12 +555,17 @@ jobs:
           path="$(adb shell pm path com.ynxweb4.shop.debug | tr -d '\r' | sed -n 's/^package://p')"
           if [ -z "$path" ]; then echo 'Installed Shop package path was not returned by the emulator' >&2; exit 1; fi
           printf '%s\n' "$path" > "$RUNNER_TEMP/shop-device-installed-path.log"
-          adb exec-out cat "$path" > "$RUNNER_TEMP/shop-device-installed-exec.apk"
-          adb pull "$path" "$RUNNER_TEMP/shop-device-installed-pull.apk"
-          sha256sum "$RUNNER_TEMP/shop-device-installed-exec.apk" "$RUNNER_TEMP/shop-device-installed-pull.apk" | tee "$RUNNER_TEMP/shop-device-installed.sha256"
-          wc -c "$apk" "$RUNNER_TEMP/shop-device-installed-exec.apk" "$RUNNER_TEMP/shop-device-installed-pull.apk" | tee "$RUNNER_TEMP/shop-device-sizes.log"
-          if ! cmp -s "$apk" "$RUNNER_TEMP/shop-device-installed-exec.apk" || ! cmp -s "$apk" "$RUNNER_TEMP/shop-device-installed-pull.apk"; then
-            echo 'Installed Shop APK differs from the selected candidate' >&2
+          exec_status=0
+          adb exec-out cat "$path" > "$RUNNER_TEMP/shop-device-installed-exec.apk" 2> "$RUNNER_TEMP/shop-device-exec-error.log" || exec_status=$?
+          pull_status=0
+          adb pull "$path" "$RUNNER_TEMP/shop-device-installed-pull.apk" > "$RUNNER_TEMP/shop-device-pull.log" 2>&1 || pull_status=$?
+          printf 'exec_status=%s\npull_status=%s\n' "$exec_status" "$pull_status" | tee "$RUNNER_TEMP/shop-device-readback-status.log"
+          for readback in "$RUNNER_TEMP/shop-device-installed-exec.apk" "$RUNNER_TEMP/shop-device-installed-pull.apk"; do
+            if [ -f "$readback" ]; then sha256sum "$readback" | tee -a "$RUNNER_TEMP/shop-device-installed.sha256"; wc -c "$readback" | tee -a "$RUNNER_TEMP/shop-device-sizes.log"; fi
+          done
+          wc -c "$apk" | tee -a "$RUNNER_TEMP/shop-device-sizes.log"
+          if [ "$exec_status" -ne 0 ] || [ "$pull_status" -ne 0 ] || ! cmp -s "$apk" "$RUNNER_TEMP/shop-device-installed-exec.apk" || ! cmp -s "$apk" "$RUNNER_TEMP/shop-device-installed-pull.apk"; then
+            echo 'Installed Shop APK readback failed or differs from the selected candidate' >&2
             exit 1
           fi
           for attempt in 1 2; do
