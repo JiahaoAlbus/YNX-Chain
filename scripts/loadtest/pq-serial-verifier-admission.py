@@ -97,6 +97,7 @@ class SerialVerifierAdmission:
                     observationOriginMonotonicNs=self.origin,plannedObservationDeadlineMonotonicNs=self.deadline,
                     actualCutoffSource='original loadResult.observationCutoffNs; same origin, may be earlier',
                     actualCutoffStatus='UNKNOWN',actualObservationCutoffMonotonicNs=None,
+                    conservativeObservationCutoffLowerBoundMonotonicNs=None,
                     releaseWorkerClosureObserved=False,originalWorkerRetirementObservedNs=None,
                     snapshotFinal=False,
                     timingMeaning='queue/admission, original helper launch/wait and cleanup are separate parent boundaries; launch-to-cleanup is not verifier compute or window-qualified time',
@@ -106,9 +107,16 @@ class SerialVerifierAdmission:
             cutoff=load_result.get('observationCutoffNs')
             if (load_result.get('originMonotonicNs')==str(self.origin) and type(cutoff) is int
                     and 0<=cutoff<=self.deadline-self.origin):
-                result.update(actualCutoffStatus='ORIGINAL_SCHEDULER_OBSERVED',
-                              actualObservationCutoffMonotonicNs=self.origin+cutoff)
                 pipeline=load_result.get('pipeline')
+                boundary=pipeline.get('completionBoundaryStatus') if type(pipeline) is dict else None
+                if boundary is None:
+                    result.update(actualCutoffStatus='ORIGINAL_SCHEDULER_OBSERVED',
+                                  actualObservationCutoffMonotonicNs=self.origin+cutoff)
+                elif boundary=='UNKNOWN_CROSSED_PLANNED_CUTOFF':
+                    # The scheduler's published value is deliberately only a
+                    # conservative pre-snapshot bound, not an observed cutoff.
+                    result.update(actualCutoffStatus='UNKNOWN_LOWER_BOUND',
+                                  conservativeObservationCutoffLowerBoundMonotonicNs=self.origin+cutoff)
                 if type(pipeline) is dict:
                     retired=pipeline.get('workerRetirementObservedNs')
                     if (self.stop.is_set() and pipeline.get('stageWorkers')==dict(publish=2,observe=2,finalize=4)

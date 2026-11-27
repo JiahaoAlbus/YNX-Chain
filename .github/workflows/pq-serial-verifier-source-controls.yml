@@ -41,7 +41,7 @@ jobs:
           import hashlib, importlib.util, io, json, os, pathlib, platform, sys, unittest
           if sys.platform != 'linux': raise RuntimeError('actual original Linux controls required')
           root=pathlib.Path('scripts/loadtest'); out=pathlib.Path(os.environ['RUNNER_TEMP'])/'ynx-serial-verifier-public'
-          groups=[('staged','test_pq_staged_independent_scheduler.py',23),('serial','test_pq_serial_verifier_admission.py',27)]
+          groups=[('staged','test_pq_staged_independent_scheduler.py',23),('serial','test_pq_serial_verifier_admission.py',28)]
           metadata=dict(version='YNX-SERIAL-VERIFIER-CONTROLS/v1',sourceCommit=os.environ['GITHUB_SHA'],sourceTree=os.environ['YNX_SERIAL_TREE'],forkTree=os.environ['YNX_SERIAL_FORK'],eventName=os.environ['GITHUB_EVENT_NAME'],pullRequestHead=os.environ['YNX_PR_HEAD'],pullRequestBase=os.environ['YNX_PR_BASE'],runId=os.environ['GITHUB_RUN_ID'],attempt=os.environ['GITHUB_RUN_ATTEMPT'],job=os.environ['GITHUB_JOB'],platform=sys.platform,kernel=platform.release(),groups=[],runtimeAuthorized=False,independentFinalityVerified=False)
           for name,file,count in groups:
               spec=importlib.util.spec_from_file_location('original_serial_ci_'+name,root/file)

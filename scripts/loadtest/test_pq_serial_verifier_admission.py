@@ -298,6 +298,36 @@ class SerialVerifierControls(unittest.TestCase):
         self.assertEqual(self.b.stop_event.ynx_verifier_admission_deadline_ns,origin+35_000_000_000)
         with self.assertRaisesRegex(RuntimeError,'finite staged clock'):
             d.run_load_window(plan,self.b,journal,monitor,self.b.stop_event,staged_scheduler=None)
+
+    def test_crossed_terminal_snapshot_remains_lower_bound_in_actual_report(self):
+        controls=module('test_pq_staged_independent_scheduler.py');structural=controls.StructuralBackend()
+        plan=controls.plan(count=1,accounts=1,tail_ns=500_000_000)
+        self.b.configure_serial_verifier();self.b.publish=structural.publish;self.b.observe=structural.observe
+        self.b.finalize=structural.finalize;self.b.stop=structural.stop
+        self.b.drain_cutoff_verifiers=mock.Mock()
+        target=next(i for i,line in enumerate(Path(controls.staged.__file__).read_text().splitlines(),1)
+                    if 'completion_after_ns=time.monotonic_ns()' in line)
+        observed=[]
+        def tracer(frame,event,arg):
+            if event=='line' and frame.f_code is controls.staged.run.__code__ and frame.f_lineno==target:
+                before,deadline=frame.f_locals['completion_before_ns'],frame.f_locals['deadline']
+                if not observed and frame.f_locals['released_at_sample']==frame.f_locals['terminal_at_sample']==1 and before<deadline:
+                    observed.append((before,deadline))
+                    while time.monotonic_ns()<=deadline:time.sleep(.001)
+                    return None
+            return tracer
+        previous=sys.gettrace();sys.settrace(tracer)
+        try:
+            result=d.run_load_window(plan,self.b,SimpleNamespace(emit=lambda _:None),SimpleNamespace(check=lambda:None),
+                                     self.b.stop_event,staged_scheduler=controls.staged,verifier_drain_seconds=30)
+        finally:sys.settrace(previous)
+        self.assertEqual(len(observed),1)
+        self.assertEqual(result['pipeline']['completionBoundaryStatus'],'UNKNOWN_CROSSED_PLANNED_CUTOFF')
+        report=self.b.verifier_admission.report(result)
+        self.assertEqual(report['actualCutoffStatus'],'UNKNOWN_LOWER_BOUND')
+        self.assertIsNone(report['actualObservationCutoffMonotonicNs'])
+        self.assertEqual(report['conservativeObservationCutoffLowerBoundMonotonicNs'],observed[0][0])
+        self.b.drain_cutoff_verifiers.assert_not_called()
     def test_serial_driver_preserves_existing_diagnostic_drain_and_absolute_clock(self):
         self.b.configure_serial_verifier();plan=dict(windowNs=5_000_000_000,tailNs=30_000_000_000)
         staged=SimpleNamespace(run=mock.Mock(return_value={'CONTROL':True}));journal=SimpleNamespace(emit=lambda _:None);monitor=SimpleNamespace(check=lambda:None)
@@ -581,9 +611,9 @@ def portable_suite():
         'test_real_linux_serial_queue_deadline_preserves_existing_diagnostic_drain',
         'test_real_linux_serial_queue_deadline_resource_failure_never_enters_drain'}
     full=unittest.defaultTestLoader.loadTestsFromTestCase(SerialVerifierControls)
-    if full.countTestCases()!=27:raise RuntimeError('all27 serial controls must be declared before portable selection')
+    if full.countTestCases()!=28:raise RuntimeError('all28 serial controls must be declared before portable selection')
     selected=unittest.TestSuite(test for test in full if test._testMethodName not in excluded)
-    if selected.countTestCases()!=23:raise RuntimeError('exact23 portable serial controls required')
+    if selected.countTestCases()!=24:raise RuntimeError('exact24 portable serial controls required')
     return selected
 
 

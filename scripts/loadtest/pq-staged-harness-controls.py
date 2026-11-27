@@ -7,7 +7,7 @@ import sys
 import unittest
 
 GROUPS=[
- ('test_pq_serial_verifier_admission.py',['portable_suite'],23),
+ ('test_pq_serial_verifier_admission.py',['portable_suite'],24),
  ('test_pq_first_trial_source.py',None,8),
  ('test_pq_d24_source_readback.py',None,12),
  ('test_pq_preload_initialization.py',None,8),
