@@ -16,8 +16,8 @@ import stat
 import sys
 import threading
 
-PRODUCER='ed242b2391fdd89a384f1fe1dbabd9fca7f3c14a'
-PRODUCER_TREE='05d55e56443d6407296a4effac88a2440291f458'
+PRODUCER='ec8710b30673414487115f4fad6aa51a778d6284'
+PRODUCER_TREE='7b4020d7957db4ead315620a77511aa2536231ce'
 FORK_TREE='47d7cfeee7cd178cb897eda57a4674677fac7e67'
 STREAM_SHA='21d50d6b8ef5fa49d713af2b0be75bc0fc5f017d63e274127aa9f3a2724cc7f8'
 RECEIPT_SHA='c9d3cb83a6a0aa8f6916bbcc373cd2e162a4e6683d96dc6fd6a10841c0abd543'
@@ -136,8 +136,8 @@ def main():
                 'ignored producer inputs are not admitted')
     lab.require(identity['tree']==PRODUCER_TREE and identity['forkTree']==FORK_TREE,
                 'original producer tree/fork identity differs')
-    lab.require(lab.git(producer,'rev-parse','HEAD:cmd/ynx-comet/synthetic_header_stream.go')=='395c13f47d4c2fdb4f2009badf75711aa1f9a701'
-                and lab.git(producer,'rev-parse','HEAD:cmd/ynx-comet/synthetic_header_stream_test.go')=='e5807da912c2de99515ca60f1bd032ea16dac9ee',
+    lab.require(lab.git(producer,'rev-parse','HEAD:cmd/ynx-comet/synthetic_header_stream.go')=='43020a6b9e376f477336dc6bcb56b57c0f1f1c82'
+                and lab.git(producer,'rev-parse','HEAD:cmd/ynx-comet/synthetic_header_stream_test.go')=='74db626b7e4d896ec632cab8a2f663f7b2ecac21',
                 'original writer/test blobs differ')
     rows,_=lab.guard.proc_inventory()
     lab.admit(lab.guard.memory_available(),shutil.disk_usage(work.parent).free,lab.heavy_processes(rows))

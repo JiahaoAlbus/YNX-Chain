@@ -12,6 +12,8 @@ import os
 from pathlib import Path
 import re
 import stat
+import sys
+import threading
 
 _MAX_STREAM = 16 << 20
 _MAX_RECEIPT = 512 << 10
@@ -85,9 +87,35 @@ def inspect_bytes(stream, receipt, *, stream_sha256, receipt_sha256, selected_he
                 receiptPublicationVerified=False)
 
 
-def _close_after_primary(fd):
+_READBACK_STATE=sys.__dict__.setdefault('_ynx_synthetic_header_readback_state_v1',dict(lock=threading.Lock(),debts=[]))
+_READBACK_CLOSE_CUSTODY=_READBACK_STATE['debts'] # Strongly retain original exceptions; never retry a numeric FD.
+
+
+class _OriginalReadbackCloseUnknown(ValueError):
+    def __init__(self,first_error,close_error):
+        super().__init__('original synthetic header DATA readback cleanup UNKNOWN')
+        self.firstError=first_error
+        self.closeError=close_error
+        self.additionalCloseErrors=[]
+        self.firstErrorType=type(first_error).__name__
+        self.readbackCleanupDebt=True
+        _READBACK_CLOSE_CUSTODY.append(self)
+OriginalReadbackCloseUnknown=_READBACK_STATE.setdefault('errorClass',_OriginalReadbackCloseUnknown)
+
+
+def _close_after_primary(fd,primary):
     try:os.close(fd)
-    except OSError:pass
+    except OSError as close_error:
+        if isinstance(primary,OriginalReadbackCloseUnknown):
+            primary.additionalCloseErrors.append(close_error)
+            return primary
+        return OriginalReadbackCloseUnknown(primary,close_error)
+    return primary
+
+
+def _close_after_success(fd):
+    try:os.close(fd)
+    except OSError as error:raise OriginalReadbackCloseUnknown(error,error) from None
 
 
 def _read_leaf(directory,path,limit):
@@ -106,21 +134,23 @@ def _read_leaf(directory,path,limit):
         _require(path.resolve(strict=True)==path and fields(before)==fields(after)==fields(named)==fields(current)
                  and size==before.st_size)
         result=b''.join(chunks)
-    except BaseException:
-        _close_after_primary(fd)
-        raise
-    os.close(fd)
+    except BaseException as error:
+        preserved=_close_after_primary(fd,error)
+        if preserved is error:raise
+        raise preserved from None
+    _close_after_success(fd)
     return result
 
 
-def _read_private_pair(path,receipt_path):
+def _read_private_pair_owned(path,receipt_path):
+    if _READBACK_CLOSE_CUSTODY:raise _READBACK_CLOSE_CUSTODY[0]
     _require(path.is_absolute() and '..' not in path.parts)
     directory=os.open('/',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
     try:
         for part in path.parts[1:-1]:
             nxt=os.open(part,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=directory)
             old,directory=directory,nxt
-            os.close(old)
+            _close_after_success(old)
         before=os.fstat(directory)
         _require(stat.S_ISDIR(before.st_mode) and stat.S_IMODE(before.st_mode)==0o700 and before.st_uid==os.geteuid())
         stream=_read_leaf(directory,path,_MAX_STREAM)
@@ -128,11 +158,19 @@ def _read_private_pair(path,receipt_path):
         after=os.fstat(directory);named=path.parent.lstat()
         fields=lambda x:(x.st_dev,x.st_ino,x.st_mode,x.st_uid,x.st_gid,x.st_mtime_ns,x.st_ctime_ns)
         _require(path.parent.resolve(strict=True)==path.parent and fields(before)==fields(after)==fields(named))
-    except BaseException:
-        _close_after_primary(directory)
-        raise
-    os.close(directory)
+    except BaseException as error:
+        preserved=_close_after_primary(directory,error)
+        if preserved is error:raise
+        raise preserved from None
+    _close_after_success(directory)
     return stream,receipt
+
+
+def _read_private_pair(path,receipt_path):
+    if not _READBACK_STATE['lock'].acquire(blocking=False):
+        raise ValueError('original synthetic header DATA readback busy; preserve UNKNOWN')
+    try:return _read_private_pair_owned(path,receipt_path)
+    finally:_READBACK_STATE['lock'].release()
 
 
 def inspect_paths(stream_path, receipt_path, *, stream_sha256, receipt_sha256, selected_heights=()):
@@ -141,6 +179,7 @@ def inspect_paths(stream_path, receipt_path, *, stream_sha256, receipt_sha256, s
         stream_path=Path(stream_path); receipt_path=Path(receipt_path)
         _require(stream_path.is_absolute() and receipt_path==stream_path.with_name(stream_path.name+'.receipt.json'))
         stream,receipt=_read_private_pair(stream_path,receipt_path)
+    except OriginalReadbackCloseUnknown:raise
     except (ValueError,OSError):
         raise ValueError('original synthetic header stream DATA unavailable') from None
     return inspect_bytes(stream,receipt,stream_sha256=stream_sha256,receipt_sha256=receipt_sha256,selected_heights=selected_heights)

@@ -4,11 +4,16 @@ import json
 import os
 from pathlib import Path
 import tempfile
+import threading
 import unittest
 from unittest import mock
 
 spec=importlib.util.spec_from_file_location('synthetic_header_data',Path(__file__).with_name('pq-synthetic-header-stream-data.py'))
 m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+
+def module_copy():
+    spec=importlib.util.spec_from_file_location('synthetic_header_data_other',Path(__file__).with_name('pq-synthetic-header-stream-data.py'))
+    result=importlib.util.module_from_spec(spec);spec.loader.exec_module(result);return result
 
 def raw(value): return json.dumps(value,separators=(',',':')).encode()+b'\n'
 def sha(value): return hashlib.sha256(value).hexdigest()
@@ -92,11 +97,12 @@ class HeaderStreamDataControls(unittest.TestCase):
                 try:raise RuntimeError('CONTROL caller already handles another exception')
                 except RuntimeError:
                     with mock.patch.object(m.os,'close',side_effect=fail_once):
-                        with self.assertRaises(ValueError):m.inspect_paths(a,b,stream_sha256=sha(s),receipt_sha256=sha(r))
+                        with self.assertRaises(m.OriginalReadbackCloseUnknown) as raised:m.inspect_paths(a,b,stream_sha256=sha(s),receipt_sha256=sha(r))
                 self.assertEqual(calls.count(reused[0]),1);os.fstat(reused[0])
             finally:
                 if reused:original_close(reused[0])
                 original_close(sentinel)
+                if 'raised' in locals():m._READBACK_CLOSE_CUSTODY.remove(raised.exception) # The CONTROL hook proved the old FD closed.
 
     def test_replaced_parent_between_original_leaves_is_rejected(self):
         s,r=fixture()
@@ -114,5 +120,58 @@ class HeaderStreamDataControls(unittest.TestCase):
             with mock.patch.object(m,'_read_leaf',side_effect=swap):
                 with self.assertRaises(ValueError):m.inspect_paths(a,b,stream_sha256=sha(s),receipt_sha256=sha(r))
             self.assertEqual(len(calls),1)
+
+    def test_first_read_error_or_success_then_close_error_keeps_unknown_debt(self):
+        for fail_read in (True,False):
+            with self.subTest(fail_read=fail_read),tempfile.TemporaryDirectory() as t:
+                s,r=fixture();root=Path(t).resolve();a=root/'stream';b=root/'stream.receipt.json'
+                a.write_bytes(s);b.write_bytes(r);a.chmod(0o600);b.chmod(0o600)
+                original_read=os.read;original_close=os.close;sentinel=os.open('/dev/null',os.O_RDONLY)
+                target=[];reused=[];closes=[]
+                def read(fd,n):
+                    if not target:target.append(fd)
+                    if fail_read:raise ValueError('CONTROL first read failure')
+                    return original_read(fd,n)
+                def close(fd):
+                    if target and fd==target[0]:closes.append(fd)
+                    if target and fd==target[0] and not reused:
+                        original_close(fd);os.dup2(sentinel,fd);reused.append(fd)
+                        raise OSError('CONTROL first close unknown')
+                    return original_close(fd)
+                try:
+                    with mock.patch.object(m.os,'read',side_effect=read),mock.patch.object(m.os,'close',side_effect=close):
+                        with self.assertRaises(m.OriginalReadbackCloseUnknown) as raised:
+                            m.inspect_paths(a,b,stream_sha256=sha(s),receipt_sha256=sha(r))
+                    self.assertTrue(raised.exception.readbackCleanupDebt)
+                    self.assertEqual(raised.exception.firstErrorType,'ValueError' if fail_read else 'OSError')
+                    self.assertIn(raised.exception,m._READBACK_CLOSE_CUSTODY)
+                    if fail_read:self.assertEqual(str(raised.exception.firstError),'CONTROL first read failure')
+                    self.assertEqual(closes.count(reused[0]),1);os.fstat(reused[0])
+                    with mock.patch.object(m.os,'open',side_effect=AssertionError('must not reopen unknown custody')):
+                        with self.assertRaises(m.OriginalReadbackCloseUnknown) as again:
+                            m.inspect_paths(a,b,stream_sha256=sha(s),receipt_sha256=sha(r))
+                    self.assertIs(again.exception,raised.exception)
+                    other=module_copy()
+                    with mock.patch.object(other.os,'open',side_effect=AssertionError('must not reopen across dynamic modules')):
+                        with self.assertRaises(other.OriginalReadbackCloseUnknown) as cross:
+                            other.inspect_paths(a,b,stream_sha256=sha(s),receipt_sha256=sha(r))
+                    self.assertIs(cross.exception,raised.exception)
+                finally:
+                    if reused:original_close(reused[0])
+                    original_close(sentinel)
+                    if 'raised' in locals() and raised.exception in m._READBACK_CLOSE_CUSTODY:
+                        m._READBACK_CLOSE_CUSTODY.remove(raised.exception) # This test's hook proved the old FD closed.
+
+    def test_busy_cross_module_original_readback_does_not_wait_or_open(self):
+        s,r=fixture();ready=threading.Event();release=threading.Event()
+        def hold():
+            with m._READBACK_STATE['lock']:ready.set();release.wait(2)
+        thread=threading.Thread(target=hold);thread.start()
+        try:
+            self.assertTrue(ready.wait(1));other=module_copy()
+            with mock.patch.object(other.os,'open',side_effect=AssertionError('busy readback must not open')):
+                with self.assertRaises(ValueError):other.inspect_paths('/tmp/a','/tmp/a.receipt.json',stream_sha256=sha(s),receipt_sha256=sha(r))
+        finally:release.set();thread.join(2)
+        self.assertFalse(thread.is_alive())
 
 if __name__=='__main__': unittest.main()

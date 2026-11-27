@@ -36,6 +36,7 @@ lab=normal.lab
 proof_readback=module("original_public_proof_readback","pq-public-proof-readback.py")
 commit_readback=module("original_normal_commit_readback","pq-commit-observation.py")
 commit_clock=module("original_normal_commit_clock","pq-commit-clock-readback.py")
+header_data=module("original_synthetic_header_driver_data","pq-synthetic-header-driver-data.py")
 commit_clock_ci=module("original_normal_commit_clock_ci","pq-commit-clock-source-qualification.py")
 initialization=module("original_initialization_measurements","pq-initialization-measurements.py")
 rpc_measurements=module('original_parent_rpc_measurements','pq-rpc-measurements.py')
@@ -70,6 +71,8 @@ COMMIT_OBSERVATION_SOURCE = CALLEE_SOURCE
 # No source or CI qualification is transferred to the experimental validation
 # projection. The owning controller must bind an exact reviewed successor.
 COMMIT_VALIDATION_ABI_SOURCE = None
+# ABI identity only; the independent original clock/source gates remain closed.
+SYNTHETIC_HEADER_ABI_SOURCE = 'ec8710b30673414487115f4fad6aa51a778d6284'
 # A new large-owner normal callee/ABI must be explicitly qualified by CORE.
 STAGED_CALLEE_SOURCE = initialization.LIVE_SOURCE
 STAGED_CALLEE_TREE = initialization.LIVE_TREE
@@ -330,7 +333,7 @@ class SenderSession:
 
 
 class LoadCeremony(normal.Ceremony):
-    def __init__(self,*args,operations,proof_timeout,commit_observation=False,commit_validation_observation=False,commit_clock_observation=False,sender_pool=False,consumer_source=None,startup_timings=False,**kwargs):
+    def __init__(self,*args,operations,proof_timeout,commit_observation=False,commit_validation_observation=False,commit_clock_observation=False,header_stream_data=False,sender_pool=False,consumer_source=None,startup_timings=False,**kwargs):
         lab.require(type(startup_timings) is bool and (not startup_timings or consumer_source in STARTUP_TIMING_ABI_SOURCES),'matching original startup timing ABI required; no source qualification implied')
         lab.require(type(commit_validation_observation) is bool and (not commit_validation_observation or
             (commit_observation and COMMIT_VALIDATION_ABI_SOURCE is not None and consumer_source==COMMIT_VALIDATION_ABI_SOURCE)),
@@ -338,10 +341,14 @@ class LoadCeremony(normal.Ceremony):
         lab.require(type(commit_clock_observation) is bool and (not commit_clock_observation or
             (commit_observation and commit_clock.COMMIT_CLOCK_SOURCE is not None and consumer_source==commit_clock.COMMIT_CLOCK_SOURCE)),
             'exact synthetic Commit clock ABI/source NOT_SUPPLIED')
+        lab.require(type(header_stream_data) is bool and (not header_stream_data or
+            (commit_clock_observation and consumer_source==SYNTHETIC_HEADER_ABI_SOURCE)),
+            'exact synthetic header DATA ABI/source NOT_SUPPLIED')
         super().__init__(*args,**kwargs);self.operations=operations;self.proof_timeout=proof_timeout;self.live=[]
         self.commit_observation_enabled=commit_observation;self.commit_observation_descriptors=[]
         self.commit_validation_observation_enabled=commit_validation_observation
         self.commit_clock_observation_enabled=commit_clock_observation;self.commit_clock_descriptors=[]
+        self.header_stream_data_enabled=header_stream_data;self.header_stream_descriptors=[]
         self.finalize_observation_enabled=False;self.finalize_observation_descriptors=[]
         self.consumer_source=CALLEE_SOURCE if consumer_source is None else consumer_source
         self.preparation_sender_arguments=("--timings",);self.preparation_sender_measurements=[]
@@ -426,6 +433,15 @@ class LoadCeremony(normal.Ceremony):
                         'fresh original Commit clock output required')
                     resumed['nodes'][node]['args'].extend(('--commit-monotonic-output',str(clock_output)))
                     self.commit_clock_descriptors.append(dict(node=node,path=str(clock_output),processName="pq-node-%d"%node))
+                    if getattr(self,'header_stream_data_enabled',False):
+                        header_output=private/('header-node-%d.jsonl'%node)
+                        header_receipt=header_output.with_name(header_output.name+'.receipt.json')
+                        lab.require('--commit-header-stream-output' not in resumed['nodes'][node]['args']
+                            and not header_output.exists() and not header_output.is_symlink()
+                            and not header_receipt.exists() and not header_receipt.is_symlink(),
+                            'fresh original synthetic header DATA output required')
+                        resumed['nodes'][node]['args'].extend(('--commit-header-stream-output',str(header_output)))
+                        self.header_stream_descriptors.append(dict(node=node,path=str(header_output),processName='pq-node-%d'%node))
                 self.commit_observation_descriptors.append(dict(node=node,path=str(output),processName="pq-node-%d"%node))
                 if self.finalize_observation_enabled:
                     finalize_output = private / ("finalize-node-%d.json" % node)
@@ -1277,6 +1293,11 @@ def validate_options(args):
          (profile==HELD_TRIAL_PROFILE and getattr(args,'commit_observation',False) is True and
           commit_clock.COMMIT_CLOCK_SOURCE is not None and args.commit==commit_clock.COMMIT_CLOCK_SOURCE)),
         'exact synthetic held Commit clock source/CI NOT_SUPPLIED')
+    header=getattr(args,'header_stream_data',False)
+    lab.require(type(header) is bool and (not header or
+        (getattr(args,'commit_clock_observation',False) is True and args.commit==SYNTHETIC_HEADER_ABI_SOURCE
+         and commit_clock.COMMIT_CLOCK_SOURCE==SYNTHETIC_HEADER_ABI_SOURCE)),
+        'exact synthetic header DATA and original clock source/CI NOT_SUPPLIED')
     lab.require(type(getattr(args,'commit_validation_observation',False)) is bool and
         (not getattr(args,'commit_validation_observation',False) or
          (profile==HELD_TRIAL_PROFILE and getattr(args,'commit_observation',False) is True and
@@ -1436,6 +1457,7 @@ def load_conditions(args):
                       normalConfirmationDisabled=True, throughputQualification=False)
     if getattr(args,'commit_validation_observation',False): result['commit_validation_observation']=True
     if getattr(args,'commit_clock_observation',False): result['commit_clock_observation']=True
+    if getattr(args,'header_stream_data',False): result['header_stream_data']=True
     if getattr(args,'guarded_owner_shutdown',False): result['guarded_owner_shutdown']=True
     if getattr(args,'serial_verifier',False):result['serialVerifierAdmission']=dict(maxConcurrent=1,originalObservationDeadline=True)
     return result
@@ -1542,6 +1564,19 @@ def retain_original_process_rss(result,window):
             observations=None,omittedObservations=None,records=[],errorType=type(error).__name__,failure=failure)
         if result['firstCause'] is None:
             result['firstCause']=failure['publicSignalMessage'] or 'original process RSS observation export failed'
+
+
+def finish_synthetic_header_data(result,window,ceremony):
+    try:
+        result['syntheticHeaderStreamData']=header_data.retain_after_stop(window,ceremony.header_stream_descriptors,result['cleanupComplete'])
+        if result['syntheticHeaderStreamData'].get('readbackCleanupDebt') is True:
+            result['cleanupComplete']=False
+        if result['syntheticHeaderStreamData']['status']!='OBSERVED_DATA':
+            result['firstCause']=result['firstCause'] or 'original synthetic header DATA incomplete; preserve UNKNOWN'
+    except BaseException as error:
+        result['syntheticHeaderStreamData']=dict(status='NOT_SUPPLIED',errorType=type(error).__name__,
+            runtimeAuthorized=False,independentFinality=False,readbackRSSMeasured=False)
+        result['firstCause']=result['firstCause'] or 'original synthetic header DATA readback failed; preserve UNKNOWN'
 
 
 def finish_commit_clock_readback(result,window,work,private_network,source,demand):
@@ -1777,7 +1812,7 @@ def run(args, *, source_metadata_reader=None, clock_original_log_reader=None, cl
         stages.run("create_original","all-configured-owners",create_original)
         created=json.loads((work/"public/create-original.log").read_bytes())
         staged=getattr(args,'staged_publication',False)
-        ceremony=initialization.instrumented_ceremony_class(LoadCeremony)(w,root,created,bins,args.wire_observation,initialization_stages=stages,expected_owners=args.accounts+4,operations=demand,proof_timeout=args.proof_timeout,commit_observation=getattr(args,"commit_observation",False),commit_validation_observation=getattr(args,'commit_validation_observation',False),commit_clock_observation=getattr(args,'commit_clock_observation',False),sender_pool=staged,consumer_source=args.commit,startup_timings=getattr(args,'startup_timings',False))
+        ceremony=initialization.instrumented_ceremony_class(LoadCeremony)(w,root,created,bins,args.wire_observation,initialization_stages=stages,expected_owners=args.accounts+4,operations=demand,proof_timeout=args.proof_timeout,commit_observation=getattr(args,"commit_observation",False),commit_validation_observation=getattr(args,'commit_validation_observation',False),commit_clock_observation=getattr(args,'commit_clock_observation',False),header_stream_data=getattr(args,'header_stream_data',False),sender_pool=staged,consumer_source=args.commit,startup_timings=getattr(args,'startup_timings',False))
         ceremony.sender_arguments=STAGED_SENDER_ARGUMENTS if staged else ()
         # This assignment is reached only after the matching source CI AND
         # per-height semantic evidence have passed the selected source gate.
@@ -1928,6 +1963,8 @@ def run(args, *, source_metadata_reader=None, clock_original_log_reader=None, cl
             except BaseException as error:
                 result["commitObservationReadbackError"]=dict(errorType=type(error).__name__,reason=str(error),missingStagesAreUnknown=True)
                 result["firstCause"]=result["firstCause"] or "original normal Commit readback failed"
+        if ceremony is not None and getattr(ceremony,'header_stream_data_enabled',False):
+            finish_synthetic_header_data(result,w,ceremony)
         if ceremony is not None and getattr(ceremony,'commit_clock_observation_enabled',False):
             try:
                 result['commitMonotonicObservation']=commit_clock.retain_after_stop(w,ceremony.commit_clock_descriptors,args.commit)
@@ -2008,6 +2045,7 @@ if __name__=="__main__":
     p.add_argument("--commit-observation",action="store_true",help="explicit final qualified normal Commit consumer only; no signer fsync/finality or whole replay claim")
     p.add_argument("--commit-validation-observation",action="store_true",help="explicit separately qualified synthetic held Commit validation phases; default unavailable")
     p.add_argument("--commit-clock-observation",action="store_true",help="explicit separately qualified synthetic held local Commit-return upper bounds; default unavailable")
+    p.add_argument('--header-stream-data',action='store_true',help='explicit stopped synthetic header DATA only; original clock/source gates remain required')
     p.add_argument('--guarded-owner-shutdown',action='store_true',help='explicit separately qualified original owner shutdown; default unavailable')
     p.add_argument("--commit-clock-ci-original-log",help="absolute retained same-job original CI log; supplies bytes only, never source or runtime authority")
     p.add_argument("--header-hop-capture",action="store_true",help="explicit owned controlled-netns exact-tuple IPv4 header-only capture; no physical-wire claim or permission escalation")

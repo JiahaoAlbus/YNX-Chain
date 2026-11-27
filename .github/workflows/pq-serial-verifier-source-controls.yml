@@ -41,7 +41,7 @@ jobs:
           import hashlib, importlib.util, io, json, os, pathlib, platform, sys, unittest
           if sys.platform != 'linux': raise RuntimeError('actual original Linux controls required')
           root=pathlib.Path('scripts/loadtest'); out=pathlib.Path(os.environ['RUNNER_TEMP'])/'ynx-serial-verifier-public'
-          groups=[('staged','test_pq_staged_independent_scheduler.py',23),('serial','test_pq_serial_verifier_admission.py',28),('header-data','test_pq_synthetic_header_stream_data.py',9),('go-evidence-parser','test_pq_synthetic_header_cross_source_ci.py',7)]
+          groups=[('staged','test_pq_staged_independent_scheduler.py',23),('serial','test_pq_serial_verifier_admission.py',28),('header-data','test_pq_synthetic_header_stream_data.py',11),('header-driver-data','test_pq_synthetic_header_driver_data.py',8),('commit-validation','test_pq_commit_validation_readback.py',13),('initialization','test_pq_initialization_measurements.py',37),('go-evidence-parser','test_pq_synthetic_header_cross_source_ci.py',7)]
           metadata=dict(version='YNX-SERIAL-VERIFIER-CONTROLS/v1',sourceCommit=os.environ['GITHUB_SHA'],sourceTree=os.environ['YNX_SERIAL_TREE'],forkTree=os.environ['YNX_SERIAL_FORK'],eventName=os.environ['GITHUB_EVENT_NAME'],pullRequestHead=os.environ['YNX_PR_HEAD'],pullRequestBase=os.environ['YNX_PR_BASE'],runId=os.environ['GITHUB_RUN_ID'],attempt=os.environ['GITHUB_RUN_ATTEMPT'],job=os.environ['GITHUB_JOB'],platform=sys.platform,kernel=platform.release(),groups=[],runtimeAuthorized=False,independentFinalityVerified=False)
           for name,file,count in groups:
               spec=importlib.util.spec_from_file_location('original_serial_ci_'+name,root/file)
@@ -70,6 +70,9 @@ jobs:
             ${{ runner.temp }}/ynx-serial-verifier-public/staged.log
             ${{ runner.temp }}/ynx-serial-verifier-public/serial.log
             ${{ runner.temp }}/ynx-serial-verifier-public/header-data.log
+            ${{ runner.temp }}/ynx-serial-verifier-public/header-driver-data.log
+            ${{ runner.temp }}/ynx-serial-verifier-public/commit-validation.log
+            ${{ runner.temp }}/ynx-serial-verifier-public/initialization.log
             ${{ runner.temp }}/ynx-serial-verifier-public/go-evidence-parser.log
             ${{ runner.temp }}/ynx-serial-verifier-public/metadata.json
           if-no-files-found: error
@@ -89,7 +92,7 @@ jobs:
       - name: Checkout exact original synthetic writer
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: ed242b2391fdd89a384f1fe1dbabd9fca7f3c14a
+          ref: ec8710b30673414487115f4fad6aa51a778d6284
           path: producer
           persist-credentials: false
       - name: Set up original Go version

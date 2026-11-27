@@ -119,7 +119,7 @@ class OriginalDriverInitializationControls(unittest.TestCase):
                 window.assert_not_called();ports.assert_not_called()
             files=list(parent.glob('pq-independent-load-*/public/fresh-resource-admission.json'));self.assertEqual(len(files),1);record=json.loads(files[0].read_bytes());self.assertEqual(record['freeDiskBytes'],15<<30);self.assertEqual(record['availableMemoryBytes'],7<<30);self.assertEqual(record['caps']['initialDiskBytes'],16<<30);self.assertEqual(record['ownedPIDLimit'],16)
 
-    def mocked_initialization(self,census_error=None,cleanup=True,receipt_error=None,clock_readback=False,rss_error=None,clock_error=True,rss_records=0,export_measurements=None):
+    def mocked_initialization(self,census_error=None,cleanup=True,receipt_error=None,clock_readback=False,rss_error=None,clock_error=True,rss_records=0,export_measurements=None,header_readback=False):
         from types import SimpleNamespace
         import contextlib,io
         d=self.driver
@@ -129,6 +129,7 @@ class OriginalDriverInitializationControls(unittest.TestCase):
             parent=Path(tmp).resolve();source=parent/'source';source.mkdir();args=self.args();args.source=str(source)
             work_holder={};c=SimpleNamespace(commit_observation_enabled=False,measurements=SimpleNamespace(report=lambda:{}),wire_readback=lambda:{},prepare_network=lambda:{'original':'activation'},pending_owners=set(range(4)),live=[],pin='a'*64,workload_pin='b'*64,root=None)
             c.commit_clock_observation_enabled=clock_readback;c.commit_clock_descriptors=[]
+            c.header_stream_data_enabled=header_readback;c.header_stream_descriptors=[]
             owners=[dict(index=i,owner='owner%d'%i,initialNonce='1',initialBalance='1',memberCapacity='1') for i in range(504)]
             c.workload=dict(owners=owners,batchSize='1',outstandingPerOwner='1',batchWaitNanoseconds='0');c.quiet=lambda:dict(height=21,appHash='ab'*32)
             def window(source,work,additional_storage=()):
@@ -174,6 +175,8 @@ class OriginalDriverInitializationControls(unittest.TestCase):
                 if clock_readback:
                     stack.enter_context(mock.patch.object(d.commit_clock,'retain_after_stop',return_value=dict(fourOriginalSnapshotsUsable=True)))
                     stack.enter_context(mock.patch.object(d,'original_commit_clock_readback',side_effect=OSError('original clock inputs missing') if clock_error else None,return_value=dict(status='OBSERVED_OR_CENSORED')))
+                if header_readback:
+                    stack.enter_context(mock.patch.object(d.header_data,'retain_after_stop',return_value=dict(status='NOT_SUPPLIED',readbackCleanupDebt=True,runtimeAuthorized=False,independentFinality=False)))
                 stack.enter_context(mock.patch.object(d.sys,'platform','linux'));stack.enter_context(mock.patch.dict(d.os.environ,env));stack.enter_context(contextlib.redirect_stdout(io.StringIO()));r=d.run(args)
             result=copy.deepcopy(r)
             work_holder['window'].process_rss_report.assert_called_once()
@@ -196,6 +199,13 @@ class OriginalDriverInitializationControls(unittest.TestCase):
     def test_failed_census_preserves_original_failure_cleans_and_never_qualifies(self):
         r=self.mocked_initialization(RuntimeError('original missing owner499'))
         self.assertEqual(r['firstCause'],'original missing owner499');self.assertTrue(r['cleanupComplete']);self.assertNotIn('initializationOnlyComplete',r);self.assertFalse(r['loadExecuted']);self.assertNotIn('loadResult',r);self.assertEqual(r['preparationOnlyDemandAccounting']['notQualified'],500)
+
+    def test_real_driver_finally_retains_header_close_debt_and_original_cause(self):
+        r=self.mocked_initialization(RuntimeError('original missing owner499'),header_readback=True)
+        self.assertEqual(r['firstCause'],'original missing owner499');self.assertFalse(r['cleanupComplete'])
+        self.assertEqual(r['syntheticHeaderStreamData']['status'],'NOT_SUPPLIED')
+        self.assertTrue(r['syntheticHeaderStreamData']['readbackCleanupDebt'])
+        self.assertFalse(r['syntheticHeaderStreamData']['runtimeAuthorized']);self.assertFalse(r['loadExecuted'])
 
     def test_driver_finally_preserves_cause_and_unknown_process_receipt(self):
         r=self.mocked_initialization(RuntimeError('original missing owner499'),receipt_error=RuntimeError('original lifecycle lock unavailable'))
