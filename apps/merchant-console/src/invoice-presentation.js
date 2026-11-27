@@ -13,7 +13,11 @@ export function merchantRefundRecoveryNotice(result,originalId){
  if(!result||result.id!==originalId)throw Object.assign(new Error('Original refund result changed. Refresh the same merchant record.'),{code:'MERCHANT_REFUND_ORIGINAL_CHANGED'});
  if(result.status==='unknown')return 'The original refund outcome is still unknown. No new refund was submitted.';
  if(result.status==='submitted')return 'The original refund is submitted. Check chain evidence before treating it as refunded.';
- if(result.status==='refunded')return 'The original refund has authoritative evidence. Review the updated record.';
+ if(result.status==='refunded'){
+  const evidence=result.evidence;
+  if(!evidence||evidence.requestId!==originalId||evidence.status!=='refunded'||evidence.finality!=='committed'||evidence.confidence!=='authoritative'||evidence.source!=='authoritative-central-pay-api'||!Number.isSafeInteger(evidence.blockNumber)||evidence.blockNumber<=0||!/^0x[0-9a-f]{64}$/.test(evidence.transactionHash??'')||typeof evidence.receiptId!=='string'||!evidence.receiptId)throw Object.assign(new Error('Original refund evidence is unavailable. Refresh the same merchant record.'),{code:'MERCHANT_REFUND_ORIGINAL_CHANGED'});
+  return 'The original refund has authoritative evidence. Review the updated record.';
+ }
  throw Object.assign(new Error('Original refund status is unavailable. Refresh the same merchant record.'),{code:'MERCHANT_REFUND_ORIGINAL_CHANGED'});
 }
 export function merchantInvoicePresentation(invoice,merchantId){

@@ -19,7 +19,9 @@ test('merchant can check the same unknown refund without submitting another refu
  globalThis.fetch=async(url,options)=>{calls++;assert.ok(url.endsWith('/v1/merchant/refunds/refund-original/refresh'));assert.equal(options.method,'POST');assert.deepEqual(JSON.parse(options.body),{});return new Response(JSON.stringify({id:'refund-original',status:'unknown'}));};
  try{const result=await api.refreshRefund('refund-original');assert.equal(result.id,'refund-original');assert.equal(result.status,'unknown');assert.match(merchantRefundRecoveryNotice(result,'refund-original'),/still unknown/);assert.equal(calls,1);}finally{globalThis.fetch=before;}
  assert.match(merchantRefundRecoveryNotice({id:'refund-original',status:'submitted'},'refund-original'),/Check chain evidence/);
- assert.match(merchantRefundRecoveryNotice({id:'refund-original',status:'refunded'},'refund-original'),/authoritative evidence/);
+ const evidence={requestId:'refund-original',status:'refunded',finality:'committed',confidence:'authoritative',source:'authoritative-central-pay-api',blockNumber:101,transactionHash:'0x'+'a'.repeat(64),receiptId:'receipt-original'};
+ assert.match(merchantRefundRecoveryNotice({id:'refund-original',status:'refunded',evidence},'refund-original'),/authoritative evidence/);
+ for(const bad of [undefined,{...evidence,requestId:'other'},{...evidence,finality:'pending'},{...evidence,blockNumber:0},{...evidence,transactionHash:'invalid'}])assert.throws(()=>merchantRefundRecoveryNotice({id:'refund-original',status:'refunded',evidence:bad},'refund-original'),{code:'MERCHANT_REFUND_ORIGINAL_CHANGED'});
  assert.throws(()=>merchantRefundRecoveryNotice({id:'different',status:'refunded'},'refund-original'),{code:'MERCHANT_REFUND_ORIGINAL_CHANGED'});
  assert.throws(()=>merchantRefundRecoveryNotice({id:'refund-original',status:'other'},'refund-original'),{code:'MERCHANT_REFUND_ORIGINAL_CHANGED'});
 });
