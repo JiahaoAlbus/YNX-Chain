@@ -296,6 +296,7 @@ jobs:
           set -euo pipefail
           python3 -B scripts/ops/test_validate_integration_contract_ci.py
           git diff --exit-code -- go.mod go.sum third_party/cometbft/go.mod third_party/cometbft/go.sum
+          git diff --cached --exit-code -- go.mod go.sum third_party/cometbft/go.mod third_party/cometbft/go.sum
 
   contract-tooling:
     name: Contract tooling dependency and compatibility

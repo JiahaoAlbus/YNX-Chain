@@ -77,6 +77,7 @@ def validate_go_pr_security_job(workflow):
         './cmd/ynx-consensus-keycheck',
         'python3 -B scripts/ops/test_validate_integration_contract_ci.py',
         'git diff --exit-code -- go.mod go.sum third_party/cometbft/go.mod third_party/cometbft/go.sum',
+        'git diff --cached --exit-code -- go.mod go.sum third_party/cometbft/go.mod third_party/cometbft/go.sum',
         "GOMAXPROCS: '2'", "GOGC: '50'", "GOMEMLIMIT: '1536MiB'",
         "CGO_ENABLED: '0'", 'GOPROXY: https://proxy.golang.org',
         'GOSUMDB: sum.golang.org', 'GOTOOLCHAIN: local',
@@ -111,7 +112,8 @@ def validate_go_pr_security_job(workflow):
     if verify != ('        run: |\n'
                   '          set -euo pipefail\n'
                   '          python3 -B scripts/ops/test_validate_integration_contract_ci.py\n'
-                  '          git diff --exit-code -- go.mod go.sum third_party/cometbft/go.mod third_party/cometbft/go.sum'):
+                  '          git diff --exit-code -- go.mod go.sum third_party/cometbft/go.mod third_party/cometbft/go.sum\n'
+                  '          git diff --cached --exit-code -- go.mod go.sum third_party/cometbft/go.mod third_party/cometbft/go.sum'):
         raise AssertionError('PR dependency control must execute in full')
     step = '\n      - name: Check reachable vulnerabilities in the original eight production commands\n'
     if job.count(step) != 1:
@@ -203,7 +205,8 @@ class IntegrationContractCI(unittest.TestCase):
             with self.subTest(header=header), self.assertRaises(AssertionError):
                 validate_go_pr_security_job(malformed)
         for old, new in (("CGO_ENABLED: '0'", "CGO_ENABLED: '1'"),
-                         ('third_party/cometbft/go.sum', 'missing-fork-sum')):
+                         ('third_party/cometbft/go.sum', 'missing-fork-sum'),
+                         ('git diff --cached --exit-code', 'git diff --exit-code')):
             malformed = before + marker + job.replace(old, new, 1) + '\n  contract-tooling:\n' + after
             with self.subTest(old=old), self.assertRaises(AssertionError):
                 validate_go_pr_security_job(malformed)
