@@ -4,11 +4,13 @@ import Foundation
 // authenticated-port fixtures. This does not execute Main approval or funds.
 @MainActor final class BuyerLifecycleAuthority:AppleNativeAuthority {
     var current:ShopSession?
+    var beforeProof:(()throws->Void)?
     func restore()async throws{}
     func connect()async throws{throw ShopError.unavailable}
     func handleReturn(_ url:URL)async throws{throw ShopError.security}
     func disconnect()throws{current=nil}
     func proof(method:String,path:String,body:String,expected:ShopSession)async throws->[String:Any] {
+        try beforeProof?()
         guard current==expected else{throw ShopError.contextChanged}
         return ["body":body,"identityHeader":String(repeating:"i",count:43),"actionHeader":String(repeating:"a",count:43)]
     }
@@ -393,12 +395,33 @@ final class BuyerLifecycleHTTP:URLProtocol,@unchecked Sendable {
         var remoteFence=try f.order();remoteFence.localCancellationBlocked=true;f.model.beginOrderAction(remoteFence,"cancelled",title:"Cancel")
         try check(!f.model.canCancelOrder(remoteFence) && f.model.orderActionPresentation==nil,"normal server cancellation fence protects a device without the original local invoice journal")
         let input=try BuyerOrderActionInput.build(status:"payment_pending",action:"cancelled",rating:0,reason:"",detail:"")
-        let target=try f.queue.prepareUnsent(account:BuyerLifecycleFixture.account,path:"orders/\(f.orderID)/transition",input:input)
+        let reviewed=try f.order()
+        let target=try f.queue.prepareUnsent(account:BuyerLifecycleFixture.account,path:"orders/\(f.orderID)/transition",input:input,reviewedOrder:reviewed)
         let unrelated=try f.queue.prepareUnsent(account:BuyerLifecycleFixture.account,path:"orders/another-original-order/transition",input:input)
         await f.model.loadOrders()
         try check(f.model.orderRecoveryState(try f.order())=="prepared" && f.model.canRetryPreparedOrder(try f.order()),"unsent original action is distinguishable from dispatched UNKNOWN and offers explicit retry")
         f.model.recoverOrder(try f.order());try await until{!f.model.mutationBusy}
         try check(try f.queue.dispatchPhase(target)=="prepared" && !f.calls.contains("POST /api/orders/\(f.orderID)/transition"),"targeted recovery never dispatches an unsent prepared buyer action")
+        let coldQueue=OfflineQueue(read:{f.storage["queue"]},write:{f.storage["queue"]=$0},readPhase:{f.storage["queue-phase"]},writePhase:{f.storage["queue-phase"]=$0})
+        try coldQueue.assertReviewedOrder(target,order:reviewed)
+        let originalVisible=f.visible;f.visible["Status"]="cancelled";await f.model.loadOrders()
+        f.model.retryPreparedOrder(try f.order());try await until{!f.model.mutationBusy}
+        f.model.retryPending();try await until{!f.model.mutationBusy}
+        try check(try coldQueue.dispatchPhase(target)=="prepared" && !f.calls.contains("POST /api/orders/\(f.orderID)/transition"),"changed order is refused by targeted and batch recovery after journal reload")
+        f.visible=originalVisible;await f.model.loadOrders()
+        f.authority.beforeProof={f.model.orders=[]}
+        f.model.retryPreparedOrder(try f.order());try await until{!f.model.mutationBusy}
+        try check(try coldQueue.dispatchPhase(target)=="prepared" && !f.calls.contains("POST /api/orders/\(f.orderID)/transition"),"order removed during proof is refused immediately before targeted send")
+        f.authority.beforeProof=nil;await f.model.loadOrders()
+        f.authority.beforeProof={f.model.orders=[]}
+        f.model.retryPending();try await until{!f.model.mutationBusy}
+        try check(try coldQueue.dispatchPhase(target)=="prepared" && !f.calls.contains("POST /api/orders/\(f.orderID)/transition"),"order removed during proof is refused immediately before batch send")
+        f.authority.beforeProof=nil;await f.model.loadOrders()
+        var legacyData:Data?,legacyPhase:Data?
+        let legacyQueue=OfflineQueue(read:{legacyData},write:{legacyData=$0},readPhase:{legacyPhase},writePhase:{legacyPhase=$0})
+        let legacy=try legacyQueue.prepareUnsent(account:BuyerLifecycleFixture.account,path:target.path,input:input)
+        do{try legacyQueue.assertReviewedOrder(legacy,order:reviewed);throw NSError(domain:"legacy snapshot unexpectedly accepted",code:1)}catch ShopError.contextChanged{}
+        try check(try legacyQueue.dispatchPhase(legacy)=="prepared","legacy prepared request without a reviewed snapshot is preserved without dispatch")
         f.model.retryPreparedOrder(try f.order());try await until{!f.model.mutationBusy}
         let originalBody=try JSONSerialization.jsonObject(with:target.body) as! [String:Any]
         try check(try CanonicalJSON.data(f.lastTransition!)==CanonicalJSON.data(originalBody),"explicit prepared retry preserves exact original body and idempotency key")
