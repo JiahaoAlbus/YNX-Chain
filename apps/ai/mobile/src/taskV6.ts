@@ -8,10 +8,11 @@ export type V6Journal={version:'6';entries:V6Entry[]};
 export type V6Persistence={read(identity:string):Promise<V6Journal|null>;write(identity:string,journal:V6Journal):Promise<void>};
 export type NativeTaskV6={client:Client;journal:V6Persistence;newOperationId:()=>string};
 type Request=Omit<Intent,'operationId'|'abortContext'>;
-const id=(v:string)=>{if(!/^[A-Za-z0-9_-]{1,128}$/.test(v))throw Error('V6_ORIGINAL_IDENTIFIER_REQUIRED');return v};
+const id=(v:string)=>{if(typeof v!=='string'||!/^[A-Za-z0-9_-]{1,128}$/.test(v))throw Error('V6_ORIGINAL_IDENTIFIER_REQUIRED');return v};
+const v6Actions=new Set<string>(['task.create','task.prepare','task.approve','task.cancel','task.dispatch','task.run-start','task.run-resume','task.list','task.read','task.step-result','task.run-read','task.reconcile','task.propose-tool-step','task.complete']);
 export function validateV6Journal(value:unknown):V6Journal{
  const j=value as V6Journal;if(!j||j.version!=='6'||Object.keys(j).sort().join(',')!=='entries,version'||!Array.isArray(j.entries)||j.entries.length>128)throw Error('V6_JOURNAL_INVALID');
- const ids=new Set<string>();for(const e of j.entries){if(!e||e.version!=='6'||typeof e.binding!=='string'||e.binding.length>1024||typeof e.action!=='string'||(e.firstCause!==undefined&&!['SDK_OR_TRANSPORT_UNRESOLVED','CANCELLED','LOCAL_PERSISTENCE_FAILED'].includes(e.firstCause))||!['PENDING','UNKNOWN','COMMITTED','ACCEPTED','OBSERVED','DENIED'].includes(e.state)||!(e.taskId===null||typeof e.taskId==='string')||Object.keys(e).some(k=>!['version','operationId','binding','action','taskId','state','firstCause'].includes(k)))throw Error('V6_JOURNAL_INVALID');id(e.operationId);if(ids.has(e.operationId))throw Error('V6_JOURNAL_INVALID');ids.add(e.operationId)}return j;
+ const ids=new Set<string>();for(const e of j.entries){if(!e||e.version!=='6'||typeof e.binding!=='string'||!e.binding||e.binding.length>1024||typeof e.action!=='string'||!v6Actions.has(e.action)||(e.firstCause!==undefined&&!['SDK_OR_TRANSPORT_UNRESOLVED','CANCELLED','LOCAL_PERSISTENCE_FAILED'].includes(e.firstCause))||!['PENDING','UNKNOWN','COMMITTED','ACCEPTED','OBSERVED','DENIED'].includes(e.state)||!(e.taskId===null||typeof e.taskId==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(e.taskId))||Object.keys(e).some(k=>!['version','operationId','binding','action','taskId','state','firstCause'].includes(k)))throw Error('V6_JOURNAL_INVALID');id(e.operationId);if(ids.has(e.operationId))throw Error('V6_JOURNAL_INVALID');ids.add(e.operationId)}return j;
 }
 export class NativeTaskV6Adapter{
  private originalContexts=new Map<string,{abort:AbortController;context:Readonly<{signal:AbortSignal}>}>();

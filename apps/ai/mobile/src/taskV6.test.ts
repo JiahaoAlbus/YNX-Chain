@@ -73,6 +73,13 @@ test('close aborts in-flight review, drains original client, forbids further exe
 });
 test('malformed or duplicated persisted V6 metadata cannot create a new request',()=>{
  const entry={version:'6',operationId:'original',binding:'PUBLIC',action:'task.cancel',taskId:t.id,state:'UNKNOWN'};assert.throws(()=>validateV6Journal({version:'6',entries:[entry,entry]}),/JOURNAL_INVALID/);assert.throws(()=>validateV6Journal({version:'6',entries:[{...entry,member:'secret'}]}),/JOURNAL_INVALID/);
+ for(const malformed of [{...entry,binding:''},{...entry,action:'task.not-registered'},{...entry,taskId:''}])assert.throws(()=>validateV6Journal({version:'6',entries:[malformed]}),/JOURNAL_INVALID/);
+ for(const operationId of [undefined,null])assert.throws(()=>validateV6Journal({version:'6',entries:[{...entry,operationId}]}),/ORIGINAL_IDENTIFIER_REQUIRED/);
+});
+test('corrupt retained create metadata refuses a replacement before SDK access',async()=>{
+ const f=fixture();f.original.journal.read=async()=>({version:'6',entries:[{version:'6',operationId:'original_create',binding:'',action:'task.create',taskId:null,state:'UNKNOWN'}]});
+ const api=createTaskV6API('PUBLIC',f.original);await assert.rejects(api.create('conversation_original',new AbortController().signal),/V6_JOURNAL_INVALID/);
+ assert.deepEqual(f.calls,[]);assert.deepEqual(f.writes,[]);await api.adapter.close();
 });
 test('V6 snapshots body/task/creation fields before asynchronous journal read',async()=>{
  const f=fixture();let release!:()=>void;const wait=new Promise<void>(r=>release=r);f.original.journal.read=async()=>{await wait;return null};const a=new NativeTaskV6Adapter('PUBLIC',f.original),r=request();const originalBytes=r.bodyOriginal.slice();const p=a.execute(r,new AbortController().signal);r.path='/api/tasks/foreign/cancel';r.taskRevision='999';r.bodyOriginal.fill(0);release();await p;assert.equal(f.intents[0]!.path,'/api/tasks/task_original/cancel');assert.equal(f.intents[0]!.taskRevision,'2');assert.deepEqual(f.intents[0]!.bodyOriginal,originalBytes);
