@@ -30,7 +30,7 @@ def run(plan,backend,emit,check_resources,stop,origin=None,ledger_module=None,ve
     s.require(config.get('stageWorkers')==WORKERS and config.get('queueCapacity')==dict(publish=4,observe=n,finalize=n) and plan['workerLimit']==8,'exact bounded staged pipeline required')
     s.require(verifier_drain_seconds in (0, 30), 'explicit bounded verifier drain required')
     ledger=s.Ledger(plan,emit);events=queue.Queue(maxsize=max(512,n*48));queues={k:queue.Queue(maxsize=config['queueCapacity'][k]) for k in STAGES}
-    lock=threading.Lock();active={k:0 for k in STAGES};done={k:0 for k in STAGES};peak={k:0 for k in STAGES};retained={};samples=[];last_bucket=-1;failure=None;late_evidence=[];late_terminal=set()
+    lock=threading.Lock();active={k:0 for k in STAGES};done={k:0 for k in STAGES};peak={k:0 for k in STAGES};retained={};samples=[];last_bucket=-1;failure=None;late_evidence=[];late_terminal=set();early_completion_ns=None;completion_boundary_unknown=False
     origin=time.monotonic_ns() if origin is None else origin;deadline=origin+plan['windowNs']+plan['tailNs'];clock=s.ArrivalClock(plan,origin,stop)
     if verifier_drain_seconds:
         stop.ynx_verifier_admission_deadline_ns=deadline
@@ -105,16 +105,34 @@ def run(plan,backend,emit,check_resources,stop,origin=None,ledger_module=None,ve
             # waiting on an account's original pending operation.
             reason='publication_admission' if ledger.free and queues['publish'].full() else 'account_queue'
             for index in ledger.waiting:ledger.rows[index]['activeStage']=reason
-            now=time.monotonic_ns()-origin;ledger.sample(now);bucket=now//1_000_000_000
+            # Bracket the single scheduler thread's completion snapshot. If
+            # descheduled across cutoff while observing it, the exact boundary
+            # is unknown; do not invent an early completion or admit a drain.
+            completion_before_ns=time.monotonic_ns()
+            released_at_sample,terminal_at_sample=ledger.next_release,ledger.terminal_count
+            completion_after_ns=time.monotonic_ns()
+            now=completion_after_ns-origin;ledger.sample(now);bucket=now//1_000_000_000
             if bucket!=last_bucket:
                 with lock:busy=dict(active)
                 samples.append(dict(atNs=now,queued={k:q.qsize() for k,q in queues.items()},activeWorkers=busy,logicalReleased=ledger.next_release,pendingAccounts=sum(a['pending'] is not None for a in ledger.accounts.values())));last_bucket=bucket
-            if now>=plan['windowNs'] and ledger.next_release==n and ledger.terminal_count==n:break
+            if now>=plan['windowNs'] and released_at_sample==n and terminal_at_sample==n:
+                # Freeze the actual decision boundary. A later descheduling
+                # must not turn an early terminal completion into the planned
+                # cutoff or open the cutoff-only diagnostic drain.
+                if completion_before_ns < deadline <= completion_after_ns:
+                    completion_boundary_unknown=True
+                    early_completion_ns=completion_before_ns  # Conservative lower bound, not an observed terminal timestamp.
+                else:
+                    early_completion_ns=completion_after_ns
+                break
             stop.wait(.001)
     except BaseException as error:failure=str(error)
     finally:
-        normal_cutoff = failure is None and not stop.is_set() and time.monotonic_ns() >= deadline
-        observation_deadline=min(deadline,time.monotonic_ns())
+        normal_cutoff = (failure is None and not stop.is_set() and
+                         not completion_boundary_unknown and
+                         (early_completion_ns is None or early_completion_ns>=deadline) and
+                         time.monotonic_ns() >= deadline)
+        observation_deadline=min(deadline,early_completion_ns if early_completion_ns is not None else time.monotonic_ns())
         queue_at_cutoff={k:q.qsize() for k,q in queues.items()}
         drain_report=None
         # Preserve the original immediate cancellation boundary even if the
@@ -156,6 +174,9 @@ def run(plan,backend,emit,check_resources,stop,origin=None,ledger_module=None,ve
     result=ledger.report(observation_deadline-origin,failure)
     result.update(originMonotonicNs=str(origin),offeredWindowEndMonotonicNs=str(origin+plan['windowNs']),clockMeaning='same original parent monotonic clock; publication/inclusion/final-proof queues separated')
     result['pipeline']=dict(stageWorkers=dict(WORKERS),queueCapacity=dict(config['queueCapacity']),queuePeak=peak,queueAtCutoff=queue_at_cutoff,queueAtRetirement={k:q.qsize() for k,q in queues.items()},completedByStage=done,completedByStageMeaning='worker calls returned or raised; not successful business counts',workerThreadsRetired=not worker_timeouts,workerRetirementTimeouts=worker_timeouts,workerRetirementObservedNs=retired_ns,retainedUnfinishedHandles=list(retained.values()),lateEvidence=late_evidence,lateEvidenceMeaning='original events observed at/after the actual observation cutoff; retained for same-operation reconciliation, never cutoff qualification or nonce release',queueSamples=samples,queueSamplingAtomic=False,extraNodeOrSignerPIDStartedByScheduler=False,fullDemandUnchanged=n,chainSaturationProven=False)
+    if completion_boundary_unknown:
+        result['pipeline']['completionBoundaryStatus']='UNKNOWN_CROSSED_PLANNED_CUTOFF'
+        result['pipeline']['completionBoundaryMeaning']='observation cutoff is the conservative pre-snapshot bound; actual terminal observation time is unknown'
     if verifier_drain_seconds:
         result['pipeline']['postCutoffVerifierDrain']=drain_report
     return result

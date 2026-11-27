@@ -9,7 +9,9 @@ import copy
 import importlib.util
 import json
 from pathlib import Path
+import sys
 import threading
+import time
 import unittest
 from unittest import mock
 
@@ -155,6 +157,78 @@ class StagedIndependentSchedulerControls(unittest.TestCase):
             patcher = mock.patch(target, side_effect=AssertionError("pure scheduler control attempted external process/network action"))
             patcher.start()
             self.addCleanup(patcher.stop)
+
+    def assert_terminal_decision_survives_delay(self, marker):
+        configured = plan(count=1, accounts=1, tail_ns=500_000_000)
+        backend = StructuralBackend()
+        backend.drain_cutoff_verifiers = mock.Mock(return_value={'diagnosticOnly': True})
+        stop = threading.Event()
+        path = Path(staged.__file__)
+        target = next(i for i, line in enumerate(path.read_text().splitlines(), 1) if marker in line)
+        observed = []
+        def tracer(frame, event, arg):
+            if event == 'line' and frame.f_code is staged.run.__code__ and frame.f_lineno == target:
+                early = frame.f_locals['completion_after_ns'] if marker == 'early_completion_ns=completion_after_ns' else frame.f_locals['early_completion_ns']
+                deadline = frame.f_locals['deadline']
+                if not observed and early is not None and early < deadline:
+                    self.assertEqual(frame.f_locals['released_at_sample'], 1)
+                    self.assertEqual(frame.f_locals['terminal_at_sample'], 1)
+                    observed.append((early, deadline, frame.f_locals['origin']))
+                    while time.monotonic_ns() <= deadline:
+                        time.sleep(.001)
+                return None
+            return tracer
+        previous = sys.gettrace()
+        sys.settrace(tracer)
+        try:
+            result = staged.run(configured, backend, lambda _: None, lambda: None, stop,
+                                verifier_drain_seconds=30)
+        finally:
+            sys.settrace(previous)
+        self.assertEqual(len(observed), 1, 'expected an early terminal decision before the controlled delay')
+        early, deadline, origin = observed[0]
+        self.assertLess(early, deadline)
+        self.assertEqual(result['observationCutoffNs'], early-origin)
+        self.assertEqual(result['terminalCounts']['qualified'], 1)  # Structural CONTROL only.
+        self.assertIsNone(result['pipeline']['postCutoffVerifierDrain'])
+        backend.drain_cutoff_verifiers.assert_not_called()
+
+    def test_terminal_before_deadline_keeps_decision_when_finally_is_delayed(self):
+        self.assert_terminal_decision_survives_delay('normal_cutoff = (failure is None')
+
+    def test_terminal_before_deadline_keeps_decision_when_assignment_is_delayed(self):
+        self.assert_terminal_decision_survives_delay('early_completion_ns=completion_after_ns')
+
+    def test_terminal_snapshot_spanning_deadline_is_unknown_and_never_drains(self):
+        configured = plan(count=1, accounts=1, tail_ns=500_000_000)
+        backend = StructuralBackend()
+        backend.drain_cutoff_verifiers = mock.Mock(return_value={'diagnosticOnly': True})
+        stop = threading.Event()
+        target = next(i for i, line in enumerate(Path(staged.__file__).read_text().splitlines(), 1)
+                      if 'completion_after_ns=time.monotonic_ns()' in line)
+        observed = []
+        def tracer(frame, event, arg):
+            if event == 'line' and frame.f_code is staged.run.__code__ and frame.f_lineno == target:
+                before, deadline = frame.f_locals['completion_before_ns'], frame.f_locals['deadline']
+                if not observed and frame.f_locals['released_at_sample'] == frame.f_locals['terminal_at_sample'] == 1 and before < deadline:
+                    observed.append((before, deadline, frame.f_locals['origin']))
+                    while time.monotonic_ns() <= deadline:
+                        time.sleep(.001)
+                    return None
+            return tracer
+        previous = sys.gettrace()
+        sys.settrace(tracer)
+        try:
+            result = staged.run(configured, backend, lambda _: None, lambda: None, stop, verifier_drain_seconds=30)
+        finally:
+            sys.settrace(previous)
+        self.assertEqual(len(observed), 1)
+        before, deadline, origin = observed[0]
+        self.assertLess(before, deadline)
+        self.assertEqual(result['observationCutoffNs'], before-origin)
+        self.assertEqual(result['pipeline']['completionBoundaryStatus'], 'UNKNOWN_CROSSED_PLANNED_CUTOFF')
+        self.assertIsNone(result['pipeline']['postCutoffVerifierDrain'])
+        backend.drain_cutoff_verifiers.assert_not_called()
 
     def run_control(self, configured, backend, check=lambda: None, ledger_module=None):
         events = []

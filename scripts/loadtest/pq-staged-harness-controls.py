@@ -7,6 +7,7 @@ import sys
 import unittest
 
 GROUPS=[
+ ('test_pq_serial_verifier_admission.py',['portable_suite'],23),
  ('test_pq_first_trial_source.py',None,8),
  ('test_pq_d24_source_readback.py',None,12),
  ('test_pq_preload_initialization.py',None,8),
@@ -39,7 +40,7 @@ GROUPS=[
  ('test_pq_live_source_qualification.py',None,7),
  ('test_pq_initialization_measurements.py',None,36),
  ('test_pq_completion_diagnostics.py',None,20),
- ('test_pq_staged_independent_scheduler.py',None,20),
+ ('test_pq_staged_independent_scheduler.py',None,23),
  ('test_pq_bounded_sender_backend.py',None,24),
  ('test_pq_owned_header_capture.py',['OwnedNamespaceIdentityControls','OwnedHeaderCaptureControls.test_unknown_namespace_fails_before_socket_creation'],4),
  ('test_pq_independent_load.py',['IndependentLoadControls.test_nearly_complete500_still_censors_every_full_cohort_percentile','ProofExportStageControls'],2),

@@ -465,6 +465,7 @@ class NormalBackend:
         lab.require(slots>0,"no original process capacity for normal helpers")
         self.helper_slots=threading.BoundedSemaphore(slots)
         self.helper_limit=slots;self.helper_cleanup_debt=[]
+        self.verifier_admission=None # Explicit opt-in; old finite profiles unchanged.
         self.helper_timing_lock=threading.Lock();self.helper_timing_attempts=0;self.helper_timing_completed=0;self.helper_timings=[]
         self.rpc_measurements=rpc_measurements.RPCMeasurements()
     def observed_rpc(self,node,method,query=''):
@@ -477,20 +478,47 @@ class NormalBackend:
     def helper_timing_report(self):
         with self.helper_timing_lock:
             return dict(schema="YNX-PERF-PARENT-HELPER-BOUNDARIES/v1",clock="parent_monotonic_ns",attempted=self.helper_timing_attempts,completed=self.helper_timing_completed,inFlight=self.helper_timing_attempts-self.helper_timing_completed,retained=len(self.helper_timings),omittedCompleted=self.helper_timing_completed-len(self.helper_timings),recordLimit=2048,records=copy.deepcopy(self.helper_timings),meaning="observed parent boundaries only; launch includes Window lock and resource guard; wait includes resource guard and exit observation, not exact child exit; source callee timing is separate; missing boundaries are not zero or qualification")
-    def helper(self,name,command,stdin=None,*,observe_request=False):
+    def configure_serial_verifier(self):
+        lab.require(self.verifier_admission is None,'original verifier admission already configured')
+        admission=module('original_serial_verifier_admission','pq-serial-verifier-admission.py')
+        self.verifier_admission=admission.SerialVerifierAdmission(self.stop_event,enabled=True)
+    def helper(self,name,command,stdin=None,*,observe_request=False,original_verifier=None):
         trace=dict(name=name,requestedMonotonicNs=time.monotonic_ns())
+        permit=None;original_error=None;release_error=None
         if observe_request:trace['requestObservationRequested']=True
         with self.helper_timing_lock:self.helper_timing_attempts+=1
         try:
+            if original_verifier is not None:
+                lab.require(self.verifier_admission is not None and not observe_request
+                    and name=='load-%05d-normal-verifier'%original_verifier['index']
+                    and command[0]==str(self.c.bins/'ynx-consensus-proof-verify'),
+                    'only original fixed verifier callee uses serial admission')
+                permit=self.verifier_admission.acquire(original_verifier,trace)
             return self._helper(name,command,stdin,trace,observe_request=observe_request)
         except BaseException as error:
+            original_error=error
             trace["errorType"]=type(error).__name__
             raise
         finally:
+            if permit is not None:
+                try:
+                    retired=trace.get('originalVerifierChildAbsentOrReaped', 'launchRequestedMonotonicNs' not in trace)
+                    lab.require(self.verifier_admission.release(permit,trace,no_live_original_child=retired),
+                                'original verifier child retirement unresolved; permit retained')
+                except BaseException as error:
+                    release_error=error
+                    self.verifier_admission.retain_retirement_debt()
+                    self.stop_event.set()
+                    self.helper_cleanup_debt.append(dict(name=name,errorType=type(error).__name__,
+                        meaning='original verifier admission permit remains unresolved; preserve first cause and UNKNOWN'))
+            if release_error is not None and original_error is None:
+                trace['errorType']=type(release_error).__name__
             trace["returnedMonotonicNs"]=time.monotonic_ns()
             with self.helper_timing_lock:
                 self.helper_timing_completed+=1
                 if len(self.helper_timings)<2048:self.helper_timings.append(trace)
+            if release_error is not None and original_error is None:
+                raise release_error
     def capture_request_observation(self,name,proc,released,trace):
         # Called only after the original wait/cleanup, including its failure
         # path. Diagnostic errors must not replace that original exception.
@@ -515,6 +543,9 @@ class NormalBackend:
     def _helper(self,name,command,stdin,trace,*,observe_request=False):
         acquired=False;proc=None;released=False;ordinary=None
         while not self.stop_event.is_set():
+            if 'verifierAdmission' in trace and time.monotonic_ns()>=self.verifier_admission.deadline:
+                # No child exists. Preserve the scheduler's own normal cutoff.
+                raise TimeoutError('original verifier deadline elapsed waiting for helper slot; preserve UNKNOWN')
             if self.helper_slots.acquire(timeout=.02):acquired=True;break
         if acquired:trace["slotAcquiredMonotonicNs"]=time.monotonic_ns()
         lab.require(acquired,"normal helper interrupted before launch; preserve UNKNOWN")
@@ -524,6 +555,8 @@ class NormalBackend:
             try:
                 proc=self.w.launch(name,command,stdin_path=stdin,thread_safe=True,stop=self.stop_event)
                 trace["launchReturnedMonotonicNs"]=time.monotonic_ns()
+                if 'verifierAdmission' in trace:
+                    trace['remainingToPlannedCutoffAtLaunchReturnedNs']=self.verifier_admission.deadline-trace['launchReturnedMonotonicNs']
             except BaseException:
                 # Window may have registered the exact child before a later
                 # start-identity read failed; retain that original handle.
@@ -536,6 +569,7 @@ class NormalBackend:
             # A failed resource sample/wait can leave the original process alive.
             # Never release its slot until that exact Popen has exited/reaped.
             # Cleanup errors cannot replace the original normal-call first cause.
+            if 'verifierAdmission' in trace:trace['cleanupStartedMonotonicNs']=time.monotonic_ns()
             try:
                 if proc is not None and proc.poll() is None:
                     self.stop_event.set()
@@ -550,6 +584,7 @@ class NormalBackend:
                 self.stop_event.set()
                 self.helper_cleanup_debt.append(dict(name=name,errorType=type(error).__name__,pid=None if proc is None else proc.pid,meaning="original helper cleanup unresolved; preserve UNKNOWN and first cause"))
             finally:
+                if 'verifierAdmission' in trace:trace['originalVerifierChildAbsentOrReaped']=released
                 if released:self.helper_slots.release()
                 else:self.stop_event.set()
                 trace["cleanupFinishedMonotonicNs"]=time.monotonic_ns()
@@ -1054,7 +1089,9 @@ class NormalBackend:
             lab.require((info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns)==self.c.verifier_binary_identity,"original normal verifier binary identity changed")
             public_closure=proof_readback.export_original_public_proof(self.w.work/"public",case,directory,context,result["proof"],getattr(self.c,'consumer_source',CALLEE_SOURCE),self.c.verifier_binary_pin,stop=stop)
             notify(dict(kind="normal_stage",stage="verifier"))
-            verified=self.helper(prefix+"-normal-verifier",[str(self.c.bins/"ynx-consensus-proof-verify"),*context["verifierArguments"]],request)
+            verifier_options={} if self.verifier_admission is None else dict(original_verifier=dict(
+                index=row['index'],logicalId=row['id'],operationId=row['operationId']))
+            verified=self.helper(prefix+"-normal-verifier",[str(self.c.bins/"ynx-consensus-proof-verify"),*context["verifierArguments"]],request,**verifier_options)
             normal.require_verified(verified,tx)
             return result,verified,public_closure
         except BaseException:
@@ -1266,6 +1303,11 @@ def validate_options(args):
         lab.require((args.mode,args.rate,args.seconds,args.accounts,args.per_account,args.tail_seconds,args.proof_timeout)==('online',100,5,500,1,30,30) and getattr(args,'staged_publication',False) and not getattr(args,'initialization_only',False),'selected same-window initialization then first100 profile only; no500/1000 permission')
         lab.require(all(getattr(args,key,False) is True for key in ('startup_timings','wire_observation','commit_observation','network_accounting','owned_storage_accounting')) and not getattr(args,'header_hop_capture',False),'selected original first100 observation configuration required')
     if getattr(args,'staged_publication',False):lab.require(args.mode=='online','staged cold sender pipeline requires explicit online mode')
+    serial=getattr(args,'serial_verifier',False)
+    lab.require(type(serial) is bool and (not serial or (profile==HELD_TRIAL_PROFILE
+        and getattr(args,'staged_publication',False) and not getattr(args,'durable_accounting',False)
+        and not getattr(args,'held_ready_only',False))),
+        'serial verifier requires explicit finite held-first100; no implicit durable or READY-only clock')
     return demand
 
 
@@ -1395,6 +1437,7 @@ def load_conditions(args):
     if getattr(args,'commit_validation_observation',False): result['commit_validation_observation']=True
     if getattr(args,'commit_clock_observation',False): result['commit_clock_observation']=True
     if getattr(args,'guarded_owner_shutdown',False): result['guarded_owner_shutdown']=True
+    if getattr(args,'serial_verifier',False):result['serialVerifierAdmission']=dict(maxConcurrent=1,originalObservationDeadline=True)
     return result
 
 
@@ -1542,6 +1585,19 @@ def retire_original_proof_pidfd(process, *, deadline=None):
         return dict(status='ORIGINAL_PROOF_IDENTITY_CLOSED_AFTER_REAP',closed=True)
     except BaseException as error:
         return dict(status='ORIGINAL_PROOF_IDENTITY_CLOSE_FAILED',closed=False,errorType=type(error).__name__)
+
+
+def run_load_window(plan,backend,journal,monitor,stop,*,staged_scheduler=None,verifier_drain_seconds=0):
+    """Keep the original finite scheduler clock and optional diagnostic drain."""
+    if getattr(backend,'verifier_admission',None) is not None:
+        lab.require(staged_scheduler is not None,'serial verifier requires the same finite staged clock')
+        origin=time.monotonic_ns()
+        backend.verifier_admission.bind_window(origin,origin+plan['windowNs']+plan['tailNs'])
+        return staged_scheduler.run(plan,backend,journal.emit,monitor.check,stop,origin=origin,
+            ledger_module=scheduler,verifier_drain_seconds=verifier_drain_seconds)
+    return (staged_scheduler.run(plan,backend,journal.emit,monitor.check,stop,ledger_module=scheduler,
+            verifier_drain_seconds=verifier_drain_seconds) if staged_scheduler else
+            scheduler.run(plan,backend,journal.emit,monitor.check,stop))
 
 
 def run(args, *, source_metadata_reader=None, clock_original_log_reader=None, clock_original_evidence_reader=None):
@@ -1761,6 +1817,7 @@ def run(args, *, source_metadata_reader=None, clock_original_log_reader=None, cl
         backend=make_sender_backend(ceremony,owners,stop,backend_kind,
                                     prepare_public_source=True,persistent_live=True,
                                     guarded_shutdown=getattr(args,'guarded_owner_shutdown',False)) if held else make_sender_backend(ceremony,owners,stop,backend_kind)
+        if getattr(args,'serial_verifier',False):backend.configure_serial_verifier()
         backend.post_cutoff_diagnostic_only=bool(getattr(args,'post_cutoff_verifier_drain_seconds',0))
         if backend_kind=='bounded-cold':
             result['signerTransport']='original cold per-operation DATA-ready/sign/EOF; same original owner/operation reopen for normal full proof Confirm; no automatic retry'
@@ -1794,8 +1851,8 @@ def run(args, *, source_metadata_reader=None, clock_original_log_reader=None, cl
             result['heldReadyOnlyComplete'] = True
             return result
         result["loadExecuted"]=True
-        result["loadResult"]=(staged_scheduler.run(plan,backend,journal.emit,monitor.check,stop,ledger_module=scheduler,
-            verifier_drain_seconds=getattr(args,'post_cutoff_verifier_drain_seconds',0)) if staged else scheduler.run(plan,backend,journal.emit,monitor.check,stop))
+        result["loadResult"]=run_load_window(plan,backend,journal,monitor,stop,staged_scheduler=staged_scheduler if staged else None,
+            verifier_drain_seconds=getattr(args,'post_cutoff_verifier_drain_seconds',0))
         if getattr(args,'commit_clock_observation',False):result['loadResult']['originProcessID']=os.getpid()
         monitor.check();lab.check_source(source,args.commit)
         result["firstCause"]=result["loadResult"]["firstCause"]
@@ -1809,6 +1866,8 @@ def run(args, *, source_metadata_reader=None, clock_original_log_reader=None, cl
                 # the successful earlier READY frames and their elapsed times.
                 result.setdefault("senderPoolPreparation", backend.pool_ready)
             result["normalHelperLifecycle"]=dict(maxConcurrent=backend.helper_limit,cleanupDebt=backend.helper_cleanup_debt,parentTiming=backend.helper_timing_report())
+            if getattr(backend,'verifier_admission',None) is not None:
+                result['normalHelperLifecycle']['verifierAdmission']=backend.verifier_admission.report(result.get('loadResult'))
             result['normalObservationRPCTiming']=backend.rpc_measurements.report()
             if hasattr(backend,'cold_sender_report'):result['boundedColdSenderLifecycle']=backend.cold_sender_report()
             if hasattr(backend,'public_owner_report'):result['normalPublicOwnerTransport']=backend.public_owner_report()
@@ -1956,6 +2015,7 @@ if __name__=="__main__":
     p.add_argument("--owned-storage-accounting",action="store_true",help="metadata-only exact original lab blockstore/stateDB/application paths; allocation is not disk writes or per-transaction bytes")
     p.add_argument('--initialization-only',action='store_true',help='exact staged500+4 normal functional initialization and cleanup only; no business load; separate from pressure qualification')
     p.add_argument('--staged-publication',action='store_true',help='separate bounded normal sign/POST, inclusion and original final-proof lanes; exact qualified large-owner normal callee required; not a new pressure authorization')
+    p.add_argument('--serial-verifier',action='store_true',help='explicit one-at-a-time original proof verifier; unchanged observation cutoff and full demand; no runtime qualification')
     p.add_argument('--post-cutoff-verifier-drain-seconds',type=int,choices=(0,30),default=0,
                    help='held-only diagnostic: disables all original confirmations, waits boundedly for already-running verifiers after cutoff; not a throughput qualification')
     p.add_argument('--sender-backend',choices=('auto','bounded-cold','public-owner'),default='auto',help='explicit normal sender transport; public-owner requires exact1695 ABI plus separate source/semantic/window qualification; no automatic fallback')

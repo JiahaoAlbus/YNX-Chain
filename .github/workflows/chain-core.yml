@@ -174,6 +174,23 @@ jobs:
         run: |
           python3 -B scripts/loadtest/test_pq_bounded_sender_backend.py -v
           python3 -B scripts/loadtest/test_pq_helper_lifecycle.py -v
+      - name: Verify serial original verifier admission and shared deadline
+        run: |
+          python3 -B - <<'PYSERIAL'
+          import importlib.util, sys, unittest
+          from pathlib import Path
+          if sys.platform != 'linux':
+              raise RuntimeError('actual Linux original verifier admission controls required')
+          path = Path('scripts/loadtest/test_pq_serial_verifier_admission.py')
+          spec = importlib.util.spec_from_file_location('original_serial_verifier_controls', path)
+          module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+          suite = unittest.defaultTestLoader.loadTestsFromModule(module)
+          if suite.countTestCases() != 26:
+              raise RuntimeError('exact 26 original serial verifier controls required')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if result.testsRun != 26 or result.skipped or not result.wasSuccessful():
+              raise RuntimeError('all 26 original verifier controls must actually pass without skips')
+          PYSERIAL
       - name: Verify bounded post-cutoff verifier diagnostics on Linux
         run: python3 -B scripts/loadtest/pq-verifier-cutoff-controls.py
       - name: Verify normal public owner stream isolation and lost acknowledgements
