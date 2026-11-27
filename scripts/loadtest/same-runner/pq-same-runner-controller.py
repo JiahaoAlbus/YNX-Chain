@@ -40,6 +40,7 @@ CLOCK_LOG_BINDING = None  # Owner-frozen same-arm original focused logs only.
 CLOCK_EVIDENCE_BINDING = None  # Owner-frozen same-arm original source artifacts only.
 BEFORE59_COMPOSITION_BINDING = None  # Owner-frozen original Tools source/build artifact only.
 SERIAL_VERIFIER_BINDING = None  # Owner-frozen per-arm serial CI evidence only; never an environment override.
+SERIAL_CONTROLS_MANIFEST_BY_SOURCE = {}  # Separately reviewed exact-source ordered test-list digests only.
 SERIAL_CONTROL_MINIMUMS = {'staged':23, 'serial':28, 'independent':25, 'bounded-sender':24,
     'header-data':11, 'header-driver-data':8,
     'commit-validation':13, 'initialization':39, 'go-evidence-parser':7, 'scheduler-boundaries':22}
@@ -298,6 +299,9 @@ def serial_preflight_for_arm(label, arm, tools, driver, api):
             and all({method+' (original_serial_ci_'+name+'.'+cls+'.'+method+')' for method in methods}
                     <= set(groups[name]) for name,(cls,methods) in SERIAL_CRITICAL_TESTS.items()),
             'original serial staged, admission and boundary controls NOT_SUPPLIED')
+    expected_manifest=SERIAL_CONTROLS_MANIFEST_BY_SOURCE.get(arm['tools'])
+    require(type(expected_manifest) is str and expected_manifest==reader.digest(producer.encode(pin['groups'])),
+            'original serial exact-source test manifest NOT_SUPPLIED')
     require(pin['runId']!=arm['toolsCI']['run'] and pin['jobId']!=arm['toolsCI']['job'],
             'original serial controls must be a separate CI run and job')
     require(git(tools,'rev-parse','HEAD:third_party/cometbft')==pin['forkTree'],

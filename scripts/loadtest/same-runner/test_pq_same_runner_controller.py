@@ -164,6 +164,10 @@ class ControllerControls(unittest.TestCase):
         original_read=mock.Mock(side_effect=lambda path,limit: path.encode())
         driver=types.SimpleNamespace(commit_clock=types.SimpleNamespace(read_original=original_read))
         with mock.patch.object(c,'SERIAL_VERIFIER_BINDING',frozen),mock.patch.object(c,'module',return_value=inspector),mock.patch.object(c,'git',return_value='9'*40):
+            with self.assertRaisesRegex(RuntimeError,'test manifest NOT_SUPPLIED'):
+                c.serial_preflight_for_arm('before',selected,Path('/CONTROL/tools'),driver,api)
+            manifests={selected['tools']:c.reader.digest(c.producer.encode(pin['groups']))}
+            self.enterContext(mock.patch.dict(c.SERIAL_CONTROLS_MANIFEST_BY_SOURCE,manifests))
             incomplete=copy.deepcopy(frozen)
             linux=next(group for group in incomplete['before']['ciPin']['groups'] if group['name']=='serial')
             linux['tests'][0]='substituted same-count CONTROL'
@@ -178,6 +182,12 @@ class ControllerControls(unittest.TestCase):
             boundary['tests']=boundary['tests'][:-4]
             with mock.patch.object(c,'SERIAL_VERIFIER_BINDING',shortened),self.assertRaisesRegex(RuntimeError,'controls NOT_SUPPLIED'):
                 c.serial_preflight_for_arm('before',selected,Path('/CONTROL/tools'),driver,api)
+            substituted=copy.deepcopy(frozen)
+            boundary=next(group for group in substituted['before']['ciPin']['groups'] if group['name']=='scheduler-boundaries')
+            boundary['tests'][-1]='different same-count noncritical control'
+            with mock.patch.object(c,'SERIAL_VERIFIER_BINDING',substituted),self.assertRaisesRegex(RuntimeError,'test manifest NOT_SUPPLIED'):
+                c.serial_preflight_for_arm('before',selected,Path('/CONTROL/tools'),driver,api)
+            api.read.assert_not_called();original_read.assert_not_called()
             check=c.serial_preflight_for_arm('before',selected,Path('/CONTROL/tools'),driver,api)
             inspector.validate_metadata.side_effect=ValueError('wrong original job')
             with self.assertRaisesRegex(ValueError,'wrong original job'):check()
@@ -227,6 +237,8 @@ class ControllerControls(unittest.TestCase):
             api=types.SimpleNamespace(token=None,read=lambda path:dict(path=path))
             with ExitStack() as stack:
                 stack.enter_context(mock.patch.object(c,'SERIAL_VERIFIER_BINDING',frozen))
+                stack.enter_context(mock.patch.dict(c.SERIAL_CONTROLS_MANIFEST_BY_SOURCE,
+                    {entry['tools']:c.reader.digest(c.producer.encode(entry['ciPin']['groups'])) for entry in frozen.values()}))
                 stack.enter_context(mock.patch.object(c,'__file__',str(workspace/'controller/scripts/loadtest/same-runner/pq-same-runner-controller.py')))
                 stack.enter_context(mock.patch.object(c,'active_pair',return_value=dict(controllerCommit='e'*40,runID=1,jobID=2)))
                 stack.enter_context(mock.patch.object(c,'checkout'));stack.enter_context(mock.patch.object(c,'verify_tool_files'))
