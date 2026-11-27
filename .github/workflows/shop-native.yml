@@ -554,8 +554,12 @@ jobs:
           adb install "$apk"
           path="$(adb shell pm path com.ynxweb4.shop.debug | tr -d '\r' | sed -n 's/^package://p')"
           if [ -z "$path" ]; then echo 'Installed Shop package path was not returned by the emulator' >&2; exit 1; fi
-          adb exec-out cat "$path" | sha256sum | tee "$RUNNER_TEMP/shop-device-installed.sha256"
-          if [ "$(cut -d' ' -f1 "$RUNNER_TEMP/shop-device-installed.sha256")" != "$(sha256sum "$apk" | cut -d' ' -f1)" ]; then
+          printf '%s\n' "$path" > "$RUNNER_TEMP/shop-device-installed-path.log"
+          adb exec-out cat "$path" > "$RUNNER_TEMP/shop-device-installed-exec.apk"
+          adb pull "$path" "$RUNNER_TEMP/shop-device-installed-pull.apk"
+          sha256sum "$RUNNER_TEMP/shop-device-installed-exec.apk" "$RUNNER_TEMP/shop-device-installed-pull.apk" | tee "$RUNNER_TEMP/shop-device-installed.sha256"
+          wc -c "$apk" "$RUNNER_TEMP/shop-device-installed-exec.apk" "$RUNNER_TEMP/shop-device-installed-pull.apk" | tee "$RUNNER_TEMP/shop-device-sizes.log"
+          if ! cmp -s "$apk" "$RUNNER_TEMP/shop-device-installed-exec.apk" || ! cmp -s "$apk" "$RUNNER_TEMP/shop-device-installed-pull.apk"; then
             echo 'Installed Shop APK differs from the selected candidate' >&2
             exit 1
           fi
@@ -613,6 +617,7 @@ jobs:
             ${{ runner.temp }}/shop-device-*.log
             ${{ runner.temp }}/shop-device-*.xml
             ${{ runner.temp }}/shop-device-*.sha256
+            ${{ runner.temp }}/shop-device-installed-*.apk
           if-no-files-found: warn
 
   android-catalog-reordering:
