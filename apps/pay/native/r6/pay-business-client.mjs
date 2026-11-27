@@ -297,7 +297,17 @@ export class NativePayBusinessClient {
   const value=await this.#runtime.readOriginalArchiveReconciliation(ref,current);current();
   return {reconciliation:nativeArchiveReconciliationData(value,original,ref),bill:null,queryOnly:true,clientIndependentFinality:false};
  });}
- async recoverIntent(intentId){return this.#run({intentId},'recovering',async current=>{await this.#pay.reconcileInvoiceIntent(intentId,current);current();const intent=await this.#pay.readInvoiceIntent(intentId,current);current();return {intent,bill:intent.invoice??null,queryOnly:true,clientIndependentFinality:false};});}
+ async recoverIntent(intentId){return this.#run({intentId},'recovering',async current=>{
+  const check=value=>{if(value?.intentId!==intentId||value?.originalOperation!==intentId)throw failure('NATIVE_INVOICE_ORIGINAL_BINDING');return value;};
+  let intent=await this.#pay.readInvoiceIntent(intentId,current);current();check(intent);
+  const terminal=intent.state==='ISSUED'&&intent.phase==='confirmed'||intent.state==='PREPARED'&&intent.phase==='confirmed_failed';
+  if(intent.state==='ISSUED'&&!terminal)throw failure('NATIVE_INVOICE_ORIGINAL_BINDING');
+  if(!terminal){
+   const reconciled=await this.#pay.reconcileInvoiceIntent(intentId,current);current();check(reconciled);
+   intent=await this.#pay.readInvoiceIntent(intentId,current);current();check(intent);
+  }
+  return {intent,bill:intent.invoice??null,queryOnly:true,clientIndependentFinality:false};
+ });}
  async syncNotifications(merchant,invoiceId){return this.#run({merchant,invoiceId},'recovering',async current=>{
   let bill=await this.#pay.readInvoice(merchant,invoiceId,current);current();
   const inbox=this.#runtime.notificationInbox,readScope=this.#runtime.readNotificationScope;

@@ -5,6 +5,23 @@ import {nativePayFailureCode,nativePayFailureResultDATA,nativePayRecoveryActions
 const merchant='0x'+'1'.repeat(40),nativeHash='0x'+'2'.repeat(64),abciHash='0x'+'3'.repeat(64),intentId='npi_'+'4'.repeat(48);
 const original={productId:'shop.order',sourceOrder:'order:original',storeId:'store-original',merchant,recipient:merchant,genesis:'a'.repeat(64),nativeChainId:'6423',assetId:'YNXT',unitVersion:'1',amountAtoms:'100',domainData:{schema:'PUBLIC_ORIGINAL_DATA'}};
 function boot(pay,extra={}){const entry=createNativePayMainEntry({getMain:()=>null,getContext:()=>({account:merchant,revision:1,focused:true})});entry.compose({pay,current(){},...extra});return entry;}
+test('original invoice recovery reads terminal state before requesting proof reconciliation',async()=>{
+ for(const [state,phase] of [['ISSUED','confirmed'],['PREPARED','confirmed_failed']]){
+  let reads=0,posts=0;const entry=boot({async readInvoiceIntent(id){reads++;assert.equal(id,intentId);return {intentId:id,originalOperation:id,state,phase}},async reconcileInvoiceIntent(){posts++;throw Error('terminal must not reconcile')}});
+  const result=await entry.invokeResult({action:'recover-intent',intentId});assert.equal(result.ok,true);assert.equal(result.queryOnly,true);assert.equal(reads,1);assert.equal(posts,0);
+ }
+});
+test('original invoice recovery reconciles only the same unresolved intent',async()=>{
+ let reads=0,posts=0;const entry=boot({async readInvoiceIntent(id){reads++;return {intentId:id,originalOperation:id,state:posts?'ISSUED':'PREPARED',phase:posts?'confirmed':'unknown'}},async reconcileInvoiceIntent(id){posts++;return {intentId:id,originalOperation:id}}});
+ const result=await entry.invokeResult({action:'recover-intent',intentId});assert.equal(result.ok,true);assert.equal(result.intent.intentId,intentId);assert.equal(reads,2);assert.equal(posts,1);assert.equal(result.canRetry,false);
+ let settled=false,lostPosts=0;const cold=()=>boot({async readInvoiceIntent(id){return {intentId:id,originalOperation:id,state:settled?'ISSUED':'PREPARED',phase:settled?'confirmed':'unknown'}},async reconcileInvoiceIntent(){lostPosts++;settled=true;throw Object.assign(Error('lost reply'),{code:'PUBLIC_ORIGINAL_REPLY_LOST'})}});
+ const lost=await cold().invokeResult({action:'recover-intent',intentId});assert.equal(lost.code,'PUBLIC_ORIGINAL_REPLY_LOST');assert.equal(lost.canRetry,false);
+ const reopened=await cold().invokeResult({action:'recover-intent',intentId});assert.equal(reopened.ok,true);assert.equal(reopened.intent.intentId,intentId);assert.equal(lostPosts,1);
+ for(const step of ['initial','reconcile','final']){
+  let n=0,calls=0;const bad=boot({async readInvoiceIntent(id){n++;return {intentId:id,originalOperation:(step==='initial'&&n===1||step==='final'&&n===2)?'npi_'+'9'.repeat(48):id,state:'PREPARED',phase:'unknown'}},async reconcileInvoiceIntent(id){calls++;return {intentId:id,originalOperation:step==='reconcile'?'npi_'+'9'.repeat(48):id}}});
+  const rejected=await bad.invokeResult({action:'recover-intent',intentId});assert.equal(rejected.code,'NATIVE_INVOICE_ORIGINAL_BINDING');assert.equal(rejected.canRetry,false);assert.equal(calls,step==='initial'?0:1);
+ }
+});
 test('Shop original source conflict stops create and lookup before any Pay request',async()=>{
  let creates=0,lookups=0,reads=0;
  const conflict=Object.assign(Error('conflict'),{status:409});
