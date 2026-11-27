@@ -21,6 +21,7 @@ REQUIRED = {
         "TestEVMOriginalEstimatePinsSenderHeight",
         "TestEVMMigratedContractOriginalReads",
         "TestGatewayCommitsBoundedIDEAndReturnsEVMLogs",
+        "TestGatewayPinnedERC20StaticCallerIsReadOnly",
         "TestEVMMigratedContractPQUpdateReadAndRestart",
         "TestGatewayOriginalEVMLogsCrossMigrationAndColdRead",
         "TestGatewayOriginalEthereumTransactionAndUnavailableReceipt",
