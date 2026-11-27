@@ -43,5 +43,13 @@ export async function currentMerchantInvoice(api,assertCurrent,subject,id){asser
 export async function currentMerchantRefund(api,assertCurrent,subject,id){
  assertCurrent();const snapshot=await api.state();assertCurrent();const records=realRecords(snapshot,subject),matches=records.refunds.filter(row=>row.id===id);
  if(matches.length!==1||!merchantRefundRecoveryLabel('refund',matches[0].status))throw Object.assign(new Error('The original refund is unavailable. Refresh your merchant records.'),{code:'MERCHANT_REFUND_ORIGINAL_CHANGED'});
- return matches[0];
+ const original=matches[0];
+ if(typeof original.invoiceId!=='string'||!original.invoiceId||typeof original.payer!=='string'||!original.payer||!integer(original.amount,1))throw Object.assign(new Error('The original refund is unavailable. Refresh your merchant records.'),{code:'MERCHANT_REFUND_ORIGINAL_CHANGED'});
+ return Object.freeze(Object.fromEntries(['id','merchantId','invoiceId','payer','amount','approvedBy','authorizationDigest','refundTransactionHash','centralRefundId'].map(key=>[key,original[key]])));
+}
+export function assertSameMerchantRefund(original,result){
+ const keys=['id','merchantId','invoiceId','payer','amount'];
+ const retained=['approvedBy','authorizationDigest','refundTransactionHash','centralRefundId'];
+ if(!original||!result||keys.some(key=>result[key]!==original[key])||retained.some(key=>original[key]!==undefined&&original[key]!==''&&result[key]!==original[key]))throw Object.assign(new Error('Original refund changed. Refresh the same merchant record.'),{code:'MERCHANT_REFUND_ORIGINAL_CHANGED'});
+ return result;
 }
