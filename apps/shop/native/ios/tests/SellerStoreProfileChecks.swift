@@ -1,12 +1,13 @@
 import Foundation
 @MainActor final class ProfileAuthority:AppleNativeAuthority {
     var current:ShopSession?
+    var proofFails=false
     let account="ynx1"+String(repeating:"q",count:38)
     func restore()async throws{}
     func connect()async throws{current=ShopSession(account:account,token:String(repeating:"t",count:32),expiresAt:ISO8601DateFormatter().string(from:Date().addingTimeInterval(3600)),nativeGeneration:1)}
     func disconnect()throws{current=nil}
     func handleReturn(_ url:URL)async throws{throw ShopError.unavailable}
-    func proof(method:String,path:String,body:String,expected:ShopSession)async throws->[String:Any]{guard current==expected else{throw ShopError.contextChanged};_ = try AppleNativeBusinessPolicy.scopes(method,path,profile:.seller);return ["body":body,"identityHeader":String(repeating:"i",count:43),"actionHeader":String(repeating:"a",count:43)]}
+    func proof(method:String,path:String,body:String,expected:ShopSession)async throws->[String:Any]{guard !proofFails,current==expected else{throw ShopError.contextChanged};_ = try AppleNativeBusinessPolicy.scopes(method,path,profile:.seller);return ["body":body,"identityHeader":String(repeating:"i",count:43),"actionHeader":String(repeating:"a",count:43)]}
 }
 final class ProfileHTTP:URLProtocol,@unchecked Sendable {
     @MainActor static var handler:((ProfileHTTP)->Void)?
@@ -25,11 +26,11 @@ final class ProfileHTTP:URLProtocol,@unchecked Sendable {
   func until(_ value:()->Bool)async throws{for _ in 0..<200_000{if value(){return};await Task.yield()};throw NSError(domain:"bounded profile flow",code:1)}
   let auth=ProfileAuthority(),id="original_profile_store",time="2026-11-07T00:00:00Z"
   let initial:[String:Any]=["ID":id,"Owner":auth.account,"Name":"Original shop","Description":"Original description","Policy":"Original policy","TrustURL":"","SettlementAccount":auth.account,"Status":"onboarding","CreatedAt":time,"UpdatedAt":time]
-  var store=initial,pending:[ProfileHTTP]=[],writes=0
+  var store=initial,pending:[ProfileHTTP]=[],writes=0,role="owner"
   ProfileHTTP.handler={r in
    if r.request.httpMethod != "GET"{writes+=1;pending.append(r);return}
    switch r.request.url!.path {
-   case "/api/seller/stores":try! r.respond(["stores":[store],"access":[id:["role":"owner","permissions":["seller.read","team.read"]]]])
+   case "/api/seller/stores":try! r.respond(["stores":[store],"access":[id:["role":role,"permissions":["seller.read","team.read"]]]])
    case "/api/seller/products":try! r.respond(["products":[]])
    case "/api/seller/orders":try! r.respond(["orders":[]])
    case "/api/seller/stores/"+id+"/roles":try! r.respond(["roles":[auth.account:"owner"],"revocations":[],"invitations":[]])
@@ -50,8 +51,19 @@ final class ProfileHTTP:URLProtocol,@unchecked Sendable {
   store=initial;model.refresh();try await until{!model.busy}
   model.perform(.updateStore(snapshot,name:"Reviewed",description:"",policy:"Reviewed policy",trustURL:"https://user:secret@example.com/evidence",settlementAccount:auth.account))
   try check(writes==0,"userinfo trust URLs are rejected before HTTP")
-  model.perform(.updateStore(snapshot,name:"Reviewed",description:"Reviewed description",policy:"Reviewed policy",trustURL:"https://example.com/evidence",settlementAccount:auth.account));try await until{pending.count==1}
+  auth.proofFails=true;model.perform(.updateStore(snapshot,name:"Reviewed",description:"Reviewed description",policy:"Reviewed policy",trustURL:"https://example.com/evidence",settlementAccount:auth.account));try await until{!model.busy}
+  let prepared=try journal.records(auth.account).values.first!
+  try check(prepared.phase=="prepared" && writes==0,"proof failure keeps original store profile unsent")
+  auth.proofFails=false;store["Policy"]="Unseen later policy";model.refresh();try await until{!model.busy}
+  model.retryPreparedOriginals();try await until{!model.busy}
+  try check(writes==0 && (try journal.records(auth.account)[prepared.key])==prepared,"changed original profile blocks prepared edit without rewriting it")
+  store=initial;role="viewer";model.refresh();try await until{!model.busy}
+  model.retryPreparedOriginals();try await until{!model.busy}
+  try check(writes==0 && (try journal.records(auth.account)[prepared.key])==prepared,"lost owner role blocks prepared profile edit")
+  role="owner";model.refresh();try await until{!model.busy}
+  model.retryPreparedOriginals();try await until{pending.count==1}
   let edit=pending.removeFirst(),body=try edit.body(),original=try journal.records(auth.account).values.first!
+  try check(try CanonicalJSON.data(body)==prepared.body,"restored profile sends the exact prepared body and key")
   try check(edit.request.url!.path=="/api/seller/stores/"+id+"/native-profile" && original.kind=="update-store" && original.phase=="unknown","profile uses exact original route and durable UNKNOWN before dispatch")
   let expected=body["Expected"] as! [String:Any],update=body["Update"] as! [String:Any]
   try check(expected["Policy"] as? String=="Original policy" && expected["Status"] as? String=="onboarding" && expected["Owner"] as? String==auth.account && expected["UpdatedAt"] as? String==time,"review freezes actual original owner profile status and timestamps")

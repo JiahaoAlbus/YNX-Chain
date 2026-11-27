@@ -1,12 +1,13 @@
 import Foundation
 @MainActor final class SetupAuthority:AppleNativeAuthority {
     var current:ShopSession?
+    var proofFails=false
     let account="ynx1"+String(repeating:"q",count:38)
     func restore()async throws{}
     func connect()async throws{current=ShopSession(account:account,token:String(repeating:"t",count:32),expiresAt:ISO8601DateFormatter().string(from:Date().addingTimeInterval(3600)),nativeGeneration:1)}
     func disconnect()throws{current=nil}
     func handleReturn(_ url:URL)async throws{throw ShopError.unavailable}
-    func proof(method:String,path:String,body:String,expected:ShopSession)async throws->[String:Any]{guard current==expected else{throw ShopError.contextChanged};_ = try AppleNativeBusinessPolicy.scopes(method,path,profile:.seller);return ["body":body,"identityHeader":String(repeating:"i",count:43),"actionHeader":String(repeating:"a",count:43)]}
+    func proof(method:String,path:String,body:String,expected:ShopSession)async throws->[String:Any]{guard !proofFails,current==expected else{throw ShopError.contextChanged};_ = try AppleNativeBusinessPolicy.scopes(method,path,profile:.seller);return ["body":body,"identityHeader":String(repeating:"i",count:43),"actionHeader":String(repeating:"a",count:43)]}
 }
 final class SetupHTTP:URLProtocol,@unchecked Sendable {
     @MainActor static var handler:((SetupHTTP)->Void)?
@@ -24,12 +25,12 @@ final class SetupHTTP:URLProtocol,@unchecked Sendable {
         func check(_ yes:Bool,_ name:String)throws{guard yes else{throw NSError(domain:name,code:1)};checks+=1;print("PASS "+name)}
         func until(_ ready:()->Bool)async throws{for _ in 0..<200_000{if ready(){return};await Task.yield()};throw NSError(domain:"bounded setup flow",code:1)}
         let authority=SetupAuthority(),storeID="store_new_original",time="2026-11-07T00:00:00Z"
-        var store:[String:Any]=[:],products:[[String:Any]]=[],invitations:[[String:Any]]=[],pending:[SetupHTTP]=[],writes=0
+        var store:[String:Any]=[:],products:[[String:Any]]=[],invitations:[[String:Any]]=[],pending:[SetupHTTP]=[],writes=0,role="owner"
         SetupHTTP.handler={r in
             let path=r.request.url!.path
             if r.request.httpMethod != "GET"{writes+=1;pending.append(r);return}
             switch path {
-            case "/api/seller/stores":try! r.respond(["stores":store.isEmpty ? []:[store],"access":store.isEmpty ? [:]:[storeID:["role":"owner","permissions":["seller.read","catalog.write","inventory.write","team.read"]]]])
+            case "/api/seller/stores":try! r.respond(["stores":store.isEmpty ? []:[store],"access":store.isEmpty ? [:]:[storeID:["role":role,"permissions":["seller.read","catalog.write","inventory.write","team.read"]]]])
             case "/api/seller/products":try! r.respond(["products":products])
             case "/api/seller/orders":try! r.respond(["orders":[]])
             case "/api/seller/stores/"+storeID+"/roles":try! r.respond(["roles":[authority.account:"owner"],"revocations":[],"invitations":invitations])
@@ -58,7 +59,16 @@ final class SetupHTTP:URLProtocol,@unchecked Sendable {
         try read.respond(["Actor":authority.account,"Method":"POST","Path":"/seller/stores","IdempotencyKey":input["IdempotencyKey"]!,"Result":store]);try await until{!model.busy && model.stores.count==1}
         try check(model.selectedStoreID==storeID && model.stores[0].Status=="onboarding" && model.pendingOriginalCount==0,"only matching original acknowledgement and fresh owned read adopt the created onboarding store")
         model.perform(.activateStore(expectedUpdatedAt:time,expectedPolicy:"Different unreviewed policy",expectedSettlementAccount:authority.account));try await until{!model.busy};try check(writes==2,"changed activation terms are refused before durable preparation or HTTP")
-        model.perform(.activateStore(expectedUpdatedAt:time,expectedPolicy:"Reviewed policy",expectedSettlementAccount:authority.account));let activate=try await take("seller/stores/"+storeID+"/native-activate");let activationBody=try activate.body()
+        authority.proofFails=true;model.perform(.activateStore(expectedUpdatedAt:time,expectedPolicy:"Reviewed policy",expectedSettlementAccount:authority.account));try await until{!model.busy}
+        let preparedActivation=try journal.records(authority.account).values.first(where:{$0.kind=="activate-store" && $0.phase=="prepared"})!
+        authority.proofFails=false;store["Policy"]="Changed policy";model.refresh();try await until{!model.busy}
+        model.retryPreparedOriginals();try await until{!model.busy}
+        try check(writes==2 && (try journal.records(authority.account)[preparedActivation.key])==preparedActivation,"changed activation terms keep original request unsent")
+        store["Policy"]="Reviewed policy";role="viewer";model.refresh();try await until{!model.busy}
+        model.retryPreparedOriginals();try await until{!model.busy}
+        try check(writes==2 && (try journal.records(authority.account)[preparedActivation.key])==preparedActivation,"lost owner role keeps activation unsent")
+        role="owner";model.refresh();try await until{!model.busy};model.retryPreparedOriginals();let activate=try await take("seller/stores/"+storeID+"/native-activate");let activationBody=try activate.body()
+        try check(try CanonicalJSON.data(activationBody)==preparedActivation.body,"restored activation sends the same original body and key")
         try check(activationBody["ExpectedPolicy"] as? String=="Reviewed policy" && activationBody["ExpectedSettlementAccount"] as? String==authority.account,"activation freezes the actual reviewed policy and payout as well as its timestamp")
         store["Status"]="active";try activate.respond(["Store":store,"OriginalApplied":true,"QueryOnly":false]);try await until{!model.busy}
         try check(model.stores[0].Status=="active","activation is reflected only after actual confirmation and fresh read")
