@@ -12,6 +12,10 @@ final class NativeIntentObservation {
   return payment.optBoolean("ReconciliationRequired",true) || !payment.optBoolean("CompleteKnownOriginals",false) || (pending!=null && pending.length()>0);
  }
  static boolean isNative(JSONObject order){return order.optString("PayIntentID").startsWith("npi_");}
+ static boolean pendingOrderHistory(JSONObject order){
+  JSONObject payment=order.optJSONObject("NativePayment");
+  return payment==null ? isNative(order) : pendingHistory(payment);
+ }
  static String path(JSONObject order,String account){
   if(!BuyerReceipt.owned(order,account)||!order.optString("ID").matches("[A-Za-z0-9][A-Za-z0-9._:-]{0,127}")||!order.optString("PayIntentID").matches("npi_[a-f0-9]{48}"))throw new SecurityException("Original owned intent required");
   return "/orders/"+order.optString("ID")+"/native-pay-intent";

@@ -21,6 +21,13 @@ public class NativeIntentObservationTest {
   assertTrue(NativeIntentObservation.pendingHistory(null));
  }
  private JSONObject order()throws Exception{return new JSONObject().put("ID","ord_original").put("Buyer","original_account").put("PayIntentID","npi_"+"ab".repeat(24));}
+ @Test public void nativeOrderWithoutPaymentRemainsUnresolved()throws Exception{
+  assertTrue(NativeIntentObservation.pendingOrderHistory(order()));
+  assertTrue(NativeIntentObservation.pendingOrderHistory(order().put("NativePayment","malformed")));
+  assertFalse(NativeIntentObservation.pendingOrderHistory(order().put("PayIntentID","legacy")));
+  JSONObject settled=new JSONObject().put("ReconciliationRequired",false).put("CompleteKnownOriginals",true).put("PendingOriginals",JSONObject.NULL);
+  assertFalse(NativeIntentObservation.pendingOrderHistory(order().put("NativePayment",settled)));
+ }
  private JSONObject observation()throws Exception{return new JSONObject().put("orderId","ord_original").put("originalOperation","npi_"+"ab".repeat(24)).put("state","PREPARED").put("phase","signed_not_submitted").put("queryOnly",true).put("fundsVerified",false);}
  @Test public void originalOwnedIntentHasOnlyReadRoute()throws Exception{
   JSONObject original=order();assertTrue(NativeIntentObservation.isNative(original));assertEquals("/orders/ord_original/native-pay-intent",NativeIntentObservation.path(original,"original_account"));NativeIntentObservation.validate(original,observation());
