@@ -319,6 +319,7 @@ enum OriginalMainPayBroadcastKind: String {
     func reviewOriginalOrderRefund(_ orderID:String,originalOperation:String,refundID:String,amountAtoms:String,expected:ShopSession)async throws->String
     func reviewOriginalOrderBroadcast(_ orderID: String, originalOperation: String, kind: OriginalMainPayBroadcastKind, originalHash: String, expected: ShopSession) async throws -> String
     func reconcileOriginalOrderOperation(_ orderID:String,originalOperation:String,nativeHash:String,expected:ShopSession)async throws
+    func reconcileOriginalOrderOperation(_ orderID:String,originalOperation:String,nativeHash:String,expected:ShopSession,selection:()throws->Void)async throws
 }
 extension AppleOriginalNativePayNavigation {
     func openOriginalOrder(_ orderID:String,originalOperation:String,expected:ShopSession)async throws{throw ShopError.unavailable}
@@ -329,6 +330,7 @@ extension AppleOriginalNativePayNavigation {
         throw ShopError.unavailable
     }
     func reconcileOriginalOrderOperation(_ orderID:String,originalOperation:String,nativeHash:String,expected:ShopSession)async throws{throw ShopError.unavailable}
+    func reconcileOriginalOrderOperation(_ orderID:String,originalOperation:String,nativeHash:String,expected:ShopSession,selection:()throws->Void)async throws{throw ShopError.unavailable}
 }
 // Concrete Shop consumer of the EXISTING normal Main IPC shape. The original
 // Main/SDK hosting owner supplies authenticated calls plus same-account/current
@@ -508,8 +510,11 @@ struct OriginalMainPayRefusal:Error {let code:String;var presentationState:Strin
         ])
     }
     func reconcileOriginalOrderOperation(_ orderID:String,originalOperation:String,nativeHash:String,expected:ShopSession)async throws{
+        try await reconcileOriginalOrderOperation(orderID,originalOperation:originalOperation,nativeHash:nativeHash,expected:expected,selection:{})
+    }
+    func reconcileOriginalOrderOperation(_ orderID:String,originalOperation:String,nativeHash:String,expected:ShopSession,selection:()throws->Void)async throws{
         guard NativeWire.matches(orderID,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),NativeWire.matches(nativeHash,"^0x[a-f0-9]{64}$") else{throw ShopError.security}
-        let result=try await request(["action":"order-reconcile-operation","productId":"shop.order","sourceOrder":orderID,"nativeHash":nativeHash],operation:originalOperation,expected:expected,requireIntent:false)
+        let result=try await request(["action":"order-reconcile-operation","productId":"shop.order","sourceOrder":orderID,"nativeHash":nativeHash],operation:originalOperation,expected:expected,requireIntent:false,selection:selection)
         guard result["queryOnly"] as? Bool==true,result["approvalRequired"] as? Bool==false,result["canRetry"] as? Bool==false,result["walletRequest"]==nil,let ref=result["reference"] as? [String:Any],ref["productId"] as? String=="shop.order",ref["sourceOrder"] as? String==orderID,ref["nativeHash"] as? String==nativeHash,let merchant=ref["merchant"] as? String,NativeWire.matches(merchant,"^0x[a-f0-9]{40}$"),let invoice=ref["invoiceId"] as? String,NativeWire.matches(invoice,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),let original=result["reconciledOriginal"] as? [String:Any],original["merchant"] as? String==merchant,original["invoiceId"] as? String==invoice,original["nativeHash"] as? String==nativeHash,let abci=original["abciHash"] as? String,NativeWire.matches(abci,"^0x[a-f0-9]{64}$"),let owner=original["owner"] as? String,NativeWire.matches(owner,"^0x[a-f0-9]{40}$"),let kind=original["kind"] as? String,["invoice_terms","invoice_settle","invoice_refund"].contains(kind),["unknown","submitted","confirmed","confirmed_failed"].contains(original["status"] as? String ?? ""),let bill=result["bill"] as? [String:Any],bill["sourceOrder"] as? String==orderID,bill["merchant"] as? String==merchant,bill["invoiceId"] as? String==invoice else{throw ShopError.security}
         guard kind=="invoice_settle" ? owner != merchant:owner==merchant else{throw ShopError.security}
         guard let operations=result["operations"] as? [[String:Any]],operations.count<=4096 else{throw ShopError.security}
@@ -642,9 +647,10 @@ struct AppleShopOrderSelection: Encodable {
         try check()
         return id
     }
-    func reconcileOriginalNativeOperation(_ operation:String,orderID:String,nativeHash:String)async throws{
+    func reconcileOriginalNativeOperation(_ operation:String,orderID:String,nativeHash:String,beforeDispatch:()throws->Void = {})async throws{
         let check=try capture();guard let current=currentSession,let navigation=nativePayNavigation,NativeWire.matches(operation,"^npi_[a-f0-9]{48}$") else{throw ShopError.unavailable}
-        try await navigation.reconcileOriginalOrderOperation(orderID,originalOperation:operation,nativeHash:nativeHash,expected:current);try check()
+        try check();try beforeDispatch()
+        try await navigation.reconcileOriginalOrderOperation(orderID,originalOperation:operation,nativeHash:nativeHash,expected:current,selection:beforeDispatch);try check();try beforeDispatch()
     }
     func invalidate(){revision+=1}
     func restoreNative()async throws{guard let authority else{throw ShopError.unavailable};try await authority.restore()}

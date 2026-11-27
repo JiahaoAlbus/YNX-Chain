@@ -48,6 +48,8 @@ final class BuyerLifecycleHTTP:URLProtocol,@unchecked Sendable {
     var calls:[String]=[],bodies:[[String:Any]]=[]
     var mainCalls:[[String:String]]=[]
     var mainRefusal:String?
+    var holdMainStatus=false
+    var heldMainStatus:CheckedContinuation<Void,Never>?
     var mainReturned=false
     var queryAfterMain=0
     var wrongObservedOperation=false
@@ -69,6 +71,7 @@ final class BuyerLifecycleHTTP:URLProtocol,@unchecked Sendable {
     lazy var journey=AppleBuyerJourney(read:{self.storage[$0]},write:{self.storage[$0]=$1})
     lazy var journal=NativeInvoicePreparationJournal(read:{self.storage[$0]},write:{self.storage[$0]=$1})
     lazy var navigation=AppleOriginalMainPayNavigation(current:{guard let session=self.authority.current else{throw ShopError.signedOut};return session},status:{_ in
+        if self.holdMainStatus{await withCheckedContinuation{self.heldMainStatus=$0}}
         if let code=self.mainRefusal{return ["ok":false,"error":["code":code]]}
         return ["ok":true,"value":["normalMainEntry":true,"available":false,"canRequest":true,"paymentAuthorized":false]]
     },invoke:{input,expectedOperation,_ in
@@ -283,6 +286,16 @@ final class BuyerLifecycleHTTP:URLProtocol,@unchecked Sendable {
         try check(f.model.orders.first?.status=="refunded" && f.model.orders.first?.nativePayment?.NetPaidAtoms=="0" && f.model.orders.first?.nativePayment?.RefundedAtoms=="100","unchanged original full-refund archive is shown through normal order readback")
     }
     @MainActor static func explicitOriginalReconciliation()async throws {
+        do {
+            let f=try BuyerLifecycleFixture();defer{f.finish()};try await f.start();try await f.checkout()
+            try f.restoreArchivedPayment(status:"refund_requested")
+            let rows=(f.original["NativePayment"] as! [String:Any])["Receipts"] as! [[String:Any]],hash=rows.first{$0["kind"] as? String=="invoice_refund"}!["nativeHash"] as! String
+            var payment=f.visible["NativePayment"] as! [String:Any];payment["PendingOriginals"]=[hash];payment["CompleteKnownOriginals"]=false;f.visible["NativePayment"]=payment
+            await f.model.loadOrders();let pending=try f.order()
+            f.holdMainStatus=true;f.model.reconcilePayment(pending,nativeHash:hash);try await until{f.heldMainStatus != nil}
+            f.model.orders=[];f.heldMainStatus?.resume();f.heldMainStatus=nil;try await until{!f.model.mutationBusy}
+            try check(f.mainCalls.isEmpty,"Main status await cannot dispatch a removed original order")
+        }
         do {
             let f=try BuyerLifecycleFixture();defer{f.finish()};try await f.start();try await f.checkout()
             try f.restoreArchivedPayment(status:"refund_requested")

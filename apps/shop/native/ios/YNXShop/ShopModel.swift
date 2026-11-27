@@ -463,7 +463,7 @@ import SwiftUI
                 do{
                     let selectionFence:()throws->Void={try check();guard self.currentReconciliationMatches(order,nativeHash:nativeHash) else{throw ShopError.contextChanged}}
                     try selectionFence();var originalError:Error?
-                    do{try await api.reconcileOriginalNativeOperation(operation,orderID:order.orderID,nativeHash:nativeHash)}catch{originalError=error}
+                    do{try await api.reconcileOriginalNativeOperation(operation,orderID:order.orderID,nativeHash:nativeHash,beforeDispatch:selectionFence)}catch{originalError=error}
                     try selectionFence()
                     // Even a lost reconciliation reply recovers through the
                     // independently verified original archive, never by send.

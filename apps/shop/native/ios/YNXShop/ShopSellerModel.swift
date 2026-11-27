@@ -144,13 +144,14 @@ import SwiftUI
             // operation; subsequent recovery uses the existing order reader.
             guard let binding=ReconciliationBinding(order) else{throw ShopError.security}
             submittedReconciliations[order.ID+"\n"+nativeHash]=binding
+            let selectionFence:()throws->Void={try check();guard at==self.epoch,view==self.selection,self.exactCurrentOrder(order),self.can("finance.read") else{throw ShopError.contextChanged}}
             var mainError:Error?
-            do{try await api.reconcileOriginalNativeOperation(order.PayIntentID,orderID:order.ID,nativeHash:nativeHash);try check()}
-            catch{try check();mainError=error}
+            do{try await api.reconcileOriginalNativeOperation(order.PayIntentID,orderID:order.ID,nativeHash:nativeHash,beforeDispatch:selectionFence);try selectionFence()}
+            catch{try selectionFence();mainError=error}
             guard at==epoch,view==selection,exactCurrentOrder(order) else{return}
             // Main's operation observation is not a Shop settlement receipt.
             // Keep the same busy/context boundary through an independent GET.
-            _ = try await readOriginalOrderResult(order,at:at,view:view,check:check)
+            _ = try await readOriginalOrderResult(order,at:at,view:view,check:selectionFence)
             if let mainError{state=(mainError as? OriginalMainPayRefusal)?.presentationState ?? "unavailable"}
         }catch{if at==epoch,view==selection,api.currentSession==expected{state=(error as? OriginalMainPayRefusal)?.presentationState ?? "unavailable"}}}
     }
