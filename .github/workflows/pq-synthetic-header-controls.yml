@@ -46,7 +46,7 @@ jobs:
           export YNX_HEADER_FORK_TREE="$(git rev-parse 'HEAD:third_party/cometbft')"
           mkdir "$RUNNER_TEMP/ynx-synthetic-header-public"
           set +e
-          go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run '^(TestBefore59(CostOriginalEngineTransferResult|AllObserverStagesPreserveOriginalBlockExecutor|ObserverAllStagesPreserveOriginalStateEveryHeight|SyntheticStreamOnlyCost)|TestCommitHeaderProbeRealBlockExecutor|TestOperatorCommitObservationBoundedSamplesAndNormalStopGuard|TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts|TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence|TestSyntheticCommitHeaderCaptureStateSyncInvalidates|TestSyntheticCommitHeaderConcurrentReaders|TestSyntheticCommitHeaderRealEngineOffOnEquivalent|TestSyntheticCommitHeaderAndTimingAtomicSnapshot|TestSyntheticCommitHeaderOriginalClockCallback|TestSyntheticCommitHeaderIdentityOverflowRefuses|TestSyntheticHeaderStream.*)$' ./cmd/ynx-comet ./internal/consensus > "$RUNNER_TEMP/ynx-synthetic-header-public/events.jsonl"
+          go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run '^(TestBefore59(CostPrivateOutputDir|CostOriginalEngineTransferResult|AllObserverStagesPreserveOriginalBlockExecutor|ObserverAllStagesPreserveOriginalStateEveryHeight|SyntheticStreamOnlyCost)|TestCommitHeaderProbeRealBlockExecutor|TestOperatorCommitObservationBoundedSamplesAndNormalStopGuard|TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts|TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence|TestSyntheticCommitHeaderCaptureStateSyncInvalidates|TestSyntheticCommitHeaderConcurrentReaders|TestSyntheticCommitHeaderRealEngineOffOnEquivalent|TestSyntheticCommitHeaderAndTimingAtomicSnapshot|TestSyntheticCommitHeaderOriginalClockCallback|TestSyntheticCommitHeaderIdentityOverflowRefuses|TestSyntheticHeaderStream.*)$' ./cmd/ynx-comet ./internal/consensus > "$RUNNER_TEMP/ynx-synthetic-header-public/events.jsonl"
           YNX_HEADER_GO_STATUS=$?
           set -e
           printf 'YNX-SYNTHETIC-HEADER-RAW-BEGIN/v1 source=%s run=%s attempt=%s exit=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$YNX_HEADER_GO_STATUS"
@@ -57,11 +57,11 @@ jobs:
           test -z "$(git status --porcelain --untracked-files=all)"
           test -z "$(git ls-files --others --ignored --exclude-standard)"
           python3 -B - <<'PY'
-          import hashlib, json, os, re
+          import base64, hashlib, json, os, re
           from pathlib import Path
           package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet'
           consensus = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
-          names = ['TestBefore59CostOriginalEngineTransferResult', 'TestBefore59SyntheticStreamOnlyCost', 'TestBefore59AllObserverStagesPreserveOriginalBlockExecutor', 'TestBefore59ObserverAllStagesPreserveOriginalStateEveryHeight', 'TestCommitHeaderProbeRealBlockExecutor', 'TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts', 'TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence', 'TestSyntheticCommitHeaderCaptureStateSyncInvalidates', 'TestSyntheticCommitHeaderConcurrentReaders', 'TestSyntheticCommitHeaderRealEngineOffOnEquivalent', 'TestSyntheticCommitHeaderAndTimingAtomicSnapshot', 'TestSyntheticCommitHeaderOriginalClockCallback']
+          names = ['TestBefore59CostPrivateOutputDir', 'TestBefore59CostOriginalEngineTransferResult', 'TestBefore59SyntheticStreamOnlyCost', 'TestBefore59AllObserverStagesPreserveOriginalBlockExecutor', 'TestBefore59ObserverAllStagesPreserveOriginalStateEveryHeight', 'TestCommitHeaderProbeRealBlockExecutor', 'TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts', 'TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence', 'TestSyntheticCommitHeaderCaptureStateSyncInvalidates', 'TestSyntheticCommitHeaderConcurrentReaders', 'TestSyntheticCommitHeaderRealEngineOffOnEquivalent', 'TestSyntheticCommitHeaderAndTimingAtomicSnapshot', 'TestSyntheticCommitHeaderOriginalClockCallback']
           names += ['TestSyntheticHeaderStreamOriginalCallback', 'TestSyntheticHeaderStreamPreStartCallbackUnknown', 'TestSyntheticHeaderStreamChangedAttemptUnknown', 'TestSyntheticHeaderStreamOptionsFailClosed', 'TestSyntheticHeaderStreamRawTimingProjection', 'TestSyntheticHeaderStreamCloseDoesNotRetryTimedOutFinish', 'TestSyntheticHeaderStreamNormalNodeNoActivityUnknown', 'TestSyntheticHeaderStreamActualPrivateFile', 'TestSyntheticHeaderStreamRejectsLossAndWrongOrder', 'TestSyntheticHeaderStreamOriginalIdentityAndBoundedRetirement', 'TestSyntheticHeaderStreamCloseFailuresRetainCustody']
           names += ['TestSyntheticHeaderStreamOnlyOptions', 'TestSyntheticHeaderStreamOnly130ApplicationCallbacks', 'TestSyntheticHeaderStreamOnlyNormalNodeNoActivity', 'TestSyntheticHeaderStreamOnlyBindIdentity', 'TestSyntheticHeaderStreamOnlyCounterOverflow', 'TestOperatorCommitObservationBoundedSamplesAndNormalStopGuard']
           children = ['TestSyntheticCommitHeaderRealEngineOffOnEquivalent/' + layout for layout in ('atomic-json', 'snapshot-journal', 'block-journal')]
@@ -95,18 +95,27 @@ jobs:
           qualify(events)
           def qualify_cost(stream):
               marker = 'YNX_SYNTHETIC_STREAM_ONLY_AB '
-              cost_lines = [e['Output'].split(marker, 1)[1].strip() for e in stream
-                            if e.get('Test') == 'TestBefore59SyntheticStreamOnlyCost' and e.get('Action') == 'output'
-                            and marker in e.get('Output', '')]
-              if len(cost_lines) != 1:
-                  raise RuntimeError('original stream-only cost event missing or repeated')
+              name = 'TestBefore59SyntheticStreamOnlyCost'
+              starts = [i for i, e in enumerate(stream) if e.get('Test') == name and e.get('Package') == package and e.get('Action') == 'run']
+              ends = [i for i, e in enumerate(stream) if e.get('Test') == name and e.get('Package') == package and e.get('Action') == 'pass']
+              output = [(i, e) for i, e in enumerate(stream) if e.get('Test') == name and e.get('Action') == 'output']
+              if len(starts) != 1 or len(ends) != 1 or any(e.get('Package') != package or not starts[0] < i < ends[0] for i, e in output):
+                  raise RuntimeError('original stream-only output escaped its test lifecycle')
+              combined = ''.join(e.get('Output', '') for _, e in output)
+              if len(combined.encode('utf-8')) > 1 << 20 or combined.count(marker) != 1:
+                  raise RuntimeError('original stream-only cost output missing, repeated or too large')
+              start = combined.index(marker) + len(marker)
+              end = combined.find('\n', start)
+              if end < 0:
+                  raise RuntimeError('original stream-only cost line truncated')
+              cost_line = combined[start:end]
               def unique_object(pairs):
                   out = {}
                   for key, value in pairs:
                       if key in out: raise RuntimeError('duplicate original cost field')
                       out[key] = value
                   return out
-              cost = json.loads(cost_lines[0], object_pairs_hook=unique_object)
+              cost = json.loads(cost_line, object_pairs_hook=unique_object)
               records = cost.get('records')
               if (cost.get('version') != 'YNX-SYNTHETIC-STREAM-ONLY-AB/v1' or cost.get('source') != os.environ['GITHUB_SHA']
                       or cost.get('nodeStarted') is not False or cost.get('runtimeAuthorized') is not False
@@ -125,8 +134,29 @@ jobs:
                           or type(record.get('warmup')) is not bool or record['warmup'] != (round_number < 2)
                           or any(type(record.get(key)) is not int or record[key] < 0 for key in ('engineFixtureNs', 'probeAndStreamStopNs', 'observerCloseNs', 'allocatedBytes', 'streamBytes'))
                           or (record['enabled'] and (record['streamBytes'] == 0 or not re.fullmatch(r'[0-9a-f]{64}', record.get('streamSHA256', ''))))
-                          or (not record['enabled'] and (record['streamBytes'] != 0 or record['observerCloseNs'] != 0 or 'streamSHA256' in record))):
+                          or (not record['enabled'] and (record['streamBytes'] != 0 or record['observerCloseNs'] != 0 or any(key in record for key in ('streamSHA256', 'streamBase64', 'receiptBytes', 'receiptSHA256', 'receiptBase64'))))):
                       raise RuntimeError('original stream-only cost round differs')
+                  if record['enabled']:
+                      original = base64.b64decode(record.get('streamBase64', ''), validate=True)
+                      receipt_bytes = base64.b64decode(record.get('receiptBase64', ''), validate=True)
+                      if (len(original) != record['streamBytes'] or hashlib.sha256(original).hexdigest() != record['streamSHA256']
+                              or type(record.get('receiptBytes')) is not int or not 0 < record['receiptBytes'] <= 512 << 10
+                              or len(receipt_bytes) != record['receiptBytes'] or hashlib.sha256(receipt_bytes).hexdigest() != record.get('receiptSHA256')):
+                          raise RuntimeError('original stream/receipt bytes or digest differ')
+                      lines = original.splitlines()
+                      if len(lines) != 2 or lines[0] != b'{"version":"YNX-SYNTHETIC-HEADER-STREAM/v1","classification":"DATA_ONLY"}':
+                          raise RuntimeError('original stream framing differs')
+                      event = json.loads(lines[1], object_pairs_hook=unique_object)
+                      receipt = json.loads(receipt_bytes, object_pairs_hook=unique_object)
+                      if (type(event.get('height')) is not int or event['height'] != cost['height'] or event.get('headerHash') != cost['blockHash'] or event.get('appHash') != cost['appHash']
+                              or any(type(event.get(k)) is not int or not 0 < event[k] < 1 << 64 for k in ('captureEpoch', 'attempt'))
+                              or not re.fullmatch(r'[1-9][0-9]*', event.get('monotonicNs', '')) or int(event['monotonicNs']) >= 1 << 63
+                              or receipt.get('version') != 'YNX-SYNTHETIC-HEADER-STREAM-RECEIPT/v1' or receipt.get('classification') != 'DATA_ONLY' or receipt.get('status') != 'UNKNOWN' or receipt.get('streamStatus') != 'OBSERVED_DATA'
+                              or type(receipt.get('enqueued')) is not int or receipt['enqueued'] != 1 or type(receipt.get('written')) is not int or receipt['written'] != 1
+                              or receipt.get('streamDurable') is not True or receipt.get('streamCleanupDebt') is not False
+                              or type(receipt.get('bytes')) is not int or receipt['bytes'] != len(original) or receipt.get('sha256') != record['streamSHA256']
+                              or any(receipt.get(k) is not False for k in ('startupCoverageComplete', 'walReplayExcluded', 'nodeBindingVerified', 'receiptPublicationVerified', 'runtimeAuthorized', 'independentFinality'))):
+                          raise RuntimeError('original stream event or receipt differs')
               for enabled, suffix in ((False, 'Off'), (True, 'On')):
                   for value_key, median_key in (('engineFixtureNs', 'medianEngineFixtureNs'), ('probeAndStreamStopNs', 'medianProbeAndStreamStopNs')):
                       values = sorted(r[value_key] for r in records if r['enabled'] is enabled and not r['warmup'])
@@ -134,19 +164,50 @@ jobs:
                           raise RuntimeError('original stream-only cost median differs from rounds')
               return cost
           cost = qualify_cost(events)
-          cost_mutants = [json.loads(json.dumps(cost)) for _ in range(5)]
+          def replace_cost_output(value, *, truncate=False, wrong_test=False, duplicate=False):
+              result = [dict(e) for e in events if not (e.get('Test') == 'TestBefore59SyntheticStreamOnlyCost' and e.get('Action') == 'output')]
+              pos = next(i for i, e in enumerate(result) if e.get('Test') == 'TestBefore59SyntheticStreamOnlyCost' and e.get('Action') == 'pass')
+              line = 'YNX_SYNTHETIC_STREAM_ONLY_AB ' + json.dumps(value) + ('\n' if not truncate else '')
+              if duplicate: line += 'YNX_SYNTHETIC_STREAM_ONLY_AB {}\n'
+              chunks = [line[i:i+173] for i in range(0, len(line), 173)]
+              added = [dict(Package=package, Test='OtherTest' if wrong_test and i == 1 else 'TestBefore59SyntheticStreamOnlyCost', Action='output', Output=chunk) for i, chunk in enumerate(chunks)]
+              result[pos:pos] = added
+              return result
+          if qualify_cost(replace_cost_output(cost)) != cost:
+              raise RuntimeError('original fragmented cost event was not reconstructed')
+          cost_mutants = [json.loads(json.dumps(cost)) for _ in range(11)]
           cost_mutants[0]['source'] = '0' * 40
           cost_mutants[1]['records'].pop()
           cost_mutants[2]['medianEngineFixtureNsOn'] += 1
           cost_mutants[3]['records'][0]['enabled'] = not cost_mutants[3]['records'][0]['enabled']
           cost_mutants[4]['medianEngineFixtureNsOn'] = True
-          for altered in cost_mutants:
-              candidate = [dict(e) for e in events]
-              output = next(e for e in candidate if e.get('Test') == 'TestBefore59SyntheticStreamOnlyCost' and 'YNX_SYNTHETIC_STREAM_ONLY_AB ' in e.get('Output', ''))
-              output['Output'] = 'YNX_SYNTHETIC_STREAM_ONLY_AB ' + json.dumps(altered) + '\n'
+          cost_mutants[5]['records'][0]['streamSHA256'] = '0' * 64
+          for target, field, replacement in ((6, 'nodeBindingVerified', True), (7, 'version', 'wrong'), (8, 'status', 'OBSERVED')):
+              record = cost_mutants[target]['records'][0]
+              receipt = json.loads(base64.b64decode(record['receiptBase64'], validate=True))
+              receipt[field] = replacement
+              altered = (json.dumps(receipt, separators=(',', ':')) + '\n').encode()
+              record['receiptBase64'] = base64.b64encode(altered).decode()
+              record['receiptBytes'] = len(altered)
+              record['receiptSHA256'] = hashlib.sha256(altered).hexdigest()
+          for target, field, replacement in ((9, 'captureEpoch', 1 << 64), (10, 'monotonicNs', str(1 << 63))):
+              record = cost_mutants[target]['records'][0]
+              raw_lines = base64.b64decode(record['streamBase64'], validate=True).splitlines()
+              event = json.loads(raw_lines[1]); event[field] = replacement
+              altered_stream = raw_lines[0] + b'\n' + json.dumps(event, separators=(',', ':')).encode() + b'\n'
+              record['streamBase64'] = base64.b64encode(altered_stream).decode()
+              record['streamBytes'] = len(altered_stream)
+              record['streamSHA256'] = hashlib.sha256(altered_stream).hexdigest()
+              receipt = json.loads(base64.b64decode(record['receiptBase64'], validate=True))
+              receipt['bytes'], receipt['sha256'] = len(altered_stream), record['streamSHA256']
+              altered_receipt = (json.dumps(receipt, separators=(',', ':')) + '\n').encode()
+              record['receiptBase64'] = base64.b64encode(altered_receipt).decode()
+              record['receiptBytes'] = len(altered_receipt)
+              record['receiptSHA256'] = hashlib.sha256(altered_receipt).hexdigest()
+          for candidate in [replace_cost_output(altered) for altered in cost_mutants] + [replace_cost_output(cost, truncate=True), replace_cost_output(cost, wrong_test=True), replace_cost_output(cost, duplicate=True)]:
               try:
                   qualify_cost(candidate)
-              except RuntimeError:
+              except (RuntimeError, ValueError):
                   continue
               raise RuntimeError('synthetic header cost negative control was accepted')
           mutants = [[dict(e) for e in events] for _ in range(4)]

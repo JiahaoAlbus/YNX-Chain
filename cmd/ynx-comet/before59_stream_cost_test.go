@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"io"
@@ -94,6 +95,54 @@ func TestBefore59CostOriginalEngineTransferResult(t *testing.T) {
 	}
 }
 
+// Reuse the real canonical fixture path and make its own directory private;
+// never loosen the production observation guard to accommodate a test.
+func before59CostPrivateOutputDir(t *testing.T) string {
+	t.Helper()
+	dir := wireObservationTestDir(t)
+	if err := os.Chmod(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := commitObservationPrivateParent(dir); err != nil {
+		t.Fatal(err)
+	}
+	return dir
+}
+
+func TestBefore59CostPrivateOutputDir(t *testing.T) {
+	dir := before59CostPrivateOutputDir(t)
+	cfg, options := commitObservationOptions(t, filepath.Join(dir, "state"))
+	options.commitObservationOutput = ""
+	options.commitHeaderStreamOutput = filepath.Join(dir, "header.jsonl")
+	options.syntheticCommitHeaderStreamOnly = true
+	if err := os.Chmod(dir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	badObserver, badErr := prepareOperatorCommitObservation(cfg, options)
+	if badObserver != nil {
+		t.Cleanup(func() { _ = badObserver.close() })
+	}
+	if badErr == nil || badObserver != nil {
+		t.Fatal("non-private original output parent was accepted")
+	}
+	if _, err := os.Lstat(options.commitHeaderStreamOutput); !os.IsNotExist(err) {
+		t.Fatal("rejected parent created a stream", err)
+	}
+	if err := os.Chmod(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	observer, err := prepareOperatorCommitObservation(cfg, options)
+	if observer != nil {
+		t.Cleanup(func() { _ = observer.close() })
+	}
+	if err != nil || observer == nil {
+		t.Fatal("private original output parent rejected", err)
+	}
+	if err := observer.close(); err == nil {
+		t.Fatal("unstarted original stream incorrectly claimed complete")
+	}
+}
+
 // A local synthetic measurement, not a live node, throughput or finality test.
 // Every arm uses the same original transfer and BlockExecutor. The enabled arm
 // includes the real private stream, its worker, normal stop and durable receipt.
@@ -130,13 +179,17 @@ func TestBefore59SyntheticStreamOnlyCost(t *testing.T) {
 		AllocatedBytes uint64 `json:"allocatedBytes"`
 		StreamBytes    int64  `json:"streamBytes"`
 		StreamSHA256   string `json:"streamSHA256,omitempty"`
+		StreamBase64   string `json:"streamBase64,omitempty"`
+		ReceiptBytes   int    `json:"receiptBytes,omitempty"`
+		ReceiptSHA256  string `json:"receiptSHA256,omitempty"`
+		ReceiptBase64  string `json:"receiptBase64,omitempty"`
 	}
 	var records []roundRecord
 	var expectedHeight int64
 	var expectedBlock, expectedApp, boot, namespace string
 	for round := 0; round < 10; round++ {
 		for _, enabled := range []bool{round%2 == 0, round%2 != 0} {
-			dir := t.TempDir()
+			dir := before59CostPrivateOutputDir(t)
 			cfg, options := commitObservationOptions(t, filepath.Join(dir, "state"))
 			options.stateLayout = "atomic-json"
 			options.commitObservationOutput = ""
@@ -234,7 +287,24 @@ func TestBefore59SyntheticStreamOnlyCost(t *testing.T) {
 					json.Unmarshal(lines[1], &event) != nil || event.Height != expectedHeight || event.HeaderHash != expectedBlock || event.AppHash != expectedApp || event.MonotonicNs == "" {
 					t.Fatal("original stream event differs from the real engine block")
 				}
-				record.StreamBytes, record.StreamSHA256 = r.Bytes, r.SHA256
+				receipt, err := os.ReadFile(options.commitHeaderStreamOutput + ".receipt.json")
+				if err != nil || len(receipt) == 0 || len(receipt) > 512<<10 {
+					t.Fatal("original private stream receipt unavailable", err)
+				}
+				var receiptData struct {
+					Classification      string `json:"classification"`
+					StreamStatus        string `json:"streamStatus"`
+					SHA256              string `json:"sha256"`
+					Bytes               int64  `json:"bytes"`
+					RuntimeAuthorized   bool   `json:"runtimeAuthorized"`
+					IndependentFinality bool   `json:"independentFinality"`
+				}
+				if json.Unmarshal(receipt, &receiptData) != nil || receiptData.Classification != "DATA_ONLY" || receiptData.StreamStatus != "OBSERVED_DATA" || receiptData.Bytes != r.Bytes || receiptData.SHA256 != r.SHA256 || receiptData.RuntimeAuthorized || receiptData.IndependentFinality {
+					t.Fatal("original private stream receipt differs")
+				}
+				receiptHash := sha256.Sum256(receipt)
+				record.StreamBytes, record.StreamSHA256, record.StreamBase64 = r.Bytes, r.SHA256, base64.StdEncoding.EncodeToString(raw)
+				record.ReceiptBytes, record.ReceiptSHA256, record.ReceiptBase64 = len(receipt), hex.EncodeToString(receiptHash[:]), base64.StdEncoding.EncodeToString(receipt)
 				start = time.Now()
 				err = observer.close()
 				record.CloseNs = time.Since(start).Nanoseconds()
