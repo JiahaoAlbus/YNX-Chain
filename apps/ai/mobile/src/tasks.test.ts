@@ -1,6 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {createTaskAPI,TaskAPIError,TaskWorkspaceController,type Task,type TaskAPI,type TaskPersistence,type WorkspaceRecord,type TaskProjection,type TaskStep,type TaskRequestSnapshot} from "./tasks";
+import {decodeStoredWorkspaceRecord} from "./taskStorageDecode";
+
+test("missing task journal is distinct from empty or corrupt data",()=>{
+ assert.equal(decodeStoredWorkspaceRecord(null),null);
+ for(const raw of ["", "{", "null", "{}"])assert.throws(()=>decodeStoredWorkspaceRecord(raw),/TASK_JOURNAL_INVALID/);
+});
+
+test("decoding preserves the original unknown task delivery",()=>{
+ const original={selectedTask:"task-a",runId:"run-a",deliveries:[{id:"original-op",binding:"same-binding",action:"dispatch",taskId:"task-a",state:"UNKNOWN"}]};
+ assert.deepEqual(decodeStoredWorkspaceRecord(JSON.stringify(original)),original);
+});
 
 const task:Task={id:"task_original",conversationId:"conv_original",holder:"holder_original",revision:2,generation:1,status:"READY"};
 const step:TaskStep={id:"step_original",status:"UNKNOWN",toolStep:{taskId:task.id,taskRevision:2,generation:1,holder:task.holder,toolId:"ai.conversation.read",toolVersion:"1",authorityOperationId:"original-node-op"}};
