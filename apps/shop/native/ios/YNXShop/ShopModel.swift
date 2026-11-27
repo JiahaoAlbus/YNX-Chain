@@ -189,6 +189,7 @@ import SwiftUI
             guard refresh==ordersRefreshRevision,operation==operationRevision else{return false}
             try check()
             guard let account=api.currentSession?.account else{throw ShopError.signedOut}
+            guard Set(response.orders.map(\.orderID)).count==response.orders.count else{throw ShopError.security}
             try response.orders.forEach{try AppleBuyerReceipt.validate($0,account:account)}
             orders=response.orders;refreshOrderRecoveries();return true
         } catch {

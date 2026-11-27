@@ -71,6 +71,11 @@ final class OrderRefreshHTTP:URLProtocol,@unchecked Sendable {
         while model.orders.isEmpty{await Task.yield()}
         try check(model.signedIn && model.orders.first?.status=="pending","current startup read is presented")
 
+        let duplicate=Task{await model.loadOrders()};let duplicateReply=await inbox.take()
+        duplicateReply.respond(200,"{\"orders\":[{\"ID\":\"original-order\",\"Buyer\":\"\(account)\",\"Status\":\"pending\",\"TotalYNXT\":24,\"Currency\":\"YNXT\"},{\"ID\":\"original-order\",\"Buyer\":\"\(account)\",\"Status\":\"cancelled\",\"TotalYNXT\":24,\"Currency\":\"YNXT\"}]}")
+        await duplicate.value
+        try check(model.orders.count==1 && model.orders[0].status=="pending" && model.state=="unavailable" && storage==preservedQueue,"duplicate original IDs are refused without replacing the previous list or UNKNOWN")
+
         let first=Task{await model.loadOrders()};let old=await inbox.take()
         let second=Task{await model.loadOrders()};let latest=await inbox.take()
         latest.respond(200,response(account,"cancelled"));await second.value

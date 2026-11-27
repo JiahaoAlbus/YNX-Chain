@@ -842,6 +842,9 @@ jobs:
           xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" tests/OriginalOrderLinkChecks.swift \
             -o "$RUNNER_TEMP/ynx-shop-original-order-link-checks"
           "$RUNNER_TEMP/ynx-shop-original-order-link-checks"
+          xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" tests/ShopModelOrderRefreshChecks.swift \
+            -o "$RUNNER_TEMP/ynx-shop-order-refresh-checks"
+          "$RUNNER_TEMP/ynx-shop-order-refresh-checks"
           xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" tests/CartCheckoutChecks.swift \
             -o "$RUNNER_TEMP/ynx-shop-cart-checkout-checks"
           "$RUNNER_TEMP/ynx-shop-cart-checkout-checks"
