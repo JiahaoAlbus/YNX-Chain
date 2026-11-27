@@ -2,6 +2,9 @@
 import hashlib
 import importlib.util
 from pathlib import Path
+import sys
+
+StoppedHeaderDeadline=sys.__dict__.setdefault('_ynx_header_stopped_deadline_type_v1',type('StoppedHeaderDeadline',(TimeoutError,),{}))
 
 _spec=importlib.util.spec_from_file_location('original_header_data_reader',Path(__file__).with_name('pq-synthetic-header-stream-data.py'))
 reader=importlib.util.module_from_spec(_spec);_spec.loader.exec_module(reader)
@@ -50,6 +53,10 @@ def retain_after_stop(window,descriptors,cleanup_complete):
             result['nodes'].append(dict(node=node,processName=expected_name,originalProcessPID=proc.pid,
                 eventCount=projection['events'],streamSHA256=stream_pin,receiptSHA256=receipt_pin,
                 status='OBSERVED_DATA',sourceVerified=False,nodeBindingVerified=False,timeDomainVerified=False))
+        except StoppedHeaderDeadline:
+            # Only the scoped one-shot alarm aborts all nodes. Legacy ordinary
+            # TimeoutError remains its original per-node UNKNOWN behavior.
+            raise
         except (OSError,ValueError,TypeError,KeyError,RuntimeError) as error:
             debt=getattr(error,'readbackCleanupDebt',False) is True
             if debt:result['readbackCleanupDebt']=True

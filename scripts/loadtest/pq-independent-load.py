@@ -37,6 +37,7 @@ proof_readback=module("original_public_proof_readback","pq-public-proof-readback
 commit_readback=module("original_normal_commit_readback","pq-commit-observation.py")
 commit_clock=module("original_normal_commit_clock","pq-commit-clock-readback.py")
 header_data=module("original_synthetic_header_driver_data","pq-synthetic-header-driver-data.py")
+header_stopped_scope=module("original_synthetic_header_stopped_scope","pq-header-stopped-read-scope.py")
 commit_clock_ci=module("original_normal_commit_clock_ci","pq-commit-clock-source-qualification.py")
 initialization=module("original_initialization_measurements","pq-initialization-measurements.py")
 rpc_measurements=module('original_parent_rpc_measurements','pq-rpc-measurements.py')
@@ -151,6 +152,8 @@ COMMIT_OBSERVATION_SOURCE = CALLEE_SOURCE
 COMMIT_VALIDATION_ABI_SOURCE = None
 # ABI identity only; the independent original clock/source gates remain closed.
 SYNTHETIC_HEADER_ABI_SOURCE = 'ec8710b30673414487115f4fad6aa51a778d6284'
+SYNTHETIC_HEADER_STREAM_ONLY_ABI_SOURCE = 'edf5b12deb65f94e6e731708f336ca1af23bcfe1'
+SYNTHETIC_HEADER_STREAM_ONLY_SOURCE = None  # Frozen source, independent CI and resource scope still required.
 # A new large-owner normal callee/ABI must be explicitly qualified by CORE.
 STAGED_CALLEE_SOURCE = initialization.LIVE_SOURCE
 STAGED_CALLEE_TREE = initialization.LIVE_TREE
@@ -473,7 +476,7 @@ class SenderSession:
 
 
 class LoadCeremony(normal.Ceremony):
-    def __init__(self,*args,operations,proof_timeout,commit_observation=False,commit_validation_observation=False,commit_clock_observation=False,header_stream_data=False,sender_pool=False,consumer_source=None,startup_timings=False,**kwargs):
+    def __init__(self,*args,operations,proof_timeout,commit_observation=False,commit_validation_observation=False,commit_clock_observation=False,header_stream_data=False,header_stream_only_data=False,sender_pool=False,consumer_source=None,startup_timings=False,**kwargs):
         lab.require(type(startup_timings) is bool and (not startup_timings or consumer_source in STARTUP_TIMING_ABI_SOURCES),'matching original startup timing ABI required; no source qualification implied')
         lab.require(type(commit_validation_observation) is bool and (not commit_validation_observation or
             (commit_observation and COMMIT_VALIDATION_ABI_SOURCE is not None and consumer_source==COMMIT_VALIDATION_ABI_SOURCE)),
@@ -484,11 +487,16 @@ class LoadCeremony(normal.Ceremony):
         lab.require(type(header_stream_data) is bool and (not header_stream_data or
             (commit_clock_observation and consumer_source==SYNTHETIC_HEADER_ABI_SOURCE)),
             'exact synthetic header DATA ABI/source NOT_SUPPLIED')
+        lab.require(type(header_stream_only_data) is bool and (not header_stream_only_data or
+            (header_stream_data is False and commit_observation is False and commit_validation_observation is False and commit_clock_observation is False
+             and SYNTHETIC_HEADER_STREAM_ONLY_SOURCE is not None
+             and consumer_source==SYNTHETIC_HEADER_STREAM_ONLY_SOURCE==SYNTHETIC_HEADER_STREAM_ONLY_ABI_SOURCE)),
+            'exact synthetic stream-only DATA source/CI NOT_SUPPLIED or legacy observer selected')
         super().__init__(*args,**kwargs);self.operations=operations;self.proof_timeout=proof_timeout;self.live=[]
         self.commit_observation_enabled=commit_observation;self.commit_observation_descriptors=[]
         self.commit_validation_observation_enabled=commit_validation_observation
         self.commit_clock_observation_enabled=commit_clock_observation;self.commit_clock_descriptors=[]
-        self.header_stream_data_enabled=header_stream_data;self.header_stream_descriptors=[]
+        self.header_stream_data_enabled=header_stream_data or header_stream_only_data;self.header_stream_only_data_enabled=header_stream_only_data;self.header_stream_descriptors=[]
         self.finalize_observation_enabled=False;self.finalize_observation_descriptors=[]
         self.consumer_source=CALLEE_SOURCE if consumer_source is None else consumer_source
         self.preparation_sender_arguments=("--timings",);self.preparation_sender_measurements=[]
@@ -558,6 +566,14 @@ class LoadCeremony(normal.Ceremony):
             lab.require(result["nodeArguments"]==[*original,"--proof-host-live-policy",str(policy),"--proof-host-live-policy-sha256",result["policy"]["sha256"]],"normal live setup arguments differ from exact pinned policy opt-in")
             self.live.append(dict(node=node,policy=policy,pin=result["policy"]["sha256"],sequence=0,lock=threading.Lock(),retired=False))
             resumed["nodes"][node]["args"]=list(result["nodeArguments"])
+            if getattr(self,'header_stream_only_data_enabled',False):
+                private=self.w.work/'.private/commit-observations';private.mkdir(mode=0o700,exist_ok=True)
+                header_output=private/('header-node-%d.jsonl'%node);header_receipt=header_output.with_name(header_output.name+'.receipt.json')
+                lab.require(not any(a.startswith(('--commit-observation-','--commit-monotonic-','--commit-validation-','--finalize-observation-','--commit-header-stream-','--synthetic-commit-header-stream-only')) for a in resumed['nodes'][node]['args'])
+                    and not header_output.exists() and not header_output.is_symlink() and not header_receipt.exists() and not header_receipt.is_symlink(),
+                    'fresh stream-only original output and no legacy observer required')
+                resumed['nodes'][node]['args'].extend(('--commit-observation-scope','synthetic-loopback-lab/v1','--synthetic-commit-header-stream-only','--commit-header-stream-output',str(header_output)))
+                self.header_stream_descriptors.append(dict(node=node,path=str(header_output),processName='pq-node-%d'%node))
             if self.commit_observation_enabled:
                 private=self.w.work/".private/commit-observations";private.mkdir(mode=0o700,exist_ok=True)
                 output=private/("pq-node-%d.json"%node)
@@ -1475,6 +1491,14 @@ def validate_options(args):
         (getattr(args,'commit_clock_observation',False) is True and args.commit==SYNTHETIC_HEADER_ABI_SOURCE
          and commit_clock.COMMIT_CLOCK_SOURCE==SYNTHETIC_HEADER_ABI_SOURCE)),
         'exact synthetic header DATA and original clock source/CI NOT_SUPPLIED')
+    stream_only=getattr(args,'header_stream_only_data',False)
+    lab.require(type(stream_only) is bool and (not stream_only or
+        (profile==HELD_TRIAL_PROFILE and getattr(args,'staged_publication',False) is True
+         and header is False and getattr(args,'commit_observation',False) is False
+         and getattr(args,'commit_clock_observation',False) is False and getattr(args,'commit_validation_observation',False) is False
+         and SYNTHETIC_HEADER_STREAM_ONLY_SOURCE is not None
+         and args.commit==SYNTHETIC_HEADER_STREAM_ONLY_SOURCE==SYNTHETIC_HEADER_STREAM_ONLY_ABI_SOURCE)),
+        'exact synthetic stream-only DATA source/CI NOT_SUPPLIED or legacy observer selected')
     lab.require(type(getattr(args,'commit_validation_observation',False)) is bool and
         (not getattr(args,'commit_validation_observation',False) or
          (profile==HELD_TRIAL_PROFILE and getattr(args,'commit_observation',False) is True and
@@ -1499,7 +1523,7 @@ def validate_options(args):
     lab.require((args.accounts+4)*args.per_account<=(10000 if args.mode=="online" else 1024),"current normal original corpus aggregate capacity exceeded")
     if getattr(args,'initialize_before_load',False):
         lab.require((args.mode,args.rate,args.seconds,args.accounts,args.per_account,args.tail_seconds,args.proof_timeout)==('online',100,5,500,1,30,30) and getattr(args,'staged_publication',False) and not getattr(args,'initialization_only',False),'selected same-window initialization then first100 profile only; no500/1000 permission')
-        lab.require(all(getattr(args,key,False) is True for key in ('startup_timings','wire_observation','commit_observation','network_accounting','owned_storage_accounting')) and not getattr(args,'header_hop_capture',False),'selected original first100 observation configuration required')
+        lab.require(all(getattr(args,key,False) is True for key in ('startup_timings','wire_observation','network_accounting','owned_storage_accounting')) and (getattr(args,'commit_observation',False) is True or stream_only) and not getattr(args,'header_hop_capture',False),'selected original first100 observation configuration required')
     if getattr(args,'staged_publication',False):lab.require(args.mode=='online','staged cold sender pipeline requires explicit online mode')
     serial=getattr(args,'serial_verifier',False)
     lab.require(type(serial) is bool and (not serial or (profile==HELD_TRIAL_PROFILE
@@ -1635,6 +1659,7 @@ def load_conditions(args):
     if getattr(args,'commit_validation_observation',False): result['commit_validation_observation']=True
     if getattr(args,'commit_clock_observation',False): result['commit_clock_observation']=True
     if getattr(args,'header_stream_data',False): result['header_stream_data']=True
+    if getattr(args,'header_stream_only_data',False): result['header_stream_only_data']=True
     if getattr(args,'guarded_owner_shutdown',False): result['guarded_owner_shutdown']=True
     if getattr(args,'serial_verifier',False):result['serialVerifierAdmission']=dict(maxConcurrent=1,originalObservationDeadline=True)
     return result
@@ -1744,6 +1769,8 @@ def retain_original_process_rss(result,window):
 
 
 def finish_synthetic_header_data(result,window,ceremony):
+    if getattr(ceremony,'header_stream_only_data_enabled',False):
+        finish_stream_only_header_data(result,window,ceremony);return
     try:
         result['syntheticHeaderStreamData']=header_data.retain_after_stop(window,ceremony.header_stream_descriptors,result['cleanupComplete'])
         if result['syntheticHeaderStreamData'].get('readbackCleanupDebt') is True:
@@ -1754,6 +1781,59 @@ def finish_synthetic_header_data(result,window,ceremony):
         result['syntheticHeaderStreamData']=dict(status='NOT_SUPPLIED',errorType=type(error).__name__,
             runtimeAuthorized=False,independentFinality=False,readbackRSSMeasured=False)
         preserve_first_cause(result,'original synthetic header DATA readback failed; preserve UNKNOWN',error=error)
+
+
+def finish_stream_only_header_data(result,window,ceremony):
+    """Read original stopped files inside a separate bounded sampled scope."""
+    if result.get('cleanupComplete') is not True:
+        result['syntheticHeaderStreamData']=dict(status='NOT_SUPPLIED',reason='original cleanup incomplete',runtimeAuthorized=False,independentFinality=False)
+        preserve_first_cause(result,'original synthetic header DATA incomplete; preserve UNKNOWN');return
+    scope=None;data_incomplete=False;caught_scope_error=False
+    try:
+        scope=header_stopped_scope.StoppedReadScope(window,lab=lab,monitor_factory=Monitor);scope.start()
+        data=header_data.retain_after_stop(window,ceremony.header_stream_descriptors,True)
+        result['syntheticHeaderStreamData']=data
+        if data.get('readbackCleanupDebt') is True:result['cleanupComplete']=False
+        if data.get('status')!='OBSERVED_DATA':
+            data_incomplete=True
+            errors=data.get('errors',[])
+            if errors and errors[0].get('errorType')=='StoppedHeaderDeadline':
+                preserve_first_cause(result,'original stopped header deadline; preserve UNKNOWN')
+                if result.get('firstCause')=='original stopped header deadline; preserve UNKNOWN':result['firstCauseErrorType']='StoppedHeaderDeadline'
+            else:preserve_first_cause(result,'original synthetic header DATA incomplete; preserve UNKNOWN')
+        scope.check(final=True)
+    except BaseException as error:
+        caught_scope_error=True
+        result.setdefault('syntheticHeaderStreamData',dict(status='NOT_SUPPLIED',runtimeAuthorized=False,independentFinality=False))
+        result['syntheticHeaderStreamData']['status']='NOT_SUPPLIED'
+        result['syntheticHeaderStreamData']['resourceErrorType']=type(error).__name__
+        preserve_first_cause(result,'original stopped header DATA read failed; preserve UNKNOWN',error=error)
+        if scope is not None:scope.remember_first(header_stopped_scope.failure(error))
+    finally:
+        if scope is not None:
+            try:scope.close()
+            except BaseException as error:
+                scope.cleanup_debt=True;scope.cleanup_errors.append(header_stopped_scope.failure(error))
+                scope.remember_first(header_stopped_scope.failure(error))
+                if scope not in header_stopped_scope._READ_SCOPE_DEBT:header_stopped_scope._READ_SCOPE_DEBT.append(scope)
+            try:observed=scope.report()
+            except BaseException as error:
+                scope.cleanup_debt=True
+                if scope not in header_stopped_scope._READ_SCOPE_DEBT:header_stopped_scope._READ_SCOPE_DEBT.append(scope)
+                observed=dict(status='UNKNOWN',cleanupDebt=True,errorType=type(error).__name__,continuousRSSLimitProven=False)
+                preserve_first_cause(result,'original stopped header resource report UNKNOWN',error=error)
+            result['syntheticHeaderReadResources']=observed
+            if data_incomplete and observed.get('firstCauseType') is not None:
+                result['firstCauseOrder']='UNKNOWN'
+            if caught_scope_error:
+                try:
+                    if scope.monitor_snapshot() is not None:result['firstCauseOrder']='UNKNOWN'
+                except BaseException:result['firstCauseOrder']='UNKNOWN'
+            if observed['status']!='OBSERVED':
+                result.setdefault('syntheticHeaderStreamData',dict(runtimeAuthorized=False,independentFinality=False))['status']='NOT_SUPPLIED'
+                preserve_first_cause(result,'original stopped header resource scope UNKNOWN')
+            if observed['cleanupDebt']:
+                result['cleanupComplete']=False;preserve_first_cause(result,'original stopped header scope cleanup UNKNOWN')
 
 
 def finish_commit_clock_readback(result,window,work,private_network,source,demand):
@@ -1914,6 +1994,13 @@ def run(args, *, source_metadata_reader=None, clock_original_log_reader=None, cl
     initialization_journal=stages=None
     result=dict(schema="YNX-PQ-INDEPENDENT-NORMAL-RUN/v1",source=identity,caps=lab.CAPS,storageRoots=[str(p) for p in w.storage_roots],mode=args.mode,requestedOfferedTPS=args.rate,configuredDemand=demand,firstCause=None,loadExecuted=False,normalLiveCalleeUsed=False,stableFinalTPS="UNMEASURED",P95FinalConfirmation="UNMEASURED",actualHopBytesPerTx="UNMEASURED",firstSaturatedChainStage="UNMEASURED",sameHost=True,physicalFaultDomains=1,signerTransport="original per-account persistent stdin/stdout with actual DATA-ready and measured normal CLI; cold initialization retained outside offered clock, no pre-sign/reserved nonce; source703 includes other changes and is not a pure-cache A/B")
     try:
+        if getattr(args,'header_stream_only_data',False):
+            lab.require(not header_stopped_scope._READ_SCOPE_DEBT,'previous original stopped header scope remains UNKNOWN')
+            w._header_storage_identities={}
+            for path in w.storage_roots:
+                path=Path(path);lab.require(path.is_absolute() and path.resolve(strict=True)==path,'original header storage root differs')
+                info=path.stat();lab.require(stat.S_ISDIR(info.st_mode),'original header storage root must be directory')
+                w._header_storage_identities[str(path)]=(info.st_dev,info.st_ino)
         initialization_journal=Journal(work/"public/initialization-events.jsonl")
         stages=initialization.InitializationStages(on_event=initialization_journal.emit)
         result["toolIdentity"]=tool_identity()
@@ -1991,12 +2078,12 @@ def run(args, *, source_metadata_reader=None, clock_original_log_reader=None, cl
         stages.run("create_original","all-configured-owners",create_original)
         created=json.loads((work/"public/create-original.log").read_bytes())
         staged=getattr(args,'staged_publication',False)
-        ceremony=initialization.instrumented_ceremony_class(LoadCeremony)(w,root,created,bins,args.wire_observation,initialization_stages=stages,expected_owners=args.accounts+4,operations=demand,proof_timeout=args.proof_timeout,commit_observation=getattr(args,"commit_observation",False),commit_validation_observation=getattr(args,'commit_validation_observation',False),commit_clock_observation=getattr(args,'commit_clock_observation',False),header_stream_data=getattr(args,'header_stream_data',False),sender_pool=staged,consumer_source=args.commit,startup_timings=getattr(args,'startup_timings',False))
+        ceremony=initialization.instrumented_ceremony_class(LoadCeremony)(w,root,created,bins,args.wire_observation,initialization_stages=stages,expected_owners=args.accounts+4,operations=demand,proof_timeout=args.proof_timeout,commit_observation=getattr(args,"commit_observation",False),commit_validation_observation=getattr(args,'commit_validation_observation',False),commit_clock_observation=getattr(args,'commit_clock_observation',False),header_stream_data=getattr(args,'header_stream_data',False),header_stream_only_data=getattr(args,'header_stream_only_data',False),sender_pool=staged,consumer_source=args.commit,startup_timings=getattr(args,'startup_timings',False))
         ceremony.sender_arguments=STAGED_SENDER_ARGUMENTS if staged else ()
         # This assignment is reached only after the matching source CI AND
         # per-height semantic evidence have passed the selected source gate.
         ceremony.request_stage_observation=profile=='7c25'
-        ceremony.finalize_observation_enabled=held
+        ceremony.finalize_observation_enabled=held and not getattr(args,'header_stream_only_data',False)
         if live_module is not None:
             attach_live_reader(ceremony,live_module)
             result['normalPrivateLiveReaderRequested']=True
@@ -2334,6 +2421,7 @@ if __name__=="__main__":
     p.add_argument("--commit-validation-observation",action="store_true",help="explicit separately qualified synthetic held Commit validation phases; default unavailable")
     p.add_argument("--commit-clock-observation",action="store_true",help="explicit separately qualified synthetic held local Commit-return upper bounds; default unavailable")
     p.add_argument('--header-stream-data',action='store_true',help='explicit stopped synthetic header DATA only; original clock/source gates remain required')
+    p.add_argument('--header-stream-only-data',action='store_true',help='separately gated synthetic stream-only DATA; no legacy observer, authority or finality')
     p.add_argument('--guarded-owner-shutdown',action='store_true',help='explicit separately qualified original owner shutdown; default unavailable')
     p.add_argument("--commit-clock-ci-original-log",help="absolute retained same-job original CI log; supplies bytes only, never source or runtime authority")
     p.add_argument("--header-hop-capture",action="store_true",help="explicit owned controlled-netns exact-tuple IPv4 header-only capture; no physical-wire claim or permission escalation")

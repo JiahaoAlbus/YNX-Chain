@@ -39,6 +39,7 @@ GROUPS=[
  ('test_pq_cold_readiness.py',None,12),
  ('test_pq_live_source_qualification.py',None,7),
  ('test_pq_initialization_measurements.py',None,39),
+ ('test_pq_header_stream_only.py',['portable_suite'],12),
  ('test_pq_scheduler_boundary_controls.py',None,23),
  ('test_pq_completion_diagnostics.py',None,20),
  ('test_pq_staged_independent_scheduler.py',None,23),
