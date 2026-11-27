@@ -157,7 +157,7 @@ jobs:
           return_decision_checks = not native_client_only and not notification_only and not listing_only and (return_decision_only or not changed or any(p in return_files or p == ".github/workflows/shop-native.yml" for p in changed))
           v4_supplier_intake = any(p.startswith("internal/commerce/third_party/productreadsource/") for p in changed) or v4_consumer_ci_delta
           link_proof_intake = "internal/securelink/local_caller_product_session_proof.go" in changed
-          link_v4_intake = not changed or any(p.startswith("internal/securelink/") or p == "internal/commerce/native_invoice_source_read.go" or p == "internal/commerce/shop_session_test.go" or p.startswith("internal/commerce/shop_v4_response_owner") for p in changed)
+          link_v4_intake = not changed or any(p.startswith("internal/securelink/") or p == "internal/commerce/native_invoice_source_read.go" or p == "internal/commerce/shop_session_test.go" or p == "internal/commerce/PRODUCT_SOURCE_DEPENDENCIES.json" or p == ".github/workflows/shop-native.yml" or p.startswith("internal/commerce/shop_v4_response_owner") for p in changed)
           tests = []
           if not source_only or any(map(source_path, changed)):
               tests.extend(["TestShopInvoiceSource", "TestShopRuntime", "TestShopNativeAPI", "TestShopTaskOrder"])
