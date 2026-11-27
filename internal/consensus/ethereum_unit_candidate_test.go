@@ -2,12 +2,19 @@ package consensus
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"math"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
+	abci "github.com/cometbft/cometbft/abci/types"
 )
 
 func ethereumUnitCandidateBytes(t *testing.T, p ethereumUnitCandidatePlan) ([]byte, string) {
@@ -18,6 +25,67 @@ func ethereumUnitCandidateBytes(t *testing.T, p ethereumUnitCandidatePlan) ([]by
 	}
 	hash := sha256.Sum256(raw)
 	return raw, hex.EncodeToString(hash[:])
+}
+
+// With no candidate installed, the original signed 21k wire and journal replay
+// must retain their exact legacy response and AppHash. This is a synthetic
+// regression, not a statement about any deployed chain's historical inputs.
+func TestEthereumUnitCandidateAbsentPreservesOriginalJournal(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	owner := mustNativeAddress(t, deterministicPrivateKey(12))
+	if _, err := devnet.Faucet(owner, 100000); err != nil {
+		t.Fatal(err)
+	}
+	devnet.ProduceBlock()
+	migration, err := devnet.ExportConsensusMigrationState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "original.blocks")
+	journal, err := NewBlockJournaledApplication(migration, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	atomic, err := NewApplication(migration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, _, err := NewEthereumLegacyTransfer(deterministicPrivateKey(12), 6423, 0, 1, mustNativeAddress(t, deterministicPrivateKey(13)), 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := &abci.RequestFinalizeBlock{Height: int64(migration.Height) + 1, Time: time.Date(2026, 10, 17, 12, 0, 0, 0, time.UTC), Txs: [][]byte{raw}}
+	var first []byte
+	for _, app := range []*Application{atomic, journal} {
+		response, err := app.FinalizeBlock(context.Background(), req)
+		if err != nil || len(response.TxResults) != 1 || response.TxResults[0].Code != 0 {
+			t.Fatal("original 21k input failed", response, err)
+		}
+		encoded, err := response.Marshal()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if first == nil {
+			first = encoded
+		} else if !bytes.Equal(first, encoded) {
+			t.Fatal("journal changed the original ABCI response")
+		}
+		if _, err := app.Commit(context.Background(), &abci.RequestCommit{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cold, err := NewBlockJournaledApplication(migration, path)
+	if err != nil || !journalStateEqual(t, cold.committed, atomic.committed) {
+		t.Fatal("original journal recovery changed state or AppHash", err)
+	}
+	after, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(before, after) {
+		t.Fatal("original journal recovery changed durable bytes", err)
+	}
 }
 
 func TestEthereumUnitCandidatePinsTrustedCheckpointAndHeight(t *testing.T) {

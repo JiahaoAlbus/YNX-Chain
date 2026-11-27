@@ -10,6 +10,7 @@ REQUIRED = {
     ),
     "consensus": (
         "TestEthereumUnitCandidatePinsTrustedCheckpointAndHeight",
+        "TestEthereumUnitCandidateAbsentPreservesOriginalJournal",
         "TestOriginalEthereumAdapterPublicWireCompatibility",
         "TestOriginalEthereumAdapterExecutionAndColdRestart",
         "TestOriginalEthereumAdapterPaddedGasBudget",
