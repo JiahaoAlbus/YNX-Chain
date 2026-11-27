@@ -62,6 +62,7 @@ final class BuyerLifecycleHTTP:URLProtocol,@unchecked Sendable {
     var failTransition=false
     var foreignTransitionLookup=false
     var lastTransition:[String:Any]?
+    var onOrderRead:(()->Void)?
     var created=false
     var invoiceCreateResponseLost=false
     var nativeLookupUnavailable=false
@@ -108,7 +109,7 @@ final class BuyerLifecycleHTTP:URLProtocol,@unchecked Sendable {
         calls.append(method+" "+path);bodies.append(body)
         if path=="/api/products"{request.respond(["products":[listing()]]);return}
         if path=="/api/products/product-original"{request.respond(listing());return}
-        if path=="/api/orders",method=="GET"{if orderReadFails{request.respond(["error":"controlled read unavailable"],status:503)}else{request.respond(["orders":created ? [visible]:[]])};return}
+        if path=="/api/orders",method=="GET"{onOrderRead?();if orderReadFails{request.respond(["error":"controlled read unavailable"],status:503)}else{request.respond(["orders":created ? [visible]:[]])};return}
         if path=="/api/orders",method=="POST"{created=true;request.respond(visible);return}
         if path=="/api/orders/\(orderID)"{request.respond(visible);return}
         if path=="/api/orders/\(orderID)/native-pay-intent",method=="POST" {
@@ -128,6 +129,10 @@ final class BuyerLifecycleHTTP:URLProtocol,@unchecked Sendable {
         }
         if path=="/api/orders/\(orderID)/transition-intent-lookup",let saved=lastTransition {
             request.respond(["Actor":foreignTransitionLookup ? Self.other:Self.account,"OrderID":orderID,"Action":saved["Action"]!,"IdempotencyKey":saved["IdempotencyKey"]!,"Order":visible]);return
+        }
+        if path=="/api/orders/other-original-order/transition-intent-lookup" {
+            var other=visible;other["ID"]="other-original-order"
+            request.respond(["Actor":foreignTransitionLookup ? Self.other:Self.account,"OrderID":"other-original-order","Action":body["Action"]!,"IdempotencyKey":body["IdempotencyKey"]!,"Order":other]);return
         }
         request.respond(["error":"unconfigured controlled route"],status:404)
     }
@@ -428,6 +433,18 @@ final class BuyerLifecycleHTTP:URLProtocol,@unchecked Sendable {
         try check(try f.queue.load(account:BuyerLifecycleFixture.account)==[unrelated] && f.queue.dispatchPhase(unrelated)=="prepared" && f.model.orders.first?.status=="cancelled","targeted explicit retry preserves every unrelated queued action")
         f.model.retryPreparedOrder(try f.order());try await until{!f.model.mutationBusy}
         try check(f.calls.filter{$0=="POST /api/orders/\(f.orderID)/transition"}.count==1,"confirmed prepared action cannot be dispatched again")
+        let otherUnknown=try f.queue.prepare(account:BuyerLifecycleFixture.account,path:"orders/other-original-order/transition",input:input)
+        let unrelatedBytes=unrelated.body
+        f.foreignTransitionLookup=true;f.model.retryPending();try await until{!f.model.mutationBusy}
+        try check(try f.queue.load(account:BuyerLifecycleFixture.account)==[unrelated,otherUnknown] && f.queue.dispatchPhase(otherUnknown)=="unknown","foreign lookup retains both original records and never acknowledges UNKNOWN")
+        f.foreignTransitionLookup=false
+        f.model.retryPending();try await until{!f.model.mutationBusy}
+        try check(try f.queue.load(account:BuyerLifecycleFixture.account)==[unrelated] && f.queue.dispatchPhase(unrelated)=="prepared" && unrelated.body==unrelatedBytes && !f.calls.contains("POST /api/orders/another-original-order/transition"),"blocked original remains prepared without sending")
+        try check(f.calls.contains("POST /api/orders/other-original-order/transition-intent-lookup") && !(try f.queue.load(account:BuyerLifecycleFixture.account)).contains(otherUnknown) && f.model.state=="order_request_pending","a different UNKNOWN is read and acknowledged despite a blocked prepared order")
+        f.onOrderRead={f.model.signOut();f.model.state="replacement_context"}
+        f.model.retryPending();try await until{!f.model.mutationBusy};try await Task.sleep(for:.milliseconds(20))
+        try check(f.model.state=="replacement_context" && (try f.queue.load(account:BuyerLifecycleFixture.account))==[unrelated],"session replacement during final refresh cannot publish the previous buyer recovery state")
+        f.onOrderRead=nil
     }
 #endif
     @MainActor static func main()async throws {
