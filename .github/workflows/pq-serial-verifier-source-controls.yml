@@ -41,7 +41,7 @@ jobs:
           import hashlib, importlib.util, io, json, os, pathlib, platform, sys, unittest
           if sys.platform != 'linux': raise RuntimeError('actual original Linux controls required')
           root=pathlib.Path('scripts/loadtest'); out=pathlib.Path(os.environ['RUNNER_TEMP'])/'ynx-serial-verifier-public'
-          groups=[('staged','test_pq_staged_independent_scheduler.py',23),('serial','test_pq_serial_verifier_admission.py',28),('header-data','test_pq_synthetic_header_stream_data.py',9)]
+          groups=[('staged','test_pq_staged_independent_scheduler.py',23),('serial','test_pq_serial_verifier_admission.py',28),('header-data','test_pq_synthetic_header_stream_data.py',9),('go-evidence-parser','test_pq_synthetic_header_cross_source_ci.py',7)]
           metadata=dict(version='YNX-SERIAL-VERIFIER-CONTROLS/v1',sourceCommit=os.environ['GITHUB_SHA'],sourceTree=os.environ['YNX_SERIAL_TREE'],forkTree=os.environ['YNX_SERIAL_FORK'],eventName=os.environ['GITHUB_EVENT_NAME'],pullRequestHead=os.environ['YNX_PR_HEAD'],pullRequestBase=os.environ['YNX_PR_BASE'],runId=os.environ['GITHUB_RUN_ID'],attempt=os.environ['GITHUB_RUN_ATTEMPT'],job=os.environ['GITHUB_JOB'],platform=sys.platform,kernel=platform.release(),groups=[],runtimeAuthorized=False,independentFinalityVerified=False)
           for name,file,count in groups:
               spec=importlib.util.spec_from_file_location('original_serial_ci_'+name,root/file)
@@ -70,6 +70,54 @@ jobs:
             ${{ runner.temp }}/ynx-serial-verifier-public/staged.log
             ${{ runner.temp }}/ynx-serial-verifier-public/serial.log
             ${{ runner.temp }}/ynx-serial-verifier-public/header-data.log
+            ${{ runner.temp }}/ynx-serial-verifier-public/go-evidence-parser.log
             ${{ runner.temp }}/ynx-serial-verifier-public/metadata.json
+          if-no-files-found: error
+          retention-days: 7
+
+  original-go-writer-and-reader:
+    needs: controls
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - name: Checkout exact Tools source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: tools
+          persist-credentials: false
+      - name: Checkout exact original synthetic writer
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ed242b2391fdd89a384f1fe1dbabd9fca7f3c14a
+          path: producer
+          persist-credentials: false
+      - name: Set up original Go version
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: producer/go.mod
+          cache: false
+      - name: Run original synthetic writer and bounded DATA reader
+        env:
+          YNX_TOOLS_SOURCE: ${{ github.workspace }}/tools
+          YNX_PRODUCER_SOURCE: ${{ github.workspace }}/producer
+          YNX_PRIVATE_WORK: ${{ runner.temp }}/ynx-header-cross-private
+          YNX_PUBLIC_OUTPUT: ${{ runner.temp }}/ynx-header-cross-public
+        run: |
+          set -euo pipefail
+          test "$(git -C "$YNX_TOOLS_SOURCE" rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git -C "$YNX_TOOLS_SOURCE" status --porcelain --untracked-files=all)"
+          test -z "$(git -C "$YNX_TOOLS_SOURCE" ls-files --others --ignored --exclude-standard)"
+          mkdir -m 700 "$YNX_PRIVATE_WORK"
+          python3 -B "$YNX_TOOLS_SOURCE/scripts/loadtest/pq-synthetic-header-cross-source-ci.py"
+          test -z "$(git -C "$YNX_TOOLS_SOURCE" status --porcelain --untracked-files=all)"
+          test -z "$(git -C "$YNX_PRODUCER_SOURCE" status --porcelain --untracked-files=all)"
+      - name: Preserve only public Go events and DATA summary
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-synthetic-header-cross-source-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ynx-header-cross-public/go-events.jsonl
+            ${{ runner.temp }}/ynx-header-cross-public/metadata.json
           if-no-files-found: error
           retention-days: 7
