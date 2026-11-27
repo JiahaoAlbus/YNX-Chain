@@ -154,6 +154,8 @@ jobs:
                               or receipt.get('version') != 'YNX-SYNTHETIC-HEADER-STREAM-RECEIPT/v1' or receipt.get('classification') != 'DATA_ONLY' or receipt.get('status') != 'UNKNOWN' or receipt.get('streamStatus') != 'OBSERVED_DATA'
                               or type(receipt.get('enqueued')) is not int or receipt['enqueued'] != 1 or type(receipt.get('written')) is not int or receipt['written'] != 1
                               or receipt.get('streamDurable') is not True or receipt.get('streamCleanupDebt') is not False
+                              or type(receipt.get('firstCauseBytes')) is not int or receipt['firstCauseBytes'] != 0
+                              or receipt.get('firstCauseTruncated') is not False or 'firstCauseSha256' in receipt or 'firstCauseBase64' in receipt
                               or type(receipt.get('bytes')) is not int or receipt['bytes'] != len(original) or receipt.get('sha256') != record['streamSHA256']
                               or any(receipt.get(k) is not False for k in ('startupCoverageComplete', 'walReplayExcluded', 'nodeBindingVerified', 'receiptPublicationVerified', 'runtimeAuthorized', 'independentFinality'))):
                           raise RuntimeError('original stream event or receipt differs')
@@ -175,7 +177,7 @@ jobs:
               return result
           if qualify_cost(replace_cost_output(cost)) != cost:
               raise RuntimeError('original fragmented cost event was not reconstructed')
-          cost_mutants = [json.loads(json.dumps(cost)) for _ in range(11)]
+          cost_mutants = [json.loads(json.dumps(cost)) for _ in range(12)]
           cost_mutants[0]['source'] = '0' * 40
           cost_mutants[1]['records'].pop()
           cost_mutants[2]['medianEngineFixtureNsOn'] += 1
@@ -204,6 +206,14 @@ jobs:
               record['receiptBase64'] = base64.b64encode(altered_receipt).decode()
               record['receiptBytes'] = len(altered_receipt)
               record['receiptSHA256'] = hashlib.sha256(altered_receipt).hexdigest()
+          record = cost_mutants[11]['records'][0]
+          receipt = json.loads(base64.b64decode(record['receiptBase64'], validate=True))
+          receipt['firstCauseBytes'], receipt['firstCauseBase64'] = 4, base64.b64encode(b'lost').decode()
+          receipt['firstCauseSha256'] = hashlib.sha256(b'lost').hexdigest()
+          altered = (json.dumps(receipt, separators=(',', ':')) + '\n').encode()
+          record['receiptBase64'] = base64.b64encode(altered).decode()
+          record['receiptBytes'] = len(altered)
+          record['receiptSHA256'] = hashlib.sha256(altered).hexdigest()
           for candidate in [replace_cost_output(altered) for altered in cost_mutants] + [replace_cost_output(cost, truncate=True), replace_cost_output(cost, wrong_test=True), replace_cost_output(cost, duplicate=True)]:
               try:
                   qualify_cost(candidate)
