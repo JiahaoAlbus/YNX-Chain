@@ -81,6 +81,24 @@ func (s *Store) ListTasksForSession(session ProductSession, after string) (TaskP
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// Gather the caller's history once. Scanning all actions and runs once per
+	// task holds the store lock quadratically as a user's task history grows.
+	history := make(map[string]bool)
+	for _, record := range s.state.Actions {
+		if record.Account == session.Account && record.ToolStep != nil && record.ToolStep.Holder == session.DeviceID {
+			history[record.ToolStep.TaskID] = true
+		}
+	}
+	for _, run := range s.state.TaskRuns {
+		if run.Account == session.Account && run.Holder == session.DeviceID {
+			history[run.TaskID] = true
+		}
+	}
+	for _, outcome := range s.state.TaskActionOutcomes {
+		if outcome.View.Principal.Account == session.Account && outcome.View.Principal.DeviceID == session.DeviceID {
+			history[outcome.View.TaskID] = true
+		}
+	}
 	ids := []string{}
 	for id, task := range s.state.Tasks {
 		if id <= after || task.Account != session.Account {
@@ -89,7 +107,7 @@ func (s *Store) ListTasksForSession(session ProductSession, after string) (TaskP
 		if _, err := s.ownedTaskLocked(session.Account, id); err != nil {
 			continue
 		}
-		if task.Holder == session.DeviceID || s.taskSessionHasHistoryLocked(session.Account, session.DeviceID, id) {
+		if task.Holder == session.DeviceID || history[id] {
 			ids = append(ids, id)
 		}
 	}
