@@ -21,11 +21,13 @@ test('workspace exposes the retained create operation for data-only original loo
  const api=createTaskAPI('http://127.0.0.1:6438',{identity:'PUBLIC',v6:f.original});
  const c=new TaskWorkspaceController('PUBLIC',api,{read:async()=>null,write:async()=>{}},()=> 'workspace_delivery');
  await c.create(t.conversationId);assert.equal(f.saved!.entries[0]!.state,'UNKNOWN');
- await c.refreshOriginalOperations();assert.equal(c.state.originalOperations.length,1);const original=c.state.originalOperations[0]!.operationId;
+ await c.create('another_conversation');assert.equal(f.saved!.entries[1]!.state,'UNKNOWN');
+ await c.refreshOriginalOperations();assert.equal(c.state.originalOperations.length,2);const original=c.state.originalOperations[0]!.operationId;
  assert.notEqual(original,'workspace_delivery');const sends=f.calls.filter(x=>x==='send').length;
- await c.queryOriginalCreate(original);assert.equal(c.state.originalQueryDataOnly,true);assert.equal(f.saved!.entries[0]!.state,'UNKNOWN');
+ await c.queryOriginalCreate(original);assert.equal(c.state.originalQueryOperationId,original);assert.equal(f.saved!.entries[0]!.state,'UNKNOWN');
  assert.equal(f.calls.filter(x=>x==='send').length,sends);assert.ok(f.calls.includes('lookup:'+original));
- await c.queryOriginalCreate('wrong_operation');assert.equal(c.state.originalQueryDataOnly,false);assert.equal(c.state.error,'V6_ORIGINAL_CREATE_NOT_RETAINED');
+ await c.queryOriginalCreate(c.state.originalOperations[1]!.operationId);assert.equal(c.state.originalQueryOperationId,c.state.originalOperations[1]!.operationId);
+ await c.queryOriginalCreate('wrong_operation');assert.equal(c.state.originalQueryOperationId,null);assert.equal(c.state.error,'V6_ORIGINAL_CREATE_NOT_RETAINED');
  await c.whenClosed();
 });
 // These are PUBLIC orchestration seams, not signatures, Source or Native admission.
