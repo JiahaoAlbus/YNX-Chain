@@ -74,12 +74,18 @@ test('close aborts in-flight review, drains original client, forbids further exe
 test('malformed or duplicated persisted V6 metadata cannot create a new request',()=>{
  const entry={version:'6',operationId:'original',binding:'PUBLIC',action:'task.cancel',taskId:t.id,state:'UNKNOWN'};assert.throws(()=>validateV6Journal({version:'6',entries:[entry,entry]}),/JOURNAL_INVALID/);assert.throws(()=>validateV6Journal({version:'6',entries:[{...entry,member:'secret'}]}),/JOURNAL_INVALID/);
  for(const malformed of [{...entry,binding:''},{...entry,action:'task.not-registered'},{...entry,taskId:''}])assert.throws(()=>validateV6Journal({version:'6',entries:[malformed]}),/JOURNAL_INVALID/);
+ for(const malformed of [{...entry,taskId:null},{...entry,action:'task.create'}])assert.throws(()=>validateV6Journal({version:'6',entries:[malformed]}),/JOURNAL_INVALID/);
  for(const operationId of [undefined,null])assert.throws(()=>validateV6Journal({version:'6',entries:[{...entry,operationId}]}),/ORIGINAL_IDENTIFIER_REQUIRED/);
 });
 test('corrupt retained create metadata refuses a replacement before SDK access',async()=>{
  const f=fixture();f.original.journal.read=async()=>({version:'6',entries:[{version:'6',operationId:'original_create',binding:'',action:'task.create',taskId:null,state:'UNKNOWN'}]});
  const api=createTaskV6API('PUBLIC',f.original);await assert.rejects(api.create('conversation_original',new AbortController().signal),/V6_JOURNAL_INVALID/);
  assert.deepEqual(f.calls,[]);assert.deepEqual(f.writes,[]);await api.adapter.close();
+});
+test('a retained effect missing its task binding cannot permit another effect',async()=>{
+ const f=fixture();f.original.journal.read=async()=>({version:'6',entries:[{version:'6',operationId:'original_effect',binding:'PUBLIC',action:'task.dispatch',taskId:null,state:'UNKNOWN'}]});
+ const adapter=new NativeTaskV6Adapter('PUBLIC',f.original);await assert.rejects(adapter.execute(request('task.prepare'),new AbortController().signal),/V6_JOURNAL_INVALID/);
+ assert.deepEqual(f.calls,[]);assert.deepEqual(f.writes,[]);await adapter.close();
 });
 test('unattributable retained create blocks new creation but remains queryable',async()=>{
  const f=fixture();f.original.journal.read=async()=>({version:'6',entries:[{version:'6',operationId:'original_create',binding:'corrupt-nonempty',action:'task.create',taskId:null,state:'UNKNOWN'}]});
