@@ -19,8 +19,10 @@ type TaskStoreActionOutcomeView struct {
 	BodyBytes                                              uint64
 }
 type TaskStoreActionOutcome struct {
-	lease *TaskActionOutcomeReceipt
-	view  TaskStoreActionOutcomeView
+	lease             *TaskActionOutcomeReceipt
+	view              TaskStoreActionOutcomeView
+	firstCausePresent bool
+	firstCauseClass   string
 }
 
 func (outcome *TaskStoreActionOutcome) Current() error {
@@ -34,6 +36,15 @@ func (outcome *TaskStoreActionOutcome) View() (TaskStoreActionOutcomeView, error
 		return TaskStoreActionOutcomeView{}, err
 	}
 	return outcome.view, nil
+}
+
+// Product-local, secret-safe classification only. It is not a supplier wire
+// field and never promotes UNKNOWN to a business receipt.
+func (outcome *TaskStoreActionOutcome) FirstCauseDATA() (bool, string, error) {
+	if err := outcome.Current(); err != nil {
+		return false, "", err
+	}
+	return outcome.firstCausePresent, outcome.firstCauseClass, nil
 }
 func (outcome *TaskStoreActionOutcome) Release() error {
 	if outcome != nil && outcome.lease != nil {
@@ -66,9 +77,18 @@ func (source *TaskStoreSource) CaptureOriginalActionOutcome(ctx context.Context,
 	if v.Principal != lookup.Principal || v.OriginalOperationID != lookup.OperationID || v.RequestDigest != lookup.RequestDigest || v.Action != lookup.Action || v.OriginalRef != key {
 		return nil, ErrTaskConflict
 	}
+	if record.FirstCausePresent {
+		switch record.FirstCauseClass {
+		case "INVOCATION_CANCELLED", "INVOCATION_DEADLINE", "ORIGINAL_SNAPSHOT_STALE", "ORIGINAL_EFFECT_UNRESOLVED", "ORIGINAL_SOURCE_UNAVAILABLE", "ORIGINAL_CHECK_FAILED":
+		default:
+			return nil, ErrTaskActionOutcomeUnknown
+		}
+	} else if record.FirstCauseClass != "" {
+		return nil, ErrTaskActionOutcomeUnknown
+	}
 	view := TaskStoreActionOutcomeView{OperationID: v.OriginalOperationID, RequestDigest: v.RequestDigest, Action: v.Action, OriginalRef: v.OriginalRef, State: "UNKNOWN"}
 	lease := &TaskActionOutcomeReceipt{source: source, ctx: ctx, key: key, fingerprint: taskOutcomeFingerprint(record)}
-	outcome := &TaskStoreActionOutcome{lease: lease, view: view}
+	outcome := &TaskStoreActionOutcome{lease: lease, view: view, firstCausePresent: record.FirstCausePresent, firstCauseClass: record.FirstCauseClass}
 	if v.State == "COMMITTED" {
 		actual, err := source.taskActionReceiptLocked(ctx, lookup.Principal, key, record)
 		if err != nil {

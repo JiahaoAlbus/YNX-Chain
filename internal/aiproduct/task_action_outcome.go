@@ -45,6 +45,7 @@ type TaskActionOutcomeView struct {
 	RequestBody         TaskActionBytesBinding `json:"requestBody"`
 	RequestBodySHA256   string                 `json:"requestBodySha256"`
 	TaskID              string                 `json:"taskId"`
+	RunRecordID         string                 `json:"runRecordId,omitempty"`
 	HolderBefore        string                 `json:"holderBefore"`
 	HolderAfter         string                 `json:"holderAfter"`
 	RevisionBefore      uint64                 `json:"revisionBefore"`
@@ -63,9 +64,11 @@ type taskActionStoredPayload struct {
 }
 
 type storedTaskActionOutcome struct {
-	View       TaskActionOutcomeView `json:"view"`
-	BodyNonce  string                `json:"bodyNonce,omitempty"`
-	BodyCipher string                `json:"bodyCipher,omitempty"`
+	View              TaskActionOutcomeView `json:"view"`
+	BodyNonce         string                `json:"bodyNonce,omitempty"`
+	BodyCipher        string                `json:"bodyCipher,omitempty"`
+	FirstCausePresent bool                  `json:"firstCausePresent,omitempty"`
+	FirstCauseClass   string                `json:"firstCauseClass,omitempty"`
 }
 
 // Only actual execution or original stored readback can construct this value.
