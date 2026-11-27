@@ -232,6 +232,9 @@ func (s *OriginalShopInvoiceReadService) Close(ctx context.Context) error {
 		for !status.CloseReturned {
 			select {
 			case <-ctx.Done():
+				if first := s.finalCloseError(); first != nil {
+					return first
+				}
 				return ctx.Err()
 			case <-time.After(10 * time.Millisecond):
 			}
@@ -302,13 +305,21 @@ func (s *OriginalShopInvoiceReadService) Close(ctx context.Context) error {
 		}
 		select {
 		case <-ctx.Done():
-			remember(ctx.Err())
-			return s.finalCloseError()
+			if first := s.finalCloseError(); first != nil {
+				return first
+			}
+			return ctx.Err()
 		case <-time.After(10 * time.Millisecond):
 		}
 	}
 	if s.link != nil {
 		if err := s.link.Join(ctx); err != nil {
+			if ctx.Err() != nil && errors.Is(err, ctx.Err()) {
+				if first := s.finalCloseError(); first != nil {
+					return first
+				}
+				return ctx.Err()
+			}
 			remember(err)
 			if !s.sessionRequired || !s.link.OriginalV4ChildrenDrained() {
 				return s.finalCloseError()

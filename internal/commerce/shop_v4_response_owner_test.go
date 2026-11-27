@@ -47,6 +47,33 @@ func TestShopSessionInventoryV4ServicePreservesUnknownListenerClose(t *testing.T
 	}
 }
 
+func TestShopSessionInventoryV4ListenerWaitKeepsOriginalFirstError(t *testing.T) {
+	dir, err := os.MkdirTemp("/tmp", "shop-v4-first-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+	if err = os.Chmod(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	listener, err := securelink.ListenPrivateWithCloseWitness(filepath.Join(dir, "s"), uint32(os.Geteuid()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	first := errors.New("PUBLIC retained Source first cause")
+	service := &OriginalShopInvoiceReadService{sessionRequired: true, listener: listener, first: first}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err = service.Close(ctx); !errors.Is(err, first) {
+		t.Fatalf("cancel replaced first cause: %v", err)
+	}
+	closeCtx, finish := context.WithTimeout(context.Background(), 3*time.Second)
+	defer finish()
+	if err = service.Close(closeCtx); !errors.Is(err, first) || !service.PhysicalClosed() {
+		t.Fatalf("drain did not preserve first cause: %v", err)
+	}
+}
+
 func TestShopSessionInventoryV4RejectsUnqualifiedListenerBeforeLINKRetire(t *testing.T) {
 	first := errors.New("PUBLIC first listener close unknown")
 	listener := &publicUnknownShopListener{first: first}
