@@ -15,7 +15,7 @@ test('invoice detail refuses duplicate original IDs instead of selecting the fir
 test('refund readback requires one current original under the same merchant session',async()=>{
  const original={id:'refund-original',merchantId,invoiceId:invoice.id,payer:'payer-original',amount:3,status:'unknown',refundTransactionHash:'original-hash'},base=state();base.refunds={one:original};
  assert.equal((await currentMerchantRefund({state:async()=>base},()=>{},subject,original.id)).id,original.id);
- for(const change of [v=>v.refunds.two={...original},v=>v.refunds.one.status='refunded',v=>v.refunds.one.merchantId='other',v=>v.merchantMembers.own.status='revoked']){const s=structuredClone(base);change(s);let calls=0;const work=async()=>{await currentMerchantRefund({state:async()=>s},()=>{},subject,original.id);calls++};await assert.rejects(work());assert.equal(calls,0)}
+ for(const change of [v=>v.refunds.two={...original},v=>v.refunds.one.status='refunded',v=>v.refunds.one.merchantId='other',v=>v.merchantMembers.own.status='revoked',v=>delete v.invoices.own,v=>v.invoices.duplicate={...invoice}]){const s=structuredClone(base);change(s);let calls=0;const work=async()=>{await currentMerchantRefund({state:async()=>s},()=>{},subject,original.id);calls++};await assert.rejects(work());assert.equal(calls,0)}
  let finish,active=true;const pending=currentMerchantRefund({state:()=>new Promise(resolve=>finish=resolve)},()=>{if(!active)throw Error('context changed')},subject,original.id);active=false;finish(base);await assert.rejects(pending,/context changed/);
 });
 test('refund recovery result remains bound to captured original invoice, payer and transaction',async()=>{
