@@ -81,6 +81,19 @@ test('corrupt retained create metadata refuses a replacement before SDK access',
  const api=createTaskV6API('PUBLIC',f.original);await assert.rejects(api.create('conversation_original',new AbortController().signal),/V6_JOURNAL_INVALID/);
  assert.deepEqual(f.calls,[]);assert.deepEqual(f.writes,[]);await api.adapter.close();
 });
+test('unattributable retained create blocks new creation but remains queryable',async()=>{
+ const f=fixture();f.original.journal.read=async()=>({version:'6',entries:[{version:'6',operationId:'original_create',binding:'corrupt-nonempty',action:'task.create',taskId:null,state:'UNKNOWN'}]});
+ const api=createTaskV6API('PUBLIC',f.original);await assert.rejects(api.create('conversation_original',new AbortController().signal),/V6_ORIGINAL_QUERY_REQUIRED/);
+ assert.deepEqual(f.calls,[]);assert.deepEqual(f.writes,[]);
+ const result=await api.adapter.lookupOriginal('original_create',new AbortController().signal);assert.equal(result.operationId,'original_create');assert.equal(result.operationVerified,false);
+ assert.deepEqual(f.calls,['lookup:original_create','readRecovery']);await api.adapter.close();
+});
+test('an intact unknown create does not block a different conversation',async()=>{
+ const f=fixture();const binding=JSON.stringify(['task.create',null,null,null,null,null,{conversationId:'first_conversation'}]);
+ f.original.journal.read=async()=>({version:'6',entries:[{version:'6',operationId:'original_create',binding,action:'task.create',taskId:null,state:'UNKNOWN'}]});
+ const api=createTaskV6API('PUBLIC',f.original);const created=await api.create(t.conversationId,new AbortController().signal);
+ assert.equal(created.id,t.id);assert.equal(f.saved!.entries[0]!.state,'UNKNOWN');await api.adapter.close();
+});
 test('V6 snapshots body/task/creation fields before asynchronous journal read',async()=>{
  const f=fixture();let release!:()=>void;const wait=new Promise<void>(r=>release=r);f.original.journal.read=async()=>{await wait;return null};const a=new NativeTaskV6Adapter('PUBLIC',f.original),r=request();const originalBytes=r.bodyOriginal.slice();const p=a.execute(r,new AbortController().signal);r.path='/api/tasks/foreign/cancel';r.taskRevision='999';r.bodyOriginal.fill(0);release();await p;assert.equal(f.intents[0]!.path,'/api/tasks/task_original/cancel');assert.equal(f.intents[0]!.taskRevision,'2');assert.deepEqual(f.intents[0]!.bodyOriginal,originalBytes);
 });
