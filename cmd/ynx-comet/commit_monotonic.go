@@ -46,7 +46,7 @@ func (p pqOptions) validateCommitMonotonic() error {
 		return errors.New("monotonic Commit observation requires distinct original synthetic Commit output")
 	}
 	q := p
-	q.commitObservationOutput, q.commitMonotonicOutput, q.finalizeObservationOutput = p.commitMonotonicOutput, "", ""
+	q.commitObservationOutput, q.commitMonotonicOutput, q.finalizeObservationOutput, q.commitHeaderStreamOutput = p.commitMonotonicOutput, "", "", ""
 	return q.validateCommitObservation()
 }
 

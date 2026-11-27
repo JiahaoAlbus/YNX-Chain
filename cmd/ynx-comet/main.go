@@ -49,6 +49,7 @@ type pqOptions struct {
 	wireObservationLiveControl                                        string
 	commitObservationOutput, commitObservationScope                   string
 	commitMonotonicOutput                                             string
+	commitHeaderStreamOutput                                          string
 	finalizeObservationOutput                                         string
 	commitValidationObservation                                       bool
 	commitObservationBind                                             func(*consensus.Application, chain.ConsensusMigrationState) error
@@ -455,6 +456,12 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 		return err
 	}
 	if err := timedOperatorStartupCall(options.startupTiming, "startup.installWireObservation", func() error { return observation.install(node) }); err != nil {
+		_ = closePQCustody(custody)
+		node.OnStop()
+		_ = node.ProxyApp().Stop()
+		return err
+	}
+	if err := commitObservation.armHeaderBeforeStart(); err != nil {
 		_ = closePQCustody(custody)
 		node.OnStop()
 		_ = node.ProxyApp().Stop()

@@ -172,13 +172,25 @@ func (o *operatorCommitObservation) close() error {
 		return nil
 	}
 	o.mu.Lock()
-	defer o.mu.Unlock()
 	if o.closed {
+		o.mu.Unlock()
 		return nil
 	}
 	o.closed = true
-	if o.app != nil {
-		o.app.SetCommitTimingEnabled(false)
+	app, header := o.app, o.headerEvents
+	headerFinished := o.headerFinished
+	lost := !o.ran || !headerFinished || o.headerCaptureLost
+	o.headerArmed = false
+	o.mu.Unlock()
+	if app != nil {
+		app.SetCommitTimingEnabled(false)
+		if header != nil {
+			_ = app.SetSyntheticCommitHeaderCapture(false)
+		}
 	}
-	return errors.Join(o.monotonic.close(), o.finalize.close(), o.file.close())
+	var headerErr error
+	if header != nil && !headerFinished {
+		headerErr = header.finish(lost)
+	}
+	return errors.Join(headerErr, o.monotonic.close(), o.finalize.close(), o.file.close())
 }

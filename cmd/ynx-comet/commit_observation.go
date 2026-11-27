@@ -27,12 +27,13 @@ func registerCommitObservationFlags(flags *pflag.FlagSet, p *pqOptions) {
 	flags.Var(&initializationStringFlag{target: &p.finalizeObservationOutput}, "finalize-observation-output", "disabled by default; separate bounded Finalize output; requires original synthetic Commit observation scope")
 	flags.BoolVar(&p.commitValidationObservation, "commit-validation-observation", false, "opt in to bounded per-commit validation detail in the synthetic Commit observation")
 	flags.Var(&initializationStringFlag{target: &p.commitMonotonicOutput}, "commit-monotonic-output", "disabled by default; separate synthetic same-kernel local Commit boundary observation")
+	flags.Var(&initializationStringFlag{target: &p.commitHeaderStreamOutput}, "commit-header-stream-output", "disabled by default; bounded synthetic header and Commit-boundary stream; not finality")
 	flags.Var(&initializationStringFlag{target: &p.commitObservationOutput}, "commit-observation-output", "disabled by default; fresh private bounded Commit timing output after normal node stop")
 	flags.Var(&initializationStringFlag{target: &p.commitObservationScope}, "commit-observation-scope", "explicit synthetic-loopback-lab/v1 only; local persistence is not signer fsync or finality")
 }
 
 func (p pqOptions) commitObservationConfigured() bool {
-	return p.commitObservationOutput != "" || p.commitObservationScope != "" || p.commitMonotonicOutput != "" || p.commitValidationObservation || p.finalizeObservationOutput != ""
+	return p.commitObservationOutput != "" || p.commitObservationScope != "" || p.commitMonotonicOutput != "" || p.commitHeaderStreamOutput != "" || p.commitValidationObservation || p.finalizeObservationOutput != ""
 }
 
 func (p pqOptions) commitObservationWireOptions() pqOptions {
@@ -71,7 +72,10 @@ func (p pqOptions) validateCommitObservation() error {
 	if err := p.validateFinalizeObservation(); err != nil {
 		return err
 	}
-	return p.validateCommitMonotonic()
+	if err := p.validateCommitMonotonic(); err != nil {
+		return err
+	}
+	return p.validateCommitHeaderStream()
 }
 
 func (p pqOptions) validateCommitObservationMigration(m chain.ConsensusMigrationState) error {
@@ -155,6 +159,13 @@ type operatorCommitObservation struct {
 	validationEnabled      bool
 	result                 operatorCommitObservationResult
 	latestObserved         *operatorCommitSample
+	headerEvents           *syntheticHeaderStream
+	headerCaptureLost      bool
+	headerArmed            bool
+	headerEpoch            uint64
+	headerAttempt          uint64
+	headerHeight           int64
+	headerFinished         bool
 	ran, attempted, closed bool
 }
 
@@ -168,6 +179,15 @@ func prepareOperatorCommitObservation(config *cfg.Config, p pqOptions) (*operato
 	if err := validateWireObservationNetwork(config, p.commitObservationWireOptions()); err != nil {
 		return nil, err
 	}
+	if p.commitHeaderStreamOutput != "" {
+		for _, path := range []string{p.commitHeaderStreamOutput, p.commitHeaderStreamOutput + ".receipt.json"} {
+			q := p
+			q.wireObservationOutput = path
+			if err := validateWireObservationNetwork(config, q); err != nil {
+				return nil, err
+			}
+		}
+	}
 	file, err := openCommitObservationOutput(p.commitObservationOutput)
 	if err != nil {
 		return nil, err
@@ -180,7 +200,14 @@ func prepareOperatorCommitObservation(config *cfg.Config, p pqOptions) (*operato
 	if err != nil {
 		return nil, errors.Join(err, finalize.close(), file.close())
 	}
-	return &operatorCommitObservation{file: file, finalize: finalize, monotonic: monotonic, validationEnabled: p.commitValidationObservation, result: operatorCommitObservationResult{
+	var header *syntheticHeaderStream
+	if p.commitHeaderStreamOutput != "" {
+		header, err = newSyntheticHeaderStream(p.commitHeaderStreamOutput)
+		if err != nil {
+			return nil, errors.Join(err, monotonic.close(), finalize.close(), file.close())
+		}
+	}
+	return &operatorCommitObservation{file: file, finalize: finalize, monotonic: monotonic, headerEvents: header, validationEnabled: p.commitValidationObservation, result: operatorCommitObservationResult{
 		Version: operatorCommitObservationVersion, Scope: operatorWireObservationScope, ProcessID: os.Getpid(),
 		CaptureBoundary: "synchronous-original-block-executor-Commit-return;normal-stop-output;replay-and-early-failures-not-covered",
 		MaxSamples:      operatorCommitObservationMaxSamples, Samples: []operatorCommitSample{}, RejectedNotifications: map[string]uint64{},
@@ -224,6 +251,29 @@ func (o *operatorCommitObservation) started() {
 		o.finalize.started()
 		o.mu.Unlock()
 	}
+}
+
+// The original Node constructor has returned from its synchronous handshake,
+// but Node.Start has not begun. WAL/start callbacks remain UNKNOWN, not live.
+func (o *operatorCommitObservation) armHeaderBeforeStart() error {
+	if o == nil {
+		return nil
+	}
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	if o.headerEvents == nil {
+		return nil
+	}
+	if o.closed || o.ran || o.app == nil || o.headerArmed {
+		o.loseHeader("synthetic header capture cannot bind original pre-start application")
+		return errors.New("synthetic header capture cannot bind original pre-start application")
+	}
+	if err := o.app.SetSyntheticCommitHeaderCapture(true); err != nil {
+		o.loseHeader("synthetic header capture rejected by original application: " + err.Error())
+		return err
+	}
+	o.headerArmed = true
+	return nil
 }
 
 func (o *operatorCommitObservation) increment(value *uint64) {
@@ -353,17 +403,21 @@ func (o *operatorCommitObservation) success(height int64, validHeight bool) {
 	}
 	o.increment(&o.result.SuccessNotifications)
 	if !validHeight {
+		o.loseHeader("original Commit notification height malformed")
 		o.reject("notification-height-malformed")
 		return
 	}
+	firstHeader, firstTiming, firstAvailable := o.readArmedHeader()
 	sample, reason := observedCommitSample(o.app, height)
 	if reason != "" {
+		o.loseHeader("original Commit sample unavailable: " + reason)
 		o.reject(reason)
 		return
 	}
 	if o.validationEnabled {
 		validation, reason := observedCommitValidation(o.app, sample)
 		if reason != "" {
+			o.loseHeader("original Commit validation unavailable: " + reason)
 			o.reject(reason)
 			return
 		}
@@ -371,6 +425,7 @@ func (o *operatorCommitObservation) success(height int64, validHeight bool) {
 	}
 	if o.latestObserved != nil {
 		if height <= o.latestObserved.Height {
+			o.loseHeader("original Commit notification duplicate or stale")
 			o.reject("duplicate-or-stale-notification")
 			return
 		}
@@ -378,6 +433,7 @@ func (o *operatorCommitObservation) success(height int64, validHeight bool) {
 			o.result.Coverage.ObservedHeightGaps = append(o.result.Coverage.ObservedHeightGaps, operatorCommitGap{AfterHeight: o.latestObserved.Height, BeforeHeight: height})
 		}
 	}
+	o.emitArmedHeader(height, reading, sample, firstHeader, firstTiming, firstAvailable)
 	o.latestObserved = sample
 	if len(o.result.Samples) >= operatorCommitObservationMaxSamples {
 		o.increment(&o.result.DroppedSuccessSamples)
@@ -394,6 +450,7 @@ func (o *operatorCommitObservation) failure() {
 		return
 	}
 	o.increment(&o.result.ErrorNotifications)
+	o.loseHeader("original Commit failure notification")
 	f := &operatorCommitFailure{NotificationObserved: true}
 	if o.app != nil {
 		f.CommittedCheckpoint, _ = commitPoint(o.app)
