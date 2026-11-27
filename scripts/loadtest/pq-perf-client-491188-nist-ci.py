@@ -28,10 +28,69 @@ PINS = {
 }
 
 
-def run_nist_preserving(window, monitor, operation, after_stop, work, public, state, identity):
+def run_nist_owned(window, monitor, operation):
+    """Preserve the caught error even when cleanup or reporting also fails."""
+    primary = None; secondary = []; value = None; snapshot = None; retired = False; clean = False
     try:
-        return guard.run_preserving(window, monitor, operation, after_stop, work, public, state, identity)
+        monitor.thread.start()
+        value = operation()
+    except BaseException as error:
+        primary = error
+    try: monitor.close()
+    except BaseException as error: secondary.append(('monitorClose', error))
+    try: retired = monitor.thread.ident is not None and not monitor.thread.is_alive()
+    except BaseException as error: secondary.append(('monitorRetirement', error))
+    try: clean = window.stop() is True
+    except BaseException as error: secondary.append(('windowStop', error))
+    if retired:
+        try: snapshot = monitor.failure_snapshot()
+        except BaseException as error: secondary.append(('monitorSnapshot', error))
+    had_primary = primary is not None
+    if snapshot is not None and primary is None:
+        primary = RuntimeError('original resource guard failure')
+    if primary is None and secondary:
+        primary = secondary[0][1]
+    if primary is None and (not retired or not clean):
+        primary = RuntimeError('original monitor/Window cleanup UNKNOWN')
+    if primary is not None:
+        detail = dict(firstCaughtErrorType=type(primary).__name__,
+            resourceFailureType=snapshot.get('errorType') if type(snapshot) is dict else None,
+            resourceFailureObservedMonotonicNs=snapshot.get('observedMonotonicNs') if type(snapshot) is dict else None,
+            firstCauseOrder='UNKNOWN' if snapshot is not None and had_primary else 'FIRST_CAUGHT_OR_OBSERVED',
+            monitorRetired=retired, windowStopCompleted=clean,
+            secondary=[dict(stage=stage, errorType=type(error).__name__) for stage, error in secondary], runtimeAuthorized=False)
+        try: print('YNX-PERF-NIST-OWNED-FAILURE/v1 ' + json.dumps(detail, sort_keys=True, separators=(',', ':')))
+        except BaseException as error: primary.add_note('failure reporting unavailable: ' + type(error).__name__)
+        raise primary
+    return value
+
+
+def publish_nist(public, result):
+    raw, events, metadata = result
+    metadata['postRetirementReadRSS'] = 'UNKNOWN'
+    public.mkdir(mode=0o700)
+    (public/'nist-test-original.log').write_bytes(raw)
+    (public/'nist-test-events.jsonl').write_bytes(events)
+    encoded = (json.dumps(metadata, sort_keys=True, separators=(',', ':')) + '\n').encode()
+    (public/'metadata.json').write_bytes(encoded)
+    print('YNX-PERF-CLIENT-NIST-METADATA/v1 ' + encoded.decode(), end='')
+    print('YNX-PERF-CLIENT-NIST-ORIGINAL-BEGIN/v1')
+    sys.stdout.flush(); sys.stdout.buffer.write(events); sys.stdout.flush()
+    print('YNX-PERF-CLIENT-NIST-ORIGINAL-END/v1')
+
+
+def run_nist_preserving(window, monitor, operation, after_stop, work, public, state, identity, publish=None):
+    try:
+        result = run_nist_owned(window, monitor, operation)
+        state.update(name='post-retirement-readback', process=None)
+        after_stop(result)
+        if publish is not None:
+            state.update(name='public-evidence-publication', process=None)
+            publish(result)
+        return result
     except BaseException as original:
+        try: guard.capture_failure(work, public, state, original, identity)
+        except BaseException as error: original.add_note('failure evidence unavailable: ' + type(error).__name__)
         # The generic failure receipt covers the current owned command. If a
         # later source/readback step failed, retain the earlier NIST log too.
         try:
@@ -169,18 +228,9 @@ def main():
         raw, _, _ = result
         lab.require(guard.read_log(work / '.private/original-nist-test.log') == raw, 'original NIST test stream changed after retirement')
 
-    raw, events, metadata = run_nist_preserving(window, monitor, operation, after_stop, work, public, state,
-        dict(source=SOURCE, toolsSource=os.environ['GITHUB_SHA'], runId=os.environ['GITHUB_RUN_ID'], attempt=os.environ['GITHUB_RUN_ATTEMPT']))
-    metadata['postRetirementReadRSS'] = 'UNKNOWN'
-    public.mkdir(mode=0o700)
-    (public/'nist-test-original.log').write_bytes(raw)
-    (public/'nist-test-events.jsonl').write_bytes(events)
-    encoded = (json.dumps(metadata, sort_keys=True, separators=(',', ':')) + '\n').encode()
-    (public/'metadata.json').write_bytes(encoded)
-    print('YNX-PERF-CLIENT-NIST-METADATA/v1 ' + encoded.decode(), end='')
-    print('YNX-PERF-CLIENT-NIST-ORIGINAL-BEGIN/v1')
-    sys.stdout.flush(); sys.stdout.buffer.write(events); sys.stdout.flush()
-    print('YNX-PERF-CLIENT-NIST-ORIGINAL-END/v1')
+    run_nist_preserving(window, monitor, operation, after_stop, work, public, state,
+        dict(source=SOURCE, toolsSource=os.environ['GITHUB_SHA'], runId=os.environ['GITHUB_RUN_ID'], attempt=os.environ['GITHUB_RUN_ATTEMPT']),
+        publish=lambda result: publish_nist(public, result))
 
 
 if __name__ == '__main__': main()

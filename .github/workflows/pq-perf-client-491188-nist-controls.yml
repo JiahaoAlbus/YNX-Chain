@@ -3,7 +3,7 @@ name: Exact 491188 Public NIST Vector Control
 on:
   push:
     branches:
-      - codex/perf-client-nist-491188-failure-20261128
+      - codex/perf-client-nist-491188-publish-20261128
 
 permissions:
   contents: read
@@ -33,9 +33,9 @@ jobs:
           spec=importlib.util.spec_from_file_location('original_nist_ci_controls',path)
           module=importlib.util.module_from_spec(spec);sys.modules[spec.name]=module;spec.loader.exec_module(module)
           suite=unittest.defaultTestLoader.loadTestsFromModule(module)
-          if suite.countTestCases()!=6: raise RuntimeError('exact NIST controls inventory differs')
+          if suite.countTestCases()!=8: raise RuntimeError('exact NIST controls inventory differs')
           result=unittest.TextTestRunner(verbosity=2).run(suite)
-          if result.testsRun!=6 or result.skipped or not result.wasSuccessful(): raise RuntimeError('NIST controls failed or skipped')
+          if result.testsRun!=8 or result.skipped or not result.wasSuccessful(): raise RuntimeError('NIST controls failed or skipped')
           PY
           test -z "$(git status --porcelain --untracked-files=all)"
           test -z "$(git ls-files --others --ignored --exclude-standard)"

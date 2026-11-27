@@ -1,5 +1,6 @@
 import importlib.util
 import contextlib
+import errno
 import io
 import json
 from pathlib import Path
@@ -91,3 +92,46 @@ class OriginalNISTControls(unittest.TestCase):
                         dict(source=nist.SOURCE, toolsSource='a'*40, runId='1', attempt='1'))
             self.assertEqual(state['name'], 'post-retirement-readback')
             self.assertEqual((public/'failure-nist-test-original.log').read_bytes(), raw_events())
+
+    def test_broken_failure_reporting_cannot_replace_original_exception(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve(); work = root/'work'; private = work/'.private'; private.mkdir(parents=True)
+            public = root/'public'; state = dict(name='tree-after', process=types.SimpleNamespace(returncode=0))
+            (private/'original-nist-test.log').write_bytes(raw_events())
+            class Monitor:
+                def __init__(self): self.thread = threading.Thread(target=lambda: None)
+                def close(self): self.thread.join(timeout=2); raise OSError('secondary monitor close')
+                def failure_snapshot(self): return None
+            window = types.SimpleNamespace(stop=mock.Mock(return_value=True))
+            def operation(): raise ValueError('original primary')
+            with mock.patch('builtins.print', side_effect=BrokenPipeError('secondary output')):
+                with self.assertRaisesRegex(ValueError, 'original primary') as caught:
+                    nist.run_nist_preserving(window, Monitor(), operation, lambda _: None, work, public, state,
+                        dict(source=nist.SOURCE, toolsSource='a'*40, runId='1', attempt='1'))
+            window.stop.assert_called_once()
+            self.assertTrue(any('failure reporting unavailable: BrokenPipeError' in note for note in caught.exception.__notes__))
+            self.assertEqual((public/'failure-nist-test-original.log').read_bytes(), raw_events())
+            self.assertEqual(json.loads((public/'failure-metadata.json').read_bytes())['firstCaughtError'], 'original primary')
+
+    def test_publication_failure_preserves_original_nist_log(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve(); work = root/'work'; private = work/'.private'; private.mkdir(parents=True)
+            public = root/'public'; state = dict(name='original-nist-test', process=types.SimpleNamespace(returncode=0))
+            (private/'original-nist-test.log').write_bytes(raw_events())
+            class Monitor:
+                def __init__(self): self.thread = threading.Thread(target=lambda: None)
+                def close(self): self.thread.join(timeout=2)
+                def failure_snapshot(self): return None
+            window = types.SimpleNamespace(stop=mock.Mock(return_value=True)); original_write = Path.write_bytes
+            def fail_events(path, data):
+                if path.name == 'nist-test-events.jsonl': raise OSError(errno.ENOSPC, 'original publication error')
+                return original_write(path, data)
+            result = (raw_events(), raw_events(), {})
+            with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(Path, 'write_bytes', fail_events):
+                with self.assertRaises(OSError) as caught:
+                    nist.run_nist_preserving(window, Monitor(), lambda: result, lambda _: None, work, public, state,
+                        dict(source=nist.SOURCE, toolsSource='a'*40, runId='1', attempt='1'),
+                        publish=lambda value: nist.publish_nist(public, value))
+            self.assertEqual(caught.exception.errno, errno.ENOSPC)
+            self.assertEqual((public/'failure-nist-test-original.log').read_bytes(), raw_events())
+            self.assertEqual(json.loads((public/'failure-metadata.json').read_bytes())['firstCaughtErrorType'], 'OSError')
