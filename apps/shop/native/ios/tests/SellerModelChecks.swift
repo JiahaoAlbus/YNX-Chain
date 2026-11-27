@@ -87,7 +87,11 @@ final class SellerFixtureHTTP:URLProtocol,@unchecked Sendable {
         allowWrite=true;authority.proofFails=true;model.perform(.inventory(productID:"p2",variantID:"vp2",expectedRevision:"2",inventory:"12"));try await until{!model.busy}
         let prepared=try journal.records(account).values.first(where:{$0.target=="p2" && $0.phase=="prepared"})!
         try check(paths.count==before && model.preparedOriginalCount==1,"proof failure retains a known unsent original distinct from UNKNOWN")
-        authority.proofFails=false;model.retryPreparedOriginals();let retry=try await take("seller/inventory/batch")
+        authority.proofFails=false;counts["p2"]=(3,10);model.refresh();try await until{!model.busy}
+        model.retryPreparedOriginals();try await until{!model.busy}
+        try check(paths.count==before && (try journal.records(account)[prepared.key])==prepared,"changed inventory revision refuses the unsent original without changing its bytes or key")
+        counts["p2"]=(2,8);model.refresh();try await until{!model.busy}
+        model.retryPreparedOriginals();let retry=try await take("seller/inventory/batch")
         try check(try retry.body()==prepared.body,"explicit known-unsent retry sends only original frozen bytes and key")
         counts["p2"]=(3,12);try retry.respond(inventoryResult("p2","3","12"));try await until{!model.busy}
         try check(model.preparedOriginalCount==0 && !model.hasPending("p2"),"confirmed known-unsent original leaves no stale action lock")
