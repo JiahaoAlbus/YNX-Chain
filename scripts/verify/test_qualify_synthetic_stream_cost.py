@@ -152,6 +152,10 @@ class Controls(unittest.TestCase):
     def test_missing_fragment_duplicate_marker_truncation_and_non_json_rejected(self):
         rows = events(); rows.pop(3); self.assert_rejected(rows)
         rows = events(); rows.insert(-2, copy.deepcopy(rows[2])); self.assert_rejected(rows)
+        rows = events(); last_output = next(row for row in reversed(rows) if row['Action'] == 'output')
+        self.assertTrue(last_output['Output'].endswith('\n'))
+        last_output['Output'] = last_output['Output'][:-1]
+        self.assert_rejected(rows)
         with self.assertRaises(ValueError): m.qualify(encode(events())[:-1], SOURCE)
         with self.assertRaises(ValueError): m.qualify(b'not json\n', SOURCE)
         with self.assertRaises(ValueError): m.qualify(b'{}\n' * (m.MAX_EVENTS_BYTES // 3 + 1), SOURCE)

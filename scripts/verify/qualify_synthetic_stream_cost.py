@@ -169,8 +169,10 @@ def qualify(events_raw, expected_source):
     combined = ''.join(output)
     require(combined.count(MARKER) == 1 and ''.join(all_output).count(MARKER) == 1,
             'unique original metric marker required in the complete Go output')
-    metric_line = next(line for line in combined.splitlines() if MARKER in line)
-    metric_raw = metric_line.split(MARKER, 1)[1]
+    metric_start = combined.index(MARKER) + len(MARKER)
+    metric_end = combined.find('\n', metric_start)
+    require(metric_end >= 0, 'original metric line is truncated')
+    metric_raw = combined[metric_start:metric_end]
     data = strict_json(metric_raw)
     require(type(data) is dict and set(data) == FIELDS, 'metric field set differs')
     require(data['version'] == 'YNX-SYNTHETIC-STREAM-ONLY-AB/v1' and
