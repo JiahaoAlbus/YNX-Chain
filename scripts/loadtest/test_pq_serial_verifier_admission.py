@@ -469,6 +469,44 @@ class SerialVerifierControls(unittest.TestCase):
             self.assertEqual([r['process'].returncode for r in window.children],[0,0])
             self.assertEqual(self.b.verifier_admission.report()['released'],2)
 
+    @unittest.skipUnless(sys.platform=='linux','actual original Linux Popen and guard control required')
+    def test_real_linux_popen_crossing_cutoff_keeps_original_child_owned(self):
+        with self.original_linux_window() as window:
+            self.enable(3)
+            original_popen=d.lab.subprocess.Popen
+            entered=threading.Event();allow_return=threading.Event();created=[]
+            def controlled_popen(*args,**kwargs):
+                proc=original_popen(*args,**kwargs)
+                created.append(proc);entered.set()
+                if not allow_return.wait(5):raise RuntimeError('CONTROL parent did not sample during Popen')
+                while time.monotonic_ns()<=self.b.verifier_admission.deadline:time.sleep(.002)
+                return proc
+            try:
+                with mock.patch.object(d.lab.subprocess,'Popen',side_effect=controlled_popen):
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                        future=pool.submit(self.invoke,0)
+                        self.assertTrue(entered.wait(2))
+                        self.wait_for(lambda:(self.root/'ready-0').exists())
+                        # The actual original sampler must remain callable while
+                        # the real Popen handoff has not returned to Window.
+                        window.sample()
+                        self.assertEqual(len(window.pending_launches),1)
+                        allow_return.set()
+                        with self.assertRaisesRegex(RuntimeError,'launch crossed admission deadline'):
+                            future.result(6)
+                self.assertTrue(self.b.stop_event.is_set())
+                self.assertEqual(len(created),1)
+                self.assertEqual(len(window.children),1)
+                self.assertIs(window.children[0]['process'],created[0])
+                self.assertIsNotNone(created[0].poll())
+                self.assertFalse(window.pending_launches)
+                self.assertFalse(window.launch_cleanup_debt)
+                report=self.b.verifier_admission.report()
+                self.assertEqual(report['status'],'UNKNOWN')
+                self.assertEqual((report['admitted'],report['released'],report['active']),(1,1,0))
+            finally:
+                allow_return.set()
+
     def original_serial_drain_control(self,resource_failure):
         controls=module('test_pq_staged_independent_scheduler.py');structural=controls.StructuralBackend()
         plan=controls.plan(count=2,accounts=2,tail_ns=1_200_000_000)
@@ -539,10 +577,11 @@ class SerialVerifierControls(unittest.TestCase):
 
 def portable_suite():
     excluded={'test_real_linux_original_window_keeps_one_verifier_and_its_deadline',
+        'test_real_linux_popen_crossing_cutoff_keeps_original_child_owned',
         'test_real_linux_serial_queue_deadline_preserves_existing_diagnostic_drain',
         'test_real_linux_serial_queue_deadline_resource_failure_never_enters_drain'}
     full=unittest.defaultTestLoader.loadTestsFromTestCase(SerialVerifierControls)
-    if full.countTestCases()!=26:raise RuntimeError('all26 serial controls must be declared before portable selection')
+    if full.countTestCases()!=27:raise RuntimeError('all27 serial controls must be declared before portable selection')
     selected=unittest.TestSuite(test for test in full if test._testMethodName not in excluded)
     if selected.countTestCases()!=23:raise RuntimeError('exact23 portable serial controls required')
     return selected
