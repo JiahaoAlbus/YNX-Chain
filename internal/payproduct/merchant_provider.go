@@ -142,6 +142,57 @@ func (p *merchantGuardedPay) CreateAuthorizedRefund(ctx context.Context, input A
 	}
 	return merchantProviderMutation(p, ctx, "refund.authorized", input.IdempotencyKey, input, func() (chain.RefundRecord, error) { return api.CreateAuthorizedRefund(ctx, input) })
 }
+
+// Recover only a response already retained by the original scoped provider.
+// This path never calls CreateAuthorizedRefund or infers a committed refund.
+func (p *merchantGuardedPay) recoverOriginalRefundResponse(ctx context.Context, actor MerchantPrincipal, request RefundRequest, invoice Invoice) (RefundRequest, error) {
+	if p.admission == nil || actor.Account != request.ApprovedBy || p.admission.account != actor.Account || p.admission.merchantID != request.MerchantID {
+		return request, nil
+	}
+	requestHash, invoiceHash := hashJSON(request), hashJSON(invoice)
+	err := p.service.store.Update(func(data *Snapshot) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if hashJSON(data.Refunds[request.ID]) != requestHash || hashJSON(data.Invoices[invoice.ID]) != invoiceHash {
+			return errors.New("original refund request or invoice changed during recovery")
+		}
+		slot := hashString("YNX_PAY_ORIGINAL_REFUND_DISPATCH_V1", request.ID)
+		dispatch, exists := data.BusinessDispatches[slot]
+		if !exists || dispatch.Phase != "unknown" || dispatch.Operation != "refund.submit" || dispatch.Account != actor.Account || dispatch.MerchantID != request.MerchantID || dispatch.ResultCipher == "" {
+			return nil
+		}
+		raw, err := p.base.open(dispatch.ResultCipher)
+		var original AuthorizedRefundSubmission
+		if err != nil || strictJSON([]byte(raw), &original) != nil || hashJSON(original) != dispatch.RequestHash || original.IdempotencyKey != dispatch.IdempotencyKey || original.RequestID != request.ID || original.InvoiceID != invoice.CentralID || original.IntentID != invoice.IntentID || original.MerchantID != actor.Merchant.CentralMerchantID || original.MerchantAccount != actor.Account || original.Payer != request.Payer || original.Amount != request.Amount || original.Asset != invoice.Asset || original.Reason != request.Reason || original.TransactionHash != request.RefundTransactionHash || original.AuthorizationDigest != request.AuthorizationDigest {
+			return errors.New("original refund dispatch requires recovery")
+		}
+		id := hashString("YNX_MERCHANT_PROVIDER_DISPATCH_V2", request.MerchantID, "refund.authorized", original.IdempotencyKey)
+		provider, exists := data.BusinessDispatches[id]
+		if !exists || provider.Phase != "response_received" || provider.ResultCipher == "" {
+			return nil
+		}
+		encoded, err := json.Marshal(original)
+		if err != nil {
+			return err
+		}
+		digest := sha256.Sum256(encoded)
+		if provider.RequestHash != hex.EncodeToString(digest[:]) || provider.Account != actor.Account || provider.SessionBinding != p.admission.binding || provider.MerchantID != request.MerchantID || provider.Operation != "refund.authorized" || provider.IdempotencyKey != original.IdempotencyKey {
+			return errors.New("original refund provider binding changed")
+		}
+		sealed, err := p.base.open(provider.ResultCipher)
+		var result chain.RefundRecord
+		if err != nil || strictJSON([]byte(sealed), &result) != nil || !identifierRE.MatchString(result.ID) || result.IntentID != original.IntentID || result.Amount != original.Amount || result.Currency != original.Asset || (result.Status != "submitted" && result.Status != "pending") || result.IdempotencyKey != original.IdempotencyKey {
+			return errors.New("original refund provider response requires recovery")
+		}
+		request.Status, request.CentralRefundID, request.UpdatedAt = "submitted", result.ID, p.base.now().UTC()
+		dispatch.Phase, dispatch.UpdatedAt = "submitted", request.UpdatedAt
+		data.BusinessDispatches[slot], data.Refunds[request.ID] = dispatch, request
+		appendAudit(data, request.MerchantID, actor.Account, "refund.submit", request.ID, "submitted", request.AuthorizationDigest, request.UpdatedAt)
+		return nil
+	})
+	return request, err
+}
 func (p *merchantGuardedPay) RefundEvidence(ctx context.Context, id string) (AuthoritativeRefundEvidence, error) {
 	api, ok := p.original.(AuthorizedRefundAPI)
 	if !ok {

@@ -34,6 +34,32 @@ func TestMerchantHTTPPartialRefundUsesScopedProviderAndColdSeventyReadback(t *te
 	if w.Code != 201 || json.Unmarshal(w.Body.Bytes(), &submitted) != nil || submitted.Status != "submitted" || provider.createCalls != 1 {
 		t.Fatal("normal scoped refund callee unavailable or wrong outcome", w.Code, w.Body)
 	}
+	// Preserve the real saved provider response while reproducing a business
+	// Store that did not commit the following submitted transition.
+	if err := s.store.Update(func(data *Snapshot) error {
+		row := data.Refunds[request.ID]
+		row.Status = "unknown"
+		row.CentralRefundID = ""
+		data.Refunds[request.ID] = row
+		slot := hashString("YNX_PAY_ORIGINAL_REFUND_DISPATCH_V1", request.ID)
+		dispatch := data.BusinessDispatches[slot]
+		dispatch.Phase = "unknown"
+		data.BusinessDispatches[slot] = dispatch
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	coldBefore, err := OpenStore(s.store.path, s.key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.store = coldBefore
+	server = newMerchantBusinessServer(s, verifier)
+	w = merchantQARequest(server, "POST", "/v1/merchant/refunds/"+request.ID+"/refresh", `{}`, carrier.Token, "")
+	var recovered RefundRequest
+	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &recovered) != nil || recovered.Status != "submitted" || recovered.CentralRefundID != submitted.CentralRefundID || provider.createCalls != 1 {
+		t.Fatal("normal original response recovery failed", w.Code, w.Body, provider.createCalls)
+	}
 	provider.evidence = AuthoritativeRefundEvidence{ID: submitted.CentralRefundID, RequestID: request.ID, InvoiceID: invoice.CentralID, IntentID: invoice.IntentID, ChainID: ChainID, MerchantID: m.CentralMerchantID, MerchantAccount: m.PayoutAddress, Payer: payment.Payer, Amount: 30, Asset: NativeAsset, TransactionHash: auth.TransactionHash, BlockNumber: 101, Finality: "committed", Status: "refunded", ReceiptID: "merchant-thirty-receipt", AuditHash: strings.Repeat("d", 64), CommittedAt: s.now(), Source: "authoritative-central-pay-api", SourceAsOf: s.now(), SourceVersion: 1, Confidence: "authoritative"}
 	w = merchantQARequest(server, "POST", "/v1/merchant/refunds/"+request.ID+"/refresh", `{}`, carrier.Token, "")
 	if w.Code != 200 {

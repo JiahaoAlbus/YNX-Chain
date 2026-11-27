@@ -228,7 +228,11 @@ func (s *Service) RefreshRefund(ctx context.Context, actor MerchantPrincipal, re
 		return request, nil
 	}
 	if request.Status == "unknown" && request.CentralRefundID == "" {
-		return request, nil
+		guarded, ok := s.pay.(*merchantGuardedPay)
+		if !ok {
+			return request, nil
+		}
+		return guarded.recoverOriginalRefundResponse(ctx, actor, request, invoice)
 	}
 	if request.Status != "submitted" || request.CentralRefundID == "" {
 		return RefundRequest{}, errors.New("refund has not been submitted with merchant Wallet authorization")

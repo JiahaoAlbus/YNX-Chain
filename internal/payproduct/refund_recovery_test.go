@@ -12,6 +12,78 @@ import (
 )
 
 type refundLostPay struct{ *fakeAuthorizedRefundPay }
+type refundCancelAfterResponse struct {
+	*fakeAuthorizedRefundPay
+	cancel context.CancelFunc
+}
+
+func (p *refundCancelAfterResponse) CreateAuthorizedRefund(ctx context.Context, input AuthorizedRefundSubmission) (chain.RefundRecord, error) {
+	result, err := p.fakeAuthorizedRefundPay.CreateAuthorizedRefund(ctx, input)
+	p.cancel()
+	return result, err
+}
+
+func TestRefundSavedProviderResponseColdRecoveryWithoutResend(t *testing.T) {
+	s, m, invoice, payment := settlementClaimFixture(t)
+	if _, err := s.acceptSettlement(invoice, m, payment); err != nil {
+		t.Fatal(err)
+	}
+	request, err := s.CreateRefundRequest(WalletSession{Account: payment.Payer}, invoice.ID, 30, "original partial", "saved-response-request")
+	if err != nil {
+		t.Fatal(err)
+	}
+	actor := MerchantPrincipal{Merchant: m, Account: m.PayoutAddress, Role: "finance"}
+	auth := signedRefundAuthorization(s.now(), request, invoice, actor, secp256k1.PrivKeyFromBytes(bytes32(5)), "0x"+strings.Repeat("c", 64))
+	ctx, cancel := context.WithCancel(context.Background())
+	provider := &refundCancelAfterResponse{fakeAuthorizedRefundPay: &fakeAuthorizedRefundPay{fakePay: s.pay.(*fakePay), created: chain.RefundRecord{ID: "saved-central-refund", IntentID: invoice.IntentID, Amount: 30, Currency: invoice.Asset, Status: "submitted", IdempotencyKey: "saved-original-submit"}}, cancel: cancel}
+	admission := &merchantAdmission{account: actor.Account, merchantID: m.ID, binding: "original-session"}
+	s.pay = &merchantGuardedPay{original: provider, service: s, base: s, admission: admission}
+	if _, err = s.SubmitRefundAuthorization(ctx, actor, request.ID, auth, "saved-original-submit"); err == nil {
+		t.Fatal("cancelled call claimed success")
+	}
+	cold, err := OpenStore(s.store.path, s.key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.store = cold
+	providerSlot := hashString("YNX_MERCHANT_PROVIDER_DISPATCH_V2", m.ID, "refund.authorized", "saved-original-submit")
+	var retained BusinessDispatchRecord
+	if err = s.store.Update(func(data *Snapshot) error {
+		retained = data.BusinessDispatches[providerSlot]
+		missing := retained
+		missing.Phase = "recovery_required"
+		missing.ResultCipher = ""
+		data.BusinessDispatches[providerSlot] = missing
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	unknown, err := s.RefreshRefund(context.Background(), actor, request.ID)
+	if err != nil || unknown.Status != "unknown" || provider.createCalls != 1 {
+		t.Fatal("missing provider reply did not remain unknown", unknown, err)
+	}
+	if err = s.store.Update(func(data *Snapshot) error { data.BusinessDispatches[providerSlot] = retained; return nil }); err != nil {
+		t.Fatal(err)
+	}
+	admission.binding = "other-session"
+	if _, err = s.RefreshRefund(context.Background(), actor, request.ID); err == nil {
+		t.Fatal("different session recovered original response")
+	}
+	admission.binding = "original-session"
+	result, err := s.RefreshRefund(context.Background(), actor, request.ID)
+	if err != nil || result.Status != "submitted" || result.CentralRefundID != "saved-central-refund" || provider.createCalls != 1 {
+		t.Fatal("original response not recovered", result, err, provider.createCalls)
+	}
+	var snapshot Snapshot
+	if err = s.store.View(func(data Snapshot) error { snapshot = data; return nil }); err != nil {
+		t.Fatal(err)
+	}
+	totals, err := paymentFinancials(snapshot, snapshot.Invoices[invoice.ID])
+	if err != nil || totals.RefundedPrincipal != 0 || totals.NetPrincipal != 100 {
+		t.Fatal("unconfirmed response counted as refund", totals, err)
+	}
+}
+
 type refundReadRacePay struct {
 	*fakeAuthorizedRefundPay
 	during func()
