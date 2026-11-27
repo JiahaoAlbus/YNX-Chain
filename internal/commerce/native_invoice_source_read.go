@@ -315,6 +315,10 @@ func (s *OriginalShopInvoiceReadService) Close(ctx context.Context) error {
 	if s.link != nil {
 		if err := s.link.Join(ctx); err != nil {
 			if ctx.Err() != nil && errors.Is(err, ctx.Err()) {
+				if !s.sessionRequired {
+					remember(err)
+					return s.finalCloseError()
+				}
 				if first := s.finalCloseError(); first != nil {
 					return first
 				}
