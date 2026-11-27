@@ -64,7 +64,7 @@ jobs:
           names += ['TestSyntheticHeaderStreamOriginalCallback', 'TestSyntheticHeaderStreamPreStartCallbackUnknown', 'TestSyntheticHeaderStreamChangedAttemptUnknown', 'TestSyntheticHeaderStreamOptionsFailClosed', 'TestSyntheticHeaderStreamRawTimingProjection', 'TestSyntheticHeaderStreamCloseDoesNotRetryTimedOutFinish', 'TestSyntheticHeaderStreamNormalNodeNoActivityUnknown', 'TestSyntheticHeaderStreamActualPrivateFile', 'TestSyntheticHeaderStreamRejectsLossAndWrongOrder', 'TestSyntheticHeaderStreamOriginalIdentityAndBoundedRetirement', 'TestSyntheticHeaderStreamCloseFailuresRetainCustody']
           children = ['TestSyntheticCommitHeaderRealEngineOffOnEquivalent/' + layout for layout in ('atomic-json', 'snapshot-journal', 'block-journal')]
           children += ['TestSyntheticHeaderStreamRejectsLossAndWrongOrder/' + name for name in ('first-cause-bytes', 'queue-full', 'byte-limit', 'invalid', 'gap', 'capture-loss', 'receipt-exists')]
-          children += ['TestSyntheticHeaderStreamOriginalIdentityAndBoundedRetirement/' + name for name in ('receipt-same-size-write-after-readback', 'receipt-hardlink-after-readback', 'replaced-path', 'timeout-preserves-debt')]
+          children += ['TestSyntheticHeaderStreamOriginalIdentityAndBoundedRetirement/' + name for name in ('stream-same-size-write-after-readback', 'stream-hardlink-after-readback', 'receipt-same-size-write-after-readback', 'receipt-hardlink-after-readback', 'replaced-path', 'timeout-preserves-debt')]
           children += ['TestSyntheticHeaderStreamCloseFailuresRetainCustody/' + name for name in ('constructor', 'worker')]
           overflow = 'TestSyntheticCommitHeaderIdentityOverflowRefuses'
           overflow_children = [overflow + '/' + name for name in ('epoch', 'attempt')]

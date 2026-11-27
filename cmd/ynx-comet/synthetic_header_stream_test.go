@@ -367,6 +367,82 @@ func TestSyntheticHeaderStreamRejectsLossAndWrongOrder(t *testing.T) {
 }
 
 func TestSyntheticHeaderStreamOriginalIdentityAndBoundedRetirement(t *testing.T) {
+	checkStreamFailureReceipt := func(t *testing.T, path string) {
+		t.Helper()
+		raw, err := os.ReadFile(path + ".receipt.json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var receipt map[string]interface{}
+		if json.Unmarshal(raw, &receipt) != nil || receipt["status"] != "UNKNOWN" || receipt["streamStatus"] != "UNKNOWN" || receipt["streamDurable"] != false || receipt["firstCauseSha256"] == nil {
+			t.Fatal("stream failure was not retained in the original receipt", string(raw))
+		}
+	}
+	t.Run("stream-same-size-write-after-readback", func(t *testing.T) {
+		dir := headerStreamPrivateDir(t)
+		path := filepath.Join(dir, "stream.jsonl")
+		s, err := newSyntheticHeaderStream(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var observed os.FileInfo
+		var before byte
+		s.streamVerifiedHook = func(f *os.File) error {
+			var err error
+			observed, err = f.Stat()
+			if err != nil {
+				return err
+			}
+			one := []byte{0}
+			if _, err = f.ReadAt(one, 0); err != nil {
+				return err
+			}
+			before = one[0]
+			one[0] ^= 1
+			_, err = f.WriteAt(one, 0)
+			return err
+		}
+		if !s.tryAppend(headerStreamEvent(1)) {
+			t.Fatal("valid event rejected")
+		}
+		if err := s.finish(false); err == nil || s.report().Status != "UNKNOWN" || !strings.Contains(s.report().FirstError, "stream readback differs") {
+			t.Fatal("same-size stream mutation was accepted", err)
+		}
+		checkStreamFailureReceipt(t, path)
+		current, err := os.Stat(path)
+		if err != nil || observed == nil || !os.SameFile(observed, current) || observed.Size() != current.Size() {
+			t.Fatal("control changed original inode or size", err)
+		}
+		raw, err := os.ReadFile(path)
+		if err != nil || len(raw) == 0 || raw[0] != before^1 {
+			t.Fatal("controlled stream mutation not retained", err)
+		}
+	})
+	t.Run("stream-hardlink-after-readback", func(t *testing.T) {
+		dir := headerStreamPrivateDir(t)
+		path := filepath.Join(dir, "stream.jsonl")
+		alias := filepath.Join(dir, "stream-hardlink")
+		s, err := newSyntheticHeaderStream(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		s.streamVerifiedHook = func(*os.File) error { return os.Link(path, alias) }
+		if !s.tryAppend(headerStreamEvent(1)) {
+			t.Fatal("valid event rejected")
+		}
+		if err := s.finish(false); err == nil || s.report().Status != "UNKNOWN" || !strings.Contains(s.report().FirstError, "output identity changed") {
+			t.Fatal("stream hardlink after readback was accepted", err)
+		}
+		checkStreamFailureReceipt(t, path)
+		original, err := os.Stat(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		linked, err := os.Stat(alias)
+		if err != nil || !os.SameFile(original, linked) {
+			t.Fatal("real stream hardlink was not created", err)
+		}
+	})
 	t.Run("receipt-same-size-write-after-readback", func(t *testing.T) {
 		dir := headerStreamPrivateDir(t)
 		path := filepath.Join(dir, "stream.jsonl")

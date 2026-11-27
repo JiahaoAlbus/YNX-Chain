@@ -65,6 +65,7 @@ type syntheticHeaderStream struct {
 	original                                         os.FileInfo
 	streamHandles, receiptHandles                    *syntheticHeaderOwnedHandles
 	closeFileHook                                    func(*os.File) error
+	streamVerifiedHook                               func(*os.File) error // test-only; nil in normal execution
 	receiptVerifiedHook                              func(*os.File) error // test-only; nil in normal execution
 }
 
@@ -299,6 +300,41 @@ func (s *syntheticHeaderStream) writeLine(raw []byte, h hash.Hash) error {
 	return err
 }
 
+// Recheck the original held file and the complete bounded bytes. A successful
+// read is a point-in-time observation; the independent reader must verify the
+// retained file again before consuming it.
+func (s *syntheticHeaderStream) verifyReadback(size int64, expected []byte) error {
+	if err := s.checkIdentity(); err != nil {
+		return err
+	}
+	info, err := s.file.Stat()
+	if err != nil {
+		return err
+	}
+	if info.Size() != size {
+		return errors.New("synthetic header stream size changed")
+	}
+	readback := sha256.New()
+	n, err := io.Copy(readback, io.NewSectionReader(s.file, 0, size))
+	if err != nil {
+		return err
+	}
+	if n != size || !bytes.Equal(readback.Sum(nil), expected) {
+		return errors.New("synthetic header stream readback differs")
+	}
+	if err := s.checkIdentity(); err != nil {
+		return err
+	}
+	info, err = s.file.Stat()
+	if err != nil {
+		return err
+	}
+	if info.Size() != size {
+		return errors.New("synthetic header stream size changed")
+	}
+	return nil
+}
+
 func (s *syntheticHeaderStream) run() {
 	defer close(s.done)
 	h := sha256.New()
@@ -350,27 +386,21 @@ func (s *syntheticHeaderStream) run() {
 	if err := s.checkIdentity(); err != nil {
 		s.fail(err)
 	}
-	info, err := s.file.Stat()
 	s.mu.Lock()
 	size := s.bytes
 	s.mu.Unlock()
-	if err != nil {
-		s.fail(err)
-	} else if info.Size() != size {
-		s.fail(errors.New("synthetic header stream size changed"))
-	} else {
-		readback := sha256.New()
-		n, err := io.Copy(readback, io.NewSectionReader(s.file, 0, size))
-		if err != nil {
-			s.fail(err)
-		} else if n != size || !bytes.Equal(readback.Sum(nil), h.Sum(nil)) {
-			s.fail(errors.New("synthetic header stream readback differs"))
-		}
+	readbackErr := s.verifyReadback(size, h.Sum(nil))
+	s.fail(readbackErr)
+	if readbackErr == nil && s.streamVerifiedHook != nil {
+		s.fail(s.streamVerifiedHook(s.file))
 	}
 	if err := s.output.directory.Sync(); err != nil {
 		s.fail(err)
 	}
-	if err := s.output.parentCurrent(); err != nil {
+	// The first successful readback alone does not detect a later same-size
+	// write or a new hardlink. Do not label this observation durable without
+	// rechecking the same original FD, path and full digest after directory sync.
+	if err := s.verifyReadback(size, h.Sum(nil)); err != nil {
 		s.fail(err)
 	}
 	_ = s.closeOwned(s.streamHandles)
