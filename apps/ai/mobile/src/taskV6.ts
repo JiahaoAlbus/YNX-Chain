@@ -15,6 +15,9 @@ const v6Actions=new Set<string>(['task.create','task.prepare','task.approve','ta
 function validRetainedCreateBinding(entry:V6Entry):boolean{
  try{const b:unknown=JSON.parse(entry.binding);if(entry.taskId!==null||!Array.isArray(b)||b.length!==7||b[0]!=='task.create'||b.slice(1,6).some(x=>x!==null))return false;const c=b[6];return !!c&&typeof c==='object'&&!Array.isArray(c)&&Object.keys(c).join(',')==='conversationId'&&typeof c.conversationId==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(c.conversationId)}catch{return false}
 }
+function retainedEffectBindingMatches(entry:V6Entry):boolean{
+ try{const b:unknown=JSON.parse(entry.binding);return Array.isArray(b)&&b.length===7&&b[0]===entry.action&&b[1]===entry.taskId}catch{return false}
+}
 export function validateV6Journal(value:unknown):V6Journal{
  const j=value as V6Journal;if(!j||j.version!=='6'||Object.keys(j).sort().join(',')!=='entries,version'||!Array.isArray(j.entries)||j.entries.length>128)throw Error('V6_JOURNAL_INVALID');
  const ids=new Set<string>();for(const e of j.entries){if(!e||e.version!=='6'||typeof e.binding!=='string'||!e.binding||e.binding.length>1024||typeof e.action!=='string'||!v6Actions.has(e.action)||(e.firstCause!==undefined&&!['SDK_OR_TRANSPORT_UNRESOLVED','CANCELLED','LOCAL_PERSISTENCE_FAILED'].includes(e.firstCause))||!['PENDING','UNKNOWN','COMMITTED','ACCEPTED','OBSERVED','DENIED'].includes(e.state)||!(e.taskId===null||typeof e.taskId==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(e.taskId))||(['task.create','task.list'].includes(e.action)?e.taskId!==null:e.taskId===null)||Object.keys(e).some(k=>!['version','operationId','binding','action','taskId','state','firstCause'].includes(k)))throw Error('V6_JOURNAL_INVALID');id(e.operationId);if(ids.has(e.operationId))throw Error('V6_JOURNAL_INVALID');ids.add(e.operationId)}return j;
@@ -38,6 +41,7 @@ export class NativeTaskV6Adapter{
    // Read-only fresh observations may be repeated. Effects never reuse a new
    // nonce/op to escape a retained original delivery, including DENIED.
    const read=['task.list','task.read','task.step-result','task.run-read','task.reconcile'].includes(request.action);
+   if(!read&&request.action!=='task.cancel'&&record.entries.some(e=>['PENDING','UNKNOWN'].includes(e.state)&&!retainedEffectBindingMatches(e)))throw Error('V6_ORIGINAL_QUERY_REQUIRED');
    if(request.action==='task.create'&&record.entries.some(e=>e.action==='task.create'&&['PENDING','UNKNOWN'].includes(e.state)&&!validRetainedCreateBinding(e)))throw Error('V6_ORIGINAL_QUERY_REQUIRED');
    if(!read&&record.entries.some(e=>e.binding===binding||(request.action!=='task.cancel'&&request.taskId!==null&&e.taskId===request.taskId&&['PENDING','UNKNOWN'].includes(e.state))))throw Error('V6_ORIGINAL_QUERY_REQUIRED');
    // Compact only terminal read observations. Never discard effects or any

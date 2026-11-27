@@ -94,6 +94,25 @@ test('unattributable retained create blocks new creation but remains queryable',
  const result=await api.adapter.lookupOriginal('original_create',new AbortController().signal);assert.equal(result.operationId,'original_create');assert.equal(result.operationVerified,false);
  assert.deepEqual(f.calls,['lookup:original_create','readRecovery']);await api.adapter.close();
 });
+test('mismatched retained effect metadata blocks new effects but permits original query',async()=>{
+ const f=fixture();const binding=JSON.stringify(['task.dispatch','task_original','2','1','step_original',null,null]);
+ f.original.journal.read=async()=>({version:'6',entries:[{version:'6',operationId:'original_effect',binding,action:'task.dispatch',taskId:'different_task',state:'UNKNOWN'}]});
+ const adapter=new NativeTaskV6Adapter('PUBLIC',f.original);await assert.rejects(adapter.execute(request('task.prepare'),new AbortController().signal),/V6_ORIGINAL_QUERY_REQUIRED/);
+ assert.deepEqual(f.calls,[]);assert.deepEqual(f.writes,[]);
+ const result=await adapter.lookupOriginal('original_effect',new AbortController().signal);assert.equal(result.operationVerified,false);
+ assert.deepEqual(f.calls,['lookup:original_effect','readRecovery']);await adapter.close();
+});
+test('an effect mislabeled as a read cannot bypass the unresolved binding fence',async()=>{
+ const f=fixture();const binding=JSON.stringify(['task.dispatch','task_original','2','1','step_original',null,null]);
+ f.original.journal.read=async()=>({version:'6',entries:[{version:'6',operationId:'original_effect',binding,action:'task.read',taskId:'task_original',state:'UNKNOWN'}]});
+ const adapter=new NativeTaskV6Adapter('PUBLIC',f.original);await assert.rejects(adapter.execute(request('task.prepare'),new AbortController().signal),/V6_ORIGINAL_QUERY_REQUIRED/);
+ assert.deepEqual(f.calls,[]);assert.deepEqual(f.writes,[]);await adapter.close();
+});
+test('a damaged unresolved binding does not disable explicit task cancellation',async()=>{
+ const f=fixture();f.original.journal.read=async()=>({version:'6',entries:[{version:'6',operationId:'original_effect',binding:'damaged',action:'task.dispatch',taskId:t.id,state:'UNKNOWN'}]});
+ const adapter=new NativeTaskV6Adapter('PUBLIC',f.original);const result=await adapter.execute(request('task.cancel'),new AbortController().signal);
+ assert.equal(result.phase,'COMMITTED');assert.equal(f.saved!.entries[0]!.state,'UNKNOWN');await adapter.close();
+});
 test('an intact unknown create does not block a different conversation',async()=>{
  const f=fixture();const binding=JSON.stringify(['task.create',null,null,null,null,null,{conversationId:'first_conversation'}]);
  f.original.journal.read=async()=>({version:'6',entries:[{version:'6',operationId:'original_create',binding,action:'task.create',taskId:null,state:'UNKNOWN'}]});
