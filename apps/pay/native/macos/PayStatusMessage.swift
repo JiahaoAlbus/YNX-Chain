@@ -1,5 +1,8 @@
 // Presentation only: never changes approval, holder, or original operation.
 enum PayStatusMessage {
+    static func outcomeUnknown(_ response: [String: Any]) -> Bool {
+        response["outcomeUnknown"] as? Bool == true || response["outcome"] as? String == "UNKNOWN"
+    }
     static func text(code: String?, outcomeUnknown: Bool) -> String? {
         switch code {
         case "NATIVE_PAY_NORMAL_MAIN_SOURCE_NOT_SUPPLIED", "NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE":

@@ -84,7 +84,7 @@ enum PayBridge {
                         ? "Wallet Source connected. Pay service availability has not been verified."
                         : "Original Wallet / Source unavailable"
                 }
-                if let guidance = PayStatusMessage.text(code: (value["code"] as? String) ?? (value["reason"] as? String), outcomeUnknown: value["outcomeUnknown"] as? Bool == true) { status = guidance }
+                if let guidance = PayStatusMessage.text(code: (value["code"] as? String) ?? (value["reason"] as? String), outcomeUnknown: PayStatusMessage.outcomeUnknown(value)) { status = guidance }
             }
             busy = false
             if lifecycle.completed() { perform("status") }

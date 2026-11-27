@@ -5,5 +5,9 @@
         precondition(PayStatusMessage.text(code: nil, outcomeUnknown: true)?.contains("original invoice") == true)
         precondition(PayStatusMessage.text(code: "NATIVE_PAY_MAIN_CURRENT_UNAVAILABLE", outcomeUnknown: true)?.contains("session changed") == true)
         precondition(PayStatusMessage.text(code: nil, outcomeUnknown: false) == nil)
+        precondition(PayStatusMessage.outcomeUnknown(["outcome": "UNKNOWN"]))
+        precondition(PayStatusMessage.outcomeUnknown(["outcomeUnknown": true]))
+        precondition(!PayStatusMessage.outcomeUnknown(["outcome": "CONFIRMED", "outcomeUnknown": false]))
+        precondition(PayStatusMessage.text(code: "PUBLIC_ORIGINAL_REPLY_LOST", outcomeUnknown: PayStatusMessage.outcomeUnknown(["outcome": "UNKNOWN"]))?.contains("original invoice") == true)
     }
 }
