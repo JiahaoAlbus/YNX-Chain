@@ -9,6 +9,13 @@ export function merchantRefundRecoveryLabel(kind,status){
  if(status==='unknown')return 'Check original status';
  return null;
 }
+export function merchantRefundRecoveryNotice(result,originalId){
+ if(!result||result.id!==originalId)throw Object.assign(new Error('Original refund result changed. Refresh the same merchant record.'),{code:'MERCHANT_REFUND_ORIGINAL_CHANGED'});
+ if(result.status==='unknown')return 'The original refund outcome is still unknown. No new refund was submitted.';
+ if(result.status==='submitted')return 'The original refund is submitted. Check chain evidence before treating it as refunded.';
+ if(result.status==='refunded')return 'The original refund has authoritative evidence. Review the updated record.';
+ throw Object.assign(new Error('Original refund status is unavailable. Refresh the same merchant record.'),{code:'MERCHANT_REFUND_ORIGINAL_CHANGED'});
+}
 export function merchantInvoicePresentation(invoice,merchantId){
  if(!invoice||invoice.merchantId!==merchantId||typeof invoice.id!=='string'||!invoice.id||typeof invoice.centralInvoiceId!=='string'||!invoice.centralInvoiceId||!integer(invoice.amount,1)||!integer(invoice.fee)||invoice.asset!=='YNXT'||invoice.network!=='ynx_6423-1'||!Number.isInteger(invoice.version)||invoice.version<1||invoice.version>5||!Number.isFinite(Date.parse(invoice.expiresAt))||!Number.isFinite(Date.parse(invoice.createdAt)))throw reject();
  const tip=invoice.version>=3?invoice.tipAmount??0:0,base=invoice.version>=3?invoice.baseAmount:invoice.amount;
