@@ -381,20 +381,33 @@ func (g *Gateway) evmCommittedContractCall(ctx context.Context, method string, r
 	if !found {
 		return nil, -32000, errors.New("committed bounded contract not found")
 	}
+	var callFields map[string]json.RawMessage
+	if err := json.Unmarshal(params[0], &callFields); err != nil {
+		return nil, -32602, err
+	}
+	caller, hasCaller, err := optionalEVMStringField(callFields, "from")
+	if err != nil {
+		return nil, -32602, err
+	}
+	queryPath := "/ide/call/" + address + "/" + calldata
+	if hasCaller {
+		queryPath = "/ide/call-as/" + address + "/" + caller + "/" + calldata
+	}
 	var result struct {
 		Address         string `json:"address"`
+		Caller          string `json:"caller,omitempty"`
 		EncodedResult   string `json:"encodedResult"`
 		OpcodeStepCount int    `json:"opcodeStepCount"`
 		RuntimeMode     string `json:"runtimeMode"`
 		SourceAnchor    string `json:"sourceAnchor,omitempty"`
 	}
-	if err := g.evmCallAtHeight(ctx, "/ide/call/"+address+"/"+calldata, height, &result); err != nil {
+	if err := g.evmCallAtHeight(ctx, queryPath, height, &result); err != nil {
 		if errors.Is(err, errEVMCallHeightMismatch) {
 			return nil, -32603, err
 		}
 		return nil, -32000, err
 	}
-	if result.Address != address || result.SourceAnchor != contract.SourceAnchor || result.RuntimeMode != chain.BoundedContractRuntimeMode || !isCanonicalEVMData(result.EncodedResult, 0, 64<<10) || result.OpcodeStepCount <= 0 {
+	if result.Address != address || result.Caller != caller || result.SourceAnchor != contract.SourceAnchor || result.RuntimeMode != chain.BoundedContractRuntimeMode || !isCanonicalEVMData(result.EncodedResult, 0, 64<<10) || result.OpcodeStepCount <= 0 {
 		return nil, -32603, errors.New("ABCI bounded contract call evidence is invalid")
 	}
 	if method == "eth_estimateGas" {

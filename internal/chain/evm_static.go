@@ -23,6 +23,10 @@ type evmStateTransitionResult struct {
 }
 
 func runStaticEVMSubset(deployedBytecode, callDataHex string, storage map[string]string) (evmStaticResult, error) {
+	return runStaticEVMSubsetWithCaller(deployedBytecode, callDataHex, storage, nil)
+}
+
+func runStaticEVMSubsetWithCaller(deployedBytecode, callDataHex string, storage map[string]string, caller *big.Int) (evmStaticResult, error) {
 	code, err := hex.DecodeString(strings.TrimPrefix(deployedBytecode, "0x"))
 	if err != nil {
 		return evmStaticResult{}, fmt.Errorf("decode deployed bytecode: %w", err)
@@ -39,6 +43,7 @@ func runStaticEVMSubset(deployedBytecode, callDataHex string, storage map[string
 		calldata: callData,
 		storage:  storage,
 		memory:   make([]byte, 0, 256),
+		caller:   caller,
 		readOnly: true,
 	}
 	return vm.run()
@@ -290,6 +295,9 @@ func (vm *evmSubsetVM) run() (evmStaticResult, error) {
 			other := top - depth
 			vm.stack[top], vm.stack[other] = vm.stack[other], vm.stack[top]
 		case op >= 0xa0 && op <= 0xa4:
+			if vm.readOnly {
+				return evmStaticResult{}, errors.New("LOG is not allowed in local staticcall subset")
+			}
 			if err := vm.recordLog(int(op - 0xa0)); err != nil {
 				return evmStaticResult{}, err
 			}

@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"encoding/hex"
 	"errors"
 	"strings"
 )
@@ -13,6 +14,22 @@ type BoundedContractTransition struct {
 	StorageWrites []StorageWrite    `json:"storageWrites,omitempty"`
 	Logs          []ExecutionLog    `json:"logs,omitempty"`
 	Storage       map[string]string `json:"storage"`
+}
+
+// CallBoundedContractAs simulates a read-only call with the supplied caller.
+// The caller is an observation input and does not authorize a transaction.
+func CallBoundedContractAs(deployedBytecode, calldata, caller string, storage map[string]string) (string, int, error) {
+	if len(caller) != 42 || !strings.HasPrefix(caller, "0x") || caller != strings.ToLower(caller) {
+		return "", 0, errors.New("canonical caller address required")
+	}
+	if _, err := hex.DecodeString(caller[2:]); err != nil {
+		return "", 0, errors.New("canonical caller address required")
+	}
+	result, err := runStaticEVMSubsetWithCaller(deployedBytecode, calldata, copyRuntimeStorage(storage), evmAddressInt(caller))
+	if err != nil {
+		return "", 0, err
+	}
+	return result.EncodedResult, result.StepCount, nil
 }
 
 type boundedPinnedContractIdentity struct {

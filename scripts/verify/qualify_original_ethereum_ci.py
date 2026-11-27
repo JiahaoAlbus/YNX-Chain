@@ -20,6 +20,7 @@ REQUIRED = {
         "TestEVMContractReadRejectsSnapshotHeightMismatch",
         "TestEVMOriginalEstimatePinsSenderHeight",
         "TestEVMMigratedContractOriginalReads",
+        "TestGatewayCommitsBoundedIDEAndReturnsEVMLogs",
         "TestEVMMigratedContractPQUpdateReadAndRestart",
         "TestGatewayOriginalEVMLogsCrossMigrationAndColdRead",
         "TestGatewayOriginalEthereumTransactionAndUnavailableReceipt",

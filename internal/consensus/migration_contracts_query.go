@@ -68,5 +68,33 @@ func queryLegacyContracts(response *abcitypes.ResponseQuery, path string, state 
 		response.Value, _ = json.Marshal(map[string]any{"address": live.Address, "sourceAnchor": source.SourceAnchor, "encodedResult": encoded, "opcodeStepCount": steps, "runtimeMode": live.RuntimeMode})
 		return true
 	}
+	if strings.HasPrefix(path, "/ide/call-as/") {
+		parts := strings.SplitN(strings.TrimPrefix(path, "/ide/call-as/"), "/", 3)
+		if len(parts) != 3 {
+			response.Code, response.Log = 1, "IDE call requires contract, caller and calldata"
+			return true
+		}
+		original, ok := source.Contracts[parts[0]]
+		if !ok {
+			return false
+		}
+		if !IsNativeAddress(parts[1]) {
+			response.Code, response.Log = 1, "canonical caller address required"
+			return true
+		}
+		index, ok := bftContractIndex(state.Contracts, parts[0])
+		if !ok {
+			response.Code, response.Log = 1, "imported executable contract missing"
+			return true
+		}
+		live := state.Contracts[index]
+		encoded, steps, err := chain.CallConsensusSourceContractAs(original, live.DeployedBytecode, parts[2], parts[1], live.RuntimeStorage)
+		if err != nil {
+			response.Code, response.Log = 1, "imported static call failed: "+err.Error()
+			return true
+		}
+		response.Value, _ = json.Marshal(map[string]any{"address": live.Address, "caller": parts[1], "sourceAnchor": source.SourceAnchor, "encodedResult": encoded, "opcodeStepCount": steps, "runtimeMode": live.RuntimeMode})
+		return true
+	}
 	return false
 }

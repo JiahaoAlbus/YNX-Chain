@@ -251,12 +251,26 @@ func validateConsensusContractFunctions(original ContractArtifact, artifact hard
 }
 
 func CallConsensusSourceContract(original ContractArtifact, bytecode, calldata string, storage map[string]string) (string, int, error) {
+	return callConsensusSourceContract(original, bytecode, calldata, "", storage)
+}
+
+func CallConsensusSourceContractAs(original ContractArtifact, bytecode, calldata, caller string, storage map[string]string) (string, int, error) {
+	if caller == "" {
+		return "", 0, errors.New("caller address required")
+	}
+	return callConsensusSourceContract(original, bytecode, calldata, caller, storage)
+}
+
+func callConsensusSourceContract(original ContractArtifact, bytecode, calldata, caller string, storage map[string]string) (string, int, error) {
 	calldata = normalizeHex(calldata)
 	if len(calldata) < 10 {
 		return "", 0, errors.New("source static call requires ABI calldata")
 	}
 	for _, candidate := range original.Functions {
 		if candidate.Selector == calldata[:10] && candidate.BytecodeSelectorMatched && (candidate.StateMutability == "pure" || candidate.StateMutability == "view") {
+			if caller != "" {
+				return CallBoundedContractAs(bytecode, calldata, caller, storage)
+			}
 			return CallBoundedContract(bytecode, calldata, storage)
 		}
 	}

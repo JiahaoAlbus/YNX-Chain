@@ -756,6 +756,25 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 		contract := a.committed.Contracts[index]
 		response.Value, _ = json.Marshal(map[string]any{"address": contract.Address, "name": contract.Name, "sourceHash": contract.SourceHash, "deployedBytecodeHash": contract.DeployedBytecodeHash, "runtimeMode": contract.RuntimeMode, "artifactStatus": "bounded_pinned_artifact_committed", "verificationStatus": "source_and_deployed_bytecode_identity_committed", "blockHeight": contract.BlockHeight, "transactionHash": contract.TxHash, "auditHash": contract.AuditHash, "remotePublicProofStatus": "not_claimed"})
 		return response, nil
+	case strings.HasPrefix(req.Path, "/ide/call-as/"):
+		parts := strings.SplitN(strings.TrimPrefix(req.Path, "/ide/call-as/"), "/", 3)
+		if len(parts) != 3 || !IsNativeAddress(parts[1]) {
+			response.Code, response.Log = 1, "IDE call requires contract, canonical caller and calldata"
+			return response, nil
+		}
+		index, ok := bftContractIndex(a.committed.Contracts, parts[0])
+		if !ok {
+			response.Code, response.Log = 1, "IDE contract not found"
+			return response, nil
+		}
+		contract := a.committed.Contracts[index]
+		encoded, steps, err := chain.CallBoundedContractAs(contract.DeployedBytecode, normalizeIDEQueryCalldata(parts[2]), parts[1], contract.RuntimeStorage)
+		if err != nil {
+			response.Code, response.Log = 1, "bounded IDE call failed: "+err.Error()
+			return response, nil
+		}
+		response.Value, _ = json.Marshal(map[string]any{"address": parts[0], "caller": parts[1], "encodedResult": encoded, "opcodeStepCount": steps, "runtimeMode": chain.BoundedContractRuntimeMode})
+		return response, nil
 	case strings.HasPrefix(req.Path, "/ide/call/"):
 		parts := strings.SplitN(strings.TrimPrefix(req.Path, "/ide/call/"), "/", 2)
 		if len(parts) != 2 {

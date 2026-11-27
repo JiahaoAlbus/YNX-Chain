@@ -122,6 +122,7 @@ func TestGatewayCommitsBoundedIDEAndReturnsEVMLogs(t *testing.T) {
 	}
 
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":10,"method":"eth_getCode","params":["`+deployed.Contract.Address+`","latest"]}`, bytecode)
+	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":110,"method":"eth_call","params":[{"from":"`+signer+`","to":"`+deployed.Contract.Address+`","data":"0x06661abd"},"latest"]}`, "0x"+strings.Repeat("0", 63)+"c")
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":101,"method":"eth_getCode","params":["`+deployed.Contract.Address+`"]}`, bytecode)
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":11,"method":"eth_getCode","params":["0x0000000000000000000000000000000000000000","latest"]}`, "0x")
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":17,"method":"eth_getStorageAt","params":["`+deployed.Contract.Address+`","0x0","latest"]}`, "0x"+strings.Repeat("0", 63)+"c")

@@ -2,8 +2,13 @@ package bftgateway
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
+	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
@@ -33,7 +38,52 @@ func TestEVMMigratedContractOriginalReads(t *testing.T) {
 		address = contract.Address
 		d.ProduceBlock()
 	})
-	upstream := httptest.NewServer(newABCICometFixture(t, f.app, f.stateHeight))
+	actual := newABCICometFixture(t, f.app, f.stateHeight)
+	var badCaller atomic.Bool
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path, _ := strconv.Unquote(r.URL.Query().Get("path"))
+		if !badCaller.Load() || !strings.HasPrefix(path, "/ide/call-as/") {
+			actual.ServeHTTP(w, r)
+			return
+		}
+		recorded := httptest.NewRecorder()
+		actual.ServeHTTP(recorded, r)
+		var envelope struct {
+			Result struct {
+				Response struct {
+					Code   int    `json:"code"`
+					Height string `json:"height"`
+					Value  string `json:"value"`
+				} `json:"response"`
+			} `json:"result"`
+		}
+		if err := json.Unmarshal(recorded.Body.Bytes(), &envelope); err != nil {
+			t.Error(err)
+			http.Error(w, "fixture", 500)
+			return
+		}
+		data, err := base64.StdEncoding.DecodeString(envelope.Result.Response.Value)
+		if err != nil {
+			t.Error(err)
+			http.Error(w, "fixture", 500)
+			return
+		}
+		var result map[string]any
+		if err = json.Unmarshal(data, &result); err != nil {
+			t.Error(err)
+			http.Error(w, "fixture", 500)
+			return
+		}
+		result["caller"] = "0x" + strings.Repeat("f", 40)
+		data, err = json.Marshal(result)
+		if err != nil {
+			t.Error(err)
+			http.Error(w, "fixture", 500)
+			return
+		}
+		envelope.Result.Response.Value = base64.StdEncoding.EncodeToString(data)
+		writeJSON(w, 200, envelope)
+	}))
 	defer upstream.Close()
 	gateway, err := New(Config{CometRPCURL: upstream.URL})
 	if err != nil {
@@ -44,6 +94,10 @@ func TestEVMMigratedContractOriginalReads(t *testing.T) {
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":1,"method":"eth_getCode","params":["`+address+`","latest"]}`, bytecode)
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":2,"method":"eth_getStorageAt","params":["`+address+`","0x0","latest"]}`, "0x"+strings.Repeat("0", 63)+"7")
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":3,"method":"eth_call","params":[{"to":"`+address+`","data":"0x06661abd"},"latest"]}`, "0x"+strings.Repeat("0", 63)+"7")
+	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":4,"method":"eth_call","params":[{"from":"`+owner+`","to":"`+address+`","data":"0x06661abd"},"latest"]}`, "0x"+strings.Repeat("0", 63)+"7")
+	badCaller.Store(true)
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":5,"method":"eth_call","params":[{"from":"`+owner+`","to":"`+address+`","data":"0x06661abd"},"latest"]}`, -32603)
+	badCaller.Store(false)
 	contract, found, err := gateway.evmContractAtHeight(context.Background(), address, uint64(f.stateHeight))
 	if err != nil || !found {
 		t.Fatal("original contract unavailable", err)
