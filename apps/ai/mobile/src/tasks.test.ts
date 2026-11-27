@@ -54,6 +54,15 @@ test("cancelled task can query a locally completed step whose Auth receipt is UN
 });
 function storage(){let saved:WorkspaceRecord|null=null;const values:string[]=[];const api:TaskPersistence={read:async()=>saved?JSON.parse(JSON.stringify(saved)):null,write:async(_id,value)=>{values.push(JSON.stringify(value));saved=JSON.parse(JSON.stringify(value))}};return {api,values,get saved(){return saved}}}
 function mockAPI(changes:Partial<TaskAPI>={}):TaskAPI{return {list:async()=>({tasks:[task],hasMore:false}),task:async()=>JSON.parse(JSON.stringify(projection)),create:async()=>task,prepare:async()=>({task:{...task,revision:3}}),cancel:async()=>({task:{...task,status:"RECONCILING",revision:3},remoteRollback:false}),handoff:async()=>({task:{...task,holder:"holder_next",revision:3,generation:2}}),complete:async()=>({task:{...task,status:"COMPLETED"}}),propose:async()=>({}),approve:async()=>({}),dispatch:async()=>({state:"COMMITTED",effectRef:step.id,result:{}}),reconcile:async()=>({}),result:async()=>({state:"COMMITTED",effectRef:step.id,authorityOperationId:step.toolStep.authorityOperationId,result:{actual:"PUBLIC controlled result"}}),run:async()=>({id:"run_internal",runId:"run_original",taskId:task.id,status:"NEEDS_APPROVAL",steps:[step.id],recoveryOnly:false}),runView:async()=>({id:"run_internal",runId:"run_original",taskId:task.id,status:"UNKNOWN",steps:[step.id],recoveryOnly:true}),...changes}}
+
+test("corrupt persisted journal blocks a new task before writing or sending",async()=>{
+ let creates=0,writes=0;
+ const persistence:TaskPersistence={read:async()=>decodeStoredWorkspaceRecord(""),write:async()=>{writes++}};
+ const c=new TaskWorkspaceController("PUBLIC",mockAPI({create:async()=>{creates++;return task}}),persistence,()=>"new-operation");
+ await c.create("conv_original");
+ assert.equal(c.state.error,"TASK_JOURNAL_INVALID");
+ assert.equal(creates,0);assert.equal(writes,0);
+});
 test("native task requests use fresh original scope proof and fixed route, no legacy bearer",async()=>{
  const scopes:string[]=[],requests:{url:string;init:RequestInit}[]=[];
  const api=createTaskAPI("http://127.0.0.1:6438",{identity:"PUBLIC-session",proof:async scope=>{scopes.push(scope);return `PUBLIC-${scopes.length}`}},async(input,init)=>{requests.push({url:String(input),init:init!});return new Response(JSON.stringify({tasks:[],hasMore:false}),{status:200})});
