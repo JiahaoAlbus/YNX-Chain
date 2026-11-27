@@ -42,7 +42,7 @@ BEFORE59_COMPOSITION_BINDING = None  # Owner-frozen original Tools source/build 
 SERIAL_VERIFIER_BINDING = None  # Owner-frozen per-arm serial CI evidence only; never an environment override.
 SERIAL_CONTROL_MINIMUMS = {'staged':23, 'serial':28, 'independent':25, 'bounded-sender':24,
     'header-data':11, 'header-driver-data':8,
-    'commit-validation':13, 'initialization':39, 'go-evidence-parser':7, 'scheduler-boundaries':18}
+    'commit-validation':13, 'initialization':39, 'go-evidence-parser':7, 'scheduler-boundaries':22}
 SERIAL_CRITICAL_TESTS = {
     'staged': ('StagedIndependentSchedulerControls', (
         'test_terminal_snapshot_spanning_deadline_is_unknown_and_never_drains',

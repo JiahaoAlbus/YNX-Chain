@@ -173,6 +173,11 @@ class ControllerControls(unittest.TestCase):
             extra=copy.deepcopy(frozen);extra['before']['ciPin']['groups'].append(dict(name='extra',tests=['CONTROL']))
             with mock.patch.object(c,'SERIAL_VERIFIER_BINDING',extra),self.assertRaisesRegex(RuntimeError,'controls NOT_SUPPLIED'):
                 c.serial_preflight_for_arm('before',selected,Path('/CONTROL/tools'),driver,api)
+            shortened=copy.deepcopy(frozen)
+            boundary=next(group for group in shortened['before']['ciPin']['groups'] if group['name']=='scheduler-boundaries')
+            boundary['tests']=boundary['tests'][:-4]
+            with mock.patch.object(c,'SERIAL_VERIFIER_BINDING',shortened),self.assertRaisesRegex(RuntimeError,'controls NOT_SUPPLIED'):
+                c.serial_preflight_for_arm('before',selected,Path('/CONTROL/tools'),driver,api)
             check=c.serial_preflight_for_arm('before',selected,Path('/CONTROL/tools'),driver,api)
             inspector.validate_metadata.side_effect=ValueError('wrong original job')
             with self.assertRaisesRegex(ValueError,'wrong original job'):check()

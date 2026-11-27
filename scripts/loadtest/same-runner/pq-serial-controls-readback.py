@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 
 _VERSION = 'YNX-SERIAL-VERIFIER-CONTROLS/v1'
 _WORKFLOW = '.github/workflows/pq-serial-verifier-source-controls.yml'
+_STEP = 'Run staged, Linux verifier, and synthetic header DATA controls'
 _REPO = 'JiahaoAlbus/YNX-Chain'
 _REPO_ID = 1285041796
 _HEX40 = re.compile(r'[0-9a-f]{40}\Z')
@@ -70,7 +71,7 @@ def validate_pin(pin):
     for key in ('runId', 'jobId', 'artifactId', 'artifactBytes'):
         _require(type(pin[key]) is int and pin[key] > 0, 'invalid integer identity')
     _require(type(pin['branch']) is str and pin['branch'].startswith('codex/') and len(pin['branch']) <= 200, 'invalid push branch')
-    _require(type(pin['stepName']) is str and re.fullmatch(r'[A-Za-z0-9 ,._-]{1,200}', pin['stepName']) is not None, 'invalid pinned step')
+    _require(pin['stepName'] == _STEP, 'invalid original controls step')
     expected_name = 'ynx-serial-verifier-%s-%s-1' % (pin['sourceCommit'], pin['runId'])
     _require(pin['artifactName'] == expected_name and pin['artifactBytes'] <= 4 << 20, 'invalid artifact pin')
     groups = pin['groups']

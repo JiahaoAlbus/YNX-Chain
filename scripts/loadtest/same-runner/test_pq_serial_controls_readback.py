@@ -43,11 +43,11 @@ def fixture():
     archive = b.getvalue()
     pin = dict(sourceCommit=source, sourceTree=tree, forkTree=fork, branch=branch, runId=7, jobId=8, artifactId=9,
                artifactName='ynx-serial-verifier-%s-7-1' % source, artifactBytes=len(archive), artifactSha256=digest(archive),
-               jobLogSha256=digest(log), stepName='Run original staged and Linux verifier controls', groups=groups)
+               jobLogSha256=digest(log), stepName=m._STEP, groups=groups)
     run = dict(id=7, head_sha=source, head_branch=branch, event='push', run_attempt=1, status='completed', conclusion='success',
                path=m._WORKFLOW, repository={'full_name':m._REPO, 'id':m._REPO_ID}, head_repository={'full_name':m._REPO, 'id':m._REPO_ID})
     job = dict(id=8, run_id=7, head_sha=source, head_branch=branch, run_attempt=1, workflow_name='Serial Original Verifier Source Controls', name='controls', status='completed', conclusion='success',
-               steps=[dict(name='Run original staged and Linux verifier controls', status='completed', conclusion='success',
+               steps=[dict(name=m._STEP, status='completed', conclusion='success',
                            started_at='2026-11-27T16:31:17Z', completed_at='2026-11-27T16:31:31Z')])
     artifact = dict(id=9, name=pin['artifactName'], size_in_bytes=len(archive), digest='sha256:' + digest(archive), expired=False,
                     workflow_run=dict(id=7, head_sha=source, head_branch=branch, repository_id=m._REPO_ID, head_repository_id=m._REPO_ID))
@@ -65,7 +65,7 @@ class SerialControlsReadback(unittest.TestCase):
         self.assertFalse(result['independentFinalityVerified'])
 
     def test_invalid_pins_and_official_metadata_rejected(self):
-        for field, value in [('sourceCommit', 'z'*40), ('runId', True), ('artifactSha256', 'd'*63), ('branch', 'main'), ('artifactBytes', 0)]:
+        for field, value in [('sourceCommit', 'z'*40), ('runId', True), ('artifactSha256', 'd'*63), ('branch', 'main'), ('artifactBytes', 0), ('stepName', 'Other successful step')]:
             args = list(fixture()); args[0][field] = value
             with self.subTest(field=field), self.assertRaises(ValueError): m.validate_pin(args[0])
         for index, field, value in [(1,'head_sha','d'*40),(1,'run_attempt',2),(1,'event','workflow_dispatch'),(2,'id',10),(2,'run_id',99),(2,'conclusion','failure')]:
