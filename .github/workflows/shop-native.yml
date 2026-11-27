@@ -516,11 +516,13 @@ jobs:
           set -euo pipefail
           bash apps/shop/native/android/gradlew -p apps/shop/native/android --no-daemon \
             :app:assembleDebug :app:testDebugUnitTest --tests com.ynxweb4.shop.NativeIntentObservationTest --tests com.ynxweb4.shop.NativeInvoiceJourneyTest --tests com.ynxweb4.shop.OriginalOrderLinkTest --tests com.ynxweb4.shop.NativeCartTest
+          sha256sum apps/shop/native/android/app/build/outputs/apk/debug/app-debug.apk > apps/shop/native/android/app/build/outputs/apk/debug/app-debug.apk.sha256
       - uses: actions/upload-artifact@v4
         with:
           name: ynx-shop-android-debug
           path: |
             apps/shop/native/android/app/build/outputs/apk/debug/*.apk
+            apps/shop/native/android/app/build/outputs/apk/debug/*.sha256
             apps/shop/native/android/app/build/test-results/testDebugUnitTest/*.xml
             apps/shop/native/android/app/build/generated/commerce-native-r9/assets/native-session/sdk-manifest.json
 
@@ -534,8 +536,6 @@ jobs:
         with:
           name: ynx-shop-android-debug
           path: ${{ runner.temp }}/shop-android
-          run-id: 43584648127
-          github-token: ${{ github.token }}
       - name: Enable hosted emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-shop-kvm.rules
@@ -547,7 +547,9 @@ jobs:
           set -euo pipefail
           apk="$RUNNER_TEMP/shop-android/outputs/apk/debug/app-debug.apk"
           test -f "$apk"
-          test "$(sha256sum "$apk" | cut -d' ' -f1)" = 318137706973fa9b888ebc75a853f9eb08ab4e9f188c41a460e3b387432cab9e
+          expected="$(cut -d' ' -f1 "$apk.sha256")"
+          [[ "$expected" =~ ^[0-9a-f]{64}$ ]]
+          test "$(sha256sum "$apk" | cut -d' ' -f1)" = "$expected"
           shasum -a 256 "$apk" | tee "$RUNNER_TEMP/shop-device-apk.sha256"
           adb install "$apk"
           path="$(adb shell pm path com.ynxweb4.shop.debug | tr -d '\r' | sed -n 's/^package://p')"
