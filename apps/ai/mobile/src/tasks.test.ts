@@ -55,6 +55,16 @@ test("cancelled task can query a locally completed step whose Auth receipt is UN
 function storage(){let saved:WorkspaceRecord|null=null;const values:string[]=[];const api:TaskPersistence={read:async()=>saved?JSON.parse(JSON.stringify(saved)):null,write:async(_id,value)=>{values.push(JSON.stringify(value));saved=JSON.parse(JSON.stringify(value))}};return {api,values,get saved(){return saved}}}
 function mockAPI(changes:Partial<TaskAPI>={}):TaskAPI{return {list:async()=>({tasks:[task],hasMore:false}),task:async()=>JSON.parse(JSON.stringify(projection)),create:async()=>task,prepare:async()=>({task:{...task,revision:3}}),cancel:async()=>({task:{...task,status:"RECONCILING",revision:3},remoteRollback:false}),handoff:async()=>({task:{...task,holder:"holder_next",revision:3,generation:2}}),complete:async()=>({task:{...task,status:"COMPLETED"}}),propose:async()=>({}),approve:async()=>({}),dispatch:async()=>({state:"COMMITTED",effectRef:step.id,result:{}}),reconcile:async()=>({}),result:async()=>({state:"COMMITTED",effectRef:step.id,authorityOperationId:step.toolStep.authorityOperationId,result:{actual:"PUBLIC controlled result"}}),run:async()=>({id:"run_internal",runId:"run_original",taskId:task.id,status:"NEEDS_APPROVAL",steps:[step.id],recoveryOnly:false}),runView:async()=>({id:"run_internal",runId:"run_original",taskId:task.id,status:"UNKNOWN",steps:[step.id],recoveryOnly:true}),...changes}}
 
+test("task discovery rejects malformed pages and a repeated pagination cursor",async()=>{
+ let reply:unknown={tasks:[task],hasMore:true,nextId:"cursor_a"};
+ const c=new TaskWorkspaceController("PUBLIC",mockAPI({list:async()=>reply as Awaited<ReturnType<TaskAPI["list"]>>}),storage().api,()=>"unused");
+ await c.discover();assert.equal(c.state.tasks.length,1);assert.equal(c.state.nextId,"cursor_a");
+ reply={tasks:[task],hasMore:true,nextId:"cursor_a"};await c.discover(true);
+ assert.equal(c.state.error,"TASK_DISCOVERY_CURSOR_NOT_ADVANCING");assert.equal(c.state.tasks.length,1);
+ reply={tasks:[{id:"malformed"}],hasMore:false};await c.discover();
+ assert.ok(c.state.error);assert.equal(c.state.tasks.length,1);
+});
+
 test("corrupt persisted journal blocks a new task before writing or sending",async()=>{
  let creates=0,writes=0;
  const persistence:TaskPersistence={read:async()=>decodeStoredWorkspaceRecord(""),write:async()=>{writes++}};
