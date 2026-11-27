@@ -1,0 +1,98 @@
+name: Exact 70e Client Vulnerability Source Scan
+
+on:
+  push:
+    branches:
+      - codex/perf-client-vuln-70e-20261128
+
+permissions:
+  contents: read
+
+concurrency:
+  group: perf-client-vuln-70e-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact Tools source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify original scanner readback controls
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          python3 -B - <<'PY'
+          import importlib.util, pathlib, sys, unittest
+          path=pathlib.Path('scripts/loadtest/test_pq_perf_client_vuln_events.py')
+          spec=importlib.util.spec_from_file_location('original_vuln_controls',path)
+          module=importlib.util.module_from_spec(spec);sys.modules[spec.name]=module;spec.loader.exec_module(module)
+          suite=unittest.defaultTestLoader.loadTestsFromModule(module)
+          if suite.countTestCases()!=21: raise RuntimeError('exact scanner controls inventory differs')
+          result=unittest.TextTestRunner(verbosity=2).run(suite)
+          if result.testsRun!=21 or result.skipped or not result.wasSuccessful(): raise RuntimeError('scanner controls failed or skipped')
+          PY
+          test -z "$(git status --porcelain --untracked-files=all)"
+          test -z "$(git ls-files --others --ignored --exclude-standard)"
+
+  original-source-scan:
+    needs: controls
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact Tools source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: tools
+          persist-credentials: false
+      - name: Checkout exact original 70e source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 70e7e450997a0ae77dbad5a8be3682f482c6ddd8
+          path: client
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up exact original client toolchain
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: 1.26.10
+          cache: false
+      - name: Scan original client source under original resource Window
+        env:
+          YNX_TOOLS_SOURCE: ${{ github.workspace }}/tools
+          YNX_CLIENT_SOURCE: ${{ github.workspace }}/client
+          YNX_PRIVATE_WORK: ${{ runner.temp }}/ynx-client-vuln-private
+          YNX_PUBLIC_OUTPUT: ${{ runner.temp }}/ynx-client-vuln-public
+        run: |
+          set -euo pipefail
+          mkdir -m 700 "$YNX_PRIVATE_WORK"
+          python3 -B "$YNX_TOOLS_SOURCE/scripts/loadtest/pq-perf-client-vuln-ci.py"
+      - name: Preserve original public scanner events
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-perf-client-vuln-70e-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ynx-client-vuln-public/govulncheck-original.json
+            ${{ runner.temp }}/ynx-client-vuln-public/scanner-build-info.txt
+            ${{ runner.temp }}/ynx-client-vuln-public/official-advisory.json
+            ${{ runner.temp }}/ynx-client-vuln-public/metadata.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Preserve bounded original failure evidence
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-perf-client-vuln-failure-70e-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ynx-client-vuln-public/failure-metadata.json
+            ${{ runner.temp }}/ynx-client-vuln-public/failure-original-stderr.log
+            ${{ runner.temp }}/ynx-client-vuln-public/failure-scanner-stderr.log
+            ${{ runner.temp }}/ynx-client-vuln-public/failure-scanner-events.partial
+          if-no-files-found: ignore
+          retention-days: 7
