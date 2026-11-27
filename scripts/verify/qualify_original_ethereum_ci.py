@@ -9,6 +9,7 @@ REQUIRED = {
         "TestStaticPinnedERC20CallerFailsClosed",
     ),
     "consensus": (
+        "TestEthereumUnitCandidatePinsTrustedCheckpointAndHeight",
         "TestOriginalEthereumAdapterPublicWireCompatibility",
         "TestOriginalEthereumAdapterExecutionAndColdRestart",
         "TestOriginalEthereumAdapterPaddedGasBudget",
