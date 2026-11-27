@@ -81,20 +81,23 @@ func prepareOriginalShopSessionReadService(ctx context.Context, a originalShopIn
 type OriginalShopInvoiceReadService struct {
 	// Set only by the normal constructor, including all returned partials.
 	// A live listener is a cleanup obligation, not a successful Session bind.
-	sessionRequired   bool
-	sessionDomain     *originalShopSessionDomain
-	authority         originalShopInvoiceReadAuthority
-	profile           originalShopInvoiceReadProfile
-	store             *Store
-	link              *securelink.LocalCallerServer
-	listener          net.Listener
-	retired           atomic.Bool
-	closeMu           sync.Mutex
-	stateMu           sync.Mutex
-	children          map[uint64]originalShopInvoiceReadHold
-	childID           atomic.Uint64
-	first, closeFirst error
-	closed            bool
+	sessionRequired        bool
+	sessionDomain          *originalShopSessionDomain
+	authority              originalShopInvoiceReadAuthority
+	profile                originalShopInvoiceReadProfile
+	store                  *Store
+	link                   *securelink.LocalCallerServer
+	listener               net.Listener
+	retired                atomic.Bool
+	closeMu                sync.Mutex
+	stateMu                sync.Mutex
+	children               map[uint64]originalShopInvoiceReadHold
+	v4Leases               map[*securelink.OriginalV4ResponseLease]struct{}
+	childID                atomic.Uint64
+	first, closeFirst      error
+	listenerCloseAttempted bool
+	listenerCloseError     error
+	closed                 bool
 }
 
 func prepareOriginalShopInvoiceReadService(ctx context.Context, a originalShopInvoiceReadAuthority, open func() (*Store, error)) (*OriginalShopInvoiceReadService, error) {
@@ -151,6 +154,7 @@ func prepareOriginalShopInvoiceReadServiceMode(ctx context.Context, a originalSh
 	}
 	if sessionRequired {
 		cfg.MaxHeaderBytes = securelink.MaxProductSessionProofV4RequestHeaderBytes
+		cfg.RequireOriginalV4ResponseOwner = true
 		s.link, err = securelink.NewProductSessionProofV4LocalCallerServer(cfg)
 	} else {
 		s.link, err = securelink.NewLocalCallerServer(cfg)
@@ -187,12 +191,17 @@ func (s *OriginalShopInvoiceReadService) Close(ctx context.Context) error {
 	if s == nil {
 		return nil
 	}
+	if ctx == nil {
+		return ErrInvalidState
+	}
 	s.closeMu.Lock()
 	defer s.closeMu.Unlock()
 	if s.closed {
 		return s.finalCloseError()
 	}
+	s.stateMu.Lock()
 	s.retired.Store(true)
+	s.stateMu.Unlock()
 	if s.store != nil {
 		s.store.retireOriginalShopSessionDomain(s.sessionDomain)
 	}
@@ -204,16 +213,61 @@ func (s *OriginalShopInvoiceReadService) Close(ctx context.Context) error {
 	if s.authority != nil {
 		remember(s.authority.retire())
 	}
+	// Close the original listener before LINK's HTTP server can close it on
+	// our behalf. A failed first close is UNKNOWN; a later ErrClosed cannot
+	// prove that earlier operation completed and must never replace it.
+	if s.listener != nil && !s.listenerCloseAttempted {
+		s.listenerCloseAttempted = true
+		s.listenerCloseError = s.listener.Close()
+	}
+	if s.listenerCloseError != nil {
+		remember(s.listenerCloseError)
+		return s.finalCloseError()
+	}
 	if s.link != nil {
 		remember(s.link.Retire())
 	}
-	if s.listener != nil {
-		_ = s.listener.Close()
+	// LINK Join retains pending owners. Advance the same transferred leases
+	// before joining; never select another close on their original sockets.
+	for {
+		s.stateMu.Lock()
+		leases := make([]*securelink.OriginalV4ResponseLease, 0, len(s.v4Leases))
+		for lease := range s.v4Leases {
+			leases = append(leases, lease)
+		}
+		s.stateMu.Unlock()
+		if len(leases) == 0 {
+			break
+		}
+		for _, lease := range leases {
+			status := lease.Status()
+			if !status.OwnerPhysicalClosed {
+				_ = lease.Drain(ctx)
+				status = lease.Status()
+			}
+			if status.OwnerPhysicalClosed {
+				remember(status.FirstError)
+				s.stateMu.Lock()
+				delete(s.v4Leases, lease)
+				s.stateMu.Unlock()
+			} else if status.FirstError != nil && !status.ConnectionCloseConfirmed {
+				remember(status.FirstError)
+				return s.finalCloseError()
+			}
+		}
+		select {
+		case <-ctx.Done():
+			remember(ctx.Err())
+			return s.finalCloseError()
+		case <-time.After(10 * time.Millisecond):
+		}
 	}
 	if s.link != nil {
 		if err := s.link.Join(ctx); err != nil {
 			remember(err)
-			return s.finalCloseError()
+			if !s.sessionRequired || !s.link.OriginalV4ChildrenDrained() {
+				return s.finalCloseError()
+			}
 		}
 	}
 	s.stateMu.Lock()
@@ -368,6 +422,7 @@ func (s *OriginalShopInvoiceReadService) serveHTTP(w http.ResponseWriter, r *htt
 	childID := s.track(held)
 	// Adopt a partial held child before considering its error.
 	closed := false
+	transferred := false
 	closeHeld := func() error {
 		if held == nil || closed {
 			return nil
@@ -375,7 +430,11 @@ func (s *OriginalShopInvoiceReadService) serveHTTP(w http.ResponseWriter, r *htt
 		closed = true
 		return s.release(childID, held)
 	}
-	defer func() { _ = closeHeld() }()
+	defer func() {
+		if !transferred {
+			_ = closeHeld()
+		}
+	}()
 	if err != nil {
 		err = errors.Join(err, closeHeld())
 		deny(err)
@@ -395,7 +454,11 @@ func (s *OriginalShopInvoiceReadService) serveHTTP(w http.ResponseWriter, r *htt
 	if s.sessionDomain != nil {
 		session, err = s.store.captureOriginalShopSessionForSourceRead(r.Context(), r, scope, held)
 		if session != nil {
-			defer session.Close()
+			defer func() {
+				if !transferred {
+					_ = session.Close()
+				}
+			}()
 		}
 		if err != nil {
 			deny(err)
@@ -476,6 +539,46 @@ func (s *OriginalShopInvoiceReadService) serveHTTP(w http.ResponseWriter, r *htt
 	// Closing that permission retires the proof even on successful reads.
 	if session != nil && session.verified.current(r.Context()) != nil {
 		deny(errShopInvoiceReadDenied)
+		return
+	}
+	if s.sessionRequired {
+		owner := &shopV4ResponseOwner{service: s, request: r, childID: childID, held: held, session: session, product: product, order: order}
+		s.stateMu.Lock()
+		if s.retired.Load() {
+			s.stateMu.Unlock()
+			deny(errShopInvoiceReadDenied)
+			return
+		}
+		// Retain only live original leases. Never discard a pending or unknown
+		// close; bound outstanding ownership instead of opening replacements.
+		for prior := range s.v4Leases {
+			status := prior.Status()
+			if status.OwnerPhysicalClosed {
+				if s.first == nil && status.FirstError != nil {
+					s.first = status.FirstError
+				}
+				delete(s.v4Leases, prior)
+			}
+		}
+		if len(s.v4Leases) >= 1024 {
+			s.stateMu.Unlock()
+			deny(ErrShopInvoiceReadSourceNotSupplied)
+			return
+		}
+		lease, transferErr := caller.AdoptOriginalV4ResponseOwner(r, owner)
+		if transferErr == nil {
+			if s.v4Leases == nil {
+				s.v4Leases = make(map[*securelink.OriginalV4ResponseLease]struct{})
+			}
+			s.v4Leases[lease] = struct{}{}
+			transferred = true
+		}
+		s.stateMu.Unlock()
+		if transferErr != nil {
+			deny(transferErr)
+			return
+		}
+		_, _ = w.Write(encoded)
 		return
 	}
 	if err = closeHeld(); err != nil {
