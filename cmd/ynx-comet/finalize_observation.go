@@ -96,6 +96,9 @@ func (o *operatorCommitObservation) writeAfterStop() error {
 	if o == nil {
 		return nil
 	}
+	if o.headerOnly {
+		return o.finishHeaderAfterStop()
+	}
 	// Evaluate both exactly once even when no Commit notification exists because
 	// Finalize failed early. That failure must still have its original projection.
 	commitErr := o.writeCommitAfterStop()

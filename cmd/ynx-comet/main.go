@@ -50,6 +50,7 @@ type pqOptions struct {
 	commitObservationOutput, commitObservationScope                   string
 	commitMonotonicOutput                                             string
 	commitHeaderStreamOutput                                          string
+	syntheticCommitHeaderStreamOnly                                   bool
 	finalizeObservationOutput                                         string
 	commitValidationObservation                                       bool
 	commitObservationBind                                             func(*consensus.Application, chain.ConsensusMigrationState) error

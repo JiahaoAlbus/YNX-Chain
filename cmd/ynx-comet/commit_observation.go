@@ -28,12 +28,13 @@ func registerCommitObservationFlags(flags *pflag.FlagSet, p *pqOptions) {
 	flags.BoolVar(&p.commitValidationObservation, "commit-validation-observation", false, "opt in to bounded per-commit validation detail in the synthetic Commit observation")
 	flags.Var(&initializationStringFlag{target: &p.commitMonotonicOutput}, "commit-monotonic-output", "disabled by default; separate synthetic same-kernel local Commit boundary observation")
 	flags.Var(&initializationStringFlag{target: &p.commitHeaderStreamOutput}, "commit-header-stream-output", "disabled by default; bounded synthetic header and Commit-boundary stream; not finality")
+	flags.BoolVar(&p.syntheticCommitHeaderStreamOnly, "synthetic-commit-header-stream-only", false, "explicit synthetic-only stream without legacy observation outputs; not finality")
 	flags.Var(&initializationStringFlag{target: &p.commitObservationOutput}, "commit-observation-output", "disabled by default; fresh private bounded Commit timing output after normal node stop")
 	flags.Var(&initializationStringFlag{target: &p.commitObservationScope}, "commit-observation-scope", "explicit synthetic-loopback-lab/v1 only; local persistence is not signer fsync or finality")
 }
 
 func (p pqOptions) commitObservationConfigured() bool {
-	return p.commitObservationOutput != "" || p.commitObservationScope != "" || p.commitMonotonicOutput != "" || p.commitHeaderStreamOutput != "" || p.commitValidationObservation || p.finalizeObservationOutput != ""
+	return p.commitObservationOutput != "" || p.commitObservationScope != "" || p.commitMonotonicOutput != "" || p.commitHeaderStreamOutput != "" || p.syntheticCommitHeaderStreamOnly || p.commitValidationObservation || p.finalizeObservationOutput != ""
 }
 
 func (p pqOptions) commitObservationWireOptions() pqOptions {
@@ -44,6 +45,19 @@ func (p pqOptions) commitObservationWireOptions() pqOptions {
 func (p pqOptions) validateCommitObservation() error {
 	if !p.commitObservationConfigured() {
 		return nil
+	}
+	if p.syntheticCommitHeaderStreamOnly {
+		if p.commitHeaderStreamOutput == "" || p.commitObservationOutput != "" || p.commitMonotonicOutput != "" || p.finalizeObservationOutput != "" || p.commitValidationObservation {
+			return errors.New("synthetic stream-only mode requires a stream and forbids legacy observation outputs and validation")
+		}
+		q := p
+		q.syntheticCommitHeaderStreamOnly = false
+		q.commitObservationOutput, q.commitHeaderStreamOutput = p.commitHeaderStreamOutput, ""
+		if err := q.validateCommitObservation(); err != nil {
+			return err
+		}
+		q.commitObservationOutput = p.commitHeaderStreamOutput + ".receipt.json"
+		return q.validateCommitObservation()
 	}
 	// Reuse the original closed scope, protected paths and no-overwrite guard.
 	if err := p.commitObservationWireOptions().validateWireObservation(); err != nil {
@@ -166,6 +180,7 @@ type operatorCommitObservation struct {
 	headerAttempt          uint64
 	headerHeight           int64
 	headerFinished         bool
+	headerOnly             bool
 	ran, attempted, closed bool
 }
 
@@ -176,8 +191,10 @@ func prepareOperatorCommitObservation(config *cfg.Config, p pqOptions) (*operato
 	if err := p.validateCommitObservation(); err != nil {
 		return nil, err
 	}
-	if err := validateWireObservationNetwork(config, p.commitObservationWireOptions()); err != nil {
-		return nil, err
+	if !p.syntheticCommitHeaderStreamOnly {
+		if err := validateWireObservationNetwork(config, p.commitObservationWireOptions()); err != nil {
+			return nil, err
+		}
 	}
 	if p.commitHeaderStreamOutput != "" {
 		for _, path := range []string{p.commitHeaderStreamOutput, p.commitHeaderStreamOutput + ".receipt.json"} {
@@ -187,6 +204,13 @@ func prepareOperatorCommitObservation(config *cfg.Config, p pqOptions) (*operato
 				return nil, err
 			}
 		}
+	}
+	if p.syntheticCommitHeaderStreamOnly {
+		header, err := newSyntheticHeaderStream(p.commitHeaderStreamOutput)
+		if err != nil {
+			return nil, err
+		}
+		return &operatorCommitObservation{headerOnly: true, headerEvents: header, monotonic: &operatorCommitMonotonic{clock: newCommitMonotonicClock(binarySourceRevision())}, result: operatorCommitObservationResult{RejectedNotifications: map[string]uint64{}}}, nil
 	}
 	file, err := openCommitObservationOutput(p.commitObservationOutput)
 	if err != nil {
@@ -227,8 +251,16 @@ func (o *operatorCommitObservation) bind(app *consensus.Application, m chain.Con
 	if o.closed || o.app != nil || o.ran || o.attempted {
 		return errors.New("Commit observation application can be bound exactly once")
 	}
-	if err := o.file.parentCurrent(); err != nil {
-		return err
+	if o.headerOnly {
+		if err := o.headerEvents.checkIdentity(); err != nil {
+			o.loseHeader("synthetic header original output identity unavailable before application bind: " + err.Error())
+			return fmt.Errorf("synthetic header original output identity unavailable before application bind: %w", err)
+		}
+	}
+	if !o.headerOnly {
+		if err := o.file.parentCurrent(); err != nil {
+			return err
+		}
 	}
 	if err := o.finalize.bind(app, m); err != nil {
 		return err
@@ -236,10 +268,12 @@ func (o *operatorCommitObservation) bind(app *consensus.Application, m chain.Con
 	o.app = app
 	o.result.ChainID, o.result.OriginalGenesisHash = fmt.Sprintf("ynx_%d-1", m.Network.ChainID), m.OriginalGenesisHash
 	app.SetCommitTimingEnabled(true)
-	if err := app.SetCommitValidationTimingEnabled(true); err != nil {
-		app.SetCommitTimingEnabled(false)
-		o.app = nil
-		return err
+	if !o.headerOnly {
+		if err := app.SetCommitValidationTimingEnabled(true); err != nil {
+			app.SetCommitTimingEnabled(false)
+			o.app = nil
+			return err
+		}
 	}
 	return nil
 }
@@ -402,6 +436,10 @@ func (o *operatorCommitObservation) success(height int64, validHeight bool) {
 		return
 	}
 	o.increment(&o.result.SuccessNotifications)
+	if o.headerOnly && o.result.SampleOverflow {
+		o.loseHeader("synthetic header original notification counter overflow")
+		return
+	}
 	if !validHeight {
 		o.loseHeader("original Commit notification height malformed")
 		o.reject("notification-height-malformed")
@@ -435,6 +473,9 @@ func (o *operatorCommitObservation) success(height int64, validHeight bool) {
 	}
 	o.emitArmedHeader(height, reading, sample, firstHeader, firstTiming, firstAvailable)
 	o.latestObserved = sample
+	if o.headerOnly {
+		return
+	}
 	if len(o.result.Samples) >= operatorCommitObservationMaxSamples {
 		o.increment(&o.result.DroppedSuccessSamples)
 		o.result.SampleOverflow = true
