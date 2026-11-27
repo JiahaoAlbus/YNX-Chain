@@ -12,6 +12,13 @@ public class NativeIntentObservationTest {
   assertEquals("30",payment.getString("RefundedAtoms"));
   payment.put("CompleteKnownOriginals",true).put("PendingOriginals",new org.json.JSONArray()).put("ReconciliationRequired",true);
   assertTrue(NativeIntentObservation.pendingHistory(payment));
+  payment.put("ReconciliationRequired",false).put("PendingOriginals",JSONObject.NULL);
+  assertFalse(NativeIntentObservation.pendingHistory(payment));
+  payment.put("PendingOriginals","not-an-array");
+  assertTrue(NativeIntentObservation.pendingHistory(payment));
+  payment.put("PendingOriginals",new org.json.JSONArray()).put("CompleteKnownOriginals","true");
+  assertTrue(NativeIntentObservation.pendingHistory(payment));
+  assertTrue(NativeIntentObservation.pendingHistory(null));
  }
  private JSONObject order()throws Exception{return new JSONObject().put("ID","ord_original").put("Buyer","original_account").put("PayIntentID","npi_"+"ab".repeat(24));}
  private JSONObject observation()throws Exception{return new JSONObject().put("orderId","ord_original").put("originalOperation","npi_"+"ab".repeat(24)).put("state","PREPARED").put("phase","signed_not_submitted").put("queryOnly",true).put("fundsVerified",false);}

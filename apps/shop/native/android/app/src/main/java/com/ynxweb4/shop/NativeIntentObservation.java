@@ -5,6 +5,9 @@ import org.json.JSONObject;
 // Read-only DATA from the original Pay intent, never a funds acknowledgement.
 final class NativeIntentObservation {
  static boolean pendingHistory(JSONObject payment) {
+  if(payment==null || !(payment.opt("ReconciliationRequired") instanceof Boolean) || !(payment.opt("CompleteKnownOriginals") instanceof Boolean))return true;
+  Object raw=payment.opt("PendingOriginals");
+  if(raw!=null && raw!=JSONObject.NULL && !(raw instanceof org.json.JSONArray))return true;
   org.json.JSONArray pending=payment.optJSONArray("PendingOriginals");
   return payment.optBoolean("ReconciliationRequired",true) || !payment.optBoolean("CompleteKnownOriginals",false) || (pending!=null && pending.length()>0);
  }
