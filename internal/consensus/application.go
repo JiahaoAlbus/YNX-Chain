@@ -45,8 +45,10 @@ type Application struct {
 	commitTimings               *commitTimings // nil outside opt-in diagnostics
 	commitTimingEnabled         bool
 	commitTimingLatest          *CommitTimingSample
-	finalizeTiming              *finalizeTimingCapture // nil by default; never state/schema
-	finalizeTimingActive        *finalizeTimings       // current Finalize only, under mu
+	finalizeTiming              *finalizeTimingCapture        // nil by default; never state/schema
+	finalizeTimingActive        *finalizeTimings              // current Finalize only, under mu
+	commitHeaderCapture         *syntheticCommitHeaderCapture // explicit diagnostics only; guarded by mu
+	syntheticHeaderCaptureEpoch uint64                        // application-instance lifetime; guarded by mu
 	nativeVerification          nativeVerificationCache
 	replayStateVersion          int                      // decoder-owned historical journal replay only; zero for normal execution
 	replayVerificationFacts     *nativeVerificationCache // decoder-owned crypto facts only; never mutable execution state
@@ -882,6 +884,17 @@ func (a *Application) ProcessProposal(_ context.Context, req *abcitypes.RequestP
 func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFinalizeBlock) (*abcitypes.ResponseFinalizeBlock, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if a.commitHeaderCapture != nil {
+		// A new or duplicate attempt invalidates the prior diagnostic. It must
+		// never be paired with a later commit merely because a height matches.
+		a.commitHeaderCapture.pending = nil
+		a.commitHeaderCapture.latest = nil
+		if a.commitHeaderCapture.attempt == ^uint64(0) {
+			a.commitHeaderCapture.exhausted = true
+		} else {
+			a.commitHeaderCapture.attempt++
+		}
+	}
 	timing := a.beginFinalizeTiming(req)
 	defer a.finishFinalizeTiming(timing)
 	if a.pending != nil {
@@ -989,6 +1002,7 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 		a.pendingBlockRequest, a.pendingBlockResponseHash = ownedRequest, hash
 	}
 	a.pending = &pending
+	a.captureSyntheticFinalizeHeader(req, pending)
 	timing.succeeded(pending.AppHash)
 	return response, nil
 }
@@ -996,6 +1010,12 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcitypes.ResponseCommit, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	var header *syntheticCommitHeader
+	if a.commitHeaderCapture != nil {
+		header = a.commitHeaderCapture.pending
+		a.commitHeaderCapture.pending = nil
+		a.commitHeaderCapture.latest = nil
+	}
 	if a.commitTimingEnabled {
 		a.commitTimingLatest = nil
 	}
@@ -1059,6 +1079,7 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 		return nil, fmt.Errorf("persist finalized YNX state: %w", err)
 	}
 	a.committed = *a.pending
+	a.captureSyntheticCommittedHeader(header)
 	a.pending = nil
 	a.pendingBlockRequest = nil
 	a.pendingBlockResponseHash = ""
