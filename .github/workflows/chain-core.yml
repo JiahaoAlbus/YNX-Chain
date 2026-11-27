@@ -127,6 +127,33 @@ jobs:
         run: python3 -B -m unittest scripts.ops.test_pq_state_capture_ci -v
       - name: Verify exact original state capture and proof authority controls
         run: python3 -B scripts/verify/pq-state-capture-check.py
+      - name: Verify signed PQ envelope decoding against original
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          if ! go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run '^TestPQEnvelopeDecodeSigned' ./internal/consensus > "$RUNNER_TEMP/ynx-pq-envelope-decode.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-pq-envelope-decode.jsonl"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/ynx-pq-envelope-decode.jsonl"
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
+          names = ['TestPQEnvelopeDecodeSignedAndMalformedEquivalence', 'TestPQEnvelopeDecodeSignedCost']
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-pq-envelope-decode.jsonl').read_text().splitlines()]
+          if any(e.get('Action') in ('fail', 'skip', 'build-fail') or ('Package' in e and e['Package'] != package) for e in events):
+              raise RuntimeError('signed PQ envelope test failed, skipped or changed package')
+          if {e['Test'] for e in events if e.get('Test')} != set(names):
+              raise RuntimeError('signed PQ envelope test set differs')
+          boundaries = [(i, e.get('Action')) for i, e in enumerate(events) if e.get('Package') == package and not e.get('Test') and e.get('Action') in ('start', 'pass')]
+          if len(boundaries) != 2 or [action for _, action in boundaries] != ['start', 'pass']:
+              raise RuntimeError('signed PQ envelope package lifecycle differs')
+          for name in names:
+              found = [(i, e.get('Action')) for i, e in enumerate(events) if e.get('Test') == name and e.get('Action') in ('run', 'pass', 'fail', 'skip')]
+              if len(found) != 2 or [action for _, action in found] != ['run', 'pass'] or not boundaries[0][0] < found[0][0] < found[1][0] < boundaries[1][0]:
+                  raise RuntimeError('signed PQ envelope control not uniquely run and passed: ' + name)
+          PY
 
   contract-tooling-scope:
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'

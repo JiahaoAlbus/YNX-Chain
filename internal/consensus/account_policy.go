@@ -84,7 +84,12 @@ func DecodePQTransaction(payload []byte) (PQTransaction, []byte, error) {
 		return tx, nil, errors.New("trailing ABCI PQ envelope")
 	}
 	wire, err := hex.DecodeString(tx.WireHex)
-	if err != nil || tx.Version != 1 || hex.EncodeToString(wire) != tx.WireHex {
+	// DecodeString already rejects odd length and non-hex characters.  For a
+	// successful decode, an uppercase ASCII hex digit is the only way its
+	// spelling can differ from EncodeToString's lowercase spelling.  Keep the
+	// same error before the complete canonical JSON check without allocating a
+	// second full-size wire string.
+	if err != nil || tx.Version != 1 || strings.ContainsAny(tx.WireHex, "ABCDEF") {
 		return tx, nil, errors.New("noncanonical ABCI PQ wire")
 	}
 	canonical, err := EncodePQTransaction(tx.Type, wire)
