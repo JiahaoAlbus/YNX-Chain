@@ -28,6 +28,29 @@ type publicV4ResponseOwner struct {
 	drainFn                              func(context.Context) error
 }
 
+type publicV4BlockingHeaderWriter struct {
+	header           http.Header
+	entered, release chan struct{}
+	status           int
+	body             []byte
+}
+
+func (w *publicV4BlockingHeaderWriter) Header() http.Header { return w.header }
+func (w *publicV4BlockingHeaderWriter) WriteHeader(status int) {
+	close(w.entered)
+	<-w.release
+	if w.status == 0 {
+		w.status = status
+	}
+}
+func (w *publicV4BlockingHeaderWriter) Write(p []byte) (int, error) {
+	if w.status == 0 {
+		w.status = http.StatusOK
+	}
+	w.body = append(w.body, p...)
+	return len(p), nil
+}
+
 func (o *publicV4ResponseOwner) Current(r *http.Request) error {
 	o.mu.Lock()
 	o.currentCalls++
@@ -188,9 +211,31 @@ func TestOriginalV4ResponseOwnerRejectsImplicitSuccessAndRevokedWrite(t *testing
 			t.Fatalf("implicit response was %d", status)
 		}
 	})
+	for _, code := range []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusServiceUnavailable} {
+		t.Run(http.StatusText(code), func(t *testing.T) {
+			_, peer := publicV4OwnerServer(t, func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(code)
+				_, _ = w.Write([]byte("rejected"))
+			})
+			status, body, _ := publicReadV4Response(t, peer)
+			if status != code || body != "rejected" {
+				t.Fatalf("rejection changed: %d %q", status, body)
+			}
+		})
+	}
+	t.Run("redirect requires owner", func(t *testing.T) {
+		_, peer := publicV4OwnerServer(t, func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusFound)
+			_, _ = w.Write([]byte("redirect"))
+		})
+		status, body, _ := publicReadV4Response(t, peer)
+		if status != http.StatusForbidden || body != "" {
+			t.Fatalf("unowned redirect was not denied: %d %q", status, body)
+		}
+	})
 	t.Run("revoked", func(t *testing.T) {
 		owner := &publicV4ResponseOwner{currentErr: ErrRevoked, closeCalled: make(chan struct{})}
-		_, peer := publicV4OwnerServer(t, func(w http.ResponseWriter, r *http.Request) {
+		server, peer := publicV4OwnerServer(t, func(w http.ResponseWriter, r *http.Request) {
 			caller, err := LocalCallerFromRequest(r)
 			if err != nil {
 				t.Error(err)
@@ -210,6 +255,20 @@ func TestOriginalV4ResponseOwnerRejectsImplicitSuccessAndRevokedWrite(t *testing
 			t.Fatalf("revoked response %d %q %v", status, body, headers)
 		}
 		publicAwaitV4Owner(t, owner)
+		if server.OriginalV4ChildrenDrained() {
+			t.Fatal("active server reported a completed drain")
+		}
+		if err := server.Retire(); err != nil {
+			t.Fatal(err)
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		if err := server.Join(ctx); !errors.Is(err, ErrRevoked) {
+			t.Fatalf("drain lost original fence error: %v", err)
+		}
+		if !server.OriginalV4ChildrenDrained() {
+			t.Fatal("completed drain hidden by original fence error")
+		}
 	})
 }
 
@@ -304,7 +363,7 @@ func TestOriginalV4ResponseUnknownConnectionIsRetainedWithoutOwner(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := &LocalCallerServer{drained: make(chan struct{}), v4Connections: make(map[*localCallerConn]struct{})}
+	server := &LocalCallerServer{drained: make(chan struct{}), proofV4Required: true, v4Connections: make(map[*localCallerConn]struct{})}
 	server.closed.Store(true)
 	conn := &localCallerConn{UnixConn: unixConn, proofV4Header: &localCallerProductSessionProofV4HeaderReader{}, v4Server: server}
 	server.v4Connections[conn] = struct{}{}
@@ -332,6 +391,9 @@ func TestOriginalV4ResponseUnknownConnectionIsRetainedWithoutOwner(t *testing.T)
 	defer cancel()
 	if err := server.Join(ctx); !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatal("unknown accepted connection escaped Join", err)
+	}
+	if server.OriginalV4ChildrenDrained() {
+		t.Fatal("unknown accepted connection reported drained")
 	}
 	server.mu.Lock()
 	_, retained := server.v4Connections[conn]
@@ -523,5 +585,40 @@ func TestOriginalV4ResponseOwnerNilPanicIsUnknown(t *testing.T) {
 	err := callOriginalV4Owner(func() error { panic(nil) })
 	if !errors.Is(err, ErrOriginalV4OwnerUnknown) {
 		t.Fatal("nil panic became success", err)
+	}
+}
+
+func TestOriginalV4ResponseOwnerConcurrentRejectionCannotBecomeSuccess(t *testing.T) {
+	underlying := &publicV4BlockingHeaderWriter{header: make(http.Header), entered: make(chan struct{}), release: make(chan struct{})}
+	state := &localCallerState{server: &LocalCallerServer{cfg: LocalCallerServerConfig{RequireOriginalV4ResponseOwner: true}}}
+	writer := &originalV4ResponseWriter{ResponseWriter: underlying, state: state}
+	first := make(chan error, 1)
+	go func() { _, err := writer.start(http.StatusServiceUnavailable, true); first <- err }()
+	select {
+	case <-underlying.entered:
+	case <-time.After(time.Second):
+		t.Fatal("rejection was not committed in the first selection")
+	}
+	if writer.mu.TryLock() {
+		writer.mu.Unlock()
+		close(underlying.release)
+		t.Fatal("response lock released before rejection header completed")
+	}
+	written := make(chan error, 1)
+	go func() { _, err := writer.Write([]byte("rejected")); written <- err }()
+	select {
+	case <-written:
+		t.Fatal("body escaped before rejection commit")
+	default:
+	}
+	close(underlying.release)
+	if err := <-first; err != nil {
+		t.Fatal(err)
+	}
+	if err := <-written; err != nil {
+		t.Fatal(err)
+	}
+	if underlying.status != http.StatusServiceUnavailable || string(underlying.body) != "rejected" {
+		t.Fatalf("rejection became success: %d %q", underlying.status, underlying.body)
 	}
 }

@@ -41,10 +41,11 @@ func NewProductSessionProofV4LocalCallerServer(LocalCallerServerConfig) (*LocalC
 func NewProductLocalCallerServer(LocalCallerServerConfig) (*LocalCallerServer, error) {
 	return nil, ErrUnavailable
 }
-func (*LocalCallerServer) Serve(net.Listener) error   { return ErrUnavailable }
-func (*LocalCallerServer) Close() error               { return nil }
-func (*LocalCallerServer) Retire() error              { return ErrUnavailable }
-func (*LocalCallerServer) Join(context.Context) error { return ErrUnavailable }
+func (*LocalCallerServer) Serve(net.Listener) error        { return ErrUnavailable }
+func (*LocalCallerServer) Close() error                    { return nil }
+func (*LocalCallerServer) Retire() error                   { return ErrUnavailable }
+func (*LocalCallerServer) Join(context.Context) error      { return ErrUnavailable }
+func (*LocalCallerServer) OriginalV4ChildrenDrained() bool { return false }
 
 type LocalCallerClient struct{}
 

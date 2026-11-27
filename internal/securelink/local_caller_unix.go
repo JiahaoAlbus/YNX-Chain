@@ -481,6 +481,22 @@ func (s *LocalCallerServer) Join(ctx context.Context) error {
 	}
 }
 
+// OriginalV4ChildrenDrained reports only whether this retired V4 server has
+// drained its tracked handlers, connections, and response owners. Join may
+// still return their first error after this becomes true. This does not witness
+// closure of a separately owned listener or any product authority.
+func (s *LocalCallerServer) OriginalV4ChildrenDrained() bool {
+	if s == nil || !s.proofV4Required || s.drained == nil {
+		return false
+	}
+	select {
+	case <-s.drained:
+		return true
+	default:
+		return false
+	}
+}
+
 // Do not expose Hijacker/Unwrap: this fixed HTTP boundary cannot be upgraded
 // into an unbounded raw connection by the registered handler.
 type localResponseWriter struct{ http.ResponseWriter }
