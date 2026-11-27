@@ -161,6 +161,36 @@ jobs:
                   raise RuntimeError('signed PQ envelope control not uniquely run and passed: ' + name)
           PY
 
+
+  integration-ide-fee:
+    name: Original IDE fee projection and readback
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration') ||
+      (github.event_name == 'pull_request' && github.base_ref == 'codex/ynx-pq-perf-integration')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact integration source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Set up the source Go toolchain
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+      - name: Set up the original contract toolchain
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Build the original contract fixture from locked source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          npm ci
+          npm run hardhat:build
+          test -s artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json
       - name: Verify signed IDE fee projection and original transaction readback
         run: |
           set -euo pipefail

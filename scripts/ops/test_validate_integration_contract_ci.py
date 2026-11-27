@@ -227,6 +227,19 @@ class IntegrationContractCI(unittest.TestCase):
         self.assertIn("printf 'integration_changed=true\\n'", self.workflow)
         self.assertIn("printf 'integration_changed=false\\n'", self.workflow)
 
+    def test_original_ide_fee_controls_build_the_source_contract_first(self):
+        job = self.workflow.split('\n  integration-ide-fee:\n', 1)[1].split('\n  contract-tooling-scope:\n', 1)[0]
+        for required in ('ref: ${{ github.sha }}', 'go-version-file: go.mod',
+                         'node-version: "24"', 'npm ci', 'npm run hardhat:build',
+                         'test -s artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json',
+                         'go test -mod=readonly -json -p 1 -count=1 -timeout=120s',
+                         'IDE fee test did not uniquely run and pass'):
+            self.assertEqual(job.count(required), 1, required)
+        self.assertEqual(job.count('TestGatewayCommitsBoundedIDEAndReturnsEVMLogs'), 2)
+        self.assertLess(job.index('npm run hardhat:build'), job.index('go test -mod=readonly -json'))
+        self.assertNotIn('continue-on-error', job)
+        self.assertNotIn('if: false', job)
+
     def test_real_git_diff_selects_source_changes_and_ignores_unrelated_files(self):
         with tempfile.TemporaryDirectory(prefix='ynx-integration-scope-') as directory:
             root = Path(directory)
