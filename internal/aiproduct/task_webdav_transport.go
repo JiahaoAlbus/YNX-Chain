@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/hex"
 	"errors"
 	"io"
@@ -227,6 +228,40 @@ func PrepareTaskWebDAVTransport(ctx context.Context, cfg TaskWebDAVConfig, curre
 			last = e
 		}
 		return nil, last
+	}
+	// A TLS handshake may itself wait after the TCP check. Hold the connection
+	// until the original authority is checked again so HTTP cannot write headers
+	// and content when revocation was already observable during that wait.
+	transport.DialTLSContext = func(dialCtx context.Context, network, address string) (net.Conn, error) {
+		conn, err := transport.DialContext(dialCtx, network, address)
+		if err != nil {
+			return nil, err
+		}
+		config := &tls.Config{ServerName: host}
+		if transport.TLSClientConfig != nil {
+			config = transport.TLSClientConfig.Clone()
+			config.ServerName = host
+		}
+		secure := tls.Client(conn, config)
+		handshakeCtx, cancel := context.WithTimeout(dialCtx, 10*time.Second)
+		err = secure.HandshakeContext(handshakeCtx)
+		cancel()
+		if err != nil {
+			_ = conn.Close()
+			return nil, err
+		}
+		err = dialCtx.Err()
+		if err == nil {
+			err = current(dialCtx)
+		}
+		if err == nil {
+			err = dialCtx.Err()
+		}
+		if err != nil {
+			_ = conn.Close()
+			return nil, &taskWebDAVCurrentFailure{cause: err}
+		}
+		return secure, nil
 	}
 	t := &TaskWebDAVTransport{transport: transport, url: fixedURL, profileID: cfg.ProfileID, object: cfg.Object, user: cfg.User, password: cfg.Password, limit: cfg.MaxBytes, current: current}
 	t.client = &http.Client{Transport: transport, Timeout: 30 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}

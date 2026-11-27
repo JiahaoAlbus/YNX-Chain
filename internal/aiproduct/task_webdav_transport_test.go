@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -17,6 +19,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 // PUBLIC loopback DAV behavior fixture only: real HTTP PUT/GET, explicit
@@ -515,5 +518,81 @@ func TestP08WebDAVTransportRevokeAtDialHandoffSendsNoRequest(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestP08WebDAVTransportTLSHandshakeCurrentFence(t *testing.T) {
+	for _, method := range []string{http.MethodPut, http.MethodGet} {
+		for _, revoked := range []bool{false, true} {
+			t.Run(method+"/revoked="+strconv.FormatBool(revoked), func(t *testing.T) {
+				entered := make(chan struct{}, 1)
+				release := make(chan struct{})
+				var requests atomic.Int32
+				var blocked atomic.Bool
+				server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					requests.Add(1)
+					if r.Method == http.MethodPut {
+						w.WriteHeader(http.StatusCreated)
+					} else {
+						_, _ = w.Write([]byte("PUBLIC TLS body"))
+					}
+				}))
+				server.TLS = &tls.Config{GetConfigForClient: func(*tls.ClientHelloInfo) (*tls.Config, error) {
+					if blocked.CompareAndSwap(false, true) {
+						entered <- struct{}{}
+						<-release
+					}
+					return nil, nil
+				}}
+				server.StartTLS()
+				defer server.Close()
+				fixture := newP08DAVFixture(t)
+				fixture.cfg.Origin = server.URL
+				transport := fixture.prepare(t)
+				roots := x509.NewCertPool()
+				roots.AddCert(server.Certificate())
+				// PUBLIC server's certificate is trusted only by this adapter in
+				// this isolated test. Production keeps normal system TLS roots.
+				transport.transport.TLSClientConfig = &tls.Config{RootCAs: roots}
+				type outcome struct {
+					result TaskWebDAVResult
+					err    error
+				}
+				done := make(chan outcome, 1)
+				go func() {
+					var result TaskWebDAVResult
+					var err error
+					if method == http.MethodPut {
+						result, err = transport.PutIfAbsentAndVerify(context.Background(), []byte("PUBLIC TLS body"))
+					} else {
+						result, err = transport.QueryContent(context.Background(), []byte("PUBLIC TLS body"))
+					}
+					done <- outcome{result, err}
+				}()
+				select {
+				case <-entered:
+				case <-time.After(10 * time.Second):
+					close(release)
+					t.Fatal("TLS handshake did not start")
+				}
+				if revoked {
+					fixture.revoked.Store(true)
+				}
+				close(release)
+				var got outcome
+				select {
+				case got = <-done:
+				case <-time.After(10 * time.Second):
+					t.Fatal("TLS request did not finish")
+				}
+				if revoked {
+					if !errors.Is(got.err, fixture.cause) || !errors.Is(got.err, ErrTaskWebDAVUnknown) || got.result.State != "UNKNOWN" || len(got.result.Content) != 0 || requests.Load() != 0 {
+						t.Fatalf("revoked TLS request leaked: %+v %v requests=%d", got.result, got.err, requests.Load())
+					}
+				} else if got.err != nil || got.result.State != "CONTENT_PRESENT" || !bytes.Equal(got.result.Content, []byte("PUBLIC TLS body")) || requests.Load() != map[string]int32{http.MethodGet: 1, http.MethodPut: 2}[method] {
+					t.Fatalf("valid TLS interoperability failed: %+v %v requests=%d", got.result, got.err, requests.Load())
+				}
+			})
+		}
 	}
 }
