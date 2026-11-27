@@ -1,6 +1,6 @@
 import {OriginalRunReconnect,type RunCursorPersistence} from './taskReconnect';
 import {readTaskRun,readTaskReceipt,readTaskProjection,readTaskList,TaskAPIError} from './taskResults';
-import {createTaskV6API,type NativeTaskV6} from './taskV6';
+import {createTaskV6API,type NativeTaskV6,type V6Entry} from './taskV6';
 import {needsOriginalTaskQuery} from './taskStepPolicy';
 export {needsOriginalTaskQuery} from './taskStepPolicy';
 // Native task orchestration only. Canonical proof acquisition belongs to the
@@ -58,10 +58,10 @@ export function createTaskAPI(base:string,credentials:TaskCredentials,fetcher:ty
  return createLegacyTaskAPI(base,credentials,fetcher);
 }
 export type TaskAPI=ReturnType<typeof createTaskAPI>;
-export type WorkspaceState={tasks:Task[];projection:TaskProjection|null;run:TaskRun|null;receipt:TaskReceipt|null;record:WorkspaceRecord;busy:boolean;error:string;hasMore:boolean;nextId:string};
+export type WorkspaceState={tasks:Task[];projection:TaskProjection|null;run:TaskRun|null;receipt:TaskReceipt|null;record:WorkspaceRecord;busy:boolean;error:string;hasMore:boolean;nextId:string;originalOperations:V6Entry[];originalQueryDataOnly:boolean};
 
 export class TaskWorkspaceController{
- state:WorkspaceState={tasks:[],projection:null,run:null,receipt:null,record:{selectedTask:"",runId:"",deliveries:[]},busy:false,error:"",hasMore:false,nextId:""};
+ state:WorkspaceState={tasks:[],projection:null,run:null,receipt:null,record:{selectedTask:"",runId:"",deliveries:[]},busy:false,error:"",hasMore:false,nextId:"",originalOperations:[],originalQueryDataOnly:false};
  private disposed=false;private epoch=0;private request:AbortController|null=null;private cancellation:AbortController|null=null;private writes:Promise<void>=Promise.resolve();private flights=new Set<Promise<unknown>>();private hydrated=false;private originalClosing:Promise<void>|null=null;private follower:OriginalRunReconnect|null=null;private followerKey="";
  constructor(private identity:string,private api:TaskAPI,private storage:TaskPersistence,private newID:()=>string,private changed:(state:WorkspaceState)=>void=()=>{},private runCursors?:RunCursorPersistence){}
  private emit(){if(!this.disposed)this.changed({...this.state,record:{...this.state.record,deliveries:[...this.state.record.deliveries]}})}
@@ -76,6 +76,7 @@ export class TaskWorkspaceController{
     this.state.error=error instanceof Error?error.message:"TASK_REQUEST_FAILED";
     if(error instanceof TaskAPIError&&error.status===401){
      this.state.projection=null;this.state.tasks=[];this.state.run=null;this.state.receipt=null;
+     this.state.originalOperations=[];this.state.originalQueryDataOnly=false;
      this.state.hasMore=false;this.state.nextId="";
     }
    }
@@ -226,6 +227,8 @@ export class TaskWorkspaceController{
  async model(expected:Task,runId:string,prompt:string,ref:string,tools:string[],resume=false){const task=this.current(expected);if(this.state.run?.recoveryOnly||this.state.run?.status==="UNKNOWN"||task.steps.some(needsOriginalTaskQuery)||this.state.record.deliveries.some(delivery=>delivery.taskId===task.id&&["run","resume"].includes(delivery.action)&&["UNKNOWN","PENDING","REJECTED_RESPONSE"].includes(delivery.state)))throw new Error("UNKNOWN_ORIGINAL_QUERY_REQUIRED");await this.mutate(resume?"resume":"run",task,"",runId,s=>{this.state.run=null;this.emit();return this.api.run(task,runId,prompt,ref,tools,resume,s)},value=>{this.state.run=readTaskRun(value,task,runId);this.state.record.runId=runId})}
  async retainedOriginalOperations(){if(!('adapter' in this.api))throw new Error("V6_ORIGINAL_ADAPTER_UNAVAILABLE");return this.api.adapter.retained()}
  async recoverOriginalOperation(operationId:string,signal:AbortSignal){if(!('adapter' in this.api))throw new Error("V6_ORIGINAL_ADAPTER_UNAVAILABLE");return this.api.adapter.lookupOriginal(operationId,signal)}
+ async refreshOriginalOperations(){await this.work(async()=>{if(!('adapter' in this.api))throw Error('V6_ORIGINAL_ADAPTER_UNAVAILABLE');return this.api.adapter.retained()},journal=>{this.state.originalOperations=journal.entries.filter(entry=>entry.action==='task.create'&&['PENDING','UNKNOWN'].includes(entry.state)).map(entry=>({...entry}));this.state.originalQueryDataOnly=false})}
+ async queryOriginalCreate(operationId:string){await this.work(async signal=>{this.state.originalQueryDataOnly=false;this.emit();if(!('adapter' in this.api))throw Error('V6_ORIGINAL_ADAPTER_UNAVAILABLE');const journal=await this.api.adapter.retained();if(!journal.entries.some(entry=>entry.operationId===operationId&&entry.action==='task.create'&&['PENDING','UNKNOWN'].includes(entry.state)))throw Error('V6_ORIGINAL_CREATE_NOT_RETAINED');return this.api.adapter.lookupOriginal(operationId,signal)},()=>{this.state.originalQueryDataOnly=true})}
  async recoverLegacyRun(taskId:string,runId:string,signal:AbortSignal){if(!this.legacyTask(taskId))throw Error("LEGACY_ORIGINAL_DELIVERY_REQUIRED");const retained=this.state.record.deliveries.some(d=>d.version!=="6"&&d.taskId===taskId&&d.runId===runId&&["run","resume"].includes(d.action));if(!retained)throw new Error("LEGACY_ORIGINAL_DELIVERY_REQUIRED");return 'legacyRecovery' in this.api?this.api.legacyRecovery.runView(taskId,runId,signal):this.api.runView(taskId,runId,signal)}
  dispose(){if(this.disposed)return;this.disposed=true;this.epoch++;this.request?.abort();this.cancellation?.abort();this.originalClosing=(async()=>{await this.follower?.close();await Promise.allSettled([...this.flights]);await this.writes;if('adapter' in this.api)await this.api.adapter.close()})();void this.originalClosing.catch(()=>{this.state.error="V6_ORIGINAL_CLEANUP_UNRESOLVED"})}
  async whenClosed(){if(!this.disposed)this.dispose();await this.originalClosing}

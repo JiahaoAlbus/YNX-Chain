@@ -16,6 +16,18 @@ function fixture(){
  const original:NativeTaskV6={client,newOperationId:()=>`operation_${++n}`,journal:{async read(){return saved?structuredClone(saved):null},async write(_identity,j){writes.push(JSON.stringify(j));if(failWrite)throw Error('PUBLIC disk failed');saved=structuredClone(j)}}};
  return {client,original,calls,intents,writes,get saved(){return saved},get failWrite(){return failWrite},set failWrite(v:boolean){failWrite=v}};
 }
+test('workspace exposes the retained create operation for data-only original lookup',async()=>{
+ const {TaskWorkspaceController}=await import('./tasks');const f=fixture();f.client.send=async()=>{throw Error('PUBLIC lost acknowledgement')};
+ const api=createTaskAPI('http://127.0.0.1:6438',{identity:'PUBLIC',v6:f.original});
+ const c=new TaskWorkspaceController('PUBLIC',api,{read:async()=>null,write:async()=>{}},()=> 'workspace_delivery');
+ await c.create(t.conversationId);assert.equal(f.saved!.entries[0]!.state,'UNKNOWN');
+ await c.refreshOriginalOperations();assert.equal(c.state.originalOperations.length,1);const original=c.state.originalOperations[0]!.operationId;
+ assert.notEqual(original,'workspace_delivery');const sends=f.calls.filter(x=>x==='send').length;
+ await c.queryOriginalCreate(original);assert.equal(c.state.originalQueryDataOnly,true);assert.equal(f.saved!.entries[0]!.state,'UNKNOWN');
+ assert.equal(f.calls.filter(x=>x==='send').length,sends);assert.ok(f.calls.includes('lookup:'+original));
+ await c.queryOriginalCreate('wrong_operation');assert.equal(c.state.originalQueryDataOnly,false);assert.equal(c.state.error,'V6_ORIGINAL_CREATE_NOT_RETAINED');
+ await c.whenClosed();
+});
 // These are PUBLIC orchestration seams, not signatures, Source or Native admission.
 test('V6 persists original metadata before SDK proof/send and never stores prompt or member',async()=>{
  const f=fixture(),a=new NativeTaskV6Adapter('PUBLIC',f.original);const r=request();r.bodyOriginal=new TextEncoder().encode('PRIVATE input');const result=await a.execute(r,new AbortController().signal);
