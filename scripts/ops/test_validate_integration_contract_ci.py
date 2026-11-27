@@ -30,6 +30,17 @@ def selected_paths(workflow):
     return shlex.split(path_text.replace('\\\n', ' '))
 
 
+def validate_go_dependency_triggers(workflow):
+    push = workflow.split('\n  push:\n', 1)[1].split('\n  pull_request:\n', 1)[0]
+    pull = workflow.split('\n  pull_request:\n', 1)[1].split('\n  workflow_dispatch:', 1)[0]
+    for section in (push, pull):
+        globs = re.findall(r'^      - "([^"\n]+)"$', section, re.M)
+        for path in ('go.mod', 'go.sum', 'third_party/cometbft/go.mod',
+                     'third_party/cometbft/go.sum', 'third_party/cometbft/state/execution.go'):
+            if not any(fnmatch.fnmatchcase(path, glob) for glob in globs):
+                raise AssertionError('Go dependency or fork input does not trigger CI: ' + path)
+
+
 class IntegrationContractCI(unittest.TestCase):
     def setUp(self):
         self.workflow = WORKFLOW.read_text()
@@ -53,6 +64,17 @@ class IntegrationContractCI(unittest.TestCase):
         globs = re.findall(r'^      - "([^"]+)"$', trigger, re.M)
         for path in self.paths:
             self.assertTrue(any(fnmatch.fnmatchcase(path, glob) for glob in globs), path)
+
+    def test_go_dependency_and_fork_changes_trigger_push_and_pull_request(self):
+        validate_go_dependency_triggers(self.workflow)
+        for missing in ('go.mod', 'go.sum', 'third_party/cometbft/**'):
+            line = f'      - "{missing}"\n'
+            self.assertEqual(self.workflow.count(line), 2)
+            for occurrence in (1, 2):
+                sections = self.workflow.split(line)
+                malformed = line.join(sections[:occurrence]) + line.join(sections[occurrence:])
+                with self.assertRaises(AssertionError):
+                    validate_go_dependency_triggers(malformed)
 
     def test_normal_gate_runs_original_checker_without_soft_failure(self):
         job = self.workflow.split('\n  normal-integration-contract:\n', 1)[1].split('\n  verify:\n', 1)[0]
