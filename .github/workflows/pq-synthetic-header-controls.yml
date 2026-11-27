@@ -46,7 +46,7 @@ jobs:
           export YNX_HEADER_FORK_TREE="$(git rev-parse 'HEAD:third_party/cometbft')"
           mkdir "$RUNNER_TEMP/ynx-synthetic-header-public"
           set +e
-          go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run '^(TestBefore59(AllObserverStagesPreserveOriginalBlockExecutor|ObserverAllStagesPreserveOriginalStateEveryHeight)|TestCommitHeaderProbeRealBlockExecutor|TestOperatorCommitObservationBoundedSamplesAndNormalStopGuard|TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts|TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence|TestSyntheticCommitHeaderCaptureStateSyncInvalidates|TestSyntheticCommitHeaderConcurrentReaders|TestSyntheticCommitHeaderRealEngineOffOnEquivalent|TestSyntheticCommitHeaderAndTimingAtomicSnapshot|TestSyntheticCommitHeaderOriginalClockCallback|TestSyntheticCommitHeaderIdentityOverflowRefuses|TestSyntheticHeaderStream.*)$' ./cmd/ynx-comet ./internal/consensus > "$RUNNER_TEMP/ynx-synthetic-header-public/events.jsonl"
+          go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run '^(TestBefore59(CostOriginalEngineTransferResult|AllObserverStagesPreserveOriginalBlockExecutor|ObserverAllStagesPreserveOriginalStateEveryHeight|SyntheticStreamOnlyCost)|TestCommitHeaderProbeRealBlockExecutor|TestOperatorCommitObservationBoundedSamplesAndNormalStopGuard|TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts|TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence|TestSyntheticCommitHeaderCaptureStateSyncInvalidates|TestSyntheticCommitHeaderConcurrentReaders|TestSyntheticCommitHeaderRealEngineOffOnEquivalent|TestSyntheticCommitHeaderAndTimingAtomicSnapshot|TestSyntheticCommitHeaderOriginalClockCallback|TestSyntheticCommitHeaderIdentityOverflowRefuses|TestSyntheticHeaderStream.*)$' ./cmd/ynx-comet ./internal/consensus > "$RUNNER_TEMP/ynx-synthetic-header-public/events.jsonl"
           YNX_HEADER_GO_STATUS=$?
           set -e
           printf 'YNX-SYNTHETIC-HEADER-RAW-BEGIN/v1 source=%s run=%s attempt=%s exit=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$YNX_HEADER_GO_STATUS"
@@ -57,11 +57,11 @@ jobs:
           test -z "$(git status --porcelain --untracked-files=all)"
           test -z "$(git ls-files --others --ignored --exclude-standard)"
           python3 -B - <<'PY'
-          import hashlib, json, os
+          import hashlib, json, os, re
           from pathlib import Path
           package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet'
           consensus = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
-          names = ['TestBefore59AllObserverStagesPreserveOriginalBlockExecutor', 'TestBefore59ObserverAllStagesPreserveOriginalStateEveryHeight', 'TestCommitHeaderProbeRealBlockExecutor', 'TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts', 'TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence', 'TestSyntheticCommitHeaderCaptureStateSyncInvalidates', 'TestSyntheticCommitHeaderConcurrentReaders', 'TestSyntheticCommitHeaderRealEngineOffOnEquivalent', 'TestSyntheticCommitHeaderAndTimingAtomicSnapshot', 'TestSyntheticCommitHeaderOriginalClockCallback']
+          names = ['TestBefore59CostOriginalEngineTransferResult', 'TestBefore59SyntheticStreamOnlyCost', 'TestBefore59AllObserverStagesPreserveOriginalBlockExecutor', 'TestBefore59ObserverAllStagesPreserveOriginalStateEveryHeight', 'TestCommitHeaderProbeRealBlockExecutor', 'TestSyntheticCommitHeaderCaptureDoesNotReviveAttempts', 'TestSyntheticCommitHeaderCaptureDoesNotReviveFailedPersistence', 'TestSyntheticCommitHeaderCaptureStateSyncInvalidates', 'TestSyntheticCommitHeaderConcurrentReaders', 'TestSyntheticCommitHeaderRealEngineOffOnEquivalent', 'TestSyntheticCommitHeaderAndTimingAtomicSnapshot', 'TestSyntheticCommitHeaderOriginalClockCallback']
           names += ['TestSyntheticHeaderStreamOriginalCallback', 'TestSyntheticHeaderStreamPreStartCallbackUnknown', 'TestSyntheticHeaderStreamChangedAttemptUnknown', 'TestSyntheticHeaderStreamOptionsFailClosed', 'TestSyntheticHeaderStreamRawTimingProjection', 'TestSyntheticHeaderStreamCloseDoesNotRetryTimedOutFinish', 'TestSyntheticHeaderStreamNormalNodeNoActivityUnknown', 'TestSyntheticHeaderStreamActualPrivateFile', 'TestSyntheticHeaderStreamRejectsLossAndWrongOrder', 'TestSyntheticHeaderStreamOriginalIdentityAndBoundedRetirement', 'TestSyntheticHeaderStreamCloseFailuresRetainCustody']
           names += ['TestSyntheticHeaderStreamOnlyOptions', 'TestSyntheticHeaderStreamOnly130ApplicationCallbacks', 'TestSyntheticHeaderStreamOnlyNormalNodeNoActivity', 'TestSyntheticHeaderStreamOnlyBindIdentity', 'TestSyntheticHeaderStreamOnlyCounterOverflow', 'TestOperatorCommitObservationBoundedSamplesAndNormalStopGuard']
           children = ['TestSyntheticCommitHeaderRealEngineOffOnEquivalent/' + layout for layout in ('atomic-json', 'snapshot-journal', 'block-journal')]
@@ -93,6 +93,62 @@ jobs:
                       if not positions[parent][0] < positions[child][0] < positions[child][1] < positions[parent][1]:
                           raise RuntimeError('synthetic header child escaped parent: ' + child)
           qualify(events)
+          def qualify_cost(stream):
+              marker = 'YNX_SYNTHETIC_STREAM_ONLY_AB '
+              cost_lines = [e['Output'].split(marker, 1)[1].strip() for e in stream
+                            if e.get('Test') == 'TestBefore59SyntheticStreamOnlyCost' and e.get('Action') == 'output'
+                            and marker in e.get('Output', '')]
+              if len(cost_lines) != 1:
+                  raise RuntimeError('original stream-only cost event missing or repeated')
+              def unique_object(pairs):
+                  out = {}
+                  for key, value in pairs:
+                      if key in out: raise RuntimeError('duplicate original cost field')
+                      out[key] = value
+                  return out
+              cost = json.loads(cost_lines[0], object_pairs_hook=unique_object)
+              records = cost.get('records')
+              if (cost.get('version') != 'YNX-SYNTHETIC-STREAM-ONLY-AB/v1' or cost.get('source') != os.environ['GITHUB_SHA']
+                      or cost.get('nodeStarted') is not False or cost.get('runtimeAuthorized') is not False
+                      or cost.get('independentFinality') is not False or type(cost.get('pid')) is not int or cost['pid'] <= 0
+                      or cost.get('clock') != 'CLOCK_MONOTONIC' or not re.fullmatch(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', cost.get('bootID', ''))
+                      or not re.fullmatch(r'[0-9]+:[0-9]+', cost.get('timeNamespace', ''))
+                      or any(not re.fullmatch(r'[0-9a-f]{64}', cost.get(key, '')) for key in ('testBinarySHA256', 'inputSHA256', 'blockHash', 'appHash'))
+                      or type(cost.get('height')) is not int or cost['height'] <= 0
+                      or type(cost.get('processMaxRSSKiBSharedLifetime')) is not int or cost['processMaxRSSKiBSharedLifetime'] <= 0
+                      or type(records) is not list or len(records) != 20):
+                  raise RuntimeError('original stream-only cost identity or count differs')
+              for i, record in enumerate(records):
+                  round_number = i // 2
+                  if (type(record.get('round')) is not int or record['round'] != round_number
+                          or type(record.get('enabled')) is not bool or record['enabled'] != ((round_number % 2 == 0) == (i % 2 == 0))
+                          or type(record.get('warmup')) is not bool or record['warmup'] != (round_number < 2)
+                          or any(type(record.get(key)) is not int or record[key] < 0 for key in ('engineFixtureNs', 'probeAndStreamStopNs', 'observerCloseNs', 'allocatedBytes', 'streamBytes'))
+                          or (record['enabled'] and (record['streamBytes'] == 0 or not re.fullmatch(r'[0-9a-f]{64}', record.get('streamSHA256', ''))))
+                          or (not record['enabled'] and (record['streamBytes'] != 0 or record['observerCloseNs'] != 0 or 'streamSHA256' in record))):
+                      raise RuntimeError('original stream-only cost round differs')
+              for enabled, suffix in ((False, 'Off'), (True, 'On')):
+                  for value_key, median_key in (('engineFixtureNs', 'medianEngineFixtureNs'), ('probeAndStreamStopNs', 'medianProbeAndStreamStopNs')):
+                      values = sorted(r[value_key] for r in records if r['enabled'] is enabled and not r['warmup'])
+                      if len(values) != 8 or type(cost.get(median_key + suffix)) is not int or cost[median_key + suffix] != values[3] + (values[4] - values[3]) // 2:
+                          raise RuntimeError('original stream-only cost median differs from rounds')
+              return cost
+          cost = qualify_cost(events)
+          cost_mutants = [json.loads(json.dumps(cost)) for _ in range(5)]
+          cost_mutants[0]['source'] = '0' * 40
+          cost_mutants[1]['records'].pop()
+          cost_mutants[2]['medianEngineFixtureNsOn'] += 1
+          cost_mutants[3]['records'][0]['enabled'] = not cost_mutants[3]['records'][0]['enabled']
+          cost_mutants[4]['medianEngineFixtureNsOn'] = True
+          for altered in cost_mutants:
+              candidate = [dict(e) for e in events]
+              output = next(e for e in candidate if e.get('Test') == 'TestBefore59SyntheticStreamOnlyCost' and 'YNX_SYNTHETIC_STREAM_ONLY_AB ' in e.get('Output', ''))
+              output['Output'] = 'YNX_SYNTHETIC_STREAM_ONLY_AB ' + json.dumps(altered) + '\n'
+              try:
+                  qualify_cost(candidate)
+              except RuntimeError:
+                  continue
+              raise RuntimeError('synthetic header cost negative control was accepted')
           mutants = [[dict(e) for e in events] for _ in range(4)]
           mutants[0].append(dict(Package='unexpected/package', Action='start'))
           next(e for e in mutants[1] if e.get('Test') == names[0] and e.get('Action') == 'run')['Package'] = consensus
