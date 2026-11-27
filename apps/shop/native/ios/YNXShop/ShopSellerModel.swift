@@ -338,20 +338,29 @@ import SwiftUI
             return ("revoke",account,"/seller/stores/"+store+"/roles/"+account+"/native-revoke",["Reason":try bounded(reason,240)])
         }
     }
-    private func assertPreparedInventoryCurrent(_ original:SellerMutationJournal.Record)throws {
-        guard original.kind=="inventory" else{return}
+    private func assertPreparedCatalogCurrent(_ original:SellerMutationJournal.Record)throws {
+        guard original.kind=="inventory" || original.kind=="listing" else{return}
         let input=try journal.input(original)
-        guard original.path=="/seller/inventory/batch",input["StoreID"] as? String==original.storeID,
-              let items=input["Items"] as? [[String:Any]],items.count==1,let item=items.first,
-              let productID=item["ProductID"] as? String,productID==original.target,
-              let variantID=item["VariantID"] as? String,let revision=item["ExpectedRevision"] as? String else{throw ShopError.security}
+        guard input["StoreID"] as? String==original.storeID else{throw ShopError.security}
+        let productID:String,revision:String,variantID:String?
+        if original.kind=="inventory" {
+            guard original.path=="/seller/inventory/batch",let items=input["Items"] as? [[String:Any]],items.count==1,let item=items.first,
+                  let target=item["ProductID"] as? String,let variant=item["VariantID"] as? String,let expected=item["ExpectedRevision"] as? String else{throw ShopError.security}
+            guard can("inventory.write") else{throw ShopError.contextChanged}
+            productID=target;revision=expected;variantID=variant
+        }else{
+            guard original.path=="/seller/products/\(original.target)/native-listing",let expected=input["ExpectedRevision"] as? String else{throw ShopError.security}
+            guard can("catalog.write") else{throw ShopError.contextChanged}
+            productID=original.target;revision=expected;variantID=nil
+        }
+        guard productID==original.target else{throw ShopError.security}
         let matches=products.filter{$0.ID==productID && $0.StoreID==original.storeID}
-        guard matches.count==1,try integer(revision,positive:true)==matches[0].Revision,
-              matches[0].Variants.filter({$0.ID==variantID}).count==1 else{throw ShopError.contextChanged}
+        guard matches.count==1,try integer(revision,positive:true)==matches[0].Revision else{throw ShopError.contextChanged}
+        if let variantID{guard matches[0].Variants.filter({$0.ID==variantID}).count==1 else{throw ShopError.contextChanged}}
     }
     private func sendPrepared(_ original:SellerMutationJournal.Record,view:Int,check:@escaping ()throws->Void)async throws {
         guard original.phase=="prepared" else{throw ShopError.unresolvedMutation}
-        let response=try await api.raw(String(original.path.dropFirst()),json:journal.input(original),beforeDispatch:{try check();guard self.selection==view,(original.kind=="create-store" || original.kind=="accept-invitation" || self.selectedStoreID==original.storeID) else{throw ShopError.contextChanged};try self.assertPreparedInventoryCurrent(original);try self.journal.dispatch(original)})
+        let response=try await api.raw(String(original.path.dropFirst()),json:journal.input(original),beforeDispatch:{try check();guard self.selection==view,(original.kind=="create-store" || original.kind=="accept-invitation" || self.selectedStoreID==original.storeID) else{throw ShopError.contextChanged};try self.assertPreparedCatalogCurrent(original);try self.journal.dispatch(original)})
         try check();try validate(response,original:original,recovery:false);try journal.confirm(original,result:response);if original.kind=="accept-invitation"{receivedInvitations.removeAll{$0.ID==original.target}}
     }
     func perform(_ command:SellerCommand){guard signedIn,!busy else{return};do{

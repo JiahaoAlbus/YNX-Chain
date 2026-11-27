@@ -26,6 +26,7 @@ final class SellerFixtureHTTP:URLProtocol,@unchecked Sendable {
         func until(_ predicate:()->Bool)async throws{for _ in 0..<200_000{if predicate(){return};await Task.yield()};throw NSError(domain:"bounded Seller asynchronous condition",code:1)}
         let authority=SellerFixtureAuthority();let account=authority.account,store="store_original"
         var factoryCalls=0,reads=0,allowWrite=true,mutations:[SellerFixtureHTTP]=[],paths:[String]=[]
+        var allowedPermissions=["seller.read","catalog.write","inventory.write","fulfillment.write","returns.resolve","team.read","audit.read","finance.read"]
         var counts:[String:(Int64,Int64)]=["p1":(1,5),"p2":(1,5)]
         func product(_ id:String)->[String:Any]{let value=counts[id]!;return ["ID":id,"StoreID":store,"Title":"Controlled fixture "+id,"Description":"","Category":"","Published":true,"Revision":value.0,"Media":[],"Variants":[["ID":"v"+id,"Name":"Original","SKU":"sku"+id,"PriceYNXT":Int64.max,"Inventory":value.1,"Reserved":0]]]}
         SellerFixtureHTTP.handler={request in
@@ -33,7 +34,7 @@ final class SellerFixtureHTTP:URLProtocol,@unchecked Sendable {
             if method != "GET"{paths.append(path);mutations.append(request);return}
             precondition(request.request.value(forHTTPHeaderField:"Authorization")==nil)
             switch path {
-            case "/api/seller/stores":try! request.respond(["stores":[["ID":store,"Owner":account,"Name":"Original store","Description":"","Policy":"","TrustURL":"","SettlementAccount":"","Status":"active"]],"access":[store:["role":"owner","permissions":["seller.read","catalog.write","inventory.write","fulfillment.write","returns.resolve","team.read","audit.read","finance.read"]]]])
+            case "/api/seller/stores":try! request.respond(["stores":[["ID":store,"Owner":account,"Name":"Original store","Description":"","Policy":"","TrustURL":"","SettlementAccount":"","Status":"active"]],"access":[store:["role":"owner","permissions":allowedPermissions]]])
             case "/api/seller/products":try! request.respond(["products":[product("p1"),product("p2")]])
             case "/api/seller/orders":try! request.respond(["orders":[]])
             case "/api/seller/stores/"+store+"/roles":try! request.respond(["roles":[account:"owner"],"revocations":[],"invitations":[]])
@@ -90,11 +91,30 @@ final class SellerFixtureHTTP:URLProtocol,@unchecked Sendable {
         authority.proofFails=false;counts["p2"]=(3,10);model.refresh();try await until{!model.busy}
         model.retryPreparedOriginals();try await until{!model.busy}
         try check(paths.count==before && (try journal.records(account)[prepared.key])==prepared,"changed inventory revision refuses the unsent original without changing its bytes or key")
-        counts["p2"]=(2,8);model.refresh();try await until{!model.busy}
+        counts["p2"]=(2,8);allowedPermissions.removeAll{$0=="inventory.write"};model.refresh();try await until{!model.busy}
+        model.retryPreparedOriginals();try await until{!model.busy}
+        try check(paths.count==before && (try journal.records(account)[prepared.key])==prepared,"revoked inventory permission prevents prepared dispatch")
+        allowedPermissions.append("inventory.write");model.refresh();try await until{!model.busy}
         model.retryPreparedOriginals();let retry=try await take("seller/inventory/batch")
         try check(try retry.body()==prepared.body,"explicit known-unsent retry sends only original frozen bytes and key")
         counts["p2"]=(3,12);try retry.respond(inventoryResult("p2","3","12"));try await until{!model.busy}
         try check(model.preparedOriginalCount==0 && !model.hasPending("p2"),"confirmed known-unsent original leaves no stale action lock")
+        var listingDraft=model.draft(for:model.products.first(where:{$0.ID=="p2"})!);listingDraft.title="Reviewed listing"
+        authority.proofFails=true;model.perform(.publish(listingDraft));try await until{!model.busy}
+        let listing=try journal.records(account).values.first(where:{$0.target=="p2" && $0.kind=="listing" && $0.phase=="prepared"})!
+        let beforeListing=paths.count;authority.proofFails=false;counts["p2"]=(4,12);model.refresh();try await until{!model.busy}
+        model.retryPreparedOriginals();try await until{!model.busy}
+        try check(paths.count==beforeListing && (try journal.records(account)[listing.key])==listing,"changed listing revision preserves the original prepared body and prevents dispatch")
+        counts["p2"]=(3,12);allowedPermissions.removeAll{$0=="catalog.write"};model.refresh();try await until{!model.busy}
+        model.retryPreparedOriginals();try await until{!model.busy}
+        try check(paths.count==beforeListing && (try journal.records(account)[listing.key])==listing,"revoked catalog permission prevents prepared listing dispatch")
+        allowedPermissions.append("catalog.write");model.refresh();try await until{!model.busy}
+        model.retryPreparedOriginals();let listingRetry=try await take("seller/products/p2/native-listing")
+        try check(try listingRetry.body()==listing.body,"restored current listing sends the same original body and key")
+        let listingInput=try JSONSerialization.jsonObject(with:listing.body) as! [String:Any]
+        var accepted=(listingInput["Variants"] as! [[String:Any]])[0];accepted["Reserved"]="0"
+        counts["p2"]=(4,12);try listingRetry.respond(["OriginalApplied":true,"QueryOnly":false,"Product":["ID":"p2","StoreID":store,"Title":listingDraft.title,"Revision":"4","Published":true,"Variants":[accepted]]]);try await until{!model.busy}
+        try check(try journal.records(account)[listing.key]?.phase=="confirmed","only the matching listing result confirms the original")
         model.perform(.inventory(productID:"p1",variantID:"vp1",expectedRevision:"2",inventory:"11"));let late=try await take("seller/inventory/batch");let uncertain=try journal.records(account).values.first(where:{$0.target=="p1" && $0.phase=="unknown"})!
         model.disconnect();try late.respond(inventoryResult("p1","3","11"));for _ in 0..<1000{await Task.yield()}
         try check(try !model.signedIn && model.products.isEmpty && model.members.isEmpty && journal.records(account)[uncertain.key]?.phase=="unknown","sign-out fences late Seller results while retaining the actual original request")
