@@ -3,6 +3,12 @@ import {realRecords} from './api.js';
 // authority, payment URI, signature, settlement, or client-side chain rounding.
 const integer=(value,min=0)=>Number.isSafeInteger(value)&&value>=min;
 const reject=()=>Object.assign(new Error('The selected invoice is unavailable. Refresh your merchant records.'),{code:'MERCHANT_INVOICE_UNAVAILABLE'});
+export function merchantRefundRecoveryLabel(kind,status){
+ if(kind!=='refund')return null;
+ if(status==='submitted')return 'Check chain evidence';
+ if(status==='unknown')return 'Check original status';
+ return null;
+}
 export function merchantInvoicePresentation(invoice,merchantId){
  if(!invoice||invoice.merchantId!==merchantId||typeof invoice.id!=='string'||!invoice.id||typeof invoice.centralInvoiceId!=='string'||!invoice.centralInvoiceId||!integer(invoice.amount,1)||!integer(invoice.fee)||invoice.asset!=='YNXT'||invoice.network!=='ynx_6423-1'||!Number.isInteger(invoice.version)||invoice.version<1||invoice.version>5||!Number.isFinite(Date.parse(invoice.expiresAt))||!Number.isFinite(Date.parse(invoice.createdAt)))throw reject();
  const tip=invoice.version>=3?invoice.tipAmount??0:0,base=invoice.version>=3?invoice.baseAmount:invoice.amount;

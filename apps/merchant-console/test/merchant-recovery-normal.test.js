@@ -3,11 +3,22 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {createMutationRecovery} from '../src/mutation-recovery.js';
 import {createRequestContext,merchantFailureMessage} from '../src/request-context.js';
+import {merchantRefundRecoveryLabel} from '../src/invoice-presentation.js';
 
 globalThis.YNX_PAY_API_URL='https://commerce-qa.invalid';
 const {PayAPI}=await import('../src/api.js?original-recovery-normal');
 const subject={account:'ynx1'+'q'.repeat(38),merchantId:'mrc_original'};
 const body={description:'Original invoice',amount:8,expiresInMinutes:30};
+
+test('merchant can check the same unknown refund without submitting another refund',async()=>{
+ assert.equal(merchantRefundRecoveryLabel('refund','unknown'),'Check original status');
+ assert.equal(merchantRefundRecoveryLabel('refund','submitted'),'Check chain evidence');
+ assert.equal(merchantRefundRecoveryLabel('refund','requested'),null);assert.equal(merchantRefundRecoveryLabel('dispute','unknown'),null);
+ const current=createRequestContext(()=>subject.account+'|'+subject.merchantId),api=new PayAPI('controlled-session',current,async(_,options)=>options);
+ const before=globalThis.fetch;let calls=0;
+ globalThis.fetch=async(url,options)=>{calls++;assert.ok(url.endsWith('/v1/merchant/refunds/refund-original/refresh'));assert.equal(options.method,'POST');assert.deepEqual(JSON.parse(options.body),{});return new Response(JSON.stringify({id:'refund-original',status:'unknown'}));};
+ try{const result=await api.refreshRefund('refund-original');assert.equal(result.id,'refund-original');assert.equal(result.status,'unknown');assert.equal(calls,1);}finally{globalThis.fetch=before;}
+});
 
 test('normal merchant entry preserves lost original through missing authority and current, then reads the same invoice',async()=>{
  const saved=new Map(),storage={getItem:key=>saved.get(key)??null,setItem:(key,value)=>saved.set(key,value),removeItem:key=>saved.delete(key)};
