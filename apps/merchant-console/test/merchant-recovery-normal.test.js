@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {createMutationRecovery} from '../src/mutation-recovery.js';
 import {createRequestContext,merchantFailureMessage} from '../src/request-context.js';
-import {merchantRefundRecoveryLabel,merchantRefundRecoveryNotice} from '../src/invoice-presentation.js';
+import {merchantRefundRecoveryLabel,merchantRefundRecoveryNotice,merchantRefundEvidence} from '../src/invoice-presentation.js';
 
 globalThis.YNX_PAY_API_URL='https://commerce-qa.invalid';
 const {PayAPI}=await import('../src/api.js?original-recovery-normal');
@@ -21,6 +21,10 @@ test('merchant can check the same unknown refund without submitting another refu
  assert.match(merchantRefundRecoveryNotice({id:'refund-original',status:'submitted'},'refund-original'),/Check chain evidence/);
  const evidence={requestId:'refund-original',status:'refunded',finality:'committed',confidence:'authoritative',source:'authoritative-central-pay-api',blockNumber:101,transactionHash:'0x'+'a'.repeat(64),receiptId:'receipt-original'};
  assert.match(merchantRefundRecoveryNotice({id:'refund-original',status:'refunded',evidence},'refund-original'),/authoritative evidence/);
+ assert.equal(merchantRefundEvidence({id:'refund-original',status:'refunded',evidence}),evidence);
+ assert.equal(merchantRefundEvidence({id:'refund-original',status:'unknown',evidence}),null);
+ assert.equal(merchantRefundEvidence({id:'refund-original',status:'submitted',evidence}),null);
+ assert.equal(merchantRefundEvidence({id:'refund-original',status:'refunded',evidence:{...evidence,requestId:'other'}}),null);
  for(const bad of [undefined,{...evidence,requestId:'other'},{...evidence,finality:'pending'},{...evidence,blockNumber:0},{...evidence,transactionHash:'invalid'}])assert.throws(()=>merchantRefundRecoveryNotice({id:'refund-original',status:'refunded',evidence:bad},'refund-original'),{code:'MERCHANT_REFUND_ORIGINAL_CHANGED'});
  assert.throws(()=>merchantRefundRecoveryNotice({id:'different',status:'refunded'},'refund-original'),{code:'MERCHANT_REFUND_ORIGINAL_CHANGED'});
  assert.throws(()=>merchantRefundRecoveryNotice({id:'refund-original',status:'other'},'refund-original'),{code:'MERCHANT_REFUND_ORIGINAL_CHANGED'});
