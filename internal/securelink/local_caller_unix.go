@@ -325,6 +325,9 @@ func (l *localCallerListener) Close() error {
 func (l *localCallerListener) Accept() (net.Conn, error) {
 	for {
 		if l.server.proofV4Required {
+			if l.closeOwner != nil && !l.closeOwner.permitsServe() {
+				return nil, net.ErrClosed
+			}
 			l.server.mu.Lock()
 			if l.server.closed.Load() {
 				l.server.mu.Unlock()
@@ -357,7 +360,7 @@ func (l *localCallerListener) Accept() (net.Conn, error) {
 			// Keep both original UID and independent live UID/PID checks. The
 			// accepted connection is retained before either can reject it, so an
 			// uncertain close on the rejection path cannot disappear.
-			if closed || checkPeerUID(u, l.server.cfg.PeerUID) != nil || localPeer(u, l.server.cfg.PeerUID, l.server.cfg.PeerPID) != nil {
+			if closed || (l.closeOwner != nil && !l.closeOwner.permitsServe()) || checkPeerUID(u, l.server.cfg.PeerUID) != nil || localPeer(u, l.server.cfg.PeerUID, l.server.cfg.PeerPID) != nil {
 				_ = conn.Close()
 				continue
 			}
@@ -405,7 +408,7 @@ func (s *LocalCallerServer) Serve(l net.Listener) error {
 		return ErrDenied
 	}
 	private, ok := l.(*privateListener)
-	if !ok || private.uid != s.cfg.PeerUID {
+	if !ok || private == nil || private.uid != s.cfg.PeerUID || !private.permitsServe() {
 		return ErrDenied
 	}
 	if _, ok := private.Listener.(*net.UnixListener); !ok {

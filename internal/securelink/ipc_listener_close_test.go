@@ -18,6 +18,7 @@ import (
 type controlledPrivateListener struct {
 	started, release chan struct{}
 	calls            atomic.Int32
+	acceptCalls      atomic.Int32
 	err              error
 }
 
@@ -29,6 +30,22 @@ type controlledAcceptPrivateListener struct {
 type controlledHTTPListener struct {
 	*localCallerListener
 	closeObserved chan struct{}
+}
+
+type delayedUnixAccept struct {
+	net.Listener
+	accepted chan net.Conn
+	release  chan struct{}
+}
+
+func (l *delayedUnixAccept) Accept() (net.Conn, error) {
+	conn, err := l.Listener.Accept()
+	if err != nil {
+		return nil, err
+	}
+	l.accepted <- conn
+	<-l.release
+	return conn, nil
 }
 
 func (l *controlledHTTPListener) Close() error {
@@ -43,7 +60,10 @@ func (l *controlledAcceptPrivateListener) Accept() (net.Conn, error) {
 	return nil, net.ErrClosed
 }
 
-func (l *controlledPrivateListener) Accept() (net.Conn, error) { return nil, net.ErrClosed }
+func (l *controlledPrivateListener) Accept() (net.Conn, error) {
+	l.acceptCalls.Add(1)
+	return nil, net.ErrClosed
+}
 func (l *controlledPrivateListener) Addr() net.Addr {
 	return &net.UnixAddr{Name: "controlled", Net: "unix"}
 }
@@ -83,6 +103,11 @@ func TestOriginalV4ResponseOwnerPrivateListenerCloseWitness(t *testing.T) {
 		}
 		if err := private.Close(); !errors.Is(err, ErrLocalCallerDraining) {
 			t.Fatalf("concurrent close was not pending: %v", err)
+		}
+		server := &LocalCallerServer{proofV4Required: true}
+		admission := &localCallerListener{Listener: raw, server: server, closeOwner: private}
+		if _, err := admission.Accept(); !errors.Is(err, net.ErrClosed) || raw.acceptCalls.Load() != 0 {
+			t.Fatalf("close-selected listener admitted another accept: %v calls=%d", err, raw.acceptCalls.Load())
 		}
 		close(raw.release)
 		if err := <-result; err != nil {
@@ -212,7 +237,79 @@ func TestOriginalV4ResponseOwnerPrivateListenerCloseWitness(t *testing.T) {
 		if err := listener.Close(); !errors.Is(err, status.FirstError) {
 			t.Fatalf("unknown first result was not retained: %v", err)
 		}
+		second, err := NewProductSessionProofV4LocalCallerServer(LocalCallerServerConfig{
+			Service: "ynx-shop-source", PeerUID: localTestUID(t), PeerPID: os.Getpid(),
+			Routes:  []LocalCallerRoute{{Method: http.MethodGet, Path: publicShopProofPath, Timeout: time.Second}},
+			Handler: http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}), RequireOriginalV4ResponseOwner: true,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := second.Serve(listener); !errors.Is(err, ErrDenied) || second.serving {
+			t.Fatalf("unknown listener was accepted as a fresh service: %v", err)
+		}
+		var nilPrivate *privateListener
+		if err := second.Serve(nilPrivate); !errors.Is(err, ErrDenied) {
+			t.Fatalf("nil private listener was accepted: %v", err)
+		}
 	})
+	for _, forceUnknown := range []bool{false, true} {
+		name := "in-flight accept is closed"
+		if forceUnknown {
+			name = "in-flight accept close unknown is retained"
+		}
+		t.Run(name, func(t *testing.T) {
+			dir := publicOriginalPeerSocketDirectory(t, "v4accept-")
+			raw, err := net.ListenUnix("unix", &net.UnixAddr{Name: filepath.Join(dir, "s"), Net: "unix"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			private := &privateListener{Listener: raw, uid: localTestUID(t), closeState: &privateListenerCloseState{}}
+			delayed := &delayedUnixAccept{Listener: raw, accepted: make(chan net.Conn, 1), release: make(chan struct{})}
+			server := &LocalCallerServer{cfg: LocalCallerServerConfig{PeerUID: localTestUID(t), PeerPID: os.Getpid()}, proofV4Required: true,
+				v4Connections: make(map[*localCallerConn]struct{}), drained: make(chan struct{})}
+			admission := &localCallerListener{Listener: delayed, server: server, closeOwner: private}
+			done := make(chan error, 1)
+			go func() { _, err := admission.Accept(); done <- err }()
+			peer, err := net.DialUnix("unix", nil, raw.Addr().(*net.UnixAddr))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer peer.Close()
+			accepted := <-delayed.accepted
+			if err := private.Close(); err != nil {
+				t.Fatal(err)
+			}
+			if forceUnknown {
+				// Controlled bypass makes the wrapper's first Close unknown.
+				if err := accepted.Close(); err != nil {
+					t.Fatal(err)
+				}
+			}
+			close(delayed.release)
+			if err := <-done; !errors.Is(err, net.ErrClosed) {
+				t.Fatalf("in-flight accept did not stop: %v", err)
+			}
+			server.mu.Lock()
+			retained := make([]*localCallerConn, 0, len(server.v4Connections))
+			for conn := range server.v4Connections {
+				retained = append(retained, conn)
+			}
+			server.mu.Unlock()
+			if (!forceUnknown && len(retained) != 0) || (forceUnknown && len(retained) != 1) {
+				t.Fatalf("unexpected original connection debt: %d", len(retained))
+			}
+			for _, conn := range retained {
+				originalV4Connections.Lock()
+				_, held := originalV4Connections.live[conn]
+				delete(originalV4Connections.live, conn) // test-owned synthetic debt
+				originalV4Connections.Unlock()
+				if !held {
+					t.Fatal("unknown original connection was not held")
+				}
+			}
+		})
+	}
 	for _, closeFirst := range []bool{false, true} {
 		name := "Retire first"
 		if closeFirst {

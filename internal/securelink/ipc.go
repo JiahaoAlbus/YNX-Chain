@@ -157,6 +157,17 @@ func InspectOriginalPrivateListener(listener net.Listener) (OriginalPrivateListe
 		CloseConfirmed: s.returned && s.err == nil, FirstError: s.err}, nil
 }
 
+// A witnessed listener selected for closure, including an UNKNOWN partial,
+// is never accepted as a fresh service listener.
+func (l *privateListener) permitsServe() bool {
+	if l.closeState == nil {
+		return true
+	}
+	l.closeState.mu.Lock()
+	defer l.closeState.mu.Unlock()
+	return !l.closeState.started
+}
+
 func (l *privateListener) Accept() (net.Conn, error) {
 	for {
 		c, err := l.Listener.Accept()
