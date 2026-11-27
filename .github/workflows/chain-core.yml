@@ -738,8 +738,8 @@ jobs:
         run: |
           python3 -B - <<'PY'
           import base64, os, subprocess
-          commit = '5a49f5c91452604dffb910df736702b3b9df2562'
-          tree = '08747364c24c065bf2b13527c210625d7ec95fba'
+          commit = '28a769cc934ea5bffe971214cabe7285b30d80d2'
+          tree = 'd1614fd27dedde42da4142648ae7201aeb988036'
           # contents:read only; never write credentials to config, argv, disk
           # or logs. This one explicit fetch is outside the offline helper.
           environment = os.environ.copy()
@@ -970,8 +970,8 @@ jobs:
         run: |
           python3 -B - <<'PYTHON'
           import base64, os, subprocess
-          commit = '5a49f5c91452604dffb910df736702b3b9df2562'
-          tree = '08747364c24c065bf2b13527c210625d7ec95fba'
+          commit = '28a769cc934ea5bffe971214cabe7285b30d80d2'
+          tree = 'd1614fd27dedde42da4142648ae7201aeb988036'
           environment = os.environ.copy()
           token = environment.pop('WIRE_SUPPLIER_READ_TOKEN')
           if not token:
@@ -995,8 +995,8 @@ jobs:
       - name: Verify the normal constructor and all 24 fixed readiness budget cases without Node.Start
         run: >-
           python3 -B scripts/verify/wire-live-matching-source-ci.py
-          --lossless-supplier-commit 5a49f5c91452604dffb910df736702b3b9df2562
-          --lossless-supplier-tree 08747364c24c065bf2b13527c210625d7ec95fba
+          --lossless-supplier-commit 28a769cc934ea5bffe971214cabe7285b30d80d2
+          --lossless-supplier-tree d1614fd27dedde42da4142648ae7201aeb988036
       - name: Preserve only public corrected lossless source evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

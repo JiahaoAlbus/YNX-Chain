@@ -10,6 +10,13 @@ import subprocess
 
 SUPPLIER_COMMIT = '5a49f5c91452604dffb910df736702b3b9df2562'
 SUPPLIER_TREE = '08747364c24c065bf2b13527c210625d7ec95fba'
+PATCHED_SUPPLIER_COMMIT = '28a769cc934ea5bffe971214cabe7285b30d80d2'
+PATCHED_SUPPLIER_TREE = 'd1614fd27dedde42da4142648ae7201aeb988036'
+SUPPLIER_BY_PRODUCTION = {
+    '5a128880d14bfc73de4334cba23218859ad3473c': (SUPPLIER_COMMIT, SUPPLIER_TREE),
+    '47d7cfeee7cd178cb897eda57a4674677fac7e67': (SUPPLIER_COMMIT, SUPPLIER_TREE),
+    'aadf0831c6b65559065ca82228bab30811d36c67': (PATCHED_SUPPLIER_COMMIT, PATCHED_SUPPLIER_TREE),
+}
 
 
 def require(ok, message):
@@ -44,14 +51,16 @@ def pin(path):
 def qualify(directory, commit, tree, fork, run, attempt, live, budget):
     require(bool(re.fullmatch('[0-9a-f]{40}', commit)) and bool(re.fullmatch('[0-9a-f]{40}', tree)) and bool(re.fullmatch('[0-9a-f]{40}', fork)), 'source pins required')
     require(run.isdecimal() and int(run) > 0 and attempt == '1', 'original first CI attempt required')
+    require(fork in SUPPLIER_BY_PRODUCTION, 'getter production fork has no fixed supplier')
+    supplier_commit, supplier_tree = SUPPLIER_BY_PRODUCTION[fork]
     source = strict(read(directory / 'SOURCE.json'))
     prepared = source['preparedSourceSelection']
     selection_path = directory / 'composition' / 'SOURCE-SELECTION.json'
     selection = strict(read(selection_path))
     require(source['version'] == 'YNX-NORMAL-LIVE-WIRE-SOURCE-COMPOSITION/v1' and source['sourceCommit'] == commit and source['sourceTree'] == tree and source['productionForkTree'] == fork, 'getter source identity differs')
-    require(source['optionalForkCommit'] == SUPPLIER_COMMIT and source['optionalForkTree'] == SUPPLIER_TREE and source['buildTags'] == ['ynx_live_wire_observation'], 'getter fixed supplier differs')
+    require(source['optionalForkCommit'] == supplier_commit and source['optionalForkTree'] == supplier_tree and source['buildTags'] == ['ynx_live_wire_observation'], 'getter fixed supplier differs')
     require(source['sourceOnly'] is True and source['actualPreStartNodeGetter'] is True and type(source['nodeProcessesStarted']) is int and source['nodeProcessesStarted'] == 0 and source['actualRunningWindow'] is False and source['carrierEnabled'] is False and source['publicActivation'] is False, 'getter source scope differs')
-    require(selection['originalSourceCommit'] == commit and selection['originalSourceTree'] == tree and selection['originalProductionForkTree'] == fork and selection['selectedOptionalForkCommit'] == SUPPLIER_COMMIT and selection['selectedOptionalForkTree'] == SUPPLIER_TREE and selection['nodeStarted'] is False and selection['carrierEnabled'] is False and selection['publicActivation'] is False, 'getter composition differs')
+    require(selection['originalSourceCommit'] == commit and selection['originalSourceTree'] == tree and selection['originalProductionForkTree'] == fork and selection['selectedOptionalForkCommit'] == supplier_commit and selection['selectedOptionalForkTree'] == supplier_tree and selection['nodeStarted'] is False and selection['carrierEnabled'] is False and selection['publicActivation'] is False, 'getter composition differs')
     selection_pin = pin(selection_path)
     require(prepared['receiptBytes'] == selection_pin['bytes'] and prepared['receiptSHA256'] == selection_pin['sha256'] and prepared['sourceSelection'] == selection, 'getter original selection receipt differs')
     files = {'SOURCE.json': pin(directory/'SOURCE.json'), 'composition/SOURCE-SELECTION.json': selection_pin}
@@ -82,7 +91,7 @@ def qualify(directory, commit, tree, fork, run, attempt, live, budget):
         files[label+'.jsonl'] = {'bytes':len(stdout_raw),'sha256':hashlib.sha256(stdout_raw).hexdigest()}
         files[label+'.stderr.log'] = {'bytes':len(stderr_raw),'sha256':hashlib.sha256(stderr_raw).hexdigest()}
         files[label+'.result.json'] = result_pin
-    return dict(version='YNX-HELD-OPTIONAL-LIVE-GETTER-CI/v1', sourceCommit=commit, sourceTree=tree, productionForkTree=fork, supplierCommit=SUPPLIER_COMMIT, supplierForkTree=SUPPLIER_TREE, runId=run, runAttempt=attempt, files=files, sourceOnly=True, nodeStarted=False, authorityGranted=False, publicActivation=False, independentFinality=False)
+    return dict(version='YNX-HELD-OPTIONAL-LIVE-GETTER-CI/v1', sourceCommit=commit, sourceTree=tree, productionForkTree=fork, supplierCommit=supplier_commit, supplierForkTree=supplier_tree, runId=run, runAttempt=attempt, files=files, sourceOnly=True, nodeStarted=False, authorityGranted=False, publicActivation=False, independentFinality=False)
 
 
 def main():

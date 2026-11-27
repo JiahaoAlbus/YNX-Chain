@@ -185,7 +185,7 @@ class WireLiveSourceControls(unittest.TestCase):
                 self.assertFalse(destination.exists())
 
     def test_signer_successor_keeps_exact_production_leaves_and_rejects_drift(self):
-        for drift in (None, "fork", "deleted", "extraction"):
+        for drift in (None, "fork", "deleted", "extraction", "descriptor", "retained"):
             with self.subTest(drift=drift), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory).resolve()
                 destination = root / "fresh"
@@ -207,10 +207,14 @@ class WireLiveSourceControls(unittest.TestCase):
                     if args[0] == "show":
                         revision, name = args[1].split(":", 1)
                         if name in descriptors and revision in ("source", ci.CURRENT_FORK_COMMIT):
+                            if drift == "descriptor" and revision == ci.CURRENT_FORK_COMMIT and name == ci.DESCRIPTORS[2]:
+                                return b"foreign descriptor"
                             return descriptors[name]
                         if revision == ci.SIGNER_PRODUCTION_TREE and name in retained:
                             return retained[name]
                         if revision == ci.CURRENT_FORK_TREE and name in ci.CURRENT_RETAINED:
+                            if drift == "retained" and name == ci.CURRENT_RETAINED[0]:
+                                return b"foreign retained leaf"
                             return retained[name]
                     self.fail("unexpected git operation: " + str(args))
                 def original_extract(_, revision, target, paths=()):
@@ -226,7 +230,7 @@ class WireLiveSourceControls(unittest.TestCase):
                             (target / ci.SIGNER_RETAINED[0]).write_bytes(b"stale signer")
                 with patch.object(ci, "git", side_effect=original_git), patch.object(ci, "require_supplier_source"), patch.object(ci, "extract", side_effect=original_extract) as extract:
                     if drift:
-                        with self.assertRaisesRegex(RuntimeError, "remote signer"):
+                        with self.assertRaisesRegex(RuntimeError, "remote signer|module descriptors differ|changed an original observer/committed-view"):
                             ci.prepare_wire_live_source(root, destination, "source", "tree")
                         self.assertEqual(extract.call_count, 2 if drift == "extraction" else 0)
                         self.assertFalse((destination / "SOURCE-SELECTION.json").exists())
@@ -242,7 +246,10 @@ class WireLiveSourceControls(unittest.TestCase):
                 ("01a03403ecbb5d17983cbe964dbbb73fcddf8a13", ci.CURRENT_FORK_COMMIT, ci.CURRENT_FORK_TREE, "production fork changed"),
                 (ci.CURRENT_PRODUCTION_TREE, "ed628e5cdd00c4496de5b2587bf2e9585aaf3d2d", "f1a8837079178469bc57ede955c55973f8b7d8ba", "exact matching supplier"),
                 (ci.CURRENT_PRODUCTION_TREE, "a" * 40, ci.CURRENT_FORK_TREE, "exact matching supplier"),
-                (ci.CURRENT_PRODUCTION_TREE, ci.CURRENT_FORK_COMMIT, "b" * 40, "exact matching supplier")):
+                (ci.CURRENT_PRODUCTION_TREE, ci.CURRENT_FORK_COMMIT, "b" * 40, "exact matching supplier"),
+                (ci.SIGNER_PRODUCTION_TREE, ci.PATCHED_FORK_COMMIT, ci.PATCHED_FORK_TREE, "exact matching supplier"),
+                (ci.PATCHED_SIGNER_PRODUCTION_TREE, ci.CURRENT_FORK_COMMIT, ci.CURRENT_FORK_TREE, "exact matching supplier"),
+                (ci.PATCHED_SIGNER_PRODUCTION_TREE, ci.PATCHED_FORK_COMMIT, ci.CURRENT_FORK_TREE, "exact matching supplier")):
             with self.subTest(production=production, supplier=supplier), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory).resolve()
                 destination = root / "fresh"
@@ -257,6 +264,14 @@ class WireLiveSourceControls(unittest.TestCase):
                         ci.prepare_wire_lossless_source(root, destination, "source", "tree", supplier_commit=supplier, supplier_tree=tree)
                     extract.assert_not_called()
                 self.assertFalse(destination.exists())
+
+    def test_patched_signer_keeps_exact_production_leaves_and_rejects_drift(self):
+        # Reuse the complete signer retention/extraction controls with the new
+        # immutable tuple, while the original signer tuple remains tested above.
+        with patch.object(ci, 'SIGNER_PRODUCTION_TREE', ci.PATCHED_SIGNER_PRODUCTION_TREE), \
+             patch.object(ci, 'CURRENT_FORK_COMMIT', ci.PATCHED_FORK_COMMIT), \
+             patch.object(ci, 'CURRENT_FORK_TREE', ci.PATCHED_FORK_TREE):
+            self.test_signer_successor_keeps_exact_production_leaves_and_rejects_drift()
 
     def current_source_control(self, root, *, supplier_drift=None, extracted_drift=None):
         descriptors = {name: ("original descriptor " + name).encode() for name in ci.DESCRIPTORS}
@@ -700,7 +715,7 @@ class WireLiveSourceControls(unittest.TestCase):
         secret = "synthetic-read-only-test-credential"
         header = base64.b64encode(("x-access-token:" + secret).encode()).decode()
         def simulated_fetch(argv, **kwargs):
-            self.assertEqual(argv, ["git", "fetch", "--quiet", "--no-tags", "--no-recurse-submodules", "--depth=1", "--no-write-fetch-head", "origin", ci.CURRENT_FORK_COMMIT])
+            self.assertEqual(argv, ["git", "fetch", "--quiet", "--no-tags", "--no-recurse-submodules", "--depth=1", "--no-write-fetch-head", "origin", ci.PATCHED_FORK_COMMIT])
             self.assertNotIn(secret, " ".join(argv))
             self.assertNotIn("WIRE_SUPPLIER_READ_TOKEN", kwargs["env"])
             self.assertEqual(kwargs["env"]["GIT_CONFIG_VALUE_0"], "AUTHORIZATION: basic " + header)
@@ -709,8 +724,8 @@ class WireLiveSourceControls(unittest.TestCase):
             self.assertEqual(kwargs["timeout"], 60)
             return subprocess.CompletedProcess(argv, 0)
         def read_original(argv, **kwargs):
-            if argv[-1] == ci.CURRENT_FORK_COMMIT + "^{commit}": return ci.CURRENT_FORK_COMMIT + "\n"
-            if argv[-1] == ci.CURRENT_FORK_COMMIT + ":third_party/cometbft": return ci.CURRENT_FORK_TREE + "\n"
+            if argv[-1] == ci.PATCHED_FORK_COMMIT + "^{commit}": return ci.PATCHED_FORK_COMMIT + "\n"
+            if argv[-1] == ci.PATCHED_FORK_COMMIT + ":third_party/cometbft": return ci.PATCHED_FORK_TREE + "\n"
             if argv == ["git", "rev-parse", "HEAD"]: return "original\n"
             self.assertEqual(argv, ["git", "status", "--porcelain"])
             return b""
@@ -722,12 +737,12 @@ class WireLiveSourceControls(unittest.TestCase):
         self.assertEqual(fetch.call_count, 1)
         self.assertNotIn(secret, output.getvalue())
         self.assertNotIn(header, output.getvalue())
-        self.assertIn(ci.CURRENT_FORK_COMMIT, output.getvalue())
+        self.assertIn(ci.PATCHED_FORK_COMMIT, output.getvalue())
         on_step = workflow.split("      - name: Acquire only the fixed corrected lossless supplier\n", 1)[1].split("      - name: Preserve only public corrected lossless source evidence", 1)[0]
-        self.assertIn("commit = '" + ci.CURRENT_FORK_COMMIT + "'", on_step)
-        self.assertIn("tree = '" + ci.CURRENT_FORK_TREE + "'", on_step)
-        self.assertIn("--lossless-supplier-commit " + ci.CURRENT_FORK_COMMIT, on_step)
-        self.assertIn("--lossless-supplier-tree " + ci.CURRENT_FORK_TREE, on_step)
+        self.assertIn("commit = '" + ci.PATCHED_FORK_COMMIT + "'", on_step)
+        self.assertIn("tree = '" + ci.PATCHED_FORK_TREE + "'", on_step)
+        self.assertIn("--lossless-supplier-commit " + ci.PATCHED_FORK_COMMIT, on_step)
+        self.assertIn("--lossless-supplier-tree " + ci.PATCHED_FORK_TREE, on_step)
         self.assertNotIn("ed628e5cdd00c4496de5b2587bf2e9585aaf3d2d", on_step)
         on_job = workflow.split("  lossless-matching-source:\n", 1)[1].split("  commit-observation:\n", 1)[0]
         for suffix in (".jsonl", ".stderr.log", ".result.json"):

@@ -11,9 +11,12 @@ PRODUCTION_TREE = "54e88e6aba735eaceeb2d00bb40731248c673bd7"
 # APIs must survive selection of the optional transport supplier.
 CURRENT_PRODUCTION_TREE = "5a128880d14bfc73de4334cba23218859ad3473c"
 SIGNER_PRODUCTION_TREE = "47d7cfeee7cd178cb897eda57a4674677fac7e67"
-OBSERVER_PRODUCTION_TREES = (CURRENT_PRODUCTION_TREE, SIGNER_PRODUCTION_TREE)
+PATCHED_SIGNER_PRODUCTION_TREE = "aadf0831c6b65559065ca82228bab30811d36c67"
+OBSERVER_PRODUCTION_TREES = (CURRENT_PRODUCTION_TREE, SIGNER_PRODUCTION_TREE, PATCHED_SIGNER_PRODUCTION_TREE)
 CURRENT_FORK_COMMIT = "5a49f5c91452604dffb910df736702b3b9df2562"
 CURRENT_FORK_TREE = "08747364c24c065bf2b13527c210625d7ec95fba"
+PATCHED_FORK_COMMIT = "28a769cc934ea5bffe971214cabe7285b30d80d2"
+PATCHED_FORK_TREE = "d1614fd27dedde42da4142648ae7201aeb988036"
 DESCRIPTORS = ("go.mod", "go.sum", "third_party/cometbft/go.mod", "third_party/cometbft/go.sum")
 CURRENT_RETAINED = ("node/observer_node_test.go", "rpc/core/observer_status_test.go",
                     "rpc/core/status.go", "node/ynx_proof_source.go")
@@ -258,15 +261,18 @@ def _prepare_wire_source(root, fresh_output, expected_commit, expected_tree,
             "production fork changed; refresh explicit source composition")
     current = production_tree in OBSERVER_PRODUCTION_TREES
     if current:
+        matching_supplier = ((PATCHED_FORK_COMMIT, PATCHED_FORK_TREE)
+                             if production_tree == PATCHED_SIGNER_PRODUCTION_TREE
+                             else (CURRENT_FORK_COMMIT, CURRENT_FORK_TREE))
         if not lossless:
-            supplier_commit, supplier_tree = CURRENT_FORK_COMMIT, CURRENT_FORK_TREE
-        require((supplier_commit, supplier_tree) == (CURRENT_FORK_COMMIT, CURRENT_FORK_TREE),
+            supplier_commit, supplier_tree = matching_supplier
+        require((supplier_commit, supplier_tree) == matching_supplier,
                 "current observer/committed-view caller requires its exact matching supplier")
     require_supplier_source(root, supplier_commit, supplier_tree)
     changes = set(git(root, "diff", "--name-only", production_tree, supplier_tree).decode().splitlines())
     deleted = set(git(root, "diff", "--diff-filter=D", "--name-only", production_tree, supplier_tree).decode().splitlines())
     signer_retained = {}
-    if production_tree == SIGNER_PRODUCTION_TREE:
+    if production_tree in (SIGNER_PRODUCTION_TREE, PATCHED_SIGNER_PRODUCTION_TREE):
         # The fixed optional supplier predates these three production leaves.
         # Compare only the two trees available in the shallow CI checkout,
         # then leave the signer changes in the original source archive.

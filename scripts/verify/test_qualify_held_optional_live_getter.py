@@ -8,7 +8,10 @@ import unittest
 P=Path(__file__).parent
 spec=importlib.util.spec_from_file_location('getter',P/'qualify_held_optional_live_getter.py')
 m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
-C='a'*40; T='b'*40; F='c'*40
+C='a'*40; T='b'*40
+F='47d7cfeee7cd178cb897eda57a4674677fac7e67'
+OLD_OBSERVER_FORK='5a128880d14bfc73de4334cba23218859ad3473c'
+PATCHED_FORK='aadf0831c6b65559065ca82228bab30811d36c67'
 
 def write(path,obj):
     path.parent.mkdir(parents=True,exist_ok=True)
@@ -17,10 +20,11 @@ def write(path,obj):
 def rec(path):
     data=path.read_bytes();return {'path':str(path),'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()}
 
-def fixture(d):
-    sel={'originalSourceCommit':C,'originalSourceTree':T,'originalProductionForkTree':F,'selectedOptionalForkCommit':m.SUPPLIER_COMMIT,'selectedOptionalForkTree':m.SUPPLIER_TREE,'nodeStarted':False,'carrierEnabled':False,'publicActivation':False}
+def fixture(d, fork=F, supplier=None):
+    supplier_commit, supplier_tree = supplier or m.SUPPLIER_BY_PRODUCTION[fork]
+    sel={'originalSourceCommit':C,'originalSourceTree':T,'originalProductionForkTree':fork,'selectedOptionalForkCommit':supplier_commit,'selectedOptionalForkTree':supplier_tree,'nodeStarted':False,'carrierEnabled':False,'publicActivation':False}
     write(d/'composition/SOURCE-SELECTION.json',sel)
-    source=dict(version='YNX-NORMAL-LIVE-WIRE-SOURCE-COMPOSITION/v1',sourceCommit=C,sourceTree=T,productionForkTree=F,optionalForkCommit=m.SUPPLIER_COMMIT,optionalForkTree=m.SUPPLIER_TREE,buildTags=['ynx_live_wire_observation'],sourceOnly=True,actualPreStartNodeGetter=True,nodeProcessesStarted=0,actualRunningWindow=False,carrierEnabled=False,publicActivation=False,preparedSourceSelection={'sourceSelection':sel,'receiptBytes':rec(d/'composition/SOURCE-SELECTION.json')['bytes'],'receiptSHA256':rec(d/'composition/SOURCE-SELECTION.json')['sha256']})
+    source=dict(version='YNX-NORMAL-LIVE-WIRE-SOURCE-COMPOSITION/v1',sourceCommit=C,sourceTree=T,productionForkTree=fork,optionalForkCommit=supplier_commit,optionalForkTree=supplier_tree,buildTags=['ynx_live_wire_observation'],sourceOnly=True,actualPreStartNodeGetter=True,nodeProcessesStarted=0,actualRunningWindow=False,carrierEnabled=False,publicActivation=False,preparedSourceSelection={'sourceSelection':sel,'receiptBytes':rec(d/'composition/SOURCE-SELECTION.json')['bytes'],'receiptSHA256':rec(d/'composition/SOURCE-SELECTION.json')['sha256']})
     for label,key,name in [('normal-live-caller','normalProducer','TestLive'),('original-peer-budget','originalSupplierBudget','TestBudget')]:
         out=d/(label+'.jsonl');pkg='github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet' if key=='normalProducer' else 'github.com/cometbft/cometbft/mempool';out.write_text(''.join(json.dumps(e)+'\n' for e in [{'Package':pkg,'Action':'start'},{'Package':pkg,'Test':name,'Action':'run'},{'Package':pkg,'Test':name,'Action':'pass'},{'Package':pkg,'Action':'pass'}]))
         err=d/(label+'.stderr.log');err.write_text('')
@@ -35,6 +39,36 @@ class Controls(unittest.TestCase):
     def run_qualify(self):return m.qualify(self.d,C,T,F,'123','1',['TestLive'],['TestBudget'])
     def test_valid_data_not_authority(self):
         q=self.run_qualify();self.assertFalse(q['authorityGranted']);self.assertFalse(q['publicActivation'])
+    def test_each_fixed_fork_qualifies_only_its_original_supplier(self):
+        for fork in (F, OLD_OBSERVER_FORK, PATCHED_FORK):
+            with self.subTest(fork=fork):
+                fixture(self.d, fork)
+                result=m.qualify(self.d,C,T,fork,'123','1',['TestLive'],['TestBudget'])
+                self.assertEqual((result['supplierCommit'],result['supplierForkTree']),m.SUPPLIER_BY_PRODUCTION[fork])
+                self.assertFalse(result['authorityGranted'])
+                self.assertFalse(result['independentFinality'])
+    def test_crossed_or_unknown_fork_supplier_rejected_with_consistent_pins(self):
+        old=(m.SUPPLIER_COMMIT,m.SUPPLIER_TREE)
+        new=(m.PATCHED_SUPPLIER_COMMIT,m.PATCHED_SUPPLIER_TREE)
+        for fork,supplier in ((F,new),(OLD_OBSERVER_FORK,new),(PATCHED_FORK,old),
+                              (PATCHED_FORK,(new[0],old[1])),(PATCHED_FORK,(old[0],new[1])),
+                              ('c'*40,old)):
+            with self.subTest(fork=fork,supplier=supplier):
+                fixture(self.d,fork,supplier)
+                with self.assertRaises(RuntimeError):
+                    m.qualify(self.d,C,T,fork,'123','1',['TestLive'],['TestBudget'])
+    def test_mixed_selection_rejected_even_when_receipt_pin_is_updated(self):
+        fixture(self.d,PATCHED_FORK)
+        selection_path=self.d/'composition/SOURCE-SELECTION.json'
+        selection=json.loads(selection_path.read_text())
+        selection['selectedOptionalForkCommit']=m.SUPPLIER_COMMIT
+        selection['selectedOptionalForkTree']=m.SUPPLIER_TREE
+        write(selection_path,selection)
+        source_path=self.d/'SOURCE.json';source=json.loads(source_path.read_text())
+        source['preparedSourceSelection'].update(sourceSelection=selection,receiptBytes=rec(selection_path)['bytes'],receiptSHA256=rec(selection_path)['sha256'])
+        write(source_path,source)
+        with self.assertRaises(RuntimeError):
+            m.qualify(self.d,C,T,PATCHED_FORK,'123','1',['TestLive'],['TestBudget'])
     def test_missing_each_file(self):
         for name in ['SOURCE.json','composition/SOURCE-SELECTION.json','normal-live-caller.jsonl','normal-live-caller.stderr.log','normal-live-caller.result.json','original-peer-budget.jsonl','original-peer-budget.stderr.log','original-peer-budget.result.json']:
             with self.subTest(name=name):
@@ -69,7 +103,7 @@ class Controls(unittest.TestCase):
             with self.subTest(kind=kind), self.assertRaises(RuntimeError): self.run_qualify()
     def test_workflow_contract(self):
         workflow=(P.parents[1]/'.github/workflows/resource-market-ci.yml').read_text();job=workflow.split('  held-optional-live-source:\n',1)[1].split('  focused-go:\n',1)[0]
-        for value in [m.SUPPLIER_COMMIT,m.SUPPLIER_TREE,'persist-credentials: false','Verify strict source availability','Acquire only the immutable optional supplier object','Verify exact optional live getter composition','Qualify complete original getter source','if-no-files-found: error','GETTER-QUALIFICATION.json']:
+        for value in [m.PATCHED_SUPPLIER_COMMIT,m.PATCHED_SUPPLIER_TREE,'persist-credentials: false','Verify strict source availability','Acquire only the immutable optional supplier object','Verify exact optional live getter composition','Qualify complete original getter source','if-no-files-found: error','GETTER-QUALIFICATION.json']:
             self.assertIn(value,job)
         for name in ['wire-live-matching-source-ci.py','test_wire_live_matching_source_ci.py','qualify_held_optional_live_getter.py']:
             self.assertGreaterEqual(workflow.count("      - 'scripts/verify/"+name+"'"),2)
