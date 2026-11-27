@@ -10,6 +10,7 @@ import hashlib
 import json
 import math
 import queue
+import sys
 import threading
 import time
 
@@ -39,6 +40,35 @@ class ArrivalClock:
 
 def require(value,message):
     if not value:raise ValueError(message)
+
+
+def failure_text(error):
+    try:message=str(error)
+    except BaseException:return type(error).__name__+': original exception message unavailable'
+    return message if message else type(error).__name__+': original exception message empty'
+
+
+_BACKEND_STOP_CUSTODY=sys.__dict__.setdefault('_ynx_original_backend_stop_custody_v1',[])
+
+
+def stop_backend_once(backend):
+    """One original stop responsibility across scheduler and driver cleanup."""
+    state=vars(backend).setdefault('_ynx_original_stop_state',dict(lock=threading.Lock(),attempted=False,error=None,value=None))
+    if not state['lock'].acquire(blocking=False):
+        if all(item is not backend for item in _BACKEND_STOP_CUSTODY):_BACKEND_STOP_CUSTODY.append(backend)
+        raise RuntimeError('original backend stop in progress; preserve UNKNOWN')
+    try:
+        if state['attempted']:
+            if state['error'] is not None:raise state['error']
+            return state['value']
+        state['attempted']=True
+        try:state['value']=backend.stop()
+        except BaseException as error:
+            state['error']=error
+            if all(item is not backend for item in _BACKEND_STOP_CUSTODY):_BACKEND_STOP_CUSTODY.append(backend)
+            raise
+        return state['value']
+    finally:state['lock'].release()
 
 
 def sha(raw):return hashlib.sha256(raw).hexdigest()
@@ -115,7 +145,12 @@ class Ledger:
             self.hashes.add(event["hash"]);row.update(status="signed",signedNs=at,hash=event["hash"],nativeHash=event["nativeHash"])
         elif stage=="submitted":
             require(row["status"]=="signed" and at>=row["signedNs"],"one original submission required")
-            row.update(status="submitted",submittedNs=at)
+            bound=event.get('submissionClock')
+            require(bound in (None,'PRE_CALL_LOWER_BOUND'),'original submission clock classification differs')
+            upper=event.get('submissionReturnNs')
+            require((bound is None and upper is None) or (type(upper) is int and upper>=at),
+                    'original submission return bound differs')
+            row.update(status="submitted",submittedNs=at,submittedNsIsLowerBound=bound is not None,submissionReturnNs=upper)
         elif stage=="ack":
             require(row["status"]=="submitted" and at>=row["submittedNs"],"original ACK order differs")
             row["ackNs"]=at
@@ -124,7 +159,11 @@ class Ledger:
             row.update(status="included",includedNs=at)
         elif stage=="qualified":
             require(row["status"]=="included" and at>=row["includedNs"] and event["hash"]==row["hash"] and event["nativeHash"]==row["nativeHash"] and event["normalVerifierCode"]=="VERIFIED_TRANSACTION_DATA" and event["executionSuccessful"] is True and event["executionCode"]=="0" and event["transactionType"]=="pq_transfer" and event["members"]==1 and event["nativeGrant"] is False,"normal complete successful same-identity proof required")
+            require(not row['stageTimes'] or at>=row['stageTimes'][-1][1], 'qualified original event precedes its last stage')
             require(self.plan["mode"]!="online" or event.get("normalConfirmCode")=="PROOF_CONFIRMED_DATA","normal original pending confirmation required")
+            # The original durable journal must accept this exact terminal
+            # event before account/nonce state can be released in memory.
+            self.emit(event)
             row.update(status="qualified",activeStage="qualified",finalNs=at,terminalNs=at,proofReference=event["proofReference"])
             account.update(pending=None,nextNonce=row["nonce"]+1)
             if account["used"]<account["capacity"]:self.free.append(account["ownerIndex"])
@@ -134,7 +173,7 @@ class Ledger:
             # pending deliberately remains bound even after a known rejection.
         else:raise ValueError("unsupported original scheduler event")
         if stage in ("qualified","failed","unknown"):self.terminal_count+=1
-        self.emit(event)
+        if stage!='qualified':self.emit(event)
 
     def sample(self,now):
         bucket=now//1_000_000_000
@@ -147,14 +186,20 @@ class Ledger:
         window=self.plan["windowNs"];n=len(self.rows);counts=collections.Counter(r["status"] for r in self.rows)
         submitted=[r for r in self.rows if r["submittedNs"] is not None];final=[r for r in self.rows if r["finalNs"] is not None]
         def quantiles(start,end):
-            values=sorted(r[end]-r[start] for r in self.rows if r[start] is not None and r[end] is not None)
+            values=sorted(r[end]-r[start] for r in self.rows if r[start] is not None and r[end] is not None
+                          and not (start=='submittedNs' and r.get('submittedNsIsLowerBound',False)))
             # Missing/unreached intervals have different start clocks and may
             # fall anywhere in the distribution. Even499/500 cannot supply a
             # full-cohort quantile; retained observations are not its survivors.
             return dict(denominator=n,observed=len(values),censored=n-len(values),**{f"p{p}Ms":values[(n*p+99)//100-1]/1e6 if len(values)==n else None for p in (50,95,99)})
         inside=[r for r in final if r["finalNs"]<window]
         releases_inside=sum(r["releasedNs"] is not None and r["releasedNs"]<window for r in self.rows)
-        submissions_inside=sum(r["submittedNs"]<window for r in submitted)
+        submissions_inside=sum(r['submittedNs']<window and (not r.get('submittedNsIsLowerBound',False)
+            or (r.get('submissionReturnNs') is not None and r['submissionReturnNs']<window)
+            or (r['ackNs'] is not None and r['ackNs']<window)
+            or (r['includedNs'] is not None and r['includedNs']<window)) for r in submitted)
+        submissions_late=sum(r['submittedNs']>=window for r in submitted)
+        submission_window_unknown=len(submitted)-submissions_inside-submissions_late
         backlog_samples=[s for s in self.samples if s["atNs"]<window]
         # Descriptive only: never assert no growth from too few observations.
         growth=None if len(backlog_samples)<3 else backlog_samples[-1]["unconfirmedReleased"]>backlog_samples[len(backlog_samples)//2]["unconfirmedReleased"]
@@ -165,33 +210,36 @@ class Ledger:
         included_inside=sum(r['includedNs']<window for r in included)
         operational=sorted((r for r in self.rows if r["error"] is not None),key=lambda r:r["terminalNs"])
         stages=collections.defaultdict(list)
-        for row in self.rows:
+        for row_index,row in enumerate(self.rows):
             completed=[]
             points=row["stageTimes"]
             for i,(name,at) in enumerate(points):
                 end=points[i+1][1] if i+1<len(points) else row["finalNs"]
                 if end is not None:
+                    require(type(at) is int and type(end) is int and end>=at,'original completed stage interval is invalid')
                     duration=end-at;completed.append(dict(stage=name,durationNs=duration))
-                    stages[name].append(duration)
+                    stages[name].append((row_index,duration))
             row["completedStageDurations"]=completed
         stage_summary={}
-        for name,values in stages.items():
-            ordered=sorted(values)
+        for name,intervals in stages.items():
+            values=[duration for _,duration in intervals];covered=len({index for index,_ in intervals});ordered=sorted(values)
             # A missing/unreached interval can lie anywhere, unlike a completed
             # value. Do not turn its absence into zero or survivor-only P95.
-            stage_summary[name]=dict(denominator=n,completed=len(values),censoredOrNotReached=n-len(values),totalNs=sum(values),maxNs=max(values),
-                fullDemandPercentilesMs={"p%d"%p:ordered[(n*p+99)//100-1]/1e6 if len(values)==n else None for p in (50,95,99)},
-                interpretation="parent-observed normal callee interval, including IO/scheduling; full-demand percentiles require every interval, unresolved last interval excluded")
+            stage_summary[name]=dict(denominator=n,completed=len(values),completedDistinctRows=covered,
+                duplicateCompletedOccurrences=len(values)-covered,censoredOrNotReached=n-covered,totalNs=sum(values),maxNs=max(values),
+                fullDemandPercentilesMs={"p%d"%p:ordered[(n*p+99)//100-1]/1e6 if covered==n and len(values)==n else None for p in (50,95,99)},
+                interpretation="parent-observed normal callee intervals, including IO/scheduling; full-demand percentiles require exactly one completed interval per row, unresolved last interval excluded")
         return dict(schema="YNX-PQ-INDEPENDENT-LOAD-RESULT/v1",mode=self.plan["mode"],requestedOfferedTPS=self.plan["requestedOfferedTPS"],configuredDemand=n,windowNs=window,observationCutoffNs=cutoff,windowCompleted=cutoff>=window,
-            logicalReleased=self.next_release,releasedWithinWindow=releases_inside,notReleased=n-self.next_release,submitted=len(submitted),submittedWithinWindow=submissions_inside,lateSubmitted=len(submitted)-submissions_inside,notSubmitted=n-len(submitted),
-            qualified=len(final),qualifiedWithinWindow=len(inside),qualifiedInTail=len(final)-len(inside),notQualified=n-len(final),terminalCounts=dict(counts),actualSubmissionAttemptTPS=submissions_inside*1e9/window,sourceAcceptanceOrInclusionWithinWindow=evidenced_inside,actualSourceEvidencedTPS=evidenced_inside*1e9/window,actualQualifiedWindowTPS=len(inside)*1e9/window,
+            logicalReleased=self.next_release,releasedWithinWindow=releases_inside,notReleased=n-self.next_release,submitted=len(submitted),submittedWithinWindow=submissions_inside,lateSubmitted=submissions_late,submissionWindowUnknown=submission_window_unknown,notSubmitted=n-len(submitted),
+            submissionTimingSchema='YNX-PQ-SUBMISSION-ATTEMPT-BOUNDS/v1',
+            qualified=len(final),qualifiedWithinWindow=len(inside),qualifiedInTail=len(final)-len(inside),notQualified=n-len(final),terminalCounts=dict(counts),actualSubmissionAttemptTPS=None if submission_window_unknown else submissions_inside*1e9/window,sourceAcceptanceOrInclusionWithinWindow=evidenced_inside,actualSourceEvidencedTPS=evidenced_inside*1e9/window,actualQualifiedWindowTPS=len(inside)*1e9/window,
             observedThroughput=dict(denominatorWindowNs=window,checkTxAccepted=len(accepted),checkTxAcceptedWithinWindow=accepted_inside,checkTxAcceptedInTail=len(accepted)-accepted_inside,successfulInclusion=len(included),successfulInclusionWithinWindow=included_inside,successfulInclusionInTail=len(included)-included_inside,checkTxAcceptedTPS=accepted_inside*1e9/window,successfulInclusionTPS=included_inside*1e9/window,qualifiedReceiptTPS=len(inside)*1e9/window,includedWithoutAckObservation=sum(r['ackNs'] is None for r in included),meaning='Separate parent-observed boundaries, never the acceptance-or-inclusion union. ACK requires hash-bound successful CheckTx; inclusion requires same hash and code0 at all four nodes; qualified receipt additionally requires original normal proof/verifier/confirm. Window end is exclusive; tail excluded from TPS. Missing ACK is not rejection, source reception time and consensus commit timestamp are not measured. Finite cohort only, not sustained throughput.'),
             endToEndLogicalArrivalToQualified=quantiles("logicalArrivalOffsetNs","finalNs"),submitToInclusionObserved=quantiles("submittedNs","includedNs"),submitToQualifiedReceiptObserved=quantiles("submittedNs","finalNs"),
             submitToCheckTxAckObserved=quantiles('submittedNs','ackNs'),inclusionToQualifiedReceiptObserved=quantiles('includedNs','finalNs'),
             releaseToAccountClaim=quantiles("releasedNs","claimedNs"),completedStageIntervals=stage_summary,
             releaseLagMs=[None if r["releasedNs"] is None else (r["releasedNs"]-r["logicalArrivalOffsetNs"])/1e6 for r in self.rows],queueSamples=self.samples,backlogGrowing=growth,
             accountState=[dict(a) for a in self.accounts.values()],accountStateMeaning="pending is the retained controller reservation; normal CORE journal remains authoritative for actual native pending state",rows=self.rows,firstCause=first_cause,firstOperationalFailure=None if not operational else dict(index=operational[0]["index"],id=operational[0]["id"],atNs=operational[0]["terminalNs"],error=operational[0]["error"]),stableFinalTPS="UNMEASURED",P95FinalConfirmation="UNMEASURED",physicalCommitMeasured=False,
-            interpretation="finite independently scheduled single-transfer cohort; submitted denotes one attempted HTTP POST, source acceptance/inclusion evidence is separate; missing demand and censored full-cohort quantiles retained, not survivor-only percentiles; observed receipt bounds include original proof-consumer overhead; no sustained qualification")
+            interpretation="finite independently scheduled single-transfer cohort; submitted denotes an attempted HTTP call; a pre-call lower bound alone cannot establish the submission window or exact submit latency. Source acceptance/inclusion evidence is separate; missing demand and censored full-cohort quantiles retained; no sustained qualification")
 
 
 def run(plan,backend,emit,check_resources,stop,origin=None):
@@ -200,55 +248,99 @@ def run(plan,backend,emit,check_resources,stop,origin=None):
     backend.perform(row, account, notify, stop) uses original normal operations.
     All mutable demand/account accounting remains on this controller thread.
     """
-    ledger=Ledger(plan,emit);events=queue.Queue(maxsize=max(256,len(plan["rows"])*32));futures={};failure=None
+    persistence_failure=None
+    def emit_once(event):
+        nonlocal persistence_failure
+        if persistence_failure is not None:raise RuntimeError('original journal persistence UNKNOWN; no retry')
+        try:emit(event)
+        except BaseException as error:persistence_failure=error;raise
+    ledger=Ledger(plan,emit_once);events=queue.Queue(maxsize=max(256,len(plan["rows"])*32));futures={};failure=None;failure_type=None;late_evidence=[]
+    def preserve_failure(error):
+        nonlocal failure,failure_type
+        if failure is None:failure=failure_text(error);failure_type=type(error).__name__
     origin=time.monotonic_ns() if origin is None else origin
     deadline=origin+plan["windowNs"]+plan["tailNs"]
+    stop.ynx_staged_deadline_ns=deadline
     pool=concurrent.futures.ThreadPoolExecutor(max_workers=plan["workerLimit"],thread_name_prefix="original-pq-account")
     clock=ArrivalClock(plan,origin,stop)
     def notify(index,identity,payload):
-        events.put(dict(payload,index=index,id=identity,atNs=time.monotonic_ns()-origin))
+        now=time.monotonic_ns();event=dict(payload)
+        attempted=event.pop('originalAttemptMonotonicNs',None)
+        returned=event.pop('originalAttemptReturnMonotonicNs',None)
+        if attempted is not None:
+            require(event.get('kind')=='submitted' and type(attempted) is int and type(returned) is int
+                    and origin<=attempted<=returned<=now,
+                    'original submission attempt clock differs')
+            event['submissionClock']='PRE_CALL_LOWER_BOUND'
+            event['submissionReturnNs']=returned-origin
+        else:require(returned is None,'original submission return without attempt')
+        events.put(dict(event,index=index,id=identity,atNs=(now if attempted is None else attempted)-origin))
+    def consume(event,*,allow_before=True,cutoff=None):
+        if not allow_before or event['atNs']>=(deadline if cutoff is None else cutoff)-origin:
+            require(len(late_evidence)<len(plan['rows'])*32,'late original evidence bound exceeded; preserve first cause')
+            late_evidence.append(event)
+        else:ledger.event(event)
     def perform(row,account):
-        try:backend.perform(dict(row),account,lambda event:notify(row["index"],row["id"],event),stop)
+        try:
+            require(not stop.is_set() and time.monotonic_ns()<deadline,'original callee admission elapsed; preserve UNKNOWN')
+            backend.perform(dict(row),account,lambda event:notify(row["index"],row["id"],event),stop)
         except Exception as error:
-            notify(row["index"],row["id"],dict(kind="failed" if isinstance(error,KnownFailure) else "unknown",error=str(error)))
+            notify(row["index"],row["id"],dict(kind="failed" if isinstance(error,KnownFailure) else "unknown",error=failure_text(error)))
     try:
         clock.thread.start()
         while time.monotonic_ns()<deadline and not stop.is_set():
             now=time.monotonic_ns()-origin
             ledger.release_clock(clock)
             while True:
-                try:ledger.event(events.get_nowait())
+                try:consume(events.get_nowait(),allow_before=not stop.is_set())
                 except queue.Empty:break
             check_resources()
-            while True:
+            while not stop.is_set() and time.monotonic_ns()<deadline:
                 reserved=ledger.reserve(time.monotonic_ns()-origin)
                 if reserved is None:break
+                if stop.is_set() or time.monotonic_ns()>=deadline:break
                 row,account=reserved;futures[row["index"]]=pool.submit(perform,row,account)
             ledger.sample(time.monotonic_ns()-origin)
             if now>=plan["windowNs"] and ledger.next_release==len(ledger.rows) and ledger.terminal_count==len(ledger.rows):break
             stop.wait(.001)
-    except BaseException as error:failure=str(error)
+    except BaseException as error:preserve_failure(error)
     finally:
+        cutoff_observed_ns=time.monotonic_ns();external_stop=stop.is_set()
+        observation_deadline=min(deadline,cutoff_observed_ns)
         stop.set()
         if clock.thread.ident is not None:clock.thread.join(timeout=1)
         if clock.thread.is_alive():failure=failure or "independent original arrival clock did not retire"
-        try:ledger.release_clock(clock)
-        except BaseException as error:failure=failure or str(error)
-        try:backend.stop()
-        except BaseException as error:failure=failure or str(error)
+        if persistence_failure is None:
+            try:ledger.release_clock(clock)
+            except BaseException as error:preserve_failure(error)
+        try:stop_backend_once(backend)
+        except BaseException as error:preserve_failure(error)
         _,unfinished=concurrent.futures.wait(list(futures.values()),timeout=10)
         if unfinished:failure=failure or "normal backend workers did not retire within bounded cleanup"
         pool.shutdown(wait=False,cancel_futures=True)
-        while True:
-            try:ledger.event(events.get_nowait())
+        while persistence_failure is None:
+            try:consume(events.get_nowait(),allow_before=not external_stop,cutoff=observation_deadline)
             except queue.Empty:break
-            except Exception as error:failure=failure or str(error)
+            except Exception as error:preserve_failure(error)
         for row in ledger.rows:
+            if persistence_failure is not None:break
             if row["ownerIndex"] is not None and row["status"] not in ("qualified","failed","unknown"):
-                ledger.event(dict(kind="unknown",id=row["id"],index=row["index"],atNs=time.monotonic_ns()-origin,error="original operation incomplete at bounded cutoff; preserve state and reconcile, never retry"))
+                try:ledger.event(dict(kind="unknown",id=row["id"],index=row["index"],atNs=time.monotonic_ns()-origin,error="original operation incomplete at bounded cutoff; preserve state and reconcile, never retry"))
+                except BaseException as error:preserve_failure(error);break
         try:check_resources()
-        except BaseException as error:failure=failure or str(error)
-    result=ledger.report(time.monotonic_ns()-origin,failure)
+        except BaseException as error:preserve_failure(error)
+    result=ledger.report(observation_deadline-origin,failure)
+    result['lateEvidence']=late_evidence
+    result['lateEvidenceMeaning']='events at/after original cutoff, or after an externally observed stop, are retained without qualifying or releasing an account'
+    if external_stop:
+        result['observationCutoffStatus']='UNKNOWN_EXTERNAL_STOP'
+        result['windowCompleted']=False
+    result['firstCauseErrorType']=failure_type
+    result['journalPersistenceStatus']='UNKNOWN' if persistence_failure is not None else 'ORIGINAL_EMIT_RETURNED'
+    result['workerThreadsRetired']=not bool(unfinished)
+    if unfinished:
+        result['submissionCoverage']='UNKNOWN_WORKER_NOT_RETIRED'
+        result['notSubmitted']=None;result['actualSubmissionAttemptTPS']=None
     result.update(originMonotonicNs=str(origin),offeredWindowEndMonotonicNs=str(origin+plan["windowNs"]),
                   clockMeaning="same parent monotonic clock as original network checkpoints; wall-clock time not inferred")
     return result

@@ -41,13 +41,21 @@ jobs:
           import hashlib, importlib.util, io, json, os, pathlib, platform, sys, unittest
           if sys.platform != 'linux': raise RuntimeError('actual original Linux controls required')
           root=pathlib.Path('scripts/loadtest'); out=pathlib.Path(os.environ['RUNNER_TEMP'])/'ynx-serial-verifier-public'
-          groups=[('staged','test_pq_staged_independent_scheduler.py',23),('serial','test_pq_serial_verifier_admission.py',28),('header-data','test_pq_synthetic_header_stream_data.py',11),('header-driver-data','test_pq_synthetic_header_driver_data.py',8),('commit-validation','test_pq_commit_validation_readback.py',13),('initialization','test_pq_initialization_measurements.py',37),('go-evidence-parser','test_pq_synthetic_header_cross_source_ci.py',7)]
+          groups=[('staged','test_pq_staged_independent_scheduler.py',23),('serial','test_pq_serial_verifier_admission.py',28),('independent','test_pq_independent_load.py',25),('bounded-sender','test_pq_bounded_sender_backend.py',24),('header-data','test_pq_synthetic_header_stream_data.py',11),('header-driver-data','test_pq_synthetic_header_driver_data.py',8),('commit-validation','test_pq_commit_validation_readback.py',13),('initialization','test_pq_initialization_measurements.py',39),('go-evidence-parser','test_pq_synthetic_header_cross_source_ci.py',7),('scheduler-boundaries','test_pq_scheduler_boundary_controls.py',23)]
           metadata=dict(version='YNX-SERIAL-VERIFIER-CONTROLS/v1',sourceCommit=os.environ['GITHUB_SHA'],sourceTree=os.environ['YNX_SERIAL_TREE'],forkTree=os.environ['YNX_SERIAL_FORK'],eventName=os.environ['GITHUB_EVENT_NAME'],pullRequestHead=os.environ['YNX_PR_HEAD'],pullRequestBase=os.environ['YNX_PR_BASE'],runId=os.environ['GITHUB_RUN_ID'],attempt=os.environ['GITHUB_RUN_ATTEMPT'],job=os.environ['GITHUB_JOB'],platform=sys.platform,kernel=platform.release(),groups=[],runtimeAuthorized=False,independentFinalityVerified=False)
+          manifest=dict(version='YNX-SERIAL-VERIFIER-TEST-MANIFEST/v1',sourceCommit=os.environ['GITHUB_SHA'],groups=[])
+          def test_ids(suite):
+              for item in suite:
+                  if isinstance(item,unittest.TestSuite):yield from test_ids(item)
+                  else:yield item.id()
           for name,file,count in groups:
               spec=importlib.util.spec_from_file_location('original_serial_ci_'+name,root/file)
               module=importlib.util.module_from_spec(spec);sys.modules[spec.name]=module;spec.loader.exec_module(module)
               suite=unittest.defaultTestLoader.loadTestsFromModule(module)
               if suite.countTestCases()!=count:raise RuntimeError('exact original test inventory differs: '+name)
+              identities=sorted(test_ids(suite))
+              if len(identities)!=count or len(set(identities))!=count:raise RuntimeError('duplicate original test identity: '+name)
+              manifest['groups'].append(dict(name=name,file=file,tests=identities))
               stream=io.StringIO(); result=unittest.TextTestRunner(stream=stream,verbosity=2).run(suite)
               raw=stream.getvalue().encode('utf-8');(out/(name+'.log')).write_bytes(raw)
               print('YNX-SERIAL-CONTROLS-BEGIN/v1 group=%s source=%s run=%s attempt=%s' % (name,os.environ['GITHUB_SHA'],os.environ['GITHUB_RUN_ID'],os.environ['GITHUB_RUN_ATTEMPT']))
@@ -55,6 +63,10 @@ jobs:
               print('YNX-SERIAL-CONTROLS-END/v1 group=%s' % name)
               if result.testsRun!=count or result.skipped or not result.wasSuccessful():raise RuntimeError('original controls failed or skipped: '+name)
               metadata['groups'].append(dict(name=name,testsRun=result.testsRun,skipped=len(result.skipped),bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest()))
+          manifest_raw=(json.dumps(manifest,sort_keys=True,separators=(',',':'))+'\n').encode('utf-8')
+          (out/'test-manifest.json').write_bytes(manifest_raw)
+          metadata['testManifestSHA256']=hashlib.sha256(manifest_raw).hexdigest()
+          print('YNX-SERIAL-TEST-MANIFEST/v1 '+manifest_raw.decode('utf-8'),end='')
           line=json.dumps(metadata,sort_keys=True,separators=(',',':'))
           (out/'metadata.json').write_text(line+'\n')
           print('YNX-SERIAL-CONTROLS-METADATA/v1 '+line)
@@ -69,12 +81,16 @@ jobs:
           path: |
             ${{ runner.temp }}/ynx-serial-verifier-public/staged.log
             ${{ runner.temp }}/ynx-serial-verifier-public/serial.log
+            ${{ runner.temp }}/ynx-serial-verifier-public/independent.log
+            ${{ runner.temp }}/ynx-serial-verifier-public/bounded-sender.log
             ${{ runner.temp }}/ynx-serial-verifier-public/header-data.log
             ${{ runner.temp }}/ynx-serial-verifier-public/header-driver-data.log
             ${{ runner.temp }}/ynx-serial-verifier-public/commit-validation.log
             ${{ runner.temp }}/ynx-serial-verifier-public/initialization.log
+            ${{ runner.temp }}/ynx-serial-verifier-public/scheduler-boundaries.log
             ${{ runner.temp }}/ynx-serial-verifier-public/go-evidence-parser.log
             ${{ runner.temp }}/ynx-serial-verifier-public/metadata.json
+            ${{ runner.temp }}/ynx-serial-verifier-public/test-manifest.json
           if-no-files-found: error
           retention-days: 7
 

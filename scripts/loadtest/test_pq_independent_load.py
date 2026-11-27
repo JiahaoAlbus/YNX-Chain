@@ -49,7 +49,7 @@ class IndependentLoadControls(unittest.TestCase):
         return window
     def test_cutoff_drain_fences_launch_and_selects_only_original_started_verifiers(self):
         class Proc:
-            def __init__(self,pid):self.pid=pid;self.code=None
+            def __init__(self,pid):self.pid=pid;self.code=None;self._ynx_lifecycle_lock=threading.RLock()
             def poll(self):return self.code
         cutoff=time.monotonic_ns();before=Proc(101);late=Proc(102);other=Proc(103);session=Proc(104);node=Proc(105);retired=Proc(106);retired.code=-15
         rows=[dict(name='load-00000-normal-verifier',process=before,persistent=False,startedNs=cutoff-1,startTicks=11),

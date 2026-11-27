@@ -63,6 +63,84 @@ def owner_failure_detail(reply, operation):
     return f" ({diagnostic['failurePhase']}/{diagnostic['errorClass']})"
 
 
+def original_admission_open(stop):
+    deadline=getattr(stop,'ynx_staged_deadline_ns',None)
+    return not stop.is_set() and (deadline is None or type(deadline) is int and time.monotonic_ns()<deadline)
+
+
+def preserve_first_cause(result,message,*,error=None):
+    if result.get('firstCause') is None:
+        result['firstCause']=scheduler.failure_text(error) if error is not None else message
+        if error is not None:result['firstCauseErrorType']=type(error).__name__
+
+
+def retain_worker_cleanup_debt(result):
+    load=result.get('loadResult',{});pipeline=load.get('pipeline')
+    if ((pipeline is not None and (not isinstance(pipeline,dict) or pipeline.get('workerThreadsRetired') is not True))
+            or ('workerThreadsRetired' in load and load['workerThreadsRetired'] is not True)):
+        result['workerCleanupDebt']=True;result['cleanupComplete']=False
+        preserve_first_cause(result,'original staged workers did not retire; preserve cleanup debt')
+
+
+_ORIGINAL_FD_CLOSE_CUSTODY=sys.__dict__.setdefault('_ynx_original_aux_fd_close_custody_v1',[])
+def close_original_fd_once(fd):
+    """One close responsibility, preserving an already active original error."""
+    original=sys.exc_info()[1]
+    try:os.close(fd)
+    except BaseException as error:
+        _ORIGINAL_FD_CLOSE_CUSTODY.append(dict(fd=fd,error=error))
+        if original is None:raise
+
+
+_LEGACY_STDIN_CUSTODY=sys.__dict__.setdefault('_ynx_original_legacy_stdin_custody_v1',[])
+
+
+def retire_legacy_stdin_once(process,timeout=.05):
+    """Bound the original stream close without ever retrying an unknown close."""
+    state=vars(process).setdefault('_ynx_legacy_stdin_retirement',dict(lock=threading.Lock(),attempted=False,
+        done=threading.Event(),unknown=threading.Event(),error=None,stream=process.stdin,thread=None,outcome=None))
+    def retain():
+        if all(item is not process for item in _LEGACY_STDIN_CUSTODY):_LEGACY_STDIN_CUSTODY.append(process)
+    if not state['lock'].acquire(blocking=False):
+        state['unknown'].set()
+        retain();return dict(status='UNKNOWN',cleanupDebt=True,reason='original stdin retirement busy')
+    try:
+        if state['unknown'].is_set():return dict(status='UNKNOWN',cleanupDebt=True,reason='original stdin retirement already UNKNOWN')
+        if state['attempted']:
+            if state['outcome'] is not None:return dict(state['outcome'])
+            state['unknown'].set();retain()
+            return dict(status='UNKNOWN',cleanupDebt=True,reason='original stdin retirement still in flight')
+        if not state['attempted']:
+            state['attempted']=True
+            def close_original():
+                try:state['stream'].close()
+                except BaseException as error:state['error']=error
+                finally:state['done'].set()
+            state['thread']=threading.Thread(target=close_original,name='original-legacy-stdin-close',daemon=True)
+            try:state['thread'].start()
+            except BaseException as error:
+                state['error']=error;state['unknown'].set();retain()
+                return dict(status='UNKNOWN',cleanupDebt=True,errorType=type(error).__name__)
+    finally:state['lock'].release()
+    finished=state['done'].wait(timeout)
+    if not state['lock'].acquire(timeout=.05):
+        state['unknown'].set();retain()
+        return dict(status='UNKNOWN',cleanupDebt=True,reason='original stdin result lock unavailable')
+    try:
+        if state['unknown'].is_set() or not finished:
+            state['unknown'].set();retain()
+            return dict(status='UNKNOWN',cleanupDebt=True,reason='original stdin close did not retire')
+        if state['error'] is not None:
+            state['unknown'].set();retain()
+            return dict(status='UNKNOWN',cleanupDebt=True,errorType=type(state['error']).__name__)
+        state['outcome']=dict(status='CLOSED',cleanupDebt=False)
+        if state['unknown'].is_set():
+            state['outcome']=None;retain()
+            return dict(status='UNKNOWN',cleanupDebt=True,reason='original stdin retirement raced an unknown observer')
+        return dict(state['outcome'])
+    finally:state['lock'].release()
+
+
 CALLEE_SOURCE = "c06b4607247a1fdf7e485337ab03206984baa71c"
 # Exact c06 normal CI + named-case supplement + 01a/c06 diagnostic N1
 # functional DATA are consumed separately by the normal controller. They do
@@ -203,23 +281,60 @@ def completion_diagnostics(result):
     return dict(schema='YNX-PERF-LOAD-COMPLETION-DIAGNOSTICS/v1',classification=classification,configuredDemand=result.get('configuredDemand'),qualified=load.get('qualified'),notQualified=load.get('notQualified'),notSubmitted=load.get('notSubmitted'),originalDriverFirstCause=result.get('firstCause'),firstOperationalFailure=load.get('firstOperationalFailure'),replyTimingCoverage=coverage,missingTimingForCompletedReplies=missing,fullDemandCalleeTimingComplete=bool(known) and len(known)==len(groups) and all(v['fullDemandTimingComplete'] for v in known),fullBusinessDemandComplete=complete,authorityGranted=False,meaning='Received replies, rejected outcomes, unreached demand and missing timing are separate. Full demand and native verification gates are unchanged; this diagnostic is not a success receipt.')
 
 
+_JOURNAL_UNKNOWN_CUSTODY=sys.__dict__.setdefault('_ynx_original_journal_unknown_custody_v1',[])
+
+
 class Journal:
     def __init__(self,path):
-        self.path=path;self.paths=[];self.file=None;self.bytes=0;self.open_next()
+        lab.require(not _JOURNAL_UNKNOWN_CUSTODY,'prior original journal close ownership UNKNOWN; no new journal')
+        self.path=path;self.paths=[];self.file=None;self.bytes=0
+        self.closeAttempted=False;self.closeError=None;self.cleanupDebt=False;self.cleanupErrors=[];self.firstFailure=None;self.writeFailure=None
+        self.open_next()
+    def _retain_close_error(self,error):
+        self.cleanupDebt=True;self.cleanupErrors.append(error)
+        if self not in _JOURNAL_UNKNOWN_CUSTODY:_JOURNAL_UNKNOWN_CUSTODY.append(self)
+    def _close_file_once(self):
+        if self.file is None:return
+        if self.closeAttempted:
+            if self.closeError is not None:raise self.closeError
+            return
+        self.closeAttempted=True
+        try:self.file.close()
+        except BaseException as error:
+            self.closeError=error;self._retain_close_error(error);raise
     def open_next(self):
+        lab.require(not self.cleanupDebt,'original journal close ownership UNKNOWN; no new segment')
         path=self.path.with_name(self.path.stem+"-%05d"%len(self.paths)+self.path.suffix)
-        self.file=open(path,"xb",buffering=0);os.chmod(path,0o600);self.paths.append(path);self.bytes=0
-        fd=os.open(path.parent,os.O_RDONLY)
-        try:os.fsync(fd)
-        finally:os.close(fd)
+        self.file=open(path,"xb",buffering=0);self.closeAttempted=False;self.closeError=None;self.paths.append(path);self.bytes=0
+        try:
+            os.chmod(path,0o600);fd=os.open(path.parent,os.O_RDONLY)
+            try:os.fsync(fd)
+            except BaseException:
+                try:os.close(fd)
+                except BaseException as close_error:self._retain_close_error(close_error)
+                raise
+            else:
+                try:os.close(fd)
+                except BaseException as close_error:self._retain_close_error(close_error);raise
+        except BaseException as error:
+            if self.firstFailure is None:self.firstFailure=error
+            try:self._close_file_once()
+            except BaseException:pass # The earlier original error remains primary; close debt is retained.
+            raise
     def emit(self,value):
-        raw=json.dumps(value,separators=(",",":")).encode()+b"\n"
-        lab.require(len(raw)<=lab.CAPS["logBytes"],"normal single journal record exceeds retained log bound")
-        if self.bytes+len(raw)>lab.CAPS["logBytes"]:
-            self.file.close();self.open_next()
-        lab.require(self.file.write(raw)==len(raw),"original demand journal short write; do not retry")
-        os.fsync(self.file.fileno());self.bytes+=len(raw)
-    def close(self):self.file.close()
+        lab.require(not self.cleanupDebt and not self.closeAttempted and self.writeFailure is None,'original journal closed or persistence UNKNOWN; no further write')
+        try:
+            raw=json.dumps(value,separators=(",",":")).encode()+b"\n"
+            lab.require(len(raw)<=lab.CAPS["logBytes"],"normal single journal record exceeds retained log bound")
+            if self.bytes+len(raw)>lab.CAPS["logBytes"]:
+                self._close_file_once();self.open_next()
+            lab.require(self.file.write(raw)==len(raw),"original demand journal short write; do not retry")
+            os.fsync(self.file.fileno());self.bytes+=len(raw)
+        except BaseException as error:
+            self.writeFailure=error
+            if self.firstFailure is None:self.firstFailure=error
+            raise
+    def close(self):self._close_file_once()
 
 
 class Monitor:
@@ -270,6 +385,31 @@ class Monitor:
         if self.thread.ident is not None:self.thread.join(timeout=10)
 
 
+def retain_monitor_failure(result,monitor):
+    """Take only a bounded original latch snapshot; never invent failure order."""
+    acquired=False
+    try:acquired=monitor.failure_lock.acquire(timeout=1)
+    except BaseException as error:
+        preserve_first_cause(result,'original resource failure lock unavailable',error=error)
+    if not acquired:
+        result['resourceFirstFailure']=dict(status='UNKNOWN',reason='original resource failure snapshot unavailable')
+        result['resourceFailureSnapshotUnknown']=True;result['firstCauseOrder']='UNKNOWN'
+        preserve_first_cause(result,'original resource failure observation unavailable; preserve UNKNOWN')
+        return False
+    try:
+        snapshot=None if monitor.first_failure is None else dict(monitor.first_failure)
+        observed=monitor.error
+    finally:monitor.failure_lock.release()
+    if snapshot is not None:result['resourceFirstFailure']=snapshot
+    elif 'resourceFirstFailure' not in result:result['resourceFirstFailure']=None
+    if observed is not None:
+        if result.get('firstCause') is None:
+            result['firstCause']=observed or 'original resource failure message empty'
+            if snapshot is not None:result['firstCauseErrorType']=snapshot.get('errorType')
+        elif result['firstCause']!=observed:result['firstCauseOrder']='UNKNOWN'
+    return True
+
+
 class SenderSession:
     """One leased normal sender stdin/stdout stream, not a new signing API."""
     def __init__(self,ceremony,owner,name=None,startup_kind="startup",startup_identity=None,persistent=True):
@@ -282,7 +422,7 @@ class SenderSession:
             args=[str(ceremony.bins/"ynx-consensus-pq-lab"),"sender","--synthetic","--root",str(ceremony.root),"--plan-sha256",ceremony.pin,"--activation-sha256",ceremony.activation_pin,"--workload-sha256",ceremony.workload_pin,"--owner",str(owner),"--ready","--timings",*(getattr(ceremony,"sender_arguments",None) or ()),"--credential-fd","3"]
             self.name=name if name is not None else "load-sender-%d"%owner
             self.proc=ceremony.w.launch(self.name,normal.fd3_command(args,fd),persistent,pass_fds=(fd,),stdin_pipe=True,thread_safe=True)
-        finally:os.close(fd)
+        finally:close_original_fd_once(fd)
         self.path=ceremony.w.work/"public"/(self.name+".log")
     def receive(self,path,stop,version,deadline=None,check=lambda:None,*,include_original=False):
         while not stop.is_set() and (deadline is None or time.monotonic()<deadline):
@@ -663,6 +803,7 @@ class NormalBackend:
         request=dict(version="YNX-PQ-LAB-SENDER-REQUEST/v1",operationId=row["operationId"],ownerIndex=owner,firstNonce=str(row["nonce"]),members=1)
         if self.c.mode=="online":
             notify(dict(kind="normal_stage",stage="signer"))
+            lab.require(original_admission_open(stop),'original signer admission elapsed; preserve UNKNOWN')
             reply=self.sign_original(row,request,checkpoint,case,notify,stop)
             if reply['code'] == 'REJECTED':
                 detail = owner_failure_detail(reply, 'sign')
@@ -697,21 +838,30 @@ class NormalBackend:
     def broadcast_once(self,row,tx,raw,case,notify,stop):
         expected=normal.comet_hash(tx["abciHash"])
         with self.submit_lock:
-            lab.require(not stop.is_set(),"original submission canceled before intent; preserve original without POST")
+            lab.require(original_admission_open(stop),"original submission canceled before intent; preserve original without POST")
             lab.require(expected not in self.attempted,"original transaction already attempted; no replay")
             self.attempted.add(expected)
             lab.write_new(case/"submission-intent.json",dict(id=row["id"],operationId=row["operationId"],owner=row["ownerIndex"],nonce=str(row["nonce"]),transactionHash=expected,nativeHash=normal.comet_hash(tx["nativeHash"]),submissionAttempts=1,qualifiedFinal=False))
         body=json.dumps(dict(jsonrpc="2.0",id=row["id"],method="broadcast_tx_sync",params=dict(tx=base64.b64encode(raw).decode())),separators=(",",":")).encode()
-        lab.require(not stop.is_set(),"original submission canceled after intent; preserve original without POST")
+        lab.require(original_admission_open(stop),"original submission canceled after intent; preserve original without POST")
         notify(dict(kind="normal_stage",stage="post"))
-        notify(dict(kind="submitted"))
+        opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        request=urllib.request.Request(self.c.plan["nodes"][row["index"]%4]["rpcAddress"],data=body,headers={"Content-Type":"application/json"})
+        lab.require(original_admission_open(stop),"original submission cutoff before POST; preserve original without POST")
         ack=None;transport=None
+        # Capture the attempt immediately before the original call.  Publishing
+        # to the bounded event queue beforehand can block beyond the cutoff and
+        # would both dispatch late and count an unattempted POST as submitted.
+        attempted_ns=time.monotonic_ns()
+        lab.require(original_admission_open(stop),"original submission cutoff at POST; preserve original without POST")
         try:
-            opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))
-            with opener.open(urllib.request.Request(self.c.plan["nodes"][row["index"]%4]["rpcAddress"],data=body,headers={"Content-Type":"application/json"}),timeout=3) as response:
+            with opener.open(request,timeout=3) as response:
                 data=response.read((1<<20)+1);lab.require(len(data)<=1<<20,"normal ACK response bound")
             ack=json.loads(data)
         except (OSError,ValueError,RuntimeError) as error:transport=str(error)
+        finally:
+            notify(dict(kind="submitted",originalAttemptMonotonicNs=attempted_ns,
+                        originalAttemptReturnMonotonicNs=time.monotonic_ns()))
         lab.write_new(case/"ack.json",dict(ack=ack,error=transport,requestBodyBytes=len(body),interpretation="one POST attempt, never inferred acceptance/finality from HTTP"))
         if isinstance(ack,dict) and isinstance(ack.get("result"),dict) and ack["result"].get("hash"):
             lab.require(normal.comet_hash(ack["result"]["hash"])==expected,"normal ACK transaction hash differs")
@@ -1119,8 +1269,9 @@ class NormalBackend:
         case=self.w.work/"public/load-operations"/("%05d"%row["index"]);case.mkdir(mode=0o700)
         directory=os.open(case.parent,os.O_RDONLY)
         try:os.fsync(directory)
-        finally:os.close(directory)
+        finally:close_original_fd_once(directory)
         lab.write_new(case/"operation-intent.json",dict(logicalId=row["id"],operationId=row["operationId"],ownerIndex=account["ownerIndex"],nonce=str(row["nonce"]),mode=self.c.mode,kind="normal independent single transfer",sourceGrant=False))
+        lab.require(original_admission_open(stop),'original publication cutoff after intent; preserve UNKNOWN')
         started=time.monotonic_ns();tx,path,raw,request=self.original(row,account,case,notify,stop)
         notify(dict(kind="signed",hash=normal.comet_hash(tx["abciHash"]),nativeHash=normal.comet_hash(tx["nativeHash"])))
         self.broadcast_once(row,tx,raw,case,notify,stop)
@@ -1136,10 +1287,11 @@ class NormalBackend:
         proof,verified,public_closure=self.live_proof(row,tx,path,case,notify,stop)
         lab.require(not getattr(self,'post_cutoff_diagnostic_only',False),
                     'explicit verifier diagnostic does not confirm or qualify any operation')
-        lab.require(not stop.is_set(), 'original verifier finished after cutoff; diagnostic only, preserve pending')
+        lab.require(original_admission_open(stop), 'original verifier finished after cutoff; diagnostic only, preserve pending')
         confirmed=None
         if self.c.mode=="online":
             notify(dict(kind="normal_stage",stage="confirm"))
+            lab.require(original_admission_open(stop),'original confirmation cutoff elapsed; preserve UNKNOWN')
             confirmed=self.confirm_original(row,request,proof,case,notify,stop)
             lab.require(confirmed["code"]=="PROOF_CONFIRMED_DATA","normal original pending operation not confirmed")
             normal.require_verified(dict(code="VERIFIED_TRANSACTION_DATA",result=confirmed["result"]["result"]),tx)
@@ -1161,56 +1313,78 @@ class NormalBackend:
         UNKNOWN. No result is promoted into the ledger or used to confirm.
         """
         lab.require(type(cutoff_ns) is int and seconds == 30, 'fixed verifier drain bound required')
-        with self.w.lock:
+        end=min(cutoff_ns/1_000_000_000+seconds, self.w.started+lab.CAPS['totalSeconds']-lab.CAPS['cleanupSeconds'])
+        def remaining():return min(1,max(0,end-time.monotonic()))
+        def poll_original(child):
+            process=child['process'];lock=vars(process).get('_ynx_lifecycle_lock')
+            lab.require(lock is not None,'original verifier lifecycle lock missing; preserve UNKNOWN')
+            with lab.bounded_original_lifecycle(lock,remaining()):return process.poll()
+        def sample_original():
+            lab.require(time.monotonic()<end,'original verifier sample deadline elapsed; preserve UNKNOWN')
+            if not self.w.lock.acquire(timeout=remaining()):
+                raise RuntimeError('original verifier sample lock unavailable; preserve UNKNOWN')
+            try:
+                lab.require(time.monotonic()<end,'original verifier sample deadline elapsed; preserve UNKNOWN')
+                self.w.sample()
+            finally:self.w.lock.release()
+        if not self.w.lock.acquire(timeout=remaining()):
+            raise RuntimeError('original verifier inventory unavailable; preserve UNKNOWN')
+        try:
             lab.require(self.stop_event.is_set(), 'original cutoff stop required before diagnostic drain')
             children=list(self.w.children)
             frozen=time.monotonic_ns()
-            candidates=[c for c in children if c['name'].startswith('load-') and c['name'].endswith('-normal-verifier')
-                        and c['process'].poll() is None]
-            lab.require(all(type(c.get('startedNs')) is int for c in candidates),
-                        'live original verifier start time unavailable; preserve UNKNOWN')
-            chosen=[c for c in candidates if c['startedNs'] <= cutoff_ns]
-            lab.require(len(chosen)<=self.helper_limit and len({c['process'].pid for c in chosen})==len(chosen)
-                        and all(type(c.get('startTicks')) is int and c['startTicks']>0 for c in chosen),
-                        'original verifier identity or helper bound unavailable; preserve UNKNOWN')
+        finally:self.w.lock.release()
+        candidates=[c for c in children if c['name'].startswith('load-') and c['name'].endswith('-normal-verifier')
+                    and poll_original(c) is None]
+        lab.require(all(type(c.get('startedNs')) is int for c in candidates),
+                    'live original verifier start time unavailable; preserve UNKNOWN')
+        chosen=[c for c in candidates if c['startedNs'] <= cutoff_ns]
+        lab.require(len(chosen)<=self.helper_limit and len({c['process'].pid for c in chosen})==len(chosen)
+                    and all(type(c.get('startTicks')) is int and c['startTicks']>0 for c in chosen),
+                    'original verifier identity or helper bound unavailable; preserve UNKNOWN')
         # Admission is not reopened. Operations already past their checks may
         # cross the cutoff; their effects remain UNKNOWN. Existing helpers and
         # sessions retain the original guards and normal cleanup below.
         check_resources()
-        end=min(cutoff_ns/1_000_000_000+seconds, self.w.started+lab.CAPS['totalSeconds']-lab.CAPS['cleanupSeconds'])
-        while any(c['process'].poll() is None for c in chosen) and time.monotonic()<end:
-            check_resources();self.w.sample()
+        while time.monotonic()<end and any(poll_original(c) is None for c in chosen):
+            check_resources();sample_original()
             time.sleep(min(.1,max(0,end-time.monotonic())))
-        check_resources();self.w.sample()
+        check_resources();sample_original()
         return dict(schema='YNX-PERF-POST-CUTOFF-VERIFIER-DRAIN/v1', cutoffMonotonicNs=cutoff_ns,
                     frozenMonotonicNs=frozen, completedMonotonicNs=time.monotonic_ns(),
                     maxSeconds=seconds, originalCutoffUnchanged=True, diagnosticOnly=True,
                     qualifiesFinality=False, records=[dict(name=c['name'],pid=c['process'].pid,
                     startTicks=c.get('startTicks'),startedMonotonicNs=c['startedNs'],
-                    returnCode=c['process'].poll()) for c in chosen])
+                    returnCode=poll_original(c)) for c in chosen])
 
     def stop(self):
         self.stop_event.set()
         self.w.closed_for_launch=True
-        if not self.w.lock.acquire(timeout=1):
+        now=time.monotonic();deadline=getattr(self.w,'launch_cleanup_deadline',None)
+        self.w.launch_cleanup_deadline=now+lab.CAPS['cleanupSeconds'] if deadline is None else min(deadline,now+lab.CAPS['cleanupSeconds'])
+        def remaining():return min(1,max(0,self.w.launch_cleanup_deadline-time.monotonic()))
+        if not self.w.lock.acquire(timeout=remaining()):
             raise RuntimeError('original backend cleanup lock did not retire; preserve cleanup debt')
         try:
             self.w.stopping=True;self.w.launches_closed=True;self.w.closed_for_launch=True
             children=list(self.w.children)
         finally:self.w.lock.release()
+        stream_debt=[];first_cleanup_error=None
         for child in children:
-            if child["name"].startswith("load-") and child["process"].poll() is None:
-                try:lab.signal_original_child(child["process"],signal.SIGTERM)
+            if child["name"].startswith("load-"):
+                try:lab.signal_original_child(child["process"],signal.SIGTERM,timeout=remaining())
                 except ProcessLookupError:pass
+                except BaseException as error:
+                    if first_cleanup_error is None:first_cleanup_error=error
+                    stream_debt.append('original child signal UNKNOWN ('+type(error).__name__+')')
         # Terminate before closing buffered stdin so a stalled child cannot
         # hold a writer/close lock past the bounded cleanup boundary.
-        stream_debt=[]
         for session in self.sessions.values():
             process=session.proc
             if getattr(session,'poison_retirement',False):
                 # The original process has already been signalled above. Never
                 # race an active writer's dup2/close or wait without a bound.
-                if not session.lock.acquire(timeout=.05):
+                if not session.lock.acquire(timeout=min(.05,remaining())):
                     session.stopStreamLockDeferred=True
                     stream_debt.append('original owner stream still leased')
                     continue
@@ -1221,7 +1395,7 @@ class NormalBackend:
                             stream_debt.append('original poisoned owner stdin remains UNKNOWN')
                     elif process.stdin is not None and not process.stdin.closed:
                         if callable(getattr(process.stdin,'cut_once',None)):
-                            session.stopStreamRetirement=process.stdin.cut_once(timeout=.05)
+                            session.stopStreamRetirement=process.stdin.cut_once(timeout=min(.05,remaining()))
                             if session.stopStreamRetirement.get('cleanupDebt') is not False:
                                 stream_debt.append('original owner stdin remains UNKNOWN')
                         else:
@@ -1230,31 +1404,34 @@ class NormalBackend:
                             session.stopStreamRetirement=dict(status='UNKNOWN',cleanupDebt=True,reason='original stdin guard missing')
                             stream_debt.append('original owner stdin guard missing')
                 finally:session.lock.release()
-            elif process.stdin is not None and not process.stdin.closed:
-                try:process.stdin.close()
-                except (OSError,ValueError):pass
+            elif process.stdin is not None:
+                session.stopStreamRetirement=retire_legacy_stdin_once(process,timeout=min(.05,remaining()))
+                if session.stopStreamRetirement.get('cleanupDebt') is not False:
+                    stream_debt.append('original legacy owner stdin remains UNKNOWN')
         proof_sessions = [child["process"] for child in children
                           if child["name"].startswith("load-live-session-")]
         for process in proof_sessions:
-            if process.stdin is not None and not process.stdin.closed:
+            if process.stdin is not None:
                 if getattr(self,'guarded_shutdown',False):
                     if not callable(getattr(process.stdin,'cut_once',None)):
                         stream_debt.append('original proof stdin guard missing')
-                    else:
-                        cut=process.stdin.cut_once(timeout=.05)
+                    elif not process.stdin.closed:
+                        cut=process.stdin.cut_once(timeout=min(.05,remaining()))
                         if cut.get('cleanupDebt') is not False:stream_debt.append('original proof stdin remains UNKNOWN')
                 else:
-                    try:process.stdin.close()
-                    except (OSError,ValueError):pass
+                    cut=retire_legacy_stdin_once(process,timeout=min(.05,remaining()))
+                    if cut.get('cleanupDebt') is not False:stream_debt.append('original legacy proof stdin remains UNKNOWN')
         if stream_debt:
+            self.stopCleanupDebt=list(stream_debt)
+            if first_cleanup_error is not None:raise first_cleanup_error
             raise RuntimeError('; '.join(stream_debt)+'; preserve cleanup debt')
 
 
 def stop_backend_preserving_cause(backend,result):
-    try:backend.stop()
+    try:scheduler.stop_backend_once(backend)
     except BaseException as error:
-        result['backendStopError']=dict(errorType=type(error).__name__,reason=str(error),cleanupDebt=True)
-        result['firstCause']=result['firstCause'] or str(error)
+        result['backendStopError']=dict(errorType=type(error).__name__,reason=scheduler.failure_text(error),cleanupDebt=True)
+        preserve_first_cause(result,'original backend stop failed',error=error)
 
 
 def attach_live_reader(ceremony, live_module):
@@ -1572,11 +1749,11 @@ def finish_synthetic_header_data(result,window,ceremony):
         if result['syntheticHeaderStreamData'].get('readbackCleanupDebt') is True:
             result['cleanupComplete']=False
         if result['syntheticHeaderStreamData']['status']!='OBSERVED_DATA':
-            result['firstCause']=result['firstCause'] or 'original synthetic header DATA incomplete; preserve UNKNOWN'
+            preserve_first_cause(result,'original synthetic header DATA incomplete; preserve UNKNOWN')
     except BaseException as error:
         result['syntheticHeaderStreamData']=dict(status='NOT_SUPPLIED',errorType=type(error).__name__,
             runtimeAuthorized=False,independentFinality=False,readbackRSSMeasured=False)
-        result['firstCause']=result['firstCause'] or 'original synthetic header DATA readback failed; preserve UNKNOWN'
+        preserve_first_cause(result,'original synthetic header DATA readback failed; preserve UNKNOWN',error=error)
 
 
 def finish_commit_clock_readback(result,window,work,private_network,source,demand):
@@ -1585,13 +1762,14 @@ def finish_commit_clock_readback(result,window,work,private_network,source,deman
     except BaseException as error:
         result['commitClockReadback']=dict(status='NOT_SUPPLIED',errorType=type(error).__name__,
             observed=0,censored=demand,independentFinality=False,runtimeAuthorized=False)
-        try:message=str(error)
-        except BaseException:message=''
-        result['firstCause']=result['firstCause'] or message or type(error).__name__
+        preserve_first_cause(result,'original Commit clock readback failed',error=error)
     finally:
         result['peakRSSBytes']=window.peak_rss;result['peakNewBytes']=window.peak_bytes;result['resourceSamples']=window.samples
         result['peakRSSSample']=getattr(window,'peak_rss_sample',None)
-        result['resourceGuardStageElapsed']=window.sample_stage_report()
+        try:result['resourceGuardStageElapsed']=window.sample_stage_report()
+        except BaseException as error:
+            result['resourceGuardStageElapsed']=dict(status='UNKNOWN',errorType=type(error).__name__)
+            preserve_first_cause(result,'original resource stage report failed',error=error)
         retain_original_process_rss(result,window)
         result['commitClockReadbackResources']=dict(status='UNKNOWN',
             reason='original guard retired before readback; transient readback RSS and storage not independently sampled',
@@ -1733,21 +1911,22 @@ def run(args, *, source_metadata_reader=None, clock_original_log_reader=None, cl
         if any(existing==root or existing in root.parents for existing in roots):continue
         roots=[existing for existing in roots if root not in existing.parents];roots.append(root)
     w=lab.Window(source,work,additional_storage=tuple(roots));stop=threading.Event();backend=monitor=journal=ceremony=network=storage=None
-    initialization_journal=Journal(work/"public/initialization-events.jsonl")
-    stages=initialization.InitializationStages(on_event=initialization_journal.emit)
+    initialization_journal=stages=None
     result=dict(schema="YNX-PQ-INDEPENDENT-NORMAL-RUN/v1",source=identity,caps=lab.CAPS,storageRoots=[str(p) for p in w.storage_roots],mode=args.mode,requestedOfferedTPS=args.rate,configuredDemand=demand,firstCause=None,loadExecuted=False,normalLiveCalleeUsed=False,stableFinalTPS="UNMEASURED",P95FinalConfirmation="UNMEASURED",actualHopBytesPerTx="UNMEASURED",firstSaturatedChainStage="UNMEASURED",sameHost=True,physicalFaultDomains=1,signerTransport="original per-account persistent stdin/stdout with actual DATA-ready and measured normal CLI; cold initialization retained outside offered clock, no pre-sign/reserved nonce; source703 includes other changes and is not a pure-cache A/B")
-    result["toolIdentity"]=tool_identity()
-    result["loadConditions"]=load_conditions(args)
-    if getattr(args,'commit_clock_observation',False):result['commitClockSourceCI']=clock_source
-    result["freshResourceAdmission"]=admission
-    hardware=module('original_runtime_hardware','pq-runtime-hardware.py')
-    result['runtimeHardware']=hardware.capture(work)
-    lab.write_new(work/'public/runtime-hardware.json',result['runtimeHardware'])
-    if first_trial:result['sameWindowInitializationSourceFunctionalData']=trial_qualification
-    result["initializationOnlyRequested"]=getattr(args,"initialization_only",False)
-    if result["initializationOnlyRequested"]:result["initializationSourceFunctionalData"]=initialization.source_functional_data()
-    lab.write_new(work/"public/requested-load.json",dict(source=identity,mode=args.mode,rate=args.rate,seconds=args.seconds,tailSeconds=args.tail_seconds,accounts=args.accounts,perAccountCapacity=args.per_account,configuredDemand=demand,sourceGrant=False))
     try:
+        initialization_journal=Journal(work/"public/initialization-events.jsonl")
+        stages=initialization.InitializationStages(on_event=initialization_journal.emit)
+        result["toolIdentity"]=tool_identity()
+        result["loadConditions"]=load_conditions(args)
+        if getattr(args,'commit_clock_observation',False):result['commitClockSourceCI']=clock_source
+        result["freshResourceAdmission"]=admission
+        hardware=module('original_runtime_hardware','pq-runtime-hardware.py')
+        result['runtimeHardware']=hardware.capture(work)
+        lab.write_new(work/'public/runtime-hardware.json',result['runtimeHardware'])
+        if first_trial:result['sameWindowInitializationSourceFunctionalData']=trial_qualification
+        result["initializationOnlyRequested"]=getattr(args,"initialization_only",False)
+        if result["initializationOnlyRequested"]:result["initializationSourceFunctionalData"]=initialization.source_functional_data()
+        lab.write_new(work/"public/requested-load.json",dict(source=identity,mode=args.mode,rate=args.rate,seconds=args.seconds,tailSeconds=args.tail_seconds,accounts=args.accounts,perAccountCapacity=args.per_account,configuredDemand=demand,sourceGrant=False))
         result["processCapacity"]=process_capacity(args)
         lab.require(result["processCapacity"]["canFitNecessaryLowerBound"],"normal per-owner sender pool cannot fit original owned PID limit; original multiplex callee required or explicit different workload; full configured demand retained, no rate reduction")
         bins=work/".private/bin"
@@ -1888,31 +2067,57 @@ def run(args, *, source_metadata_reader=None, clock_original_log_reader=None, cl
         result["loadExecuted"]=True
         result["loadResult"]=run_load_window(plan,backend,journal,monitor,stop,staged_scheduler=staged_scheduler if staged else None,
             verifier_drain_seconds=getattr(args,'post_cutoff_verifier_drain_seconds',0))
+        if result['loadResult'].get('firstCause') is not None:
+            result['firstCause']=result['loadResult']['firstCause']
+            result['firstCauseErrorType']=result['loadResult'].get('firstCauseErrorType')
         if getattr(args,'commit_clock_observation',False):result['loadResult']['originProcessID']=os.getpid()
         monitor.check();lab.check_source(source,args.commit)
-        result["firstCause"]=result["loadResult"]["firstCause"]
-    except BaseException as error:result["firstCause"]=str(error)
+    except BaseException as error:
+        preserve_first_cause(result,'original driver failed',error=error)
     finally:
         stop.set()
+        if monitor is not None:retain_monitor_failure(result,monitor)
         if backend is not None:
-            stop_backend_preserving_cause(backend,result)
-            if getattr(backend, "pool_ready", None) is not None:
-                # A later lane can fail before the whole pool returns. Keep
-                # the successful earlier READY frames and their elapsed times.
-                result.setdefault("senderPoolPreparation", backend.pool_ready)
-            result["normalHelperLifecycle"]=dict(maxConcurrent=backend.helper_limit,cleanupDebt=backend.helper_cleanup_debt,parentTiming=backend.helper_timing_report())
-            if getattr(backend,'verifier_admission',None) is not None:
-                result['normalHelperLifecycle']['verifierAdmission']=backend.verifier_admission.report(result.get('loadResult'))
-            result['normalObservationRPCTiming']=backend.rpc_measurements.report()
-            if hasattr(backend,'cold_sender_report'):result['boundedColdSenderLifecycle']=backend.cold_sender_report()
-            if hasattr(backend,'public_owner_report'):result['normalPublicOwnerTransport']=backend.public_owner_report()
-        stages.seal();result['initializationStages']=stages.report()
-        try:
-            initialization_journal.close()
-            result['initializationJournalSegments']=[dict(path=str(p.relative_to(work/'public')),bytes=p.stat().st_size,sha256=lab.guard.digest(p)) for p in initialization_journal.paths]
-        except BaseException as error:
-            result['initializationJournalError']=dict(errorType=type(error).__name__)
-            result['firstCause']=result['firstCause'] or 'original initialization journal close/pin failed'
+            try:stop_backend_preserving_cause(backend,result)
+            except BaseException as error:
+                result['backendStopError']=dict(errorType=type(error).__name__,cleanupDebt=True)
+                preserve_first_cause(result,'original backend stop failed',error=error)
+            try:
+                if getattr(backend, "pool_ready", None) is not None:result.setdefault("senderPoolPreparation", backend.pool_ready)
+                result["normalHelperLifecycle"]=dict(maxConcurrent=backend.helper_limit,cleanupDebt=backend.helper_cleanup_debt,parentTiming=backend.helper_timing_report())
+                if getattr(backend,'verifier_admission',None) is not None:
+                    result['normalHelperLifecycle']['verifierAdmission']=backend.verifier_admission.report(result.get('loadResult'))
+                result['normalObservationRPCTiming']=backend.rpc_measurements.report()
+                if hasattr(backend,'cold_sender_report'):result['boundedColdSenderLifecycle']=backend.cold_sender_report()
+                if hasattr(backend,'public_owner_report'):result['normalPublicOwnerTransport']=backend.public_owner_report()
+            except BaseException as error:
+                result['normalHelperReportError']=dict(status='UNKNOWN',errorType=type(error).__name__)
+                preserve_first_cause(result,'original helper report unavailable',error=error)
+        if stages is None:result['initializationStages']=dict(status='UNKNOWN',reason='original initialization stages not constructed')
+        else:
+            try:stages.seal();result['initializationStages']=stages.report()
+            except BaseException as error:
+                result['initializationStages']=dict(status='UNKNOWN',errorType=type(error).__name__)
+                preserve_first_cause(result,'original initialization stage report unavailable',error=error)
+        if initialization_journal is None:
+            result['initializationJournalError']=dict(status='UNKNOWN',cleanupDebt=bool(_JOURNAL_UNKNOWN_CUSTODY))
+        else:
+            try:initialization_journal.close()
+            except BaseException as error:
+                result['initializationJournalError']=dict(errorType=type(error).__name__,cleanupDebt=True)
+                preserve_first_cause(result,'original initialization journal close failed',error=error)
+            else:
+                try:
+                    result['initializationJournalSegments']=[dict(path=str(p.relative_to(work/'public')),bytes=p.stat().st_size,sha256=lab.guard.digest(p)) for p in initialization_journal.paths]
+                except BaseException as error:
+                    result['initializationJournalError']=dict(errorType=type(error).__name__,cleanupDebt=False)
+                    preserve_first_cause(result,'original initialization journal pin failed',error=error)
+            if getattr(initialization_journal,'cleanupDebt',False) is True:
+                result['initializationJournalCleanupDebt']=True
+                preserve_first_cause(result,'original initialization journal close ownership UNKNOWN')
+            if getattr(initialization_journal,'writeFailure',None) is not None:
+                result['initializationJournalPersistenceStatus']='UNKNOWN'
+                preserve_first_cause(result,'original initialization journal persistence UNKNOWN',error=initialization_journal.writeFailure)
 
         result["networkAccountingRequested"]=args.network_accounting
         if network is not None and network.start is not None:
@@ -1923,53 +2128,106 @@ def run(args, *, source_metadata_reader=None, clock_original_log_reader=None, cl
                     result['networkBaseline']=normal.network_baseline_result(network,result['networkAccounting'],ceremony.live_reader,work/'public')
                     lab.require(result['networkBaseline']['status']=='OBSERVED','actual current normal private wire/TCP reads incomplete; retain UNKNOWN')
                 if monitor is not None:monitor.check()
-            except Exception as error:
+            except BaseException as error:
                 result["networkAccounting"]=dict(status="UNKNOWN",reason="original network checkpoint or accounting failed",errorType=type(error).__name__,physicalBytesMeasured=False,gainsQualified=False)
-                result["firstCause"]=result["firstCause"] or "original network checkpoint or accounting artifact failed"
+                preserve_first_cause(result,"original network checkpoint or accounting artifact failed",error=error)
         if monitor is not None:
-            monitor.close()
-            result["resourceObserverRetired"]=not monitor.thread.is_alive()
-            if monitor.thread.is_alive():result["firstCause"]=result["firstCause"] or "original resource observer did not retire within bounded cleanup"
+            try:monitor.close()
+            except BaseException as error:
+                result['resourceObserverCloseError']=dict(errorType=type(error).__name__,cleanupDebt=True)
+                preserve_first_cause(result,'original resource observer close failed',error=error)
+            try:result["resourceObserverRetired"]=monitor.thread.ident is not None and not monitor.thread.is_alive()
+            except BaseException as error:
+                result['resourceObserverRetired']=False;result['resourceObserverCloseError']=dict(errorType=type(error).__name__,cleanupDebt=True)
+                preserve_first_cause(result,'original resource observer retirement unknown',error=error)
+            if not result['resourceObserverRetired']:
+                result['resourceObserverCleanupDebt']=True
+                preserve_first_cause(result,'original resource observer did not retire within bounded cleanup')
         if journal is not None:
-            journal.close();result["journalSegments"]=[dict(path=str(p.relative_to(work/"public")),bytes=p.stat().st_size,sha256=lab.guard.digest(p)) for p in journal.paths]
+            try:journal.close()
+            except BaseException as error:
+                result['journalCloseError']=dict(errorType=type(error).__name__,cleanupDebt=True)
+                preserve_first_cause(result,'original journal close failed',error=error)
+            else:
+              try:result["journalSegments"]=[dict(path=str(p.relative_to(work/"public")),bytes=p.stat().st_size,sha256=lab.guard.digest(p)) for p in journal.paths]
+              except BaseException as error:
+                result['journalSegmentsError']=dict(errorType=type(error).__name__,status='UNKNOWN')
+                preserve_first_cause(result,'original journal pin failed',error=error)
+            if getattr(journal,'cleanupDebt',False) is True:
+                result['journalCleanupDebt']=True
+                preserve_first_cause(result,'original journal close ownership UNKNOWN')
+            if getattr(journal,'writeFailure',None) is not None:
+                result['journalPersistenceStatus']='UNKNOWN'
+                preserve_first_cause(result,'original journal persistence UNKNOWN',error=journal.writeFailure)
         try:result["cleanupComplete"]=w.stop()
-        except BaseException as error:result["cleanupComplete"]=False;result["cleanupError"]=str(error);result["directOwnedCleanupAfterFailure"]=getattr(w,"direct_cleanup_after_failure",[])
+        except BaseException as error:
+            result["cleanupComplete"]=False;result["cleanupError"]=scheduler.failure_text(error);result["directOwnedCleanupAfterFailure"]=getattr(w,"direct_cleanup_after_failure",[])
+            preserve_first_cause(result,'original Window stop failed',error=error)
+        retain_worker_cleanup_debt(result)
+        if _ORIGINAL_FD_CLOSE_CUSTODY:
+            result['originalAuxiliaryFDCleanupDebt']=True;result['cleanupComplete']=False
+            preserve_first_cause(result,'original auxiliary file descriptor close UNKNOWN')
+        if (result.get('backendStopError',{}).get('cleanupDebt') is True
+                or result.get('initializationJournalError',{}).get('cleanupDebt') is True
+                or result.get('initializationJournalCleanupDebt') is True
+                or result.get('journalCloseError',{}).get('cleanupDebt') is True
+                or result.get('journalCleanupDebt') is True
+                or result.get('resourceObserverCloseError',{}).get('cleanupDebt') is True
+                or result.get('resourceObserverCleanupDebt') is True
+                or result.get('workerCleanupDebt') is True):result['cleanupComplete']=False
         if backend is not None:
             identities=[]
-            for session in backend.sessions.values():
+            try:sessions=list(backend.sessions.values())
+            except BaseException as error:
+                sessions=[];identities.append(dict(status='UNKNOWN',closed=False,errorType=type(error).__name__))
+                preserve_first_cause(result,'original owner identity inventory unavailable',error=error)
+            for session in sessions:
                 if getattr(session,'poison_retirement',False):
-                    identities.append(session.retire_identity_after_window(deadline=getattr(w,'launch_cleanup_deadline',None)))
+                    try:identities.append(session.retire_identity_after_window(deadline=getattr(w,'launch_cleanup_deadline',None)))
+                    except BaseException as error:
+                        identities.append(dict(status='UNKNOWN',closed=False,errorType=type(error).__name__))
+                        preserve_first_cause(result,'original owner identity retirement failed',error=error)
             if getattr(backend,'guarded_shutdown',False):
                 for child in w.children:
                     process=child['process']
                     if child['name'].startswith('load-live-session-'):
-                        identities.append(retire_original_proof_pidfd(process,deadline=getattr(w,'launch_cleanup_deadline',None)))
+                            try:identities.append(retire_original_proof_pidfd(process,deadline=getattr(w,'launch_cleanup_deadline',None)))
+                            except BaseException as error:
+                                identities.append(dict(status='UNKNOWN',closed=False,errorType=type(error).__name__))
+                                preserve_first_cause(result,'original proof identity retirement failed',error=error)
             if identities:
                 result['experimentalOwnerPidfdCleanup']=identities
                 if any(not item['closed'] for item in identities):
                     result['cleanupComplete']=False
-                    result['firstCause']=result['firstCause'] or 'original experimental owner identity cleanup incomplete'
-                if hasattr(backend,'public_owner_report'):result['normalPublicOwnerTransport']=backend.public_owner_report()
+                    preserve_first_cause(result,'original experimental owner identity cleanup incomplete')
+                if hasattr(backend,'public_owner_report'):
+                    try:result['normalPublicOwnerTransport']=backend.public_owner_report()
+                    except BaseException as error:
+                        result['normalPublicOwnerTransport']=dict(status='UNKNOWN',errorType=type(error).__name__)
+                        preserve_first_cause(result,'original owner report failed',error=error)
         if backend is not None and result["cleanupComplete"] and "loadResult" in result:
-            result["stoppedLiveProofFailures"]=backend.retain_stopped_live_proof_failures(result["loadResult"])
+            try:result["stoppedLiveProofFailures"]=backend.retain_stopped_live_proof_failures(result["loadResult"])
+            except BaseException as error:
+                result['stoppedLiveProofFailures']=dict(status='UNKNOWN',errorType=type(error).__name__)
+                preserve_first_cause(result,'original stopped proof readback failed',error=error)
         if ceremony is not None and ceremony.commit_observation_enabled:
             try:
                 observed=commit_readback.retain_after_stop(w,ceremony.commit_observation_descriptors,ceremony.plan["chainId"],ceremony.plan["originalGenesisHash"])
                 result["normalCommitObservation"]=observed
-                if not observed["fourOriginalSnapshotsValid"]:result["firstCause"]=result["firstCause"] or "original normal Commit observations incomplete/invalid; preserve missing/overflow and first cause"
+                if not observed["fourOriginalSnapshotsValid"]:preserve_first_cause(result,"original normal Commit observations incomplete/invalid; preserve missing/overflow and first cause")
                 measured=sum(lab.private_bytes(root) for root in w.storage_roots);w.peak_bytes=max(w.peak_bytes,measured)
                 observed["postStopStorageBytes"]=measured
                 lab.require(measured<=lab.CAPS["newBytes"],"original Commit public readback exceeded unchanged8GiB storage cap")
             except BaseException as error:
-                result["commitObservationReadbackError"]=dict(errorType=type(error).__name__,reason=str(error),missingStagesAreUnknown=True)
-                result["firstCause"]=result["firstCause"] or "original normal Commit readback failed"
+                result["commitObservationReadbackError"]=dict(errorType=type(error).__name__,reason=scheduler.failure_text(error),missingStagesAreUnknown=True)
+                preserve_first_cause(result,"original normal Commit readback failed",error=error)
         if ceremony is not None and getattr(ceremony,'header_stream_data_enabled',False):
             finish_synthetic_header_data(result,w,ceremony)
         if ceremony is not None and getattr(ceremony,'commit_clock_observation_enabled',False):
             try:
                 result['commitMonotonicObservation']=commit_clock.retain_after_stop(w,ceremony.commit_clock_descriptors,args.commit)
                 if not result['commitMonotonicObservation']['fourOriginalSnapshotsUsable']:
-                    result['firstCause']=result['firstCause'] or 'original local Commit clock readback incomplete; missing values UNKNOWN'
+                    preserve_first_cause(result,'original local Commit clock readback incomplete; missing values UNKNOWN')
                 refs=[]
                 for row in result.get('loadResult',{}).get('rows',[]):
                     index=row.get('index')
@@ -1989,52 +2247,82 @@ def run(args, *, source_metadata_reader=None, clock_original_log_reader=None, cl
                 lab.require(measured<=lab.CAPS['newBytes'],'original clock readback exceeded unchanged8GiB storage cap')
             except BaseException as error:
                 result['commitClockReadbackError']=dict(errorType=type(error).__name__,missingStagesAreUnknown=True)
-                result['firstCause']=result['firstCause'] or 'original local Commit clock readback failed'
+                preserve_first_cause(result,'original local Commit clock readback failed',error=error)
         if ceremony is not None and ceremony.finalize_observation_enabled:
-            finalize = module('original_finalize_observation', 'pq-finalize-observation.py')
-            observed_finalize = finalize.retain_after_stop(w, ceremony.finalize_observation_descriptors,
-                                                          ceremony.plan["chainId"], ceremony.plan["originalGenesisHash"],
-                                                          proof_readback)
-            result['normalFinalizeObservation'] = observed_finalize
-            if not observed_finalize['fourComplete']:
-                result['firstCause'] = result['firstCause'] or 'original Finalize observation incomplete; preserve original failure and coverage'
+            try:
+                finalize = module('original_finalize_observation', 'pq-finalize-observation.py')
+                observed_finalize = finalize.retain_after_stop(w, ceremony.finalize_observation_descriptors,
+                                                              ceremony.plan["chainId"], ceremony.plan["originalGenesisHash"],
+                                                              proof_readback)
+                result['normalFinalizeObservation'] = observed_finalize
+                if not observed_finalize['fourComplete']:
+                    preserve_first_cause(result,'original Finalize observation incomplete; preserve original failure and coverage')
+            except BaseException as error:
+                result['normalFinalizeObservation']=dict(status='UNKNOWN',errorType=type(error).__name__,fourComplete=False)
+                preserve_first_cause(result,'original Finalize readback failed',error=error)
         if storage is not None:
             try:
                 observed=storage.finish(result.get("normalCommitObservation"))
                 lab.write_new(work/"public/owned-storage-accounting.json",observed);result["ownedStorageAccounting"]=observed
                 measured=sum(lab.private_bytes(root) for root in w.storage_roots);w.peak_bytes=max(w.peak_bytes,measured)
                 lab.require(measured<=lab.CAPS["newBytes"],"original store metadata exceeded unchanged8GiB storage cap")
-            except Exception as error:
-                result["ownedStorageAccounting"]=dict(status="UNKNOWN",reason=str(error),actualLoadWindowCommitCount=None)
-                result["firstCause"]=result["firstCause"] or "original store accounting failed"
-        result["resourceGuardStageElapsed"]=w.sample_stage_report()
+            except BaseException as error:
+                result["ownedStorageAccounting"]=dict(status="UNKNOWN",reason=scheduler.failure_text(error),actualLoadWindowCommitCount=None)
+                preserve_first_cause(result,'original store accounting failed',error=error)
+        try:result["resourceGuardStageElapsed"]=w.sample_stage_report()
+        except BaseException as error:
+            result['resourceGuardStageElapsed']=dict(status='UNKNOWN',errorType=type(error).__name__)
+            preserve_first_cause(result,'original resource stage report failed',error=error)
         if monitor is not None:
-            result['resourceFirstFailure']=monitor.failure_snapshot()
-            try:monitor.check()
-            except BaseException as error:result['firstCause']=result['firstCause'] or str(error)
+            if not retain_monitor_failure(result,monitor):
+                result['resourceObserverCleanupDebt']=True;result['cleanupComplete']=False
         result["peakRSSSample"] = getattr(w, "peak_rss_sample", None)
         normal.retain_original_process_receipt(result,w)
         clock_readback=ceremony is not None and getattr(ceremony,'commit_clock_observation_enabled',False)
         if not clock_readback:retain_original_process_rss(result,w)
-        result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,launchLifecycle=w.launch_cleanup_report(),retiredSamplingEvidence=w.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=w.rss_fallback_samples)
+        try:launch_lifecycle=w.launch_cleanup_report()
+        except BaseException as error:
+            launch_lifecycle=dict(status='UNKNOWN',errorType=type(error).__name__,cleanupCompleteProven=False)
+            result['cleanupComplete']=False;preserve_first_cause(result,'original launch lifecycle report failed',error=error)
+        result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,launchLifecycle=launch_lifecycle,retiredSamplingEvidence=w.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=w.rss_fallback_samples)
         if clock_readback:
             finish_commit_clock_readback(result,w,work,ceremony.root,args.commit,demand)
         if ceremony is not None:
-            result["wireObservation"]=ceremony.wire_readback()
-            retain_original_readiness(result,ceremony)
-            result["normalCalleeMeasurements"]=ceremony.measurements.report()
-            result["preparationSenderMeasurements"]=copy.deepcopy(getattr(ceremony,"preparation_sender_measurements",[]))
-            result['preparationStartupMeasurements']=dict(requested=getattr(ceremony,'startup_timings_enabled',False),expectedRegistrationReplies=4,expectedActivationReplies=1,records=copy.deepcopy(getattr(ceremony,'preparation_startup_measurements',[])),intervalsOverlap=True,sourceGrant=False)
-            result['failedCalleeMeasurements']=dict(attempted=getattr(ceremony,'failed_callee_attempts',0),retained=len(getattr(ceremony,'failed_callee_measurements',[])),recordLimit=64,records=copy.deepcopy(getattr(ceremony,'failed_callee_measurements',[])),successfulReplyCoverageUnchanged=True,authorityGranted=False)
+            try:result["wireObservation"]=ceremony.wire_readback()
+            except BaseException as error:
+                result['wireObservation']=dict(status='UNKNOWN',errorType=type(error).__name__)
+                preserve_first_cause(result,'original wire observation readback failed',error=error)
+            try:retain_original_readiness(result,ceremony)
+            except BaseException as error:
+                result['originalReadinessObservations']=dict(status='UNKNOWN',errorType=type(error).__name__)
+                preserve_first_cause(result,'original readiness observation unavailable',error=error)
+            try:result["normalCalleeMeasurements"]=ceremony.measurements.report()
+            except BaseException as error:
+                result['normalCalleeMeasurements']=dict(status='UNKNOWN',errorType=type(error).__name__)
+                preserve_first_cause(result,'original callee measurements unavailable',error=error)
+            try:
+                result["preparationSenderMeasurements"]=copy.deepcopy(getattr(ceremony,"preparation_sender_measurements",[]))
+                result['preparationStartupMeasurements']=dict(requested=getattr(ceremony,'startup_timings_enabled',False),expectedRegistrationReplies=4,expectedActivationReplies=1,records=copy.deepcopy(getattr(ceremony,'preparation_startup_measurements',[])),intervalsOverlap=True,sourceGrant=False)
+                result['failedCalleeMeasurements']=dict(attempted=getattr(ceremony,'failed_callee_attempts',0),retained=len(getattr(ceremony,'failed_callee_measurements',[])),recordLimit=64,records=copy.deepcopy(getattr(ceremony,'failed_callee_measurements',[])),successfulReplyCoverageUnchanged=True,authorityGranted=False)
+            except BaseException as error:
+                result['preparationMeasurementsError']=dict(status='UNKNOWN',errorType=type(error).__name__)
+                preserve_first_cause(result,'original preparation measurements unavailable',error=error)
         if "loadResult" not in result:
             result["preparationOnlyDemandAccounting"]=dict(configuredDemand=demand,notReleased=demand,notSubmitted=demand,notQualified=demand,meaning="normal preparation never opened the requested load window; no achieved offered rate or business TPS")
-        if getattr(args,'staged_publication',False):normal.apply_normal_clean_exit(result)
+        if getattr(args,'staged_publication',False):
+            try:normal.apply_normal_clean_exit(result)
+            except BaseException as error:
+                result['normalNodeCleanExit']=dict(status='UNKNOWN',operationalCleanExit=False,errorType=type(error).__name__)
+                preserve_first_cause(result,'original node exit assessment failed',error=error)
         if getattr(args,'initialization_only',False):
             try:result['initializationDataValidation']=initialization.require_complete_initialization(result)
             except BaseException as error:
-                result['initializationDataValidation']=dict(completeNormalInitializationObserved=False,reason=str(error),pressureAuthorized=False)
-                result['firstCause']=result['firstCause'] or str(error)
-        result['loadCompletionDiagnostics']=completion_diagnostics(result)
+                result['initializationDataValidation']=dict(completeNormalInitializationObserved=False,reason=scheduler.failure_text(error),pressureAuthorized=False)
+                preserve_first_cause(result,'original initialization validation failed',error=error)
+        try:result['loadCompletionDiagnostics']=completion_diagnostics(result)
+        except BaseException as error:
+            result['loadCompletionDiagnostics']=dict(status='UNKNOWN',errorType=type(error).__name__)
+            preserve_first_cause(result,'original completion diagnostics unavailable',error=error)
         lab.write_new(work/"public/receipt.json",result);print(json.dumps(dict(publicArtifacts=str(work/"public"),firstCause=result["firstCause"],loadExecuted=result["loadExecuted"])))
     return result
 

@@ -119,7 +119,7 @@ class OriginalDriverInitializationControls(unittest.TestCase):
                 window.assert_not_called();ports.assert_not_called()
             files=list(parent.glob('pq-independent-load-*/public/fresh-resource-admission.json'));self.assertEqual(len(files),1);record=json.loads(files[0].read_bytes());self.assertEqual(record['freeDiskBytes'],15<<30);self.assertEqual(record['availableMemoryBytes'],7<<30);self.assertEqual(record['caps']['initialDiskBytes'],16<<30);self.assertEqual(record['ownedPIDLimit'],16)
 
-    def mocked_initialization(self,census_error=None,cleanup=True,receipt_error=None,clock_readback=False,rss_error=None,clock_error=True,rss_records=0,export_measurements=None,header_readback=False):
+    def mocked_initialization(self,census_error=None,cleanup=True,receipt_error=None,clock_readback=False,rss_error=None,clock_error=True,rss_records=0,export_measurements=None,header_readback=False,init_close_failure=False,init_constructor_failure=False):
         from types import SimpleNamespace
         import contextlib,io
         d=self.driver
@@ -167,7 +167,19 @@ class OriginalDriverInitializationControls(unittest.TestCase):
             original_journal=d.Journal
             def only_initialization_journal(path):
                 if Path(path).stem!='initialization-events':raise AssertionError('business journal')
-                return original_journal(path)
+                if init_constructor_failure:
+                    import os,stat
+                    original_fsync=os.fsync
+                    def fail_directory(fd):
+                        if stat.S_ISDIR(os.fstat(fd).st_mode):raise ValueError('CONTROL original journal directory fsync')
+                        return original_fsync(fd)
+                    with mock.patch.object(d.os,'fsync',side_effect=fail_directory):value=original_journal(path)
+                else:value=original_journal(path)
+                if init_close_failure:
+                    close=value.close
+                    def fail_after_real_close():close();raise OSError('CONTROL original initialization close unknown')
+                    value.close=fail_after_real_close
+                return value
             env=dict(GITHUB_ACTIONS='true',RUNNER_ENVIRONMENT='github-hosted',RUNNER_TEMP=str(parent))
             with contextlib.ExitStack() as stack:
                 for obj,name,value in [(d.lab,'check_source',mock.Mock(return_value=dict(commit=args.commit,tree=d.STAGED_CALLEE_TREE))),(d.lab,'git',mock.Mock(return_value='')),(d.subprocess,'check_output',mock.Mock(return_value=b'live-materials')),(d.lab.guard,'proc_inventory',mock.Mock(return_value=({},None))),(d.lab.guard,'memory_available',mock.Mock(return_value=7<<30)),(d.shutil,'disk_usage',mock.Mock(return_value=SimpleNamespace(free=20<<30))),(d.lab,'heavy_processes',mock.Mock(return_value=[])),(d.lab,'admit',mock.Mock()),(d.lab,'ports_available',mock.Mock()),(d.ctypes,'CDLL',mock.Mock(return_value=SimpleNamespace(prctl=lambda *a:0))),(d.lab,'Window',window),(d.lab.guard,'digest',mock.Mock(return_value='a'*64)),(d.initialization,'instrumented_ceremony_class',instrumented),(d,'NormalBackend',mock.Mock(side_effect=AssertionError('business backend'))),(d,'Journal',only_initialization_journal),(d,'Monitor',mock.Mock(side_effect=AssertionError('business monitor')))]:stack.enter_context(mock.patch.object(obj,name,value))
@@ -187,6 +199,7 @@ class OriginalDriverInitializationControls(unittest.TestCase):
             persisted=json.loads((work_holder['path']/'public/receipt.json').read_bytes())
             self.assertEqual(persisted['processRSSObservation'],result['processRSSObservation'])
             self.assertEqual(persisted['firstCause'],result['firstCause'])
+            if init_constructor_failure:self.assertTrue((work_holder['path']/'public/initialization-events-00000.jsonl').is_file())
             if receipt_error is not None:
                 for key in ('firstCause','processes','processReceiptStatus','processReceiptCleanupDebt','cleanupComplete','normalNodeCleanExit'):
                     self.assertEqual(persisted[key],result[key])
@@ -206,6 +219,18 @@ class OriginalDriverInitializationControls(unittest.TestCase):
         self.assertEqual(r['syntheticHeaderStreamData']['status'],'NOT_SUPPLIED')
         self.assertTrue(r['syntheticHeaderStreamData']['readbackCleanupDebt'])
         self.assertFalse(r['syntheticHeaderStreamData']['runtimeAuthorized']);self.assertFalse(r['loadExecuted'])
+
+    def test_empty_original_cause_survives_real_finally_journal_and_header_errors(self):
+        r=self.mocked_initialization(ValueError(),header_readback=True,init_close_failure=True)
+        self.assertEqual(r['firstCause'],'ValueError: original exception message empty');self.assertEqual(r['firstCauseErrorType'],'ValueError')
+        self.assertTrue(r['initializationJournalError']['cleanupDebt']);self.assertFalse(r['cleanupComplete'])
+        self.assertEqual(r['syntheticHeaderStreamData']['status'],'NOT_SUPPLIED');self.assertFalse(r['loadExecuted'])
+
+    def test_real_journal_constructor_failure_still_stops_window_and_retains_receipt(self):
+        r=self.mocked_initialization(init_constructor_failure=True)
+        self.assertEqual(r['firstCause'],'CONTROL original journal directory fsync')
+        self.assertEqual(r['firstCauseErrorType'],'ValueError');self.assertEqual(r['initializationStages']['status'],'UNKNOWN')
+        self.assertEqual(r['initializationJournalError']['status'],'UNKNOWN');self.assertFalse(r['loadExecuted'])
 
     def test_driver_finally_preserves_cause_and_unknown_process_receipt(self):
         r=self.mocked_initialization(RuntimeError('original missing owner499'),receipt_error=RuntimeError('original lifecycle lock unavailable'))
