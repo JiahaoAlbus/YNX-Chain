@@ -437,8 +437,16 @@ import SwiftUI
         guard previous.orderID==observed.orderID,previous.payIntentID==observed.payIntentID,previous.invoiceID==observed.invoiceID,previous.payMerchant==observed.payMerchant,previous.payPayoutAddress==observed.payPayoutAddress,let old=previous.nativePayment,let fresh=observed.nativePayment,old.InvoiceID==fresh.InvoiceID,old.SessionID==fresh.SessionID,old.TermsHash==fresh.TermsHash,old.PrincipalAtoms==fresh.PrincipalAtoms,(try? fresh.validate(observed,requirePaid:false)) != nil else{return}
         for hash in old.PendingOriginals ?? [] where (fresh.PendingOriginals ?? []).contains(hash){let key=previous.orderID+"\n"+hash;if attemptedReconciliations[key]==reconciliationSelection(previous),attemptedReconciliations[key]==reconciliationSelection(observed){attemptedReconciliations.removeValue(forKey:key)}}
     }
+    private func currentReconciliationMatches(_ order:Order,nativeHash:String)->Bool{
+        let matching=orders.filter{$0.orderID==order.orderID}
+        guard signedIn,let session=api.currentSession,session==presentedSession,matching.count==1,let current=matching.first,
+              let binding=reconciliationSelection(order),binding==reconciliationSelection(current),
+              let payment=current.nativePayment,(try? AppleBuyerReceipt.validate(current,account:session.account)) != nil,
+              (try? payment.validate(current,requirePaid:false)) != nil else{return false}
+        return (order.nativePayment?.PendingOriginals ?? []).contains(nativeHash) && (payment.PendingOriginals ?? []).contains(nativeHash) && NativeWire.matches(nativeHash,"^0x[a-f0-9]{64}$")
+    }
     func canReconcilePayment(_ order:Order,nativeHash:String)->Bool{
-        signedIn && attemptedReconciliations[order.orderID+"\n"+nativeHash]==nil && (order.nativePayment?.PendingOriginals ?? []).contains(nativeHash) && NativeWire.matches(nativeHash,"^0x[a-f0-9]{64}$")
+        attemptedReconciliations[order.orderID+"\n"+nativeHash]==nil && currentReconciliationMatches(order,nativeHash:nativeHash)
     }
     // Explicit reconciliation of an already retained native hash. Foreground
     // restore, ordinary invoice queries and UNKNOWN recovery never invoke it.
@@ -453,13 +461,14 @@ import SwiftUI
             let at=operationRevision;mutationBusy=true
             Task{defer{if at==operationRevision{mutationBusy=false;refreshOrderRecoveries()}}
                 do{
-                    try check();var originalError:Error?
+                    let selectionFence:()throws->Void={try check();guard self.currentReconciliationMatches(order,nativeHash:nativeHash) else{throw ShopError.contextChanged}}
+                    try selectionFence();var originalError:Error?
                     do{try await api.reconcileOriginalNativeOperation(operation,orderID:order.orderID,nativeHash:nativeHash)}catch{originalError=error}
-                    try check()
+                    try selectionFence()
                     // Even a lost reconciliation reply recovers through the
                     // independently verified original archive, never by send.
-                    do{try await api.confirmOriginalPayment(order,beforeDispatch:check)}catch{if originalError==nil{originalError=error}}
-                    try check();await loadOrders();try check()
+                    do{try await api.confirmOriginalPayment(order,beforeDispatch:selectionFence)}catch{if originalError==nil{originalError=error}}
+                    try selectionFence();await loadOrders();try check()
                     if let originalError{failure(originalError)}else{state=""}
                 }catch{guard at==operationRevision else{return};do{try check()}catch{return};failure(error)}
             }

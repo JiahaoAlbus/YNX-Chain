@@ -283,12 +283,44 @@ final class BuyerLifecycleHTTP:URLProtocol,@unchecked Sendable {
         try check(f.model.orders.first?.status=="refunded" && f.model.orders.first?.nativePayment?.NetPaidAtoms=="0" && f.model.orders.first?.nativePayment?.RefundedAtoms=="100","unchanged original full-refund archive is shown through normal order readback")
     }
     @MainActor static func explicitOriginalReconciliation()async throws {
+        do {
+            let f=try BuyerLifecycleFixture();defer{f.finish()};try await f.start();try await f.checkout()
+            try f.restoreArchivedPayment(status:"refund_requested")
+            let rows=(f.original["NativePayment"] as! [String:Any])["Receipts"] as! [[String:Any]],hash=rows.first{$0["kind"] as? String=="invoice_refund"}!["nativeHash"] as! String
+            var payment=f.visible["NativePayment"] as! [String:Any];payment["PendingOriginals"]=[hash];payment["CompleteKnownOriginals"]=false;f.visible["NativePayment"]=payment
+            await f.model.loadOrders();let pending=try f.order()
+            f.model.reconcilePayment(pending,nativeHash:hash)
+            f.model.orders=[]
+            try await until{!f.model.mutationBusy}
+            try check(f.mainCalls.isEmpty,"queued reconciliation cannot borrow an order removed before dispatch")
+        }
+        do {
+            let f=try BuyerLifecycleFixture();defer{f.finish()};try await f.start();try await f.checkout()
+            try f.restoreArchivedPayment(status:"refund_requested")
+            let rows=(f.original["NativePayment"] as! [String:Any])["Receipts"] as! [[String:Any]],hash=rows.first{$0["kind"] as? String=="invoice_refund"}!["nativeHash"] as! String
+            var payment=f.visible["NativePayment"] as! [String:Any];payment["PendingOriginals"]=[hash];payment["CompleteKnownOriginals"]=false;f.visible["NativePayment"]=payment
+            await f.model.loadOrders();let pending=try f.order()
+            f.holdConfirm=true;f.model.reconcilePayment(pending,nativeHash:hash);try await until{f.heldConfirm.count==1}
+            f.model.orders=[];f.heldConfirm.removeFirst().respond(["transportOnly":true]);try await until{!f.model.mutationBusy}
+            try check(f.mainCalls.count==1 && f.model.orders.isEmpty,"late original archive response cannot restore a removed order")
+        }
         for (loseReply,archiveReady) in [(false,true),(true,true),(true,false)]{
             let f=try BuyerLifecycleFixture();defer{f.finish()};try await f.start();try await f.checkout()
             try f.restoreArchivedPayment(status:"refund_requested")
             let rows=(f.original["NativePayment"] as! [String:Any])["Receipts"] as! [[String:Any]],hash=rows.first{$0["kind"] as? String=="invoice_refund"}!["nativeHash"] as! String
             var payment=f.visible["NativePayment"] as! [String:Any];payment["PendingOriginals"]=[hash];payment["CompleteKnownOriginals"]=false;f.visible["NativePayment"]=payment
             await f.model.loadOrders();let pending=try f.order()
+            let originalPending=f.visible
+            var changedPayment=f.visible["NativePayment"] as! [String:Any]
+            changedPayment["PendingOriginals"]=["0x"+String(repeating:"a",count:64)]
+            f.visible["NativePayment"]=changedPayment;await f.model.loadOrders()
+            try check(!f.model.canReconcilePayment(pending,nativeHash:hash),"refreshed order cannot reconcile a hash retained only by a stale view")
+            f.model.reconcilePayment(pending,nativeHash:hash)
+            try check(f.mainCalls.isEmpty && !f.model.mutationBusy,"stale pending hash does not reach Main")
+            f.visible=originalPending;await f.model.loadOrders()
+            f.model.orders.append(pending)
+            try check(!f.model.canReconcilePayment(pending,nativeHash:hash),"duplicate current order identifiers cannot select an original")
+            f.model.orders.removeLast()
             f.model.checkPayment(pending);try await until{!f.model.mutationBusy}
             try check(f.mainCalls.isEmpty && f.model.orders[0].nativePayment?.PendingOriginals==[hash],"ordinary payment query never invokes original-operation reconciliation")
             f.model.reconcilePayment(pending,nativeHash:"0x"+String(repeating:"f",count:64))
