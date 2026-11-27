@@ -33,7 +33,17 @@ def fixture():
         lines.append(('YNX-SERIAL-CONTROLS-BEGIN/v1 group=%s source=%s run=7 attempt=1\n' % (g['name'], source)).encode())
         lines.extend(raw.splitlines(keepends=True))
         lines.append(('YNX-SERIAL-CONTROLS-END/v1 group=%s\n' % g['name']).encode())
+    manifest = dict(version='YNX-SERIAL-VERIFIER-TEST-MANIFEST/v1',sourceCommit=source,groups=[])
+    for group in groups:
+        ids=[]
+        for test in group['tests']:
+            match=m._TEST.fullmatch(test)
+            ids.append('original_serial_ci_'+match.group(2)+'.'+match.group(3)+'.'+match.group(4))
+        manifest['groups'].append(dict(name=group['name'],file=m._GROUP_FILES[group['name']],tests=sorted(ids)))
+    leaves['test-manifest.json']=(json.dumps(manifest,sort_keys=True,separators=(',',':'))+'\n').encode()
+    metadata['testManifestSHA256']=digest(leaves['test-manifest.json'])
     leaves['metadata.json'] = (json.dumps(metadata, sort_keys=True, separators=(',', ':')) + '\n').encode()
+    lines.append(b'YNX-SERIAL-TEST-MANIFEST/v1 ' + leaves['test-manifest.json'])
     lines.append(b'YNX-SERIAL-CONTROLS-METADATA/v1 ' + leaves['metadata.json'])
     log = b''.join(b'2026-11-27T16:31:31.5441750Z ' + line for line in lines)
     b = io.BytesIO()
@@ -100,7 +110,7 @@ class SerialControlsReadback(unittest.TestCase):
         with self.assertRaises(ValueError): m._json(b'{"a":1,"a":2}')
 
     def test_archive_leaf_mismatch_and_duplicate_after_repin_rejected(self):
-        for change in ('mutate_leaf', 'duplicate_leaf', 'extra_leaf', 'wrong_metadata'):
+        for change in ('mutate_leaf', 'duplicate_leaf', 'extra_leaf', 'wrong_metadata', 'wrong_manifest'):
             args = list(fixture())
             original = zipfile.ZipFile(io.BytesIO(args[5]))
             leaves = [(i.filename, original.read(i)) for i in original.infolist()]
@@ -110,8 +120,16 @@ class SerialControlsReadback(unittest.TestCase):
                 leaves.append(leaves[0])
             elif change == 'extra_leaf':
                 leaves.append(('extra.log', b'extra\n'))
-            else:
+            elif change == 'wrong_metadata':
                 leaves[-1] = (leaves[-1][0], leaves[-1][1].replace(b'"skipped":0', b'"skipped":false', 1))
+            else:
+                values=dict(leaves);old_manifest=values['test-manifest.json'];old_metadata=values['metadata.json']
+                manifest=json.loads(old_manifest);manifest['groups'][0]['tests'][0]='original_serial_ci_staged.Staged.test_other'
+                values['test-manifest.json']=(json.dumps(manifest,sort_keys=True,separators=(',',':'))+'\n').encode()
+                metadata=json.loads(old_metadata);metadata['testManifestSHA256']=digest(values['test-manifest.json'])
+                values['metadata.json']=(json.dumps(metadata,sort_keys=True,separators=(',',':'))+'\n').encode()
+                args[4]=args[4].replace(old_manifest,values['test-manifest.json']).replace(old_metadata,values['metadata.json'])
+                args[0]['jobLogSha256']=digest(args[4]);leaves=[(name,values[name]) for name,_ in leaves]
             out = io.BytesIO()
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore', UserWarning)

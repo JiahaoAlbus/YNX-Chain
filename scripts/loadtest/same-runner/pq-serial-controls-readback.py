@@ -14,6 +14,11 @@ _REPO_ID = 1285041796
 _HEX40 = re.compile(r'[0-9a-f]{40}\Z')
 _HEX64 = re.compile(r'[0-9a-f]{64}\Z')
 _GROUP = re.compile(r'[a-z][a-z0-9-]{0,63}\Z')
+_GROUP_FILES = {'staged':'test_pq_staged_independent_scheduler.py', 'serial':'test_pq_serial_verifier_admission.py',
+    'independent':'test_pq_independent_load.py', 'bounded-sender':'test_pq_bounded_sender_backend.py',
+    'header-data':'test_pq_synthetic_header_stream_data.py', 'header-driver-data':'test_pq_synthetic_header_driver_data.py',
+    'commit-validation':'test_pq_commit_validation_readback.py', 'initialization':'test_pq_initialization_measurements.py',
+    'go-evidence-parser':'test_pq_synthetic_header_cross_source_ci.py', 'scheduler-boundaries':'test_pq_scheduler_boundary_controls.py'}
 _TEST = re.compile(r'(test_[A-Za-z0-9_]+) \(original_serial_ci_([a-z0-9-]+)\.([A-Za-z_][A-Za-z0-9_]*)\.(test_[A-Za-z0-9_]+)\)\Z')
 _RUNNER = re.compile(rb'^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(?:\.\d{1,9})?Z (.*)\n$')
 
@@ -133,7 +138,7 @@ def inspect_serial_controls(pin, run, job, artifact_inventory, job_log_bytes, ar
     try:
         with zipfile.ZipFile(io.BytesIO(archive_bytes)) as z:
             items = z.infolist()
-            expected = {g['name'] + '.log' for g in groups} | {'metadata.json'}
+            expected = {g['name'] + '.log' for g in groups} | {'metadata.json', 'test-manifest.json'}
             _require(len(items) == len(expected) and {i.filename for i in items} == expected and
                      all(not i.is_dir() and not (i.flag_bits & 1) and i.file_size <= 1 << 20 for i in items), 'archive inventory differs')
             members = {i.filename: z.read(i) for i in items}
@@ -141,7 +146,7 @@ def inspect_serial_controls(pin, run, job, artifact_inventory, job_log_bytes, ar
         raise ValueError('invalid original ZIP or CRC') from exc
     metadata = _json(members['metadata.json'])
     _require(type(metadata) is dict and set(metadata) == {'version', 'sourceCommit', 'sourceTree', 'forkTree', 'eventName', 'pullRequestHead',
-             'pullRequestBase', 'runId', 'attempt', 'job', 'platform', 'kernel', 'groups', 'runtimeAuthorized', 'independentFinalityVerified'} and
+             'pullRequestBase', 'runId', 'attempt', 'job', 'platform', 'kernel', 'groups', 'testManifestSHA256', 'runtimeAuthorized', 'independentFinalityVerified'} and
              type(metadata.get('kernel')) is str and bool(metadata['kernel']) and len(metadata['kernel']) <= 256 and
              metadata.get('version') == _VERSION and metadata.get('sourceCommit') == pin['sourceCommit'] and
              metadata.get('sourceTree') == pin['sourceTree'] and metadata.get('forkTree') == pin['forkTree'] and
@@ -149,6 +154,23 @@ def inspect_serial_controls(pin, run, job, artifact_inventory, job_log_bytes, ar
              metadata.get('job') == 'controls' and metadata.get('platform') == 'linux' and metadata.get('pullRequestHead') == '' and
              metadata.get('pullRequestBase') == '' and metadata.get('runtimeAuthorized') is False and metadata.get('independentFinalityVerified') is False,
              'original metadata identity differs')
+    manifest_raw=members['test-manifest.json']
+    manifest=_json(manifest_raw)
+    _require(type(manifest) is dict and set(manifest)=={'version','sourceCommit','groups'}
+             and manifest.get('version')=='YNX-SERIAL-VERIFIER-TEST-MANIFEST/v1'
+             and manifest.get('sourceCommit')==pin['sourceCommit']
+             and manifest_raw==(json.dumps(manifest,sort_keys=True,separators=(',',':'))+'\n').encode('utf-8')
+             and metadata.get('testManifestSHA256')==_sha(manifest_raw), 'original test manifest differs')
+    expected_groups=[]
+    for group in groups:
+        name=group['name']
+        _require(name in _GROUP_FILES, 'unknown original test source')
+        identities=[]
+        for test in group['tests']:
+            match=_TEST.fullmatch(test)
+            identities.append('original_serial_ci_'+match.group(2)+'.'+match.group(3)+'.'+match.group(4))
+        expected_groups.append(dict(name=name,file=_GROUP_FILES[name],tests=sorted(identities)))
+    _require(manifest.get('groups')==expected_groups, 'original test manifest inventory differs')
     entries = metadata.get('groups')
     _require(type(entries) is list and len(entries) == len(groups), 'original group metadata differs')
     for group, entry in zip(groups, entries):
@@ -173,10 +195,10 @@ def inspect_serial_controls(pin, run, job, artifact_inventory, job_log_bytes, ar
         frames.append(('YNX-SERIAL-CONTROLS-BEGIN/v1 group=%s source=%s run=%s attempt=1\n' % (name, pin['sourceCommit'], pin['runId'])).encode())
         frames.extend(members[name + '.log'].splitlines(keepends=True))
         frames.append(('YNX-SERIAL-CONTROLS-END/v1 group=%s\n' % name).encode())
-    metadata_frame = b'YNX-SERIAL-CONTROLS-METADATA/v1 ' + members['metadata.json']
-    frames.append(metadata_frame)
-    markers = [i for i, (_, line) in enumerate(runner) if line.startswith((b'YNX-SERIAL-CONTROLS-BEGIN/v1 ', b'YNX-SERIAL-CONTROLS-END/v1 ', b'YNX-SERIAL-CONTROLS-METADATA/v1 '))]
-    _require(len(markers) == 2 * len(groups) + 1 and markers[0] + len(frames) <= len(runner), 'original frames missing or duplicated')
+    frames.append(b'YNX-SERIAL-TEST-MANIFEST/v1 ' + manifest_raw)
+    frames.append(b'YNX-SERIAL-CONTROLS-METADATA/v1 ' + members['metadata.json'])
+    markers = [i for i, (_, line) in enumerate(runner) if line.startswith((b'YNX-SERIAL-CONTROLS-BEGIN/v1 ', b'YNX-SERIAL-CONTROLS-END/v1 ', b'YNX-SERIAL-TEST-MANIFEST/v1 ', b'YNX-SERIAL-CONTROLS-METADATA/v1 '))]
+    _require(len(markers) == 2 * len(groups) + 2 and markers[0] + len(frames) <= len(runner), 'original frames missing or duplicated')
     actual = runner[markers[0]:markers[0] + len(frames)]
     _require([line for _, line in actual] == frames and all(when is not None and start <= when <= end for when, _ in actual), 'original framed bytes or step differ')
     return {'classification': 'DATA_ONLY', 'sourceCommit': pin['sourceCommit'], 'runId': pin['runId'],

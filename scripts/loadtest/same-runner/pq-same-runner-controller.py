@@ -43,7 +43,7 @@ SERIAL_VERIFIER_BINDING = None  # Owner-frozen per-arm serial CI evidence only; 
 SERIAL_CONTROLS_MANIFEST_BY_SOURCE = {}  # Separately reviewed exact-source ordered test-list digests only.
 SERIAL_CONTROL_MINIMUMS = {'staged':23, 'serial':28, 'independent':25, 'bounded-sender':24,
     'header-data':11, 'header-driver-data':8,
-    'commit-validation':13, 'initialization':39, 'go-evidence-parser':7, 'scheduler-boundaries':22}
+    'commit-validation':13, 'initialization':39, 'go-evidence-parser':7, 'scheduler-boundaries':23}
 SERIAL_CRITICAL_TESTS = {
     'staged': ('StagedIndependentSchedulerControls', (
         'test_terminal_snapshot_spanning_deadline_is_unknown_and_never_drains',
