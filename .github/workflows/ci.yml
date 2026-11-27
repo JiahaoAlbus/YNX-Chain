@@ -58,7 +58,7 @@ jobs:
         working-directory: apps/merchant-console
         run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund
       - name: Test original merchant lookup and authority refusal
-        run: node --test apps/merchant-console/test/request-boundary.test.js apps/merchant-console/test/merchant-recovery-normal.test.js
+        run: node --test apps/merchant-console/test/request-boundary.test.js apps/merchant-console/test/merchant-recovery-normal.test.js apps/merchant-console/test/invoice-presentation.test.js
 
   pay-qa-input:
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/v5-p06-pay'

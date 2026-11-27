@@ -39,4 +39,4 @@ export function merchantInvoiceInput(values,catalog,merchantId,{recover=false}={
  return selected?{catalogItemId:selected,tipAmount:tip,expiresInMinutes:expiry}:{description,amount,tipAmount:tip,expiresInMinutes:expiry};
 }
 
-export async function currentMerchantInvoice(api,assertCurrent,subject,id){assertCurrent();const snapshot=await api.state();assertCurrent();const records=realRecords(snapshot,subject);return merchantInvoicePresentation(records.invoices.find(row=>row.id===id),subject.merchantId);}
+export async function currentMerchantInvoice(api,assertCurrent,subject,id){assertCurrent();const snapshot=await api.state();assertCurrent();const records=realRecords(snapshot,subject),matches=records.invoices.filter(row=>row.id===id);if(matches.length!==1)throw reject();return merchantInvoicePresentation(matches[0],subject.merchantId);}
