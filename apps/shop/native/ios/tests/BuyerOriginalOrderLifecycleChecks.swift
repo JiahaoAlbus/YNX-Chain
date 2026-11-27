@@ -259,9 +259,25 @@ final class BuyerLifecycleHTTP:URLProtocol,@unchecked Sendable {
         try check(try g.journal.records(BuyerLifecycleFixture.account)[g.orderID]?.key==unknown.key && g.calls.filter{$0=="POST /api/orders/\(g.orderID)/native-pay-intent"}.count==1 && g.mainCalls.isEmpty,"unknown original intent is recovered by lookup alone")
     }
     @MainActor static func fulfillmentAndRefundRecovery()async throws {
+        do {
+            let g=try BuyerLifecycleFixture();defer{g.finish()};try await g.start();try await g.checkout()
+            try g.restoreArchivedPayment(status:"shipped");await g.model.loadOrders()
+            g.model.beginOrderAction(g.model.orders[0],"delivered",title:"Confirm delivery")
+            let form=g.model.orderActionPresentation!
+            try check(g.model.submitOrderAction(form,rating:0,reason:"",detail:""),"original delivery form prepares an operation")
+            g.model.orders=[];try await until{!g.model.mutationBusy}
+            let retained=try g.queue.load(account:BuyerLifecycleFixture.account).first!
+            try check(try g.queue.dispatchPhase(retained)=="prepared" && !g.calls.contains("POST /api/orders/\(g.orderID)/transition"),"removed original before dispatch retains prepared bytes without sending")
+        }
         let f=try BuyerLifecycleFixture();defer{f.finish()};try await f.start();try await f.checkout()
         try f.restoreArchivedPayment(status:"shipped");await f.model.loadOrders()
         try check(f.model.orders.first?.status=="shipped" && f.model.orders.first?.nativePayment?.PaidAtoms=="100","original archived settlement is required before fulfillment is shown")
+        let originalOrders=f.model.orders
+        f.model.beginOrderAction(originalOrders[0],"delivered",title:"Confirm delivery")
+        let staleDelivery=f.model.orderActionPresentation!
+        f.model.orders=[]
+        try check(!f.model.submitOrderAction(staleDelivery,rating:0,reason:"",detail:"") && !f.calls.contains("POST /api/orders/\(f.orderID)/transition"),"removed original order cannot submit an old delivery form")
+        f.model.orders=originalOrders
         f.model.beginOrderAction(f.model.orders[0],"delivered",title:"Confirm delivery")
         let delivery=f.model.orderActionPresentation!
         try check(f.model.submitOrderAction(delivery,rating:0,reason:"",detail:""),"normal buyer delivery confirmation admits one original transition")
